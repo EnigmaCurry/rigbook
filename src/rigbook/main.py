@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -6,9 +7,15 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from rigbook.db import init_db
+from rigbook.flrig import router as flrig_router
 from rigbook.routes.contacts import router as contacts_router
 from rigbook.routes.settings import router as settings_router
-from rigbook.flrig import router as flrig_router
+
+
+class _SuccessFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        msg = record.getMessage()
+        return '" 200 ' not in msg and '" 304 ' not in msg
 
 
 @asynccontextmanager
@@ -29,4 +36,5 @@ if static_dir.is_dir():
 
 
 def run() -> None:
+    logging.getLogger("uvicorn.access").addFilter(_SuccessFilter())
     uvicorn.run("rigbook.main:app", host="0.0.0.0", port=8073)
