@@ -64,7 +64,8 @@
     on:focus={onFocus}
     on:blur={onBlur}
     on:keydown={onKeydown}
-    autocomplete="off"
+    autocomplete="nope"
+    name="ac-{id}-{Math.random().toString(36).slice(2)}"
   />
   {#if open && filtered.length > 0}
     <ul class="dropdown">
