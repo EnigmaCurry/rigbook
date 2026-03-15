@@ -137,6 +137,7 @@
   // Auto-fill freq/mode from VFO when not editing
   // Apply prefill from hunting spot
   $: if (prefill && !editingId) {
+    prefillSource = "hunting";
     if (prefill.call) call = prefill.call;
     if (prefill.freq) freq = prefill.freq;
     if (prefill.mode) mode = prefill.mode;
@@ -144,6 +145,8 @@
     if (prefill.grid) grid = prefill.grid;
     if (prefill.country) country = prefill.country;
     dispatch("prefillconsumed");
+    // Lookup name from QRZ
+    if (prefill.call) lookupQrz(prefill.call.toUpperCase());
   }
 
   // Auto-fill freq/mode from VFO when not editing and no prefill
@@ -152,6 +155,39 @@
   }
   $: if (!editingId && !prefill && vfoMode) {
     mode = vfoMode;
+  }
+
+  let qrzTimer;
+  let lastQrzCall = "";
+  let prefillSource = null; // tracks if prefill came from hunting
+
+  async function lookupQrz(callsign) {
+    if (!callsign || callsign.length < 3 || callsign === lastQrzCall) return;
+    lastQrzCall = callsign;
+    try {
+      const res = await fetch(`/api/qrz/lookup/${callsign}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.error) return;
+      // If from hunting spot, only fill name. Otherwise fill all empty fields.
+      if (prefillSource === "hunting") {
+        if (!name && data.name) name = data.name;
+      } else {
+        if (!name && data.name) name = data.name;
+        if (!qth && data.qth) qth = data.qth;
+        if (!state && data.state) state = data.state;
+        if (!country && data.country) country = data.country;
+        if (!grid && data.grid) grid = data.grid;
+      }
+    } catch {}
+  }
+
+  function onCallInput() {
+    call = call.replace(/\s/g, "");
+    clearTimeout(qrzTimer);
+    if (call.length >= 3) {
+      qrzTimer = setTimeout(() => lookupQrz(call.toUpperCase()), 500);
+    }
   }
 
   $: stripCall = () => { call = call.replace(/\s/g, ""); };
@@ -260,6 +296,8 @@
   }
 
   function clearForm() {
+    lastQrzCall = "";
+    prefillSource = null;
     call = "";
     freq = "";
     mode = "CW";
@@ -390,7 +428,7 @@
         id="call"
         type="text"
         bind:value={call}
-        on:input={stripCall}
+        on:input={onCallInput}
         required
         maxlength="10"
         autocomplete="off"

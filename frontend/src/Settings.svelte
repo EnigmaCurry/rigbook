@@ -17,6 +17,15 @@
     document.documentElement.classList.toggle("light", theme === "light");
   }
 
+  async function clearQrzCache() {
+    try {
+      await fetch("/api/qrz/cache", { method: "DELETE" });
+      message = "QRZ cache cleared.";
+    } catch {
+      message = "Failed to clear cache.";
+    }
+  }
+
   $: stripCallsign = () => { my_callsign = my_callsign.replace(/\s/g, ""); };
   $: stripGrid = () => { my_grid = my_grid.replace(/[^A-Za-z0-9]/g, ""); };
 
@@ -106,6 +115,10 @@
   <div class="setting-row">
     <label for="qrz_api_key">QRZ API Key</label>
     <input id="qrz_api_key" type="password" bind:value={qrz_api_key} autocomplete="off" />
+  </div>
+
+  <div class="setting-row toggle-row">
+    <button class="theme-toggle" on:click={clearQrzCache}>Clear QRZ Cache</button>
   </div>
 
   <h3>Appearance</h3>
