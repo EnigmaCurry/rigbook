@@ -201,7 +201,7 @@
       </div>
       <div class="field">
         <label for="country">Country</label>
-        <input id="country" type="text" bind:value={country} list="country-list" on:change={onCountryChange} autocomplete="off" />
+        <input id="country" type="text" bind:value={country} list="country-list" on:input={onCountryChange} />
         <datalist id="country-list">
           {#each countries as c}
             <option value={c.name} />
@@ -210,7 +210,7 @@
       </div>
       <div class="field">
         <label for="state">State</label>
-        <input id="state" type="text" bind:value={state} list="state-list" autocomplete="off" />
+        <input id="state" type="text" bind:value={state} list="state-list" />
         <datalist id="state-list">
           {#each subdivisions as s}
             <option value={s.name} />
