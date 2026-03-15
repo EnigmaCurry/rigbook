@@ -13,7 +13,7 @@
   // Form fields
   let call = "";
   let freq = "";
-  let mode = "";
+  let mode = "CW";
   let rst_sent = "599";
   let rst_recv = "599";
   let pota_park = "";
@@ -238,7 +238,7 @@
   function clearForm() {
     call = "";
     freq = "";
-    mode = "";
+    mode = "CW";
     rst_sent = "599";
     rst_recv = "599";
     pota_park = "";

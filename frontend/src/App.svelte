@@ -55,7 +55,7 @@
       await fetch("/api/flrig/vfo", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ freq: freqHz, mode: vfoEditMode.toUpperCase() || null }),
+        body: JSON.stringify({ freq: freqHz }),
       });
     } catch {}
     vfoEditing = false;
@@ -114,14 +114,13 @@
       {#if vfoEditing}
         <span class="vfo-edit">
           <input type="text" bind:value={vfoEditFreq} class="vfo-input freq" placeholder="Freq" on:keydown={e => e.key === "Enter" && saveVfo()} />
-          <input type="text" bind:value={vfoEditMode} class="vfo-input mode" placeholder="Mode" style="text-transform: uppercase" on:keydown={e => e.key === "Enter" && saveVfo()} />
           <button class="vfo-btn save" on:click={saveVfo}>Set</button>
           <button class="vfo-btn cancel" on:click={cancelVfoEdit}>X</button>
         </span>
-      {:else if vfoFreq || vfoMode}
+      {:else if vfoFreq}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="vfo" on:click={startVfoEdit} title="Click to change VFO">{formatFreq(vfoFreq)}{vfoMode ? ` ${vfoMode}` : ""}</span>
+        <span class="vfo" on:click={startVfoEdit} title="Click to change VFO">{formatFreq(vfoFreq)}</span>
       {/if}
     </div>
     <div class="hamburger-wrap">
