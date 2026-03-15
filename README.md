@@ -18,7 +18,7 @@ with a local web UI, optionally connected to your radio via
   mode/band, click to tune your radio
 - SKCC and POTA park tracking
 - All timestamps in UTC
-- Dark-themed UI
+- Light and dark themes (toggle in Settings)
 
 ## Requirements
 
