@@ -12,8 +12,8 @@ router = APIRouter(prefix="/api/contacts", tags=["contacts"])
 
 class ContactCreate(BaseModel):
     call: str
-    freq: str | None = None
-    mode: str | None = None
+    freq: str
+    mode: str
     rst_sent: str | None = None
     rst_recv: str | None = None
     pota_park: str | None = None

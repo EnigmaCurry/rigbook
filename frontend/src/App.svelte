@@ -4,13 +4,12 @@
   let myCallsign = "";
   let contacts = [];
 
-  // flrig state (read-only, polled)
-  let freq = "";
-  let mode = "";
   let flrigInterval;
 
   // Form fields
   let call = "";
+  let freq = "";
+  let mode = "";
   let rst_sent = "599";
   let rst_recv = "599";
   let pota_park = "";
@@ -49,23 +48,20 @@
       const res = await fetch("/api/flrig/status");
       if (res.ok) {
         const data = await res.json();
-        freq = data.freq || "";
-        mode = data.mode || "";
+        if (data.freq) freq = data.freq;
+        if (data.mode) mode = data.mode;
       }
-    } catch {
-      freq = "";
-      mode = "";
-    }
+    } catch {}
   }
 
   async function submitContact() {
-    if (!call.trim()) return;
+    if (!call.trim() || !freq.trim() || !mode.trim()) return;
     submitting = true;
     try {
       const body = {
         call: call.trim().toUpperCase(),
-        freq: freq || null,
-        mode: mode || null,
+        freq: freq.trim(),
+        mode: mode.trim().toUpperCase(),
         rst_sent: rst_sent || null,
         rst_recv: rst_recv || null,
         pota_park: pota_park || null,
@@ -84,10 +80,8 @@
         body: JSON.stringify(body),
       });
       if (res.ok) {
-        // Reset form
+        // Reset form (freq/mode kept — likely same for next QSO)
         call = "";
-        rst_sent = "599";
-        rst_recv = "599";
         pota_park = "";
         name = "";
         qth = "";
@@ -140,17 +134,6 @@
     {/if}
   </header>
 
-  <section class="rig-status">
-    <span class="status-item">
-      <label>Freq:</label>
-      <span class="value">{formatFreq(freq)}</span>
-    </span>
-    <span class="status-item">
-      <label>Mode:</label>
-      <span class="value">{mode || "--"}</span>
-    </span>
-  </section>
-
   <form on:submit|preventDefault={submitContact}>
     <div class="form-row">
       <div class="field">
@@ -163,6 +146,14 @@
           autocomplete="off"
           style="text-transform: uppercase"
         />
+      </div>
+      <div class="field">
+        <label for="freq">Freq (MHz) *</label>
+        <input id="freq" type="text" bind:value={freq} required />
+      </div>
+      <div class="field">
+        <label for="mode">Mode *</label>
+        <input id="mode" type="text" bind:value={mode} required style="text-transform: uppercase" />
       </div>
       <div class="field">
         <label for="rst_sent">RST Sent</label>
@@ -220,7 +211,7 @@
     </div>
 
     <div class="form-row">
-      <button type="submit" disabled={submitting || !call.trim()}>
+      <button type="submit" disabled={submitting || !call.trim() || !freq.trim() || !mode.trim()}>
         {submitting ? "Logging..." : "Log QSO"}
       </button>
     </div>
@@ -307,26 +298,6 @@
   .callsign {
     color: #ffcc00;
     font-size: 1.2rem;
-    font-weight: bold;
-  }
-
-  .rig-status {
-    display: flex;
-    gap: 2rem;
-    padding: 0.5rem 0.75rem;
-    background: #0f0f23;
-    border: 1px solid #333;
-    border-radius: 4px;
-    margin-bottom: 1rem;
-  }
-
-  .status-item label {
-    color: #888;
-    margin-right: 0.4rem;
-  }
-
-  .status-item .value {
-    color: #00ccff;
     font-weight: bold;
   }
 
