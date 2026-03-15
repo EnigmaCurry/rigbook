@@ -39,6 +39,46 @@
   let editingId = null;
   export let showForm = true;
 
+  let sortCol = "timestamp";
+  let sortAsc = false;
+
+  const columns = [
+    { key: "timestamp", label: "UTC" },
+    { key: "call", label: "Call" },
+    { key: "freq", label: "Freq" },
+    { key: "mode", label: "Mode" },
+    { key: "rst_sent", label: "RST S" },
+    { key: "rst_recv", label: "RST R" },
+    { key: "name", label: "Name" },
+    { key: "qth", label: "QTH" },
+    { key: "pota_park", label: "POTA" },
+    { key: "comments", label: "Comments" },
+  ];
+
+  function toggleSort(key) {
+    if (sortCol === key) {
+      sortAsc = !sortAsc;
+    } else {
+      sortCol = key;
+      sortAsc = key === "timestamp" ? false : true;
+    }
+  }
+
+  $: sortedContacts = [...contacts].sort((a, b) => {
+    let va = a[sortCol] ?? "";
+    let vb = b[sortCol] ?? "";
+    if (sortCol === "freq" || sortCol === "skcc") {
+      va = parseFloat(va) || 0;
+      vb = parseFloat(vb) || 0;
+    } else if (typeof va === "string") {
+      va = va.toLowerCase();
+      vb = (vb || "").toLowerCase();
+    }
+    if (va < vb) return sortAsc ? -1 : 1;
+    if (va > vb) return sortAsc ? 1 : -1;
+    return 0;
+  });
+
   async function fetchContacts() {
     try {
       const res = await fetch("/api/contacts/");
@@ -430,20 +470,15 @@
       <table>
         <thead>
           <tr>
-            <th>UTC</th>
-            <th>Call</th>
-            <th>Freq</th>
-            <th>Mode</th>
-            <th>RST S</th>
-            <th>RST R</th>
-            <th>Name</th>
-            <th>QTH</th>
-            <th>POTA</th>
-            <th>Comments</th>
+            {#each columns as col}
+              <th class="sortable" on:click={() => toggleSort(col.key)}>
+                {col.label}{#if sortCol === col.key}{sortAsc ? " ▲" : " ▼"}{/if}
+              </th>
+            {/each}
           </tr>
         </thead>
         <tbody>
-          {#each contacts as c}
+          {#each sortedContacts as c}
             <tr class="clickable" class:editing={editingId === c.id} on:click={() => editContact(c)}>
               <td>{formatTimestamp(c.timestamp)}</td>
               <td class="call">{c.call}</td>
@@ -590,6 +625,15 @@
     border-bottom: 1px solid #5a5c6a;
     padding: 0.3rem 0.5rem;
     white-space: nowrap;
+  }
+
+  th.sortable {
+    cursor: pointer;
+    user-select: none;
+  }
+
+  th.sortable:hover {
+    color: #00ff88;
   }
 
   td {
