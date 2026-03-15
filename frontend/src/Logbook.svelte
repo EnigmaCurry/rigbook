@@ -37,6 +37,7 @@
   let submitting = false;
   let errorMsg = "";
   let editingId = null;
+  let showForm = false;
 
   async function fetchContacts() {
     try {
@@ -86,8 +87,15 @@
   $: stripPota = () => { pota_park = pota_park.replace(/[^A-Za-z0-9\-]/g, ""); };
   $: stripSkcc = () => { skcc = skcc.replace(/[^0-9]/g, ""); };
 
+  function startAdd() {
+    clearForm();
+    editingId = null;
+    showForm = true;
+  }
+
   function editContact(c) {
     editingId = c.id;
+    showForm = true;
     dispatch("editchange", c.id);
     call = c.call || "";
     freq = c.freq || "";
@@ -119,6 +127,7 @@
 
   function cancelEdit() {
     editingId = null;
+    showForm = false;
     dispatch("editchange", null);
     clearForm();
   }
@@ -130,6 +139,7 @@
       const res = await fetch(`/api/contacts/${editingId}`, { method: "DELETE" });
       if (res.ok) {
         editingId = null;
+        showForm = false;
         dispatch("editchange", null);
         clearForm();
         await fetchContacts();
@@ -170,6 +180,7 @@
       });
       if (res.ok) {
         editingId = null;
+        showForm = false;
         dispatch("editchange", null);
         clearForm();
         await fetchContacts();
@@ -236,6 +247,7 @@
         body: JSON.stringify(body),
       });
       if (res.ok) {
+        showForm = false;
         call = "";
         pota_park = "";
         name = "";
@@ -307,6 +319,11 @@
   }
 </script>
 
+{#if !showForm}
+  <button class="btn-add" on:click={startAdd}>Add QSO</button>
+{/if}
+
+{#if showForm}
 <form on:submit|preventDefault={editingId ? saveEdit : submitContact}>
   <div class="form-row">
     <div class="field">
@@ -405,13 +422,14 @@
       <button type="button" class="btn-clear" on:click={cancelEdit}>Cancel</button>
       <button type="button" class="btn-delete" on:click={deleteContact}>Delete</button>
     {:else}
-      <button type="button" class="btn-clear" on:click={clearForm}>Clear</button>
+      <button type="button" class="btn-clear" on:click={() => { showForm = false; clearForm(); }}>Cancel</button>
     {/if}
     {#if errorMsg}
       <span class="error">{errorMsg}</span>
     {/if}
   </div>
 </form>
+{/if}
 
 <section class="log">
   <h2>Log ({contacts.length})</h2>
@@ -456,6 +474,23 @@
 </section>
 
 <style>
+  .btn-add {
+    background: #00ff88;
+    color: #1a1a2e;
+    border: none;
+    padding: 0.6rem 2rem;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 1rem;
+  }
+
+  .btn-add:hover {
+    background: #00cc6a;
+  }
+
   form {
     background: #4a4c5a;
     border: 1px solid #5a5c6a;
