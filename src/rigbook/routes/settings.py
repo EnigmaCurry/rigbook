@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,7 +30,7 @@ async def get_setting(key: str, session: AsyncSession = Depends(get_session)):
     result = await session.execute(select(Setting).where(Setting.key == key))
     setting = result.scalar_one_or_none()
     if not setting:
-        raise HTTPException(status_code=404, detail="Setting not found")
+        return SettingResponse(key=key, value=None)
     return setting
 
 
