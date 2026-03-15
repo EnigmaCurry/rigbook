@@ -20,8 +20,10 @@
   let country = "United States";
   let grid = "";
   let skcc = "";
-  let datePart = "";
-  let timePart = "";
+  function utcNowDate() { return new Date().toISOString().slice(0, 10); }
+  function utcNowTime() { return new Date().toISOString().slice(11, 19); }
+  let datePart = utcNowDate();
+  let timePart = utcNowTime();
   let comments = "";
   let notes = "";
 
@@ -164,7 +166,7 @@
         skcc: parseInt(skcc, 10),
         comments: comments || null,
         notes: notes || null,
-        timestamp: datePart ? `${datePart}T${timePart || "00:00:00"}Z` : null,
+        timestamp: `${datePart}T${timePart || "00:00:00"}Z`,
       };
       const res = await fetch(`/api/contacts/${editingId}`, {
         method: "PUT",
@@ -200,8 +202,8 @@
     skcc = "";
     comments = "";
     notes = "";
-    datePart = "";
-    timePart = "";
+    datePart = utcNowDate();
+    timePart = utcNowTime();
     fetchSubdivisions("US");
   }
 
@@ -230,7 +232,7 @@
         skcc: parseInt(skcc, 10),
         comments: comments || null,
         notes: notes || null,
-        timestamp: datePart ? `${datePart}T${timePart || "00:00:00"}Z` : new Date().toISOString(),
+        timestamp: `${datePart}T${timePart || "00:00:00"}Z`,
       };
       const res = await fetch("/api/contacts/", {
         method: "POST",
