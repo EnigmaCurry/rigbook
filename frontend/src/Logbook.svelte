@@ -146,7 +146,7 @@
     if (prefill.country) country = prefill.country;
     dispatch("prefillconsumed");
     // Lookup name from QRZ
-    if (prefill.call) lookupQrz(prefill.call.toUpperCase());
+    if (prefill.call) lookupCallsign(prefill.call.toUpperCase());
   }
 
   // Auto-fill freq/mode from VFO when not editing and no prefill
@@ -161,9 +161,25 @@
   let lastQrzCall = "";
   let prefillSource = null; // tracks if prefill came from hunting
 
-  async function lookupQrz(callsign) {
+  async function lookupCallsign(callsign) {
     if (!callsign || callsign.length < 3 || callsign === lastQrzCall) return;
     lastQrzCall = callsign;
+
+    // SKCC lookup (always, if not already set)
+    if (!skcc) {
+      try {
+        const res = await fetch(`/api/skcc/lookup/${callsign}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.skcc) {
+            const num = parseInt(data.skcc, 10);
+            if (!isNaN(num)) skcc = String(num);
+          }
+        }
+      } catch {}
+    }
+
+    // QRZ lookup
     try {
       const res = await fetch(`/api/qrz/lookup/${callsign}`);
       if (!res.ok) return;
@@ -186,7 +202,7 @@
     call = call.replace(/\s/g, "");
     clearTimeout(qrzTimer);
     if (call.length >= 3) {
-      qrzTimer = setTimeout(() => lookupQrz(call.toUpperCase()), 500);
+      qrzTimer = setTimeout(() => lookupCallsign(call.toUpperCase()), 500);
     }
   }
 
