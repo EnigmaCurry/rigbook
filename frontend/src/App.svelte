@@ -3,7 +3,15 @@
   import Logbook from "./Logbook.svelte";
   import Settings from "./Settings.svelte";
 
-  let page = "logbook";
+  const routes = { "/": "logbook", "/settings": "settings" };
+  const paths = { "logbook": "/", "settings": "/settings" };
+
+  function pageFromHash() {
+    const hash = window.location.hash.slice(1) || "/";
+    return routes[hash] || "logbook";
+  }
+
+  let page = pageFromHash();
   let menuOpen = false;
   let myCallsign = "";
 
@@ -20,10 +28,20 @@
   function navigate(p) {
     page = p;
     menuOpen = false;
+    window.location.hash = paths[p];
     if (p === "logbook") fetchCallsign();
   }
 
-  onMount(fetchCallsign);
+  function onHashChange() {
+    page = pageFromHash();
+    if (page === "logbook") fetchCallsign();
+  }
+
+  onMount(() => {
+    fetchCallsign();
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  });
 </script>
 
 <main>
