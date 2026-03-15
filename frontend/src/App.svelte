@@ -15,6 +15,55 @@
   let { page, editId } = parseHash();
   let menuOpen = false;
   let myCallsign = "";
+  let vfoFreq = "";
+  let vfoMode = "";
+  let vfoEditing = false;
+  let vfoEditFreq = "";
+  let vfoEditMode = "";
+  let flrigInterval;
+
+  async function pollFlrig() {
+    try {
+      const res = await fetch("/api/flrig/status");
+      if (res.ok) {
+        const data = await res.json();
+        vfoFreq = data.freq || "";
+        vfoMode = data.mode || "";
+      }
+    } catch {
+      vfoFreq = "";
+      vfoMode = "";
+    }
+  }
+
+  function formatFreq(f) {
+    if (!f) return "";
+    const n = parseFloat(f);
+    if (isNaN(n)) return f;
+    return parseFloat(n.toFixed(4)).toString() + " KHz";
+  }
+
+  function startVfoEdit() {
+    vfoEditFreq = vfoFreq;
+    vfoEditMode = vfoMode;
+    vfoEditing = true;
+  }
+
+  async function saveVfo() {
+    try {
+      await fetch("/api/flrig/vfo", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ freq: vfoEditFreq || null, mode: vfoEditMode.toUpperCase() || null }),
+      });
+    } catch {}
+    vfoEditing = false;
+    pollFlrig();
+  }
+
+  function cancelVfoEdit() {
+    vfoEditing = false;
+  }
 
   async function fetchCallsign() {
     try {
@@ -44,8 +93,13 @@
 
   onMount(() => {
     fetchCallsign();
+    pollFlrig();
+    flrigInterval = setInterval(pollFlrig, 2000);
     window.addEventListener("hashchange", onHashChange);
-    return () => window.removeEventListener("hashchange", onHashChange);
+    return () => {
+      clearInterval(flrigInterval);
+      window.removeEventListener("hashchange", onHashChange);
+    };
   });
 </script>
 
@@ -55,6 +109,18 @@
       <h1>Rigbook</h1>
       {#if myCallsign}
         <span class="callsign">{myCallsign}</span>
+      {/if}
+      {#if vfoEditing}
+        <span class="vfo-edit">
+          <input type="text" bind:value={vfoEditFreq} class="vfo-input freq" placeholder="Freq" on:keydown={e => e.key === "Enter" && saveVfo()} />
+          <input type="text" bind:value={vfoEditMode} class="vfo-input mode" placeholder="Mode" style="text-transform: uppercase" on:keydown={e => e.key === "Enter" && saveVfo()} />
+          <button class="vfo-btn save" on:click={saveVfo}>Set</button>
+          <button class="vfo-btn cancel" on:click={cancelVfoEdit}>X</button>
+        </span>
+      {:else if vfoFreq || vfoMode}
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <span class="vfo" on:click={startVfoEdit} title="Click to change VFO">{formatFreq(vfoFreq)}{vfoMode ? ` ${vfoMode}` : ""}</span>
       {/if}
     </div>
     <div class="hamburger-wrap">
@@ -133,6 +199,65 @@
     color: #ffcc00;
     font-size: 1.2rem;
     font-weight: bold;
+  }
+
+  .vfo {
+    color: #00ccff;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+
+  .vfo:hover {
+    text-decoration: underline;
+  }
+
+  .vfo-edit {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .vfo-input {
+    background: #5a5c6a;
+    border: 1px solid #6e7080;
+    color: #00ccff;
+    padding: 0.15rem 0.4rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    border-radius: 3px;
+    outline: none;
+  }
+
+  .vfo-input.freq {
+    width: 100px;
+  }
+
+  .vfo-input.mode {
+    width: 60px;
+  }
+
+  .vfo-input:focus {
+    border-color: #00ccff;
+  }
+
+  .vfo-btn {
+    padding: 0.15rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 3px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: bold;
+  }
+
+  .vfo-btn.save {
+    background: #00ccff;
+    color: #1a1a2e;
+  }
+
+  .vfo-btn.cancel {
+    background: #6e7080;
+    color: #eaeaea;
   }
 
   .log-header {
