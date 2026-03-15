@@ -1,3 +1,4 @@
+import asyncio
 import xmlrpc.client
 
 from fastapi import APIRouter
@@ -66,24 +67,27 @@ class FlrigSet(BaseModel):
 
 @router.get("/status", response_model=FlrigStatus)
 async def flrig_status():
+    loop = asyncio.get_event_loop()
     client = FlrigClient()
-    freq = client.get_frequency()
-    mode = client.get_mode()
+    freq = await loop.run_in_executor(None, client.get_frequency)
+    mode = await loop.run_in_executor(None, client.get_mode)
     connected = freq is not None
     return FlrigStatus(freq=freq, mode=mode, connected=connected)
 
 
 @router.get("/modes")
 async def flrig_modes():
+    loop = asyncio.get_event_loop()
     client = FlrigClient()
-    return client.get_modes()
+    return await loop.run_in_executor(None, client.get_modes)
 
 
 @router.put("/vfo")
 async def flrig_set_vfo(data: FlrigSet):
+    loop = asyncio.get_event_loop()
     client = FlrigClient()
     if data.freq is not None:
-        client.set_frequency(data.freq)
+        await loop.run_in_executor(None, client.set_frequency, data.freq)
     if data.mode is not None:
-        client.set_mode(data.mode)
+        await loop.run_in_executor(None, client.set_mode, data.mode)
     return {"ok": True}
