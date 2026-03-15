@@ -367,7 +367,7 @@
     <div class="form-row">
       <div class="field">
         <label for="timestamp">Timestamp (UTC)</label>
-        <input id="timestamp" type="datetime-local" bind:value={timestamp} placeholder="now" />
+        <input id="timestamp" type="datetime-local" step="1" bind:value={timestamp} placeholder="now" />
       </div>
       <div class="field wide">
         <label for="notes">Notes</label>
