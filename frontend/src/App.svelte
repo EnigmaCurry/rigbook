@@ -189,6 +189,7 @@
         pollFlrig();
       } catch {}
       prefill = {
+        call: spot.activator || "",
         freq: spot.frequency || "",
         mode: spot.mode || "",
         pota_park: spot.reference || "",

@@ -15,6 +15,7 @@
   let call = "";
   let freq = "";
   let mode = "CW";
+  let defaultRst = "599";
   let rst_sent = "599";
   let rst_recv = "599";
   let pota_park = "";
@@ -90,6 +91,20 @@
     } catch {}
   }
 
+  async function fetchDefaultRst() {
+    try {
+      const res = await fetch("/api/settings/default_rst");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.value) {
+          defaultRst = data.value;
+          rst_sent = defaultRst;
+          rst_recv = defaultRst;
+        }
+      }
+    } catch {}
+  }
+
   async function fetchCountries() {
     try {
       const res = await fetch("/api/geo/countries");
@@ -122,6 +137,7 @@
   // Auto-fill freq/mode from VFO when not editing
   // Apply prefill from hunting spot
   $: if (prefill && !editingId) {
+    if (prefill.call) call = prefill.call;
     if (prefill.freq) freq = prefill.freq;
     if (prefill.mode) mode = prefill.mode;
     if (prefill.pota_park) pota_park = prefill.pota_park;
@@ -247,8 +263,8 @@
     call = "";
     freq = "";
     mode = "CW";
-    rst_sent = "599";
-    rst_recv = "599";
+    rst_sent = defaultRst;
+    rst_recv = defaultRst;
     pota_park = "";
     name = "";
     qth = "";
@@ -341,6 +357,7 @@
 
   onMount(() => {
     fetchContacts();
+    fetchDefaultRst();
     fetchCountries();
     fetchModes();
     fetchSubdivisions("US");

@@ -3,6 +3,8 @@
 
   let my_callsign = "";
   let my_grid = "";
+  let default_rst = "599";
+  let qrz_api_key = "";
   let flrig_host = "localhost";
   let flrig_port = "12345";
   let theme = localStorage.getItem("rigbook-theme") || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
@@ -26,6 +28,8 @@
         for (const s of data) {
           if (s.key === "my_callsign") my_callsign = s.value || "";
           if (s.key === "my_grid") my_grid = s.value || "";
+          if (s.key === "default_rst") default_rst = s.value || "599";
+          if (s.key === "qrz_api_key") qrz_api_key = s.value || "";
           if (s.key === "flrig_host") flrig_host = s.value || "localhost";
           if (s.key === "flrig_port") flrig_port = s.value || "12345";
         }
@@ -46,6 +50,16 @@
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value: my_grid.trim().toUpperCase() }),
+      });
+      await fetch("/api/settings/default_rst", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: default_rst.trim() }),
+      });
+      await fetch("/api/settings/qrz_api_key", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: qrz_api_key.trim() }),
       });
       await fetch("/api/settings/flrig_host", {
         method: "PUT",
@@ -78,6 +92,20 @@
   <div class="setting-row">
     <label for="my_grid">My Grid Square</label>
     <input id="my_grid" type="text" bind:value={my_grid} on:input={stripGrid} autocomplete="off" style="text-transform: uppercase" />
+  </div>
+
+  <h3>Defaults</h3>
+
+  <div class="setting-row">
+    <label for="default_rst">Default RST</label>
+    <input id="default_rst" type="text" bind:value={default_rst} autocomplete="off" />
+  </div>
+
+  <h3>QRZ</h3>
+
+  <div class="setting-row">
+    <label for="qrz_api_key">QRZ API Key</label>
+    <input id="qrz_api_key" type="password" bind:value={qrz_api_key} autocomplete="off" />
   </div>
 
   <h3>Appearance</h3>
