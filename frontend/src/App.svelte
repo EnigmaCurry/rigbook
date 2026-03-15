@@ -19,7 +19,7 @@
   let state = "";
   let country = "United States";
   let grid = "";
-  let skcc = "";
+  let skcc = null;
   let comments = "";
   let notes = "";
 
@@ -113,7 +113,7 @@
         name = "";
         qth = "";
         grid = "";
-        skcc = "";
+        skcc = null;
         comments = "";
         notes = "";
         await fetchContacts();
@@ -213,18 +213,18 @@
       </div>
       <div class="field">
         <label for="grid">Grid</label>
-        <input id="grid" type="text" bind:value={grid} />
+        <input id="grid" type="text" bind:value={grid} pattern="[A-Za-z0-9]*" style="text-transform: uppercase" />
       </div>
     </div>
 
     <div class="form-row">
       <div class="field">
         <label for="pota_park">POTA Park</label>
-        <input id="pota_park" type="text" bind:value={pota_park} />
+        <input id="pota_park" type="text" bind:value={pota_park} pattern="[A-Za-z0-9\-]*" style="text-transform: uppercase" />
       </div>
       <div class="field">
         <label for="skcc">SKCC</label>
-        <input id="skcc" type="text" bind:value={skcc} />
+        <input id="skcc" type="number" bind:value={skcc} min="1" />
       </div>
       <div class="field wide">
         <label for="comments">Comments</label>

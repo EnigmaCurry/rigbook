@@ -13,14 +13,6 @@ router = APIRouter(prefix="/api/contacts", tags=["contacts"])
 class ContactCreate(BaseModel):
     call: str
     freq: str
-
-    @field_validator("call")
-    @classmethod
-    def validate_call(cls, v: str) -> str:
-        v = v.strip()
-        if not v or " " in v or len(v) > 10:
-            raise ValueError("callsign must be non-whitespace and at most 10 characters")
-        return v.upper()
     mode: str
     rst_sent: str | None = None
     rst_recv: str | None = None
@@ -30,10 +22,38 @@ class ContactCreate(BaseModel):
     state: str | None = None
     country: str | None = None
     grid: str | None = None
-    skcc: str | None = None
+    skcc: int | None = None
     comments: str | None = None
     notes: str | None = None
     timestamp: datetime | None = None
+
+    @field_validator("call")
+    @classmethod
+    def validate_call(cls, v: str) -> str:
+        v = v.strip()
+        if not v or " " in v or len(v) > 10:
+            raise ValueError("callsign must be non-whitespace and at most 10 characters")
+        return v.upper()
+
+    @field_validator("pota_park")
+    @classmethod
+    def validate_pota_park(cls, v: str | None) -> str | None:
+        if not v:
+            return None
+        v = v.strip()
+        if not all(c.isalnum() or c == "-" for c in v):
+            raise ValueError("POTA park must be alphanumeric (hyphens allowed)")
+        return v.upper()
+
+    @field_validator("grid")
+    @classmethod
+    def validate_grid(cls, v: str | None) -> str | None:
+        if not v:
+            return None
+        v = v.strip()
+        if not v.isalnum():
+            raise ValueError("grid must be alphanumeric with no spaces")
+        return v.upper()
 
 
 class ContactUpdate(BaseModel):
@@ -48,7 +68,7 @@ class ContactUpdate(BaseModel):
     state: str | None = None
     country: str | None = None
     grid: str | None = None
-    skcc: str | None = None
+    skcc: int | None = None
     comments: str | None = None
     notes: str | None = None
     timestamp: datetime | None = None
@@ -67,7 +87,7 @@ class ContactResponse(BaseModel):
     state: str | None
     country: str | None
     grid: str | None
-    skcc: str | None
+    skcc: int | None
     comments: str | None
     notes: str | None
     timestamp: datetime

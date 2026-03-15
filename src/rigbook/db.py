@@ -29,7 +29,7 @@ class Contact(Base):
     state: Mapped[str | None] = mapped_column(String, nullable=True)
     country: Mapped[str | None] = mapped_column(String, nullable=True)
     grid: Mapped[str | None] = mapped_column(String, nullable=True)
-    skcc: Mapped[str | None] = mapped_column(String, nullable=True)
+    skcc: Mapped[int | None] = mapped_column(Integer, nullable=True)
     comments: Mapped[str | None] = mapped_column(String, nullable=True)
     notes: Mapped[str | None] = mapped_column(String, nullable=True)
     timestamp: Mapped[datetime] = mapped_column(
