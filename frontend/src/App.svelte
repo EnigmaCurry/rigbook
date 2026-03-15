@@ -74,7 +74,7 @@
   </header>
 
   {#if page === "logbook"}
-    <Logbook {editId} on:editchange={e => { window.location.hash = e.detail ? `/log/${e.detail}` : "/"; }} />
+    <Logbook {editId} on:editchange={e => { editId = e.detail; window.location.hash = e.detail ? `/log/${e.detail}` : "/"; }} />
   {:else if page === "settings"}
     <Settings />
   {/if}
