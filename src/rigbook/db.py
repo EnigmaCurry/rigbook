@@ -37,6 +37,16 @@ class Contact(Base):
     )
 
 
+class Cache(Base):
+    __tablename__ = "cache"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    namespace: Mapped[str] = mapped_column(String, nullable=False)
+    key: Mapped[str] = mapped_column(String, nullable=False)
+    value: Mapped[str | None] = mapped_column(String, nullable=True)
+    expires_at: Mapped[float] = mapped_column(nullable=False)
+
+
 class Setting(Base):
     __tablename__ = "settings"
 

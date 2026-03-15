@@ -1,13 +1,14 @@
+import json
 import logging
 import time
 import xml.etree.ElementTree as ET
 
 import httpx
 from fastapi import APIRouter, Depends
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from rigbook.db import Setting, get_session
+from rigbook.db import Cache, Setting, get_session
 
 logger = logging.getLogger("rigbook")
 
@@ -15,9 +16,8 @@ router = APIRouter(prefix="/api/qrz", tags=["qrz"])
 
 QRZ_URL = "https://xmldata.qrz.com/xml/current/"
 CACHE_TTL = 86400  # 24 hours
+NAMESPACE = "qrz"
 
-# In-memory cache: callsign -> (timestamp, data)
-_cache: dict[str, tuple[float, dict]] = {}
 _session_key: str | None = None
 
 
@@ -27,6 +27,37 @@ async def _get_api_key(session: AsyncSession) -> str:
     )
     s = result.scalar_one_or_none()
     return s.value if s and s.value else ""
+
+
+async def _get_cached(call: str, session: AsyncSession) -> dict | None:
+    result = await session.execute(
+        select(Cache).where(
+            Cache.namespace == NAMESPACE,
+            Cache.key == call,
+            Cache.expires_at > time.time(),
+        )
+    )
+    row = result.scalar_one_or_none()
+    if row and row.value:
+        logger.debug("QRZ cache hit: %s", call)
+        return json.loads(row.value)
+    return None
+
+
+async def _store_cached(call: str, data: dict, session: AsyncSession):
+    # Remove old entry
+    await session.execute(
+        delete(Cache).where(Cache.namespace == NAMESPACE, Cache.key == call)
+    )
+    session.add(
+        Cache(
+            namespace=NAMESPACE,
+            key=call,
+            value=json.dumps(data),
+            expires_at=time.time() + CACHE_TTL,
+        )
+    )
+    await session.commit()
 
 
 async def _login(api_key: str) -> str | None:
@@ -107,12 +138,10 @@ async def _fetch_callsign(callsign: str, api_key: str) -> dict | None:
 async def qrz_lookup(callsign: str, session: AsyncSession = Depends(get_session)):
     call_upper = callsign.upper().strip()
 
-    # Check cache
-    if call_upper in _cache:
-        ts, data = _cache[call_upper]
-        if time.time() - ts < CACHE_TTL:
-            logger.debug("QRZ cache hit: %s", call_upper)
-            return data
+    # Check DB cache
+    cached = await _get_cached(call_upper, session)
+    if cached:
+        return cached
 
     api_key = await _get_api_key(session)
     if not api_key:
@@ -122,12 +151,12 @@ async def qrz_lookup(callsign: str, session: AsyncSession = Depends(get_session)
     if data is None:
         return {"error": "Callsign not found"}
 
-    # Cache the result
-    _cache[call_upper] = (time.time(), data)
+    await _store_cached(call_upper, data, session)
     return data
 
 
 @router.delete("/cache")
-async def clear_cache():
-    _cache.clear()
+async def clear_cache(session: AsyncSession = Depends(get_session)):
+    await session.execute(delete(Cache).where(Cache.namespace == NAMESPACE))
+    await session.commit()
     return {"ok": True}
