@@ -3,6 +3,8 @@
 
   let my_callsign = "";
   let my_grid = "";
+  let flrig_host = "localhost";
+  let flrig_port = "12345";
   let saving = false;
   let message = "";
 
@@ -17,6 +19,8 @@
         for (const s of data) {
           if (s.key === "my_callsign") my_callsign = s.value || "";
           if (s.key === "my_grid") my_grid = s.value || "";
+          if (s.key === "flrig_host") flrig_host = s.value || "localhost";
+          if (s.key === "flrig_port") flrig_port = s.value || "12345";
         }
       }
     } catch {}
@@ -35,6 +39,16 @@
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value: my_grid.trim().toUpperCase() }),
+      });
+      await fetch("/api/settings/flrig_host", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: flrig_host.trim() }),
+      });
+      await fetch("/api/settings/flrig_port", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: flrig_port.trim() }),
       });
       message = "Settings saved.";
     } catch (e) {
@@ -59,6 +73,18 @@
     <input id="my_grid" type="text" bind:value={my_grid} on:input={stripGrid} autocomplete="off" style="text-transform: uppercase" />
   </div>
 
+  <h3>flrig Connection</h3>
+
+  <div class="setting-row">
+    <label for="flrig_host">flrig Host</label>
+    <input id="flrig_host" type="text" bind:value={flrig_host} autocomplete="off" />
+  </div>
+
+  <div class="setting-row">
+    <label for="flrig_port">flrig Port</label>
+    <input id="flrig_port" type="text" bind:value={flrig_port} autocomplete="off" inputmode="numeric" />
+  </div>
+
   <div class="setting-row">
     <button on:click={save} disabled={saving}>
       {saving ? "Saving..." : "Save"}
@@ -78,6 +104,12 @@
     color: #00ff88;
     font-size: 1.2rem;
     margin: 0 0 1rem 0;
+  }
+
+  h3 {
+    color: #b0b2be;
+    font-size: 0.95rem;
+    margin: 1rem 0 0.5rem 0;
   }
 
   .setting-row {

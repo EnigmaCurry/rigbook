@@ -1,12 +1,31 @@
 import asyncio
 import xmlrpc.client
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from rigbook.db import Setting, get_session
 
 router = APIRouter(prefix="/api/flrig", tags=["flrig"])
 
-FLRIG_URL = "http://localhost:12345"
+DEFAULT_FLRIG_HOST = "localhost"
+DEFAULT_FLRIG_PORT = "12345"
+
+
+async def get_flrig_url(session: AsyncSession = Depends(get_session)) -> str:
+    host = DEFAULT_FLRIG_HOST
+    port = DEFAULT_FLRIG_PORT
+    result = await session.execute(
+        select(Setting).where(Setting.key.in_(["flrig_host", "flrig_port"]))
+    )
+    for s in result.scalars():
+        if s.key == "flrig_host" and s.value:
+            host = s.value
+        if s.key == "flrig_port" and s.value:
+            port = s.value
+    return f"http://{host}:{port}"
 
 
 class FlrigStatus(BaseModel):
@@ -16,7 +35,7 @@ class FlrigStatus(BaseModel):
 
 
 class FlrigClient:
-    def __init__(self, url: str = FLRIG_URL):
+    def __init__(self, url: str):
         self.url = url
 
     def get_frequency(self) -> str | None:
@@ -66,9 +85,9 @@ class FlrigSet(BaseModel):
 
 
 @router.get("/status", response_model=FlrigStatus)
-async def flrig_status():
+async def flrig_status(url: str = Depends(get_flrig_url)):
     loop = asyncio.get_event_loop()
-    client = FlrigClient()
+    client = FlrigClient(url)
     freq = await loop.run_in_executor(None, client.get_frequency)
     mode = await loop.run_in_executor(None, client.get_mode)
     connected = freq is not None
@@ -76,16 +95,16 @@ async def flrig_status():
 
 
 @router.get("/modes")
-async def flrig_modes():
+async def flrig_modes(url: str = Depends(get_flrig_url)):
     loop = asyncio.get_event_loop()
-    client = FlrigClient()
+    client = FlrigClient(url)
     return await loop.run_in_executor(None, client.get_modes)
 
 
 @router.put("/vfo")
-async def flrig_set_vfo(data: FlrigSet):
+async def flrig_set_vfo(data: FlrigSet, url: str = Depends(get_flrig_url)):
     loop = asyncio.get_event_loop()
-    client = FlrigClient()
+    client = FlrigClient(url)
     if data.freq is not None:
         await loop.run_in_executor(None, client.set_frequency, data.freq)
     if data.mode is not None:
