@@ -20,8 +20,13 @@
   let country = "United States";
   let grid = "";
   let skcc = "";
+  let timestamp = "";
   let comments = "";
   let notes = "";
+
+  function nowUTC() {
+    return new Date().toISOString().slice(0, 16);
+  }
 
   let countries = [];
   let subdivisions = [];
@@ -73,6 +78,7 @@
   }
 
   async function pollFlrig() {
+    if (editingId) return;
     try {
       const res = await fetch("/api/flrig/status");
       if (res.ok) {
@@ -104,6 +110,7 @@
     skcc = c.skcc != null ? String(c.skcc) : "";
     comments = c.comments || "";
     notes = c.notes || "";
+    timestamp = c.timestamp ? new Date(c.timestamp).toISOString().slice(0, 16) : "";
     errorMsg = "";
     // Load subdivisions for the contact's country without clearing state
     const match = countries.find(co => co.name === country);
@@ -153,6 +160,7 @@
         skcc: parseInt(skcc, 10),
         comments: comments || null,
         notes: notes || null,
+        timestamp: timestamp ? new Date(timestamp + "Z").toISOString() : null,
       };
       const res = await fetch(`/api/contacts/${editingId}`, {
         method: "PUT",
@@ -188,6 +196,7 @@
     skcc = "";
     comments = "";
     notes = "";
+    timestamp = "";
     fetchSubdivisions("US");
   }
 
@@ -216,6 +225,7 @@
         skcc: parseInt(skcc, 10),
         comments: comments || null,
         notes: notes || null,
+        timestamp: timestamp ? new Date(timestamp + "Z").toISOString() : new Date().toISOString(),
       };
       const res = await fetch("/api/contacts/", {
         method: "POST",
@@ -355,6 +365,10 @@
     </div>
 
     <div class="form-row">
+      <div class="field">
+        <label for="timestamp">Timestamp (UTC)</label>
+        <input id="timestamp" type="datetime-local" bind:value={timestamp} placeholder="now" />
+      </div>
       <div class="field wide">
         <label for="notes">Notes</label>
         <textarea id="notes" bind:value={notes} rows="2"></textarea>
