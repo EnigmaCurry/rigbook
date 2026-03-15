@@ -530,7 +530,7 @@
     cursor: pointer;
   }
 
-  button:hover:not(:disabled) {
+  button:hover:not(:disabled):not(.btn-clear):not(.btn-delete) {
     background: #00cc6a;
   }
 
