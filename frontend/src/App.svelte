@@ -6,9 +6,10 @@
   function parseHash() {
     const hash = window.location.hash.slice(1) || "/";
     if (hash === "/settings") return { page: "settings", editId: null };
+    if (hash === "/add") return { page: "add", editId: null };
     const match = hash.match(/^\/log\/(\d+)$/);
-    if (match) return { page: "logbook", editId: parseInt(match[1], 10) };
-    return { page: "logbook", editId: null };
+    if (match) return { page: "add", editId: parseInt(match[1], 10) };
+    return { page: "log", editId: null };
   }
 
   let { page, editId } = parseHash();
@@ -29,15 +30,16 @@
     page = p;
     editId = null;
     menuOpen = false;
-    window.location.hash = p === "settings" ? "/settings" : "/";
-    if (p === "logbook") fetchCallsign();
+    const paths = { log: "/", add: "/add", settings: "/settings" };
+    window.location.hash = paths[p] || "/";
+    fetchCallsign();
   }
 
   function onHashChange() {
     const parsed = parseHash();
     page = parsed.page;
     editId = parsed.editId;
-    if (page === "logbook") fetchCallsign();
+    fetchCallsign();
   }
 
   onMount(() => {
@@ -66,15 +68,21 @@
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <div class="menu-backdrop" on:click={() => menuOpen = false}></div>
         <nav class="menu">
-          <button class="menu-item" class:active={page === "logbook"} on:click={() => navigate("logbook")}>Logbook</button>
+          <button class="menu-item" class:active={page === "log"} on:click={() => navigate("log")}>Logbook</button>
+          <button class="menu-item" class:active={page === "add"} on:click={() => navigate("add")}>Add QSO</button>
           <button class="menu-item" class:active={page === "settings"} on:click={() => navigate("settings")}>Settings</button>
         </nav>
       {/if}
     </div>
   </header>
 
-  {#if page === "logbook"}
-    <Logbook {editId} on:editchange={e => { editId = e.detail; window.location.hash = e.detail ? `/log/${e.detail}` : "/"; }} />
+  {#if page === "log"}
+    <div class="log-header">
+      <button class="btn-add" on:click={() => navigate("add")}>Add QSO</button>
+    </div>
+    <Logbook showForm={false} on:editchange={e => { editId = e.detail; navigate("add"); window.location.hash = `/log/${e.detail}`; }} on:navigate={e => navigate(e.detail)} />
+  {:else if page === "add"}
+    <Logbook showForm={true} {editId} on:editchange={e => { editId = e.detail; window.location.hash = e.detail ? `/log/${e.detail}` : "/add"; }} on:navigate={e => navigate(e.detail)} />
   {:else if page === "settings"}
     <Settings />
   {/if}
@@ -125,6 +133,26 @@
     color: #ffcc00;
     font-size: 1.2rem;
     font-weight: bold;
+  }
+
+  .log-header {
+    margin-bottom: 1rem;
+  }
+
+  .btn-add {
+    background: #00ff88;
+    color: #1a1a2e;
+    border: none;
+    padding: 0.6rem 2rem;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .btn-add:hover {
+    background: #00cc6a;
   }
 
   .hamburger-wrap {
