@@ -19,7 +19,7 @@
   let state = "";
   let country = "United States";
   let grid = "";
-  let skcc = null;
+  let skcc = "";
   let comments = "";
   let notes = "";
 
@@ -81,6 +81,11 @@
     } catch {}
   }
 
+  $: stripCall = () => { call = call.replace(/\s/g, ""); };
+  $: stripGrid = () => { grid = grid.replace(/[^A-Za-z0-9]/g, ""); };
+  $: stripPota = () => { pota_park = pota_park.replace(/[^A-Za-z0-9\-]/g, ""); };
+  $: stripSkcc = () => { skcc = skcc.replace(/[^0-9]/g, ""); };
+
   async function submitContact() {
     if (!call.trim() || !freq.trim() || !mode.trim()) return;
     submitting = true;
@@ -97,7 +102,7 @@
         state: state || null,
         country: country || null,
         grid: grid || null,
-        skcc: skcc || null,
+        skcc: skcc ? parseInt(skcc, 10) : null,
         comments: comments || null,
         notes: notes || null,
       };
@@ -113,7 +118,7 @@
         name = "";
         qth = "";
         grid = "";
-        skcc = null;
+        skcc = "";
         comments = "";
         notes = "";
         await fetchContacts();
@@ -169,9 +174,9 @@
           id="call"
           type="text"
           bind:value={call}
+          on:input={stripCall}
           required
           maxlength="10"
-          pattern="\S+"
           autocomplete="off"
           style="text-transform: uppercase"
         />
@@ -213,18 +218,18 @@
       </div>
       <div class="field">
         <label for="grid">Grid</label>
-        <input id="grid" type="text" bind:value={grid} pattern="[A-Za-z0-9]*" style="text-transform: uppercase" />
+        <input id="grid" type="text" bind:value={grid} on:input={stripGrid} style="text-transform: uppercase" />
       </div>
     </div>
 
     <div class="form-row">
       <div class="field">
         <label for="pota_park">POTA Park</label>
-        <input id="pota_park" type="text" bind:value={pota_park} pattern="[A-Za-z0-9\-]*" style="text-transform: uppercase" />
+        <input id="pota_park" type="text" bind:value={pota_park} on:input={stripPota} style="text-transform: uppercase" />
       </div>
       <div class="field">
         <label for="skcc">SKCC</label>
-        <input id="skcc" type="number" bind:value={skcc} min="1" />
+        <input id="skcc" type="text" bind:value={skcc} on:input={stripSkcc} inputmode="numeric" />
       </div>
       <div class="field wide">
         <label for="comments">Comments</label>
