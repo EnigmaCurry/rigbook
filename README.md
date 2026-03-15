@@ -35,9 +35,6 @@ cd rigbook
 # Install all dependencies
 just deps
 
-# Or manually:
-uv sync
-cd frontend && npm install && cd ..
 ```
 
 ## Usage
@@ -46,9 +43,6 @@ cd frontend && npm install && cd ..
 # Build frontend and start the server
 just run
 
-# Or manually:
-cd frontend && npm run build && cd ..
-uv run rigbook
 ```
 
 Open http://localhost:8073 in your browser.
@@ -121,11 +115,11 @@ created automatically on first run.
 ## Development
 
 ```bash
-# Frontend dev server with hot reload (proxies API to backend)
-just dev
+# In one terminal, run the backend
+just run
 
-# In another terminal, run the backend
-uv run rigbook
+# In another terminal, run the frontend dev server with hot reload
+just dev
 
 # Lint and format
 just check
