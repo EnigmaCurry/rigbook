@@ -431,7 +431,7 @@
       <input id="skcc" type="text" bind:value={skcc} on:input={stripSkcc} inputmode="numeric" />
     </div>
     <div class="field wide">
-      <label for="comments">Comments</label>
+      <label for="comments">Comments (public)</label>
       <input id="comments" type="text" bind:value={comments} />
     </div>
   </div>
@@ -446,7 +446,7 @@
       <input id="time" type="time" step="1" bind:value={timePart} />
     </div>
     <div class="field wide">
-      <label for="notes">Notes</label>
+      <label for="notes">Notes (private)</label>
       <textarea id="notes" bind:value={notes} rows="2"></textarea>
     </div>
   </div>
