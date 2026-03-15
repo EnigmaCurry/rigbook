@@ -1,6 +1,10 @@
 <script>
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, createEventDispatcher } from "svelte";
   import Autocomplete from "./Autocomplete.svelte";
+
+  export let editId = null;
+
+  const dispatch = createEventDispatcher();
 
   let contacts = [];
 
@@ -84,6 +88,7 @@
 
   function editContact(c) {
     editingId = c.id;
+    dispatch("editchange", c.id);
     call = c.call || "";
     freq = c.freq || "";
     mode = c.mode || "";
@@ -114,6 +119,7 @@
 
   function cancelEdit() {
     editingId = null;
+    dispatch("editchange", null);
     clearForm();
   }
 
@@ -124,6 +130,7 @@
       const res = await fetch(`/api/contacts/${editingId}`, { method: "DELETE" });
       if (res.ok) {
         editingId = null;
+        dispatch("editchange", null);
         clearForm();
         await fetchContacts();
       } else {
@@ -163,6 +170,7 @@
       });
       if (res.ok) {
         editingId = null;
+        dispatch("editchange", null);
         clearForm();
         await fetchContacts();
       } else {
@@ -245,6 +253,23 @@
       errorMsg = `Network error: ${e.message}`;
     }
     submitting = false;
+  }
+
+  async function loadEditFromId(id) {
+    if (!id) return;
+    try {
+      const res = await fetch(`/api/contacts/${id}`);
+      if (res.ok) {
+        const c = await res.json();
+        editContact(c);
+      }
+    } catch {}
+  }
+
+  $: if (editId && contacts.length > 0) {
+    const c = contacts.find(x => x.id === editId);
+    if (c && editingId !== editId) editContact(c);
+    else if (!c) loadEditFromId(editId);
   }
 
   onMount(() => {

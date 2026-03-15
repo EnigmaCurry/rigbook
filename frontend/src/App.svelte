@@ -3,15 +3,15 @@
   import Logbook from "./Logbook.svelte";
   import Settings from "./Settings.svelte";
 
-  const routes = { "/": "logbook", "/settings": "settings" };
-  const paths = { "logbook": "/", "settings": "/settings" };
-
-  function pageFromHash() {
+  function parseHash() {
     const hash = window.location.hash.slice(1) || "/";
-    return routes[hash] || "logbook";
+    if (hash === "/settings") return { page: "settings", editId: null };
+    const match = hash.match(/^\/log\/(\d+)$/);
+    if (match) return { page: "logbook", editId: parseInt(match[1], 10) };
+    return { page: "logbook", editId: null };
   }
 
-  let page = pageFromHash();
+  let { page, editId } = parseHash();
   let menuOpen = false;
   let myCallsign = "";
 
@@ -27,13 +27,16 @@
 
   function navigate(p) {
     page = p;
+    editId = null;
     menuOpen = false;
-    window.location.hash = paths[p];
+    window.location.hash = p === "settings" ? "/settings" : "/";
     if (p === "logbook") fetchCallsign();
   }
 
   function onHashChange() {
-    page = pageFromHash();
+    const parsed = parseHash();
+    page = parsed.page;
+    editId = parsed.editId;
     if (page === "logbook") fetchCallsign();
   }
 
@@ -71,7 +74,7 @@
   </header>
 
   {#if page === "logbook"}
-    <Logbook />
+    <Logbook {editId} on:editchange={e => { window.location.hash = e.detail ? `/log/${e.detail}` : "/"; }} />
   {:else if page === "settings"}
     <Settings />
   {/if}
