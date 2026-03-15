@@ -10,11 +10,23 @@
   let open = false;
   let highlightIndex = -1;
 
-  function matches(item, query) {
+  function matchScore(item, query) {
     const q = query.toLowerCase();
-    if (typeof item === "string") return item.toLowerCase().includes(q);
+    if (typeof item === "string") {
+      if (item.toLowerCase() === q) return 3;
+      if (item.toLowerCase().startsWith(q)) return 2;
+      if (item.toLowerCase().includes(q)) return 1;
+      return 0;
+    }
     const { name = "", aliases = [] } = item;
-    return name.toLowerCase().includes(q) || aliases.some(a => a.toLowerCase().includes(q));
+    // Exact alias match gets highest priority
+    if (aliases.some(a => a.toLowerCase() === q)) return 4;
+    if (name.toLowerCase() === q) return 3;
+    if (aliases.some(a => a.toLowerCase().startsWith(q))) return 3;
+    if (name.toLowerCase().startsWith(q)) return 2;
+    if (name.toLowerCase().includes(q)) return 1;
+    if (aliases.some(a => a.toLowerCase().includes(q))) return 1;
+    return 0;
   }
 
   function label(item) {
@@ -22,7 +34,12 @@
   }
 
   $: filtered = value
-    ? items.filter(i => matches(i, value)).slice(0, 20)
+    ? items
+        .map(i => ({ item: i, score: matchScore(i, value) }))
+        .filter(x => x.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 20)
+        .map(x => x.item)
     : items.slice(0, 20);
 
   function onInput() {
