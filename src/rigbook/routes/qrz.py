@@ -1,3 +1,4 @@
+import logging
 import time
 import xml.etree.ElementTree as ET
 
@@ -7,6 +8,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from rigbook.db import Setting, get_session
+
+logger = logging.getLogger("rigbook")
 
 router = APIRouter(prefix="/api/qrz", tags=["qrz"])
 
@@ -47,6 +50,7 @@ async def _login(api_key: str) -> str | None:
 
 async def _fetch_callsign(callsign: str, api_key: str) -> dict | None:
     global _session_key
+    logger.info("QRZ fetching: %s", callsign)
 
     if not _session_key:
         await _login(api_key)
@@ -107,6 +111,7 @@ async def qrz_lookup(callsign: str, session: AsyncSession = Depends(get_session)
     if call_upper in _cache:
         ts, data = _cache[call_upper]
         if time.time() - ts < CACHE_TTL:
+            logger.debug("QRZ cache hit: %s", call_upper)
             return data
 
     api_key = await _get_api_key(session)

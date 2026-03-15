@@ -57,6 +57,17 @@ if static_dir.is_dir():
 
 
 def run() -> None:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Rigbook - Ham Radio Logbook")
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Enable verbose/debug logging"
+    )
+    args = parser.parse_args()
+
+    log_level = "DEBUG" if args.verbose else "INFO"
+    logging.basicConfig(level=log_level, format="%(levelname)s: %(name)s: %(message)s")
+
     uvicorn.run(
         "rigbook.main:app", host="0.0.0.0", port=8073, access_log=False
     )

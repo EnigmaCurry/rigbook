@@ -108,6 +108,25 @@ pota.app API.
   (requires flrig)
 - Spots refresh automatically every 30 seconds
 
+## QRZ Callsign Lookup
+
+If you have a [QRZ.com](https://www.qrz.com/) XML subscription, Rigbook
+can auto-fill contact details when you enter a callsign.
+
+1. Go to **Settings** and enter your **QRZ API Key**
+2. When you type a callsign in the Add QSO form, Rigbook looks it up
+   after a short delay
+3. From a blank form: fills name, QTH, state, country, and grid
+4. From a hunting spot: only fills the operator's name (POTA data takes
+   priority for location fields)
+5. Results are cached for 24 hours — clear the cache from Settings
+
+## SKCC
+
+[SKCC](https://www.skccgroup.com/) member numbers are auto-populated
+from the callsign. Rigbook fetches the SKCC member list and caches it
+for 24 hours. No configuration needed.
+
 ## ADIF Export / Import
 
 Rigbook supports the [ADIF](https://www.adif.org/) (Amateur Data

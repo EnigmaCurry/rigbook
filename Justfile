@@ -20,8 +20,8 @@ deps: _check-uv _check-node
     cd frontend && npm install
 
 # Run the server (builds frontend first)
-run: _check-uv build
-    uv run rigbook
+run *ARGS: _check-uv build
+    uv run rigbook {{ ARGS }}
 
 # Build the frontend
 build: _check-node

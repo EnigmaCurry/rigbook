@@ -1,7 +1,11 @@
+import logging
 import time
 
 import httpx
 from fastapi import APIRouter
+
+logger = logging.getLogger("rigbook")
+
 
 router = APIRouter(prefix="/api/skcc", tags=["skcc"])
 
@@ -17,8 +21,10 @@ async def _ensure_cache():
     global _skcc_cache, _cache_time
 
     if _skcc_cache and (time.time() - _cache_time) < CACHE_TTL:
+        logger.debug("SKCC using cached member list (%d entries)", len(_skcc_cache))
         return
 
+    logger.info("SKCC fetching member list from %s", SKCC_URL)
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             res = await client.get(SKCC_URL)
