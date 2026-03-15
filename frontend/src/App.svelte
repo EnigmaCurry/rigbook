@@ -201,21 +201,25 @@
       </div>
       <div class="field">
         <label for="country">Country</label>
-        <input id="country" type="text" bind:value={country} list="country-list" on:input={onCountryChange} />
-        <datalist id="country-list">
+        <select id="country" bind:value={country} on:change={onCountryChange}>
+          <option value=""></option>
           {#each countries as c}
-            <option value={c.name} />
+            <option value={c.name}>{c.name}</option>
           {/each}
-        </datalist>
+        </select>
       </div>
       <div class="field">
         <label for="state">State</label>
-        <input id="state" type="text" bind:value={state} list="state-list" />
-        <datalist id="state-list">
-          {#each subdivisions as s}
-            <option value={s.name} />
-          {/each}
-        </datalist>
+        {#if subdivisions.length > 0}
+          <select id="state" bind:value={state}>
+            <option value=""></option>
+            {#each subdivisions as s}
+              <option value={s.name}>{s.name}</option>
+            {/each}
+          </select>
+        {:else}
+          <input id="state" type="text" bind:value={state} />
+        {/if}
       </div>
       <div class="field">
         <label for="grid">Grid</label>
@@ -370,7 +374,8 @@
   }
 
   input,
-  textarea {
+  textarea,
+  select {
     background: #5a5c6a;
     border: 1px solid #6e7080;
     color: #f0f0f0;
@@ -381,7 +386,8 @@
   }
 
   input:focus,
-  textarea:focus {
+  textarea:focus,
+  select:focus {
     outline: none;
     border-color: #00ff88;
   }
