@@ -2,11 +2,13 @@
   import { onMount } from "svelte";
   import Logbook from "./Logbook.svelte";
   import ExportImport from "./ExportImport.svelte";
+  import Hunting from "./Hunting.svelte";
   import Settings from "./Settings.svelte";
 
   function parseHash() {
     const hash = window.location.hash.slice(1) || "/";
     if (hash === "/settings") return { page: "settings", editId: null };
+    if (hash === "/hunting") return { page: "hunting", editId: null };
     if (hash === "/export") return { page: "export", editId: null };
     if (hash === "/add") return { page: "add", editId: null };
     const match = hash.match(/^\/log\/(\d+)$/);
@@ -85,7 +87,7 @@
     page = p;
     editId = null;
     menuOpen = false;
-    const paths = { log: "/", add: "/add", export: "/export", settings: "/settings" };
+    const paths = { log: "/", add: "/add", hunting: "/hunting", export: "/export", settings: "/settings" };
     window.location.hash = paths[p] || "/";
     fetchCallsign();
   }
@@ -145,6 +147,7 @@
         <nav class="menu">
           <button class="menu-item" class:active={page === "log"} on:click={() => navigate("log")}>Logbook</button>
           <button class="menu-item" class:active={page === "add"} on:click={() => navigate("add")}>Add QSO</button>
+          <button class="menu-item" class:active={page === "hunting"} on:click={() => navigate("hunting")}>Hunting</button>
           <button class="menu-item" class:active={page === "export"} on:click={() => navigate("export")}>Export / Import</button>
           <button class="menu-item" class:active={page === "settings"} on:click={() => navigate("settings")}>Settings</button>
         </nav>
@@ -159,6 +162,17 @@
     <Logbook showForm={false} {vfoFreq} {vfoMode} on:editchange={e => { editId = e.detail; navigate("add"); window.location.hash = `/log/${e.detail}`; }} on:navigate={e => navigate(e.detail)} />
   {:else if page === "add"}
     <Logbook showForm={true} {editId} {vfoFreq} {vfoMode} on:editchange={e => { editId = e.detail; window.location.hash = e.detail ? `/log/${e.detail}` : "/add"; }} on:navigate={e => navigate(e.detail)} />
+  {:else if page === "hunting"}
+    <Hunting on:tune={async e => {
+      try {
+        await fetch("/api/flrig/vfo", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ freq: String(parseFloat(e.detail.freq) * 1000), mode: e.detail.mode }),
+        });
+        pollFlrig();
+      } catch {}
+    }} />
   {:else if page === "export"}
     <ExportImport />
   {:else if page === "settings"}
