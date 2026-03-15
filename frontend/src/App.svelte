@@ -103,7 +103,8 @@
 
   // Apply theme from localStorage on load
   function applyTheme() {
-    const theme = localStorage.getItem("rigbook-theme") || "dark";
+    const stored = localStorage.getItem("rigbook-theme");
+    const theme = stored || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
     document.documentElement.classList.toggle("light", theme === "light");
   }
 

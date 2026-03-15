@@ -5,7 +5,7 @@
   let my_grid = "";
   let flrig_host = "localhost";
   let flrig_port = "12345";
-  let theme = localStorage.getItem("rigbook-theme") || "dark";
+  let theme = localStorage.getItem("rigbook-theme") || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
   let saving = false;
   let message = "";
 
