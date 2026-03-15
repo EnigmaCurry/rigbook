@@ -17,10 +17,13 @@
     document.documentElement.classList.toggle("light", theme === "light");
   }
 
-  async function clearQrzCache() {
+  async function clearCache() {
     try {
-      await fetch("/api/qrz/cache", { method: "DELETE" });
-      message = "QRZ cache cleared.";
+      await Promise.all([
+        fetch("/api/qrz/cache", { method: "DELETE" }),
+        fetch("/api/skcc/cache", { method: "DELETE" }),
+      ]);
+      message = "Cache cleared.";
     } catch {
       message = "Failed to clear cache.";
     }
@@ -117,8 +120,10 @@
     <input id="qrz_api_key" type="password" bind:value={qrz_api_key} autocomplete="off" />
   </div>
 
+  <h3>Cache</h3>
+
   <div class="setting-row toggle-row">
-    <button class="theme-toggle" on:click={clearQrzCache}>Clear QRZ Cache</button>
+    <button class="theme-toggle" on:click={clearCache}>Clear Cache</button>
   </div>
 
   <h3>Appearance</h3>
