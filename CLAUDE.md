@@ -61,7 +61,7 @@ uv run pytest tests/test_foo.py::test_name  # Single test
 
 ### QSO Contact Fields
 - `call` — their callsign (required)
-- `freq` — frequency in MHz (auto-filled from flrig, not user-editable)
+- `freq` — frequency in MHz (auto-filled from flrig, and user-editable)
 - `mode` — operating mode (auto-filled from flrig)
 - `rst_sent` / `rst_recv` — signal reports
 - `pota_park` — POTA park reference
@@ -69,9 +69,15 @@ uv run pytest tests/test_foo.py::test_name  # Single test
 - `qth` — city/location
 - `state` / `country` — location details
 - `grid` — Maidenhead grid square
-- `skcc` — SKCC member number (optional)
+- `skcc` — SKCC member number
 - `comments` / `notes` — free text
 - `timestamp` — UTC datetime of contact
+
+### Required Fields
+- `call`
+- `freq`
+- `mode`
+- `timestamp`
 
 ### Settings
 - `my_callsign` — operator's own callsign
@@ -80,7 +86,7 @@ uv run pytest tests/test_foo.py::test_name  # Single test
 ## Architecture Notes
 
 - The Svelte frontend is built to static files and served by FastAPI's `StaticFiles` mount at `/`. API routes are under `/api/`.
-- flrig integration is best-effort: if flrig is not running, the frequency/mode fields are left blank and the form still works. The frontend polls a `/api/flrig/status` endpoint to get current VFO state.
+- flrig integration is best-effort: if flrig is not running, the frequency/mode fields may be manually entered and the form still works.  The user may also over-ride the data supplied by flrilg.  The frontend polls a `/api/flrig/status` endpoint to get current VFO state.
 - All timestamps stored in UTC.
 
 ## Roadmap
