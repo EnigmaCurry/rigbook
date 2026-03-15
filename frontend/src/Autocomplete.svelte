@@ -72,11 +72,11 @@
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       highlightIndex = highlightIndex <= 0 ? filtered.length - 1 : highlightIndex - 1;
-    } else if (e.key === "Enter" && highlightIndex >= 0) {
+    } else if (e.key === "Enter") {
       e.preventDefault();
-      pick(filtered[highlightIndex]);
-    } else if (e.key === "Tab" && highlightIndex >= 0) {
-      pick(filtered[highlightIndex]);
+      pick(filtered[highlightIndex >= 0 ? highlightIndex : 0]);
+    } else if (e.key === "Tab") {
+      pick(filtered[highlightIndex >= 0 ? highlightIndex : 0]);
     } else if (e.key === "Escape") {
       open = false;
     }
