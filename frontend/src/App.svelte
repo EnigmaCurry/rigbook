@@ -116,6 +116,23 @@
     clearForm();
   }
 
+  async function deleteContact() {
+    if (!editingId) return;
+    if (!confirm(`Delete contact ${call}?`)) return;
+    try {
+      const res = await fetch(`/api/contacts/${editingId}`, { method: "DELETE" });
+      if (res.ok) {
+        editingId = null;
+        clearForm();
+        await fetchContacts();
+      } else {
+        errorMsg = `Delete failed: ${res.status} ${res.statusText}`;
+      }
+    } catch (e) {
+      errorMsg = `Network error: ${e.message}`;
+    }
+  }
+
   async function saveEdit() {
     if (!editingId) return;
     submitting = true;
@@ -354,6 +371,7 @@
       </button>
       {#if editingId}
         <button type="button" class="btn-clear" on:click={cancelEdit}>Cancel</button>
+        <button type="button" class="btn-delete" on:click={deleteContact}>Delete</button>
       {:else}
         <button type="button" class="btn-clear" on:click={clearForm}>Clear</button>
       {/if}
@@ -529,6 +547,15 @@
 
   .btn-clear:hover {
     background: #5a5c6a;
+  }
+
+  .btn-delete {
+    background: #cc3333;
+    color: #fff;
+  }
+
+  .btn-delete:hover {
+    background: #aa2222;
   }
 
   .error {
