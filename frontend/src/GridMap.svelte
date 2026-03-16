@@ -52,61 +52,50 @@
   $: fieldLatTop = Math.min(fieldLat + 10, 85);
   $: fieldLatBot = Math.max(fieldLat, -85);
 
-  // Only compute tiles when zoomed in
-  $: tileX0 = level === "square" ? Math.floor(lon2tile(fieldLon)) : 0;
-  $: tileX1 = level === "square" ? Math.ceil(lon2tile(fieldLon + 20)) : 0;
-  $: tileY0 = level === "square" ? Math.floor(lat2tile(fieldLatTop)) : 0;
-  $: tileY1 = level === "square" ? Math.ceil(lat2tile(fieldLatBot)) : 0;
+  // Mercator tile units for the field bounds
+  $: fTileLeft = level === "square" ? lon2tile(fieldLon) : 0;
+  $: fTileRight = level === "square" ? lon2tile(fieldLon + 20) : 0;
+  $: fTileTop = level === "square" ? lat2tile(fieldLatTop) : 0;
+  $: fTileBot = level === "square" ? lat2tile(fieldLatBot) : 0;
+  $: fTileW = fTileRight - fTileLeft;
+  $: fTileH = fTileBot - fTileTop;
 
-  $: pxFieldLeft = lon2tile(fieldLon) - tileX0;
-  $: pxFieldRight = lon2tile(fieldLon + 20) - tileX0;
-  $: pxFieldTop2 = lat2tile(fieldLatTop) - tileY0;
-  $: pxFieldBottom = lat2tile(fieldLatBot) - tileY0;
-  $: pxFieldW = (pxFieldRight - pxFieldLeft) * 256;
-  $: pxFieldH = (pxFieldBottom - pxFieldTop2) * 256;
+  // Integer tile range
+  $: tileX0 = Math.floor(fTileLeft);
+  $: tileX1 = Math.ceil(fTileRight);
+  $: tileY0 = Math.floor(fTileTop);
+  $: tileY1 = Math.ceil(fTileBot);
 
-  // Build tile list (max 100 tiles safety)
+  // Build tile list with percentage positions relative to the field
   $: tiles = (() => {
-    if (level !== "square") return [];
+    if (level !== "square" || fTileW === 0) return [];
     const list = [];
-    const maxTiles = Math.min(tileY1, tileY0 + 10);
-    const maxTilesX = Math.min(tileX1, tileX0 + 10);
-    for (let ty = tileY0; ty < maxTiles; ty++) {
-      for (let tx = tileX0; tx < maxTilesX; tx++) {
+    for (let ty = tileY0; ty < Math.min(tileY1, tileY0 + 10); ty++) {
+      for (let tx = tileX0; tx < Math.min(tileX1, tileX0 + 10); tx++) {
         list.push({
-          x: tx,
-          y: ty,
-          left: (tx - tileX0) * 256 - pxFieldLeft * 256,
-          top: (ty - tileY0) * 256 - pxFieldTop2 * 256,
+          x: tx, y: ty,
+          left: ((tx - fTileLeft) / fTileW) * 100,
+          top: ((ty - fTileTop) / fTileH) * 100,
+          width: (1 / fTileW) * 100,
+          height: (1 / fTileH) * 100,
         });
       }
     }
     return list;
   })();
 
-  // Grid square positions using Mercator projection to match OSM tiles
+  // Grid square positions using Mercator to match tiles
   function sqStyle(lonIdx, latIdx) {
-    // lonIdx: 0-9 across, latIdx: 0=top (highest lat) to 9=bottom (lowest lat)
-    const sqLatTop = fieldLatTop - latIdx * 1;  // each square is 1° tall
+    const sqLatTop = fieldLatTop - latIdx * 1;
     const sqLatBot = sqLatTop - 1;
-    const sqLonLeft = fieldLon + lonIdx * 2;  // each square is 2° wide
+    const sqLonLeft = fieldLon + lonIdx * 2;
 
-    // Convert to Mercator pixel position relative to the field's tile area
-    const yTop = lat2tile(sqLatTop) - tileY0;
-    const yBot = lat2tile(sqLatBot) - tileY0;
-    const xLeft = lon2tile(sqLonLeft) - tileX0;
-    const xRight = lon2tile(sqLonLeft + 2) - tileX0;
+    const left = ((lon2tile(sqLonLeft) - fTileLeft) / fTileW) * 100;
+    const right = ((lon2tile(sqLonLeft + 2) - fTileLeft) / fTileW) * 100;
+    const top = ((lat2tile(sqLatTop) - fTileTop) / fTileH) * 100;
+    const bottom = ((lat2tile(sqLatBot) - fTileTop) / fTileH) * 100;
 
-    // Convert to percentages of the field area
-    const totalW = pxFieldRight - pxFieldLeft;
-    const totalH = pxFieldBottom - pxFieldTop2;
-
-    const left = ((xLeft - pxFieldLeft) / totalW) * 100;
-    const top = ((yTop - pxFieldTop2) / totalH) * 100;
-    const width = ((xRight - xLeft) / totalW) * 100;
-    const height = ((yBot - yTop) / totalH) * 100;
-
-    return `left:${left}%;top:${top}%;width:${width}%;height:${height}%`;
+    return `left:${left}%;top:${top}%;width:${right - left}%;height:${bottom - top}%`;
   }
 </script>
 
@@ -155,7 +144,7 @@
         <span class="current">Current: {value}</span>
       {/if}
     </div>
-    <div class="zoomed-container" style="aspect-ratio: {pxFieldW}/{pxFieldH}">
+    <div class="zoomed-container" style="aspect-ratio: {fTileW}/{fTileH}">
       <!-- OSM tiles -->
       <div class="tiles-layer">
         {#each tiles as tile}
@@ -163,7 +152,7 @@
             src="/api/tiles/{ZOOM}/{tile.x}/{tile.y}.png"
             alt=""
             class="tile"
-            style="left:{tile.left}px;top:{tile.top}px"
+            style="left:{tile.left}%;top:{tile.top}%;width:{tile.width}%;height:{tile.height}%"
           />
         {/each}
       </div>
@@ -291,8 +280,6 @@
 
   .tile {
     position: absolute;
-    width: 256px;
-    height: 256px;
     image-rendering: auto;
   }
 
