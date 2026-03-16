@@ -118,12 +118,14 @@ def _drop_pota_parks_unique_index(conn):
     insp = inspect(conn)
     if not insp.has_table("pota_parks"):
         return
-    for idx in insp.get_indexes("pota_parks"):
-        if idx.get("unique") and "reference" in idx.get("column_names", []):
-            conn.execute(text(f"DROP INDEX IF EXISTS {idx['name']}"))
-            # Clear cached parks so they can be re-fetched without constraint
-            conn.execute(text("DELETE FROM pota_parks"))
-            break
+    # Check if reference column has a unique constraint (via table DDL)
+    rows = conn.execute(text(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='pota_parks'"
+    )).fetchone()
+    if rows and "UNIQUE" in (rows[0] or ""):
+        # Must drop and recreate — SQLite can't alter constraints
+        conn.execute(text("DROP TABLE pota_parks"))
+        Base.metadata.tables["pota_parks"].create(conn)
 
 
 def _add_missing_columns(conn):
