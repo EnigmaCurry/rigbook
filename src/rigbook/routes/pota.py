@@ -5,7 +5,7 @@ import time
 import httpx
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from rigbook.db import (
@@ -223,14 +223,7 @@ async def fetch_parks_for_selected(session: AsyncSession = Depends(get_session))
     now = time.time()
     stale = []
     for loc in locations:
-        oldest = (
-            await session.execute(
-                select(func.min(PotaPark.fetched_at)).where(
-                    PotaPark.location_desc == loc.descriptor
-                )
-            )
-        ).scalar()
-        if oldest is None or now - oldest > TTL:
+        if loc.parks_fetched_at is None or now - loc.parks_fetched_at > TTL:
             stale.append(loc)
 
     total = len(stale)
@@ -272,6 +265,11 @@ async def fetch_parks_for_selected(session: AsyncSession = Depends(get_session))
                                 fetched_at=t,
                             )
                         )
+                    # Mark location as fetched
+                    await s.execute(
+                        text("UPDATE pota_locations SET parks_fetched_at = :t WHERE descriptor = :d"),
+                        {"t": t, "d": loc.descriptor},
+                    )
                     await s.commit()
                 done += 1
                 yield f"data: {json.dumps({'type': 'progress', 'done': done, 'total': total, 'location': loc.descriptor, 'parks': len(parks_data)})}\n\n"

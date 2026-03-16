@@ -78,6 +78,7 @@ class PotaLocation(Base):
     latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     fetched_at: Mapped[float] = mapped_column(Float, nullable=False)
+    parks_fetched_at: Mapped[float | None] = mapped_column(Float, nullable=True)
 
 
 class PotaPark(Base):
