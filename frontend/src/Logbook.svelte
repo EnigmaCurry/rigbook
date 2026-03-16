@@ -222,8 +222,14 @@
       } else {
         if (!name && data.name) name = data.name;
         if (!qth && data.qth) qth = data.qth;
-        if (!country && data.country) {
-          country = data.country;
+        if (!country) {
+          // Prefer country_code for reliable normalization
+          if (data.country_code) {
+            country = data.country_code;
+            normalizeCountry();
+          } else if (data.country) {
+            country = data.country;
+          }
           const match = countries.find(c => c.name === country);
           if (match) await fetchSubdivisions(match.code);
         }
