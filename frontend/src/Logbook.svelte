@@ -730,7 +730,7 @@
     <div class="field">
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <!-- svelte-ignore a11y-no-static-element-interactions -->
-      <label for="pota_park">POTA Park{#if potaParkName} — <span class="pota-park-name" on:click={openParkOverlay}>{potaParkName}</span>{/if}</label>
+      <label for="pota_park">POTA Park{#if potaParkName} — <span class="pota-park-name" on:click|preventDefault|stopPropagation={openParkOverlay}>{potaParkName}</span>{/if}</label>
       <div class="pota-ac">
         <input id="pota_park" type="text" bind:value={pota_park} on:input={onPotaInput} on:focus={onPotaFocus} on:blur={onPotaBlur} on:keydown={onPotaKeydown} style="text-transform: uppercase" autocomplete="off" />
         {#if potaOpen && potaResults.length > 0}
