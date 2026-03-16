@@ -676,7 +676,7 @@
   }
 
   @media (max-width: 600px) {
-    .vfo-icon, .vfo-khz, .app-title {
+    .vfo-khz, .app-title {
       display: none;
     }
   }
