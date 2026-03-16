@@ -494,7 +494,7 @@
 
 {#if showForm}
 <form on:submit|preventDefault={editingId ? saveEdit : submitContact} on:keydown={e => e.key === "Enter" && e.target.tagName !== "TEXTAREA" && e.preventDefault()}>
-  <h3 class="form-heading">{editingId ? `Edit QSO — ${call || ""}` : "New QSO"}{#if !editingId && prevContactCount > 0}{" "}<span class="prev-contact">(you've contacted {call.trim().toUpperCase()} {prevContactCount} time{prevContactCount === 1 ? "" : "s"} before)</span>{/if}</h3>
+  <h3 class="form-heading">{editingId ? `Edit QSO — ${call || ""}` : "New QSO"}{#if editingId}{" "}<span class="prev-contact">({relativeTime(`${datePart}T${timePart || "00:00:00"}Z`)})</span>{:else if prevContactCount > 0}{" "}<span class="prev-contact">(you've contacted {call.trim().toUpperCase()} {prevContactCount} time{prevContactCount === 1 ? "" : "s"} before)</span>{/if}</h3>
   <div class="form-row">
     <div class="field">
       <label for="call">Call *</label>
