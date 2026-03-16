@@ -245,7 +245,7 @@
   function cancelEdit() {
     editingId = null;
     dispatch("editchange", null);
-    dispatch("navigate", "log");
+    dispatch("navigate", "back");
     clearForm();
   }
 
@@ -257,7 +257,7 @@
       if (res.ok) {
         editingId = null;
         dispatch("editchange", null);
-        dispatch("navigate", "log");
+        dispatch("navigate", "back");
         clearForm();
         await fetchContacts();
       } else {
@@ -534,7 +534,7 @@
       <button type="button" class="btn-clear" on:click={cancelEdit}>Cancel</button>
       <button type="button" class="btn-delete" on:click={deleteContact}>Delete</button>
     {:else}
-      <button type="button" class="btn-clear" on:click={() => { dispatch("navigate", "log"); clearForm(); }}>Cancel</button>
+      <button type="button" class="btn-clear" on:click={() => { dispatch("navigate", "back"); clearForm(); }}>Cancel</button>
     {/if}
     {#if errorMsg}
       <span class="error">{errorMsg}</span>

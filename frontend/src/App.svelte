@@ -21,6 +21,7 @@
   }
 
   let { page, editId } = parseHash();
+  let previousPage = "hunting";
   let prefill = null;
   let menuOpen = false;
   let myCallsign = "";
@@ -115,6 +116,10 @@
   }
 
   function navigate(p) {
+    if (p === "back") {
+      p = previousPage;
+    }
+    if (page !== p) previousPage = page;
     page = p;
     editId = null;
     menuOpen = false;
