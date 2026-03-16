@@ -84,7 +84,7 @@ class PotaPark(Base):
     __tablename__ = "pota_parks"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    reference: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    reference: Mapped[str] = mapped_column(String, nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
     location_desc: Mapped[str] = mapped_column(String, nullable=False)
     latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -104,12 +104,26 @@ async def init_db() -> None:
     DB_DIR.mkdir(parents=True, exist_ok=True)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Drop pota_parks unique index on reference (parks span multiple locations)
+        await conn.run_sync(_drop_pota_parks_unique_index)
         # Auto-migrate: add missing columns to existing tables
         await conn.run_sync(_add_missing_columns)
         # Backfill UUIDs for existing contacts that don't have one
         await conn.execute(
             text("UPDATE contacts SET uuid = lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)),2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6))) WHERE uuid IS NULL")
         )
+
+
+def _drop_pota_parks_unique_index(conn):
+    insp = inspect(conn)
+    if not insp.has_table("pota_parks"):
+        return
+    for idx in insp.get_indexes("pota_parks"):
+        if idx.get("unique") and "reference" in idx.get("column_names", []):
+            conn.execute(text(f"DROP INDEX IF EXISTS {idx['name']}"))
+            # Clear cached parks so they can be re-fetched without constraint
+            conn.execute(text("DELETE FROM pota_parks"))
+            break
 
 
 def _add_missing_columns(conn):
