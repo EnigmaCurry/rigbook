@@ -11,6 +11,7 @@ from rigbook.flrig import router as flrig_router
 from rigbook.routes.adif import router as adif_router
 from rigbook.routes.pota import router as pota_router
 from rigbook.routes.qrz import router as qrz_router
+from rigbook.routes.search import router as search_router
 from rigbook.routes.skcc import router as skcc_router
 from rigbook.routes.contacts import router as contacts_router
 from rigbook.routes.geo import router as geo_router
@@ -49,6 +50,7 @@ app.include_router(geo_router)
 app.include_router(adif_router)
 app.include_router(pota_router)
 app.include_router(qrz_router)
+app.include_router(search_router)
 app.include_router(skcc_router)
 
 static_dir = Path(__file__).parent / "static"

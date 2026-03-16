@@ -3,6 +3,7 @@
   import Logbook from "./Logbook.svelte";
   import ExportImport from "./ExportImport.svelte";
   import Hunting from "./Hunting.svelte";
+  import Search from "./Search.svelte";
   import Settings from "./Settings.svelte";
   import About from "./About.svelte";
 
@@ -95,6 +96,53 @@
     fetchCallsign();
   }
 
+  async function tuneAndPrefill(spot) {
+    try {
+      await fetch("/api/flrig/vfo", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ freq: String(parseFloat(spot.frequency) * 1000), mode: spot.mode }),
+      });
+      pollFlrig();
+    } catch {}
+    prefill = {
+      call: spot.activator || "",
+      freq: spot.frequency || "",
+      mode: spot.mode || "",
+      pota_park: spot.reference || "",
+      grid: spot.grid4 || "",
+      country: "",
+      state: "",
+    };
+    const loc = spot.locationDesc || "";
+    if (loc.startsWith("US-")) {
+      prefill.country = "United States";
+    }
+    navigate("add");
+  }
+
+  function handleSearchAction(e) {
+    const { type, data } = e.detail;
+    if (type === "logbook") {
+      editId = data.id;
+      navigate("add");
+      window.location.hash = `/log/${data.id}`;
+    } else if (type === "pota") {
+      tuneAndPrefill(data);
+    } else if (type === "qrz") {
+      prefill = {
+        call: data.call || "",
+        freq: "",
+        mode: "",
+        pota_park: "",
+        grid: data.grid || "",
+        country: data.country || "",
+        state: data.state || "",
+      };
+      navigate("add");
+    }
+  }
+
   function onHashChange() {
     const parsed = parseHash();
     page = parsed.page;
@@ -148,6 +196,7 @@
         <span class="vfo disconnected" title="Radio not connected">📻 ❌</span>
       {/if}
     </div>
+    <Search on:action={handleSearchAction} />
     <div class="hamburger-wrap">
       <button class="hamburger" on:click={() => menuOpen = !menuOpen} aria-label="Menu">
         <span class="bar"></span>
@@ -178,31 +227,7 @@
   {:else if page === "add"}
     <Logbook showForm={true} {editId} {prefill} {vfoFreq} {vfoMode} on:editchange={e => { editId = e.detail; window.location.hash = e.detail ? `/log/${e.detail}` : "/add"; }} on:navigate={e => navigate(e.detail)} on:prefillconsumed={() => prefill = null} />
   {:else if page === "hunting"}
-    <Hunting on:tune={async e => {
-      const spot = e.detail;
-      try {
-        await fetch("/api/flrig/vfo", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ freq: String(parseFloat(spot.frequency) * 1000), mode: spot.mode }),
-        });
-        pollFlrig();
-      } catch {}
-      prefill = {
-        call: spot.activator || "",
-        freq: spot.frequency || "",
-        mode: spot.mode || "",
-        pota_park: spot.reference || "",
-        grid: spot.grid4 || "",
-        country: "",
-        state: "",
-      };
-      const loc = spot.locationDesc || "";
-      if (loc.startsWith("US-")) {
-        prefill.country = "United States";
-      }
-      navigate("add");
-    }} />
+    <Hunting on:tune={e => tuneAndPrefill(e.detail)} />
   {:else if page === "export"}
     <ExportImport />
   {:else if page === "settings"}
