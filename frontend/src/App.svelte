@@ -465,6 +465,8 @@
     color: var(--accent-vfo);
     font-size: 1rem;
     cursor: pointer;
+    position: relative;
+    top: -2px;
   }
 
   .band-tag {
@@ -473,7 +475,8 @@
     font-weight: bold;
     padding: 0.1rem 0.35rem;
     border-radius: 8px;
-    vertical-align: middle;
+    position: relative;
+    top: -3px;
   }
 
   .vfo-mode {
