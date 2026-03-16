@@ -103,16 +103,23 @@ async def _login(username: str, api_key: str) -> str | None:
     return None
 
 
+# Sentinel: QRZ responded successfully but callsign doesn't exist (cacheable)
+_NOT_FOUND = "NOT_FOUND"
+# Sentinel: request failed due to HTTP/network error (not cacheable, should retry)
+_FETCH_ERROR = "FETCH_ERROR"
+
+
 async def _fetch_callsign(
     callsign: str, username: str, api_key: str
-) -> dict | None:
+) -> dict | str:
+    """Return a dict on success, _NOT_FOUND if QRZ says unknown, _FETCH_ERROR on failure."""
     global _session_key
     logger.info("QRZ fetching: %s", callsign)
 
     if not _session_key:
         await _login(username, api_key)
     if not _session_key:
-        return None
+        return _FETCH_ERROR
 
     for _attempt in range(2):
         try:
@@ -121,6 +128,7 @@ async def _fetch_callsign(
                     QRZ_URL,
                     params={"s": _session_key, "callsign": callsign},
                 )
+                res.raise_for_status()
                 root = ET.fromstring(res.text)
                 ns = {"q": "http://xmldata.qrz.com"}
 
@@ -131,14 +139,15 @@ async def _fetch_callsign(
                         _session_key = None
                         await _login(username, api_key)
                         if not _session_key:
-                            return None
+                            return _FETCH_ERROR
                         continue
+                    # QRZ responded but callsign not found
                     logger.debug("QRZ lookup error for %s: %s", callsign, err)
-                    return None
+                    return _NOT_FOUND
 
                 cs = root.find(".//q:Callsign", ns)
                 if cs is None:
-                    return None
+                    return _NOT_FOUND
 
                 def get(tag):
                     el = cs.find(f"q:{tag}", ns)
@@ -155,10 +164,11 @@ async def _fetch_callsign(
                     "country": get("country"),
                     "grid": get("grid"),
                 }
-        except Exception:
-            return None
+        except Exception as e:
+            logger.warning("QRZ fetch error for %s: %s", callsign, e)
+            return _FETCH_ERROR
 
-    return None
+    return _FETCH_ERROR
 
 
 @router.get("/lookup/{callsign}")
@@ -183,14 +193,17 @@ async def qrz_lookup(callsign: str, session: AsyncSession = Depends(get_session)
         if not api_key or not username:
             return {"error": "QRZ credentials not configured"}
 
-        data = await _fetch_callsign(call_upper, username, api_key)
-        if data is None:
+        result = await _fetch_callsign(call_upper, username, api_key)
+        if result == _FETCH_ERROR:
+            # Don't cache — allow retry on next request
+            return {"error": "QRZ lookup failed"}
+        if result == _NOT_FOUND:
             not_found = {"error": "Callsign not found"}
             await _store_cached(call_upper, not_found, session)
             return not_found
 
-        await _store_cached(call_upper, data, session)
-        return data
+        await _store_cached(call_upper, result, session)
+        return result
 
 
 @router.delete("/cache")
