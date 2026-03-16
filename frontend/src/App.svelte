@@ -12,25 +12,70 @@
   import { bandColor, bandTextColor } from "./bandColors.js";
 
   const BANDS = [
-    { name: "160m", lo: 1800, hi: 2000 },
-    { name: "80m", lo: 3500, hi: 4000 },
-    { name: "60m", lo: 5330, hi: 5410 },
-    { name: "40m", lo: 7000, hi: 7300 },
-    { name: "30m", lo: 10100, hi: 10150 },
-    { name: "20m", lo: 14000, hi: 14350 },
-    { name: "17m", lo: 18068, hi: 18168 },
-    { name: "15m", lo: 21000, hi: 21450 },
-    { name: "12m", lo: 24890, hi: 24990 },
-    { name: "10m", lo: 28000, hi: 29700 },
-    { name: "6m", lo: 50000, hi: 54000 },
-    { name: "2m", lo: 144000, hi: 148000 },
+    { name: "160m", lo: 1800, hi: 2000, segments: [
+      { label: "CW", lo: 1800, hi: 2000 }, { label: "SSB", lo: 1800, hi: 2000 },
+    ]},
+    { name: "80m", lo: 3500, hi: 4000, segments: [
+      { label: "CW", lo: 3500, hi: 4000 }, { label: "SSB", lo: 3600, hi: 4000 },
+    ]},
+    { name: "60m", lo: 5330, hi: 5410, segments: [
+      { label: "CW", lo: 5330, hi: 5410 }, { label: "Digi", lo: 5330, hi: 5410 }, { label: "USB", lo: 5330, hi: 5410 },
+    ]},
+    { name: "40m", lo: 7000, hi: 7300, segments: [
+      { label: "CW", lo: 7000, hi: 7300 }, { label: "SSB", lo: 7125, hi: 7300 },
+    ]},
+    { name: "30m", lo: 10100, hi: 10150, segments: [
+      { label: "CW", lo: 10100, hi: 10150 }, { label: "SSB", lo: 10100, hi: 10150 },
+    ]},
+    { name: "20m", lo: 14000, hi: 14350, segments: [
+      { label: "CW", lo: 14000, hi: 14350 }, { label: "SSB", lo: 14150, hi: 14350 },
+    ]},
+    { name: "17m", lo: 18068, hi: 18168, segments: [
+      { label: "CW", lo: 18068, hi: 18168 }, { label: "SSB", lo: 18110, hi: 18168 },
+    ]},
+    { name: "15m", lo: 21000, hi: 21450, segments: [
+      { label: "CW", lo: 21000, hi: 21450 }, { label: "SSB", lo: 21200, hi: 21450 },
+    ]},
+    { name: "12m", lo: 24890, hi: 24990, segments: [
+      { label: "CW", lo: 24890, hi: 24990 }, { label: "SSB", lo: 24930, hi: 24990 },
+    ]},
+    { name: "10m", lo: 28000, hi: 29700, segments: [
+      { label: "CW", lo: 28000, hi: 29700 }, { label: "SSB", lo: 28300, hi: 29700 },
+    ]},
+    { name: "6m", lo: 50000, hi: 54000, segments: [
+      { label: "CW", lo: 50000, hi: 54000 }, { label: "SSB", lo: 50100, hi: 54000 },
+    ]},
+    { name: "2m", lo: 144000, hi: 148000, segments: [
+      { label: "CW", lo: 144000, hi: 148000 }, { label: "SSB", lo: 144100, hi: 148000 },
+    ]},
   ];
+
+  const VFO_MODE_MAP = {
+    "CW": "CW", "CW-R": "CW", "CWR": "CW",
+    "LSB": "SSB", "USB": "SSB", "SSB": "SSB", "AM": "SSB",
+    "FM": "FM",
+    "FT8": "Digi", "FT4": "Digi", "RTTY": "Digi", "RTTY-R": "Digi",
+    "PSK31": "Digi", "PSK": "Digi", "DIGI": "Digi", "DATA": "Digi",
+    "JS8": "Digi", "OLIVIA": "Digi",
+  };
 
   function freqToBand(f) {
     const n = parseFloat(f);
     if (isNaN(n)) return "";
     const b = BANDS.find(b => n >= b.lo && n <= b.hi);
     return b ? b.name : "";
+  }
+
+  function freqToBandForMode(f, mode) {
+    const n = parseFloat(f);
+    if (isNaN(n)) return "";
+    const b = BANDS.find(b => n >= b.lo && n <= b.hi);
+    if (!b) return "";
+    const segLabel = VFO_MODE_MAP[mode?.toUpperCase()] || "";
+    if (!segLabel) return b.name;
+    const seg = b.segments.find(s => s.label === segLabel);
+    if (!seg) return b.name;
+    return (n >= seg.lo && n <= seg.hi) ? b.name : "";
   }
 
   function parseHash() {
@@ -401,8 +446,8 @@
             {/if}
           {/each}
           <span class="vfo-khz" on:click={startVfoEdit}>{" "}{freqUnit}</span>
-          {#if freqToBand(parseFloat(vfoFreq) / 1000)}
-            <span class="band-tag" style="background: {bandColor(freqToBand(parseFloat(vfoFreq) / 1000))}; color: {bandTextColor(freqToBand(parseFloat(vfoFreq) / 1000))}" on:click={startVfoEdit}>{freqToBand(parseFloat(vfoFreq) / 1000)}</span>
+          {#if freqToBandForMode(parseFloat(vfoFreq) / 1000, vfoMode)}
+            <span class="band-tag" style="background: {bandColor(freqToBandForMode(parseFloat(vfoFreq) / 1000, vfoMode))}; color: {bandTextColor(freqToBandForMode(parseFloat(vfoFreq) / 1000, vfoMode))}" on:click={startVfoEdit}>{freqToBandForMode(parseFloat(vfoFreq) / 1000, vfoMode)}</span>
           {/if}
         </span>
         {#if vfoMode}
