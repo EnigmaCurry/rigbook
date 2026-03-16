@@ -145,6 +145,42 @@ async def _get_selected(session: AsyncSession) -> set[str]:
     return set()
 
 
+@router.get("/programs/{prefix}/locations")
+async def get_locations(
+    prefix: str, session: AsyncSession = Depends(get_session)
+):
+    locations = (
+        (
+            await session.execute(
+                select(PotaLocation).where(PotaLocation.program_prefix == prefix)
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    descriptors = [loc.descriptor for loc in locations]
+    park_counts = {}
+    if descriptors:
+        rows = (
+            await session.execute(
+                select(PotaPark.location_desc, func.count())
+                .where(PotaPark.location_desc.in_(descriptors))
+                .group_by(PotaPark.location_desc)
+            )
+        ).all()
+        park_counts = dict(rows)
+
+    return [
+        {
+            "descriptor": loc.descriptor,
+            "name": loc.name,
+            "park_count": park_counts.get(loc.descriptor, 0),
+        }
+        for loc in locations
+    ]
+
+
 @router.put("/selected-programs")
 async def set_selected_programs(
     body: dict, session: AsyncSession = Depends(get_session)
