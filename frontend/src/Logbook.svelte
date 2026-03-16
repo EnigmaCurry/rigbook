@@ -23,7 +23,7 @@
   let name = "";
   let qth = "";
   let state = "";
-  let country = "United States";
+  let country = "";
   let grid = "";
   let skcc = "";
   function utcNowDate() { return new Date().toISOString().slice(0, 10); }
