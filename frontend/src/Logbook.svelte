@@ -28,6 +28,7 @@
   let skcc = "";
   function utcNowDate() { return new Date().toISOString().slice(0, 10); }
   function utcNowTime() { return new Date().toISOString().slice(11, 19); }
+  function fillNow() { datePart = utcNowDate(); timePart = utcNowTime(); }
   let datePart = utcNowDate();
   let timePart = utcNowTime();
   let comments = "";
@@ -768,7 +769,10 @@
     </div>
     <div class="field">
       <label for="time">Time (UTC)</label>
-      <input id="time" type="text" bind:value={timePart} placeholder="HH:MM:SS" pattern="\d{2}:\d{2}(:\d{2})?" maxlength="8" />
+      <div class="time-input-row">
+        <input id="time" type="text" bind:value={timePart} placeholder="HH:MM:SS" pattern="\d{2}:\d{2}(:\d{2})?" maxlength="8" />
+        <button type="button" class="now-btn" on:click={fillNow} title="Set to now">&#128339;</button>
+      </div>
     </div>
     <div class="field wide">
       <label for="notes">Notes (private)</label>
@@ -1196,6 +1200,31 @@
     border-radius: 8px;
     margin-left: 0.3rem;
     vertical-align: middle;
+  }
+
+  .time-input-row {
+    display: flex;
+    gap: 0.3rem;
+    align-items: center;
+  }
+
+  .time-input-row input {
+    flex: 1;
+  }
+
+  .now-btn {
+    background: var(--btn-secondary);
+    color: var(--text);
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
+    border-radius: 3px;
+    padding: 0.25rem 0.4rem;
+    line-height: 1;
+  }
+
+  .now-btn:hover {
+    background: var(--btn-secondary-hover);
   }
 
   .pota-park-name {
