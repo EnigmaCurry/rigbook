@@ -356,6 +356,45 @@ async def search_parks(q: str = "", session: AsyncSession = Depends(get_session)
     ]
 
 
+@router.get("/park/{reference}")
+async def get_park(reference: str, session: AsyncSession = Depends(get_session)):
+    ref = reference.upper()
+    park = (
+        await session.execute(
+            select(
+                PotaPark,
+                PotaLocation.name.label("location_name"),
+                PotaProgram.name.label("program_name"),
+            )
+            .outerjoin(
+                PotaLocation,
+                PotaPark.location_desc == PotaLocation.descriptor,
+            )
+            .outerjoin(
+                PotaProgram,
+                PotaLocation.program_prefix == PotaProgram.prefix,
+            )
+            .where(PotaPark.reference == ref)
+        )
+    ).first()
+    if not park:
+        return {"error": "Park not found"}
+    p, loc_name, prog_name = park
+    return {
+        "reference": p.reference,
+        "name": p.name,
+        "location_desc": p.location_desc,
+        "latitude": p.latitude,
+        "longitude": p.longitude,
+        "grid": p.grid,
+        "attempts": p.attempts,
+        "activations": p.activations,
+        "qsos": p.qsos,
+        "location_name": loc_name,
+        "program_name": prog_name,
+    }
+
+
 @router.get("/locations/{descriptor}/parks")
 async def get_parks(
     descriptor: str, session: AsyncSession = Depends(get_session)

@@ -4,21 +4,58 @@
   // --- Tab routing ---
   const TABS = ["by-country", "download"];
   let tab = parseTab();
+  let parkRef = parseParkRef();
+  let parkDetail = null;
+  let parkLoading = false;
 
   function parseTab() {
     const hash = window.location.hash.slice(1) || "";
-    const parts = hash.split("/").filter(Boolean); // ["parks", "list"] or ["parks", "cache"] or ["parks"]
+    const parts = hash.split("/").filter(Boolean);
+    if (parts.length >= 3 && parts[1] === "park") return "park";
     if (parts.length >= 2 && TABS.includes(parts[1])) return parts[1];
     return "by-country";
   }
 
+  function parseParkRef() {
+    const hash = window.location.hash.slice(1) || "";
+    const parts = hash.split("/").filter(Boolean);
+    if (parts.length >= 3 && parts[1] === "park") return decodeURIComponent(parts[2]);
+    return "";
+  }
+
   function switchTab(t) {
     tab = t;
+    parkDetail = null;
     window.location.hash = `/parks/${t}`;
+  }
+
+  function viewPark(ref) {
+    parkRef = ref;
+    tab = "park";
+    window.location.hash = `/parks/park/${encodeURIComponent(ref)}`;
+    loadParkDetail(ref);
+  }
+
+  async function loadParkDetail(ref) {
+    parkLoading = true;
+    parkDetail = null;
+    try {
+      const res = await fetch(`/api/pota/park/${encodeURIComponent(ref)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (!data.error) parkDetail = data;
+      }
+    } catch {}
+    parkLoading = false;
   }
 
   function onHashChange() {
     tab = parseTab();
+    const newRef = parseParkRef();
+    if (tab === "park" && newRef && newRef !== parkRef) {
+      parkRef = newRef;
+      loadParkDetail(newRef);
+    }
   }
 
   // --- Programs / Cache state ---
@@ -185,6 +222,7 @@
 
   onMount(() => {
     loadPrograms();
+    if (tab === "park" && parkRef) loadParkDetail(parkRef);
     window.addEventListener("hashchange", onHashChange);
   });
 
@@ -250,7 +288,9 @@
                                 <p class="loading indent">Loading parks...</p>
                               {:else if parksByDescriptor[loc.descriptor]}
                                 {#each parksByDescriptor[loc.descriptor] as park}
-                                  <div class="tree-row park-row">
+                                  <!-- svelte-ignore a11y-click-events-have-key-events -->
+                                  <!-- svelte-ignore a11y-no-static-element-interactions -->
+                                  <div class="tree-row park-row clickable" on:click={() => viewPark(park.reference)}>
                                     <span class="park-ref">{park.reference}</span>
                                     <span class="park-name">{park.name}</span>
                                     {#if park.grid}
@@ -333,6 +373,43 @@
             </div>
           {/each}
         </div>
+      {/if}
+    </div>
+  {/if}
+
+  {#if tab === "park"}
+    <div class="tab-content">
+      {#if parkLoading}
+        <p class="loading">Loading park...</p>
+      {:else if parkDetail}
+        <div class="park-detail">
+          <h3>{parkDetail.reference}</h3>
+          <p class="park-detail-name">{parkDetail.name}</p>
+          <div class="park-detail-grid">
+            <div class="detail-row"><span class="detail-label">Location</span> <span>{parkDetail.location_name || ""} ({parkDetail.location_desc})</span></div>
+            <div class="detail-row"><span class="detail-label">Country</span> <span>{parkDetail.program_name || ""}</span></div>
+            {#if parkDetail.grid}
+              <div class="detail-row"><span class="detail-label">Grid</span> <span>{parkDetail.grid}</span></div>
+            {/if}
+            {#if parkDetail.latitude != null && parkDetail.longitude != null}
+              <div class="detail-row"><span class="detail-label">Coordinates</span> <span>{parkDetail.latitude}, {parkDetail.longitude}</span></div>
+            {/if}
+            {#if parkDetail.activations != null}
+              <div class="detail-row"><span class="detail-label">Activations</span> <span>{parkDetail.activations}</span></div>
+            {/if}
+            {#if parkDetail.attempts != null}
+              <div class="detail-row"><span class="detail-label">Attempts</span> <span>{parkDetail.attempts}</span></div>
+            {/if}
+            {#if parkDetail.qsos != null}
+              <div class="detail-row"><span class="detail-label">QSOs</span> <span>{parkDetail.qsos}</span></div>
+            {/if}
+          </div>
+          <div class="park-detail-links">
+            <a href="https://pota.app/#/park/{parkDetail.reference}" target="_blank" rel="noopener">View on POTA</a>
+          </div>
+        </div>
+      {:else}
+        <p class="empty">Park {parkRef} not found in cache.</p>
       {/if}
     </div>
   {/if}
@@ -488,8 +565,11 @@
   }
 
   .park-row {
-    cursor: default;
     padding-left: 1rem;
+  }
+
+  .park-row.clickable {
+    cursor: pointer;
   }
 
   .children {
@@ -639,5 +719,51 @@
   .program-row input[type="checkbox"] {
     cursor: pointer;
     flex-shrink: 0;
+  }
+
+  /* Park detail */
+  .park-detail h3 {
+    color: var(--accent-vfo);
+    font-size: 1.3rem;
+    margin: 0 0 0.25rem 0;
+  }
+
+  .park-detail-name {
+    font-size: 1.1rem;
+    color: var(--text);
+    margin: 0 0 1rem 0;
+  }
+
+  .park-detail-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+  }
+
+  .detail-row {
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .detail-label {
+    color: var(--text-dim);
+    min-width: 10ch;
+    flex-shrink: 0;
+  }
+
+  .park-detail-links {
+    margin-top: 0.75rem;
+  }
+
+  .park-detail-links a {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.85rem;
+  }
+
+  .park-detail-links a:hover {
+    text-decoration: underline;
   }
 </style>

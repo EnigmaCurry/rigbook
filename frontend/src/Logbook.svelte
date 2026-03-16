@@ -690,7 +690,7 @@
 
   <div class="form-row">
     <div class="field">
-      <label for="pota_park">POTA Park{#if potaParkName} <span class="pota-park-name">— {potaParkName}</span>{/if}</label>
+      <label for="pota_park">POTA Park{#if potaParkName} — <a href="#/parks/park/{encodeURIComponent(pota_park.trim().toUpperCase())}" class="pota-park-name">{potaParkName}</a>{/if}</label>
       <div class="pota-ac">
         <input id="pota_park" type="text" bind:value={pota_park} on:input={onPotaInput} on:focus={onPotaFocus} on:blur={onPotaBlur} on:keydown={onPotaKeydown} style="text-transform: uppercase" autocomplete="off" />
         {#if potaOpen && potaResults.length > 0}
@@ -1102,6 +1102,11 @@
   .pota-park-name {
     color: var(--accent-vfo);
     font-weight: normal;
+    text-decoration: none;
+  }
+
+  .pota-park-name:hover {
+    text-decoration: underline;
   }
 
   .pota-ac {
