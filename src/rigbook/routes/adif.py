@@ -43,6 +43,8 @@ def contact_to_adif_record(c: Contact) -> dict:
         record["COMMENT"] = c.comments
     if c.notes:
         record["NOTES"] = c.notes
+    if c.uuid:
+        record["APP_RIGBOOK_UUID"] = c.uuid
     return record
 
 
@@ -69,6 +71,9 @@ def adif_record_to_contact_dict(record: dict) -> dict:
         data["skcc"] = skcc
     data["comments"] = record.get("COMMENT")
     data["notes"] = record.get("NOTES")
+    app_uuid = record.get("APP_RIGBOOK_UUID")
+    if app_uuid:
+        data["uuid"] = app_uuid
 
     qso_date = record.get("QSO_DATE", "")
     time_on = record.get("TIME_ON", "")
@@ -130,19 +135,29 @@ async def import_adif(file: UploadFile, session: AsyncSession = Depends(get_sess
         if not data.get("call"):
             skipped += 1
             continue
-        ts = data.get("timestamp")
-        if ts:
-            # Normalize to naive UTC for comparison
-            check_ts = ts.replace(tzinfo=None) if ts.tzinfo else ts
+        # Dedup by UUID first
+        record_uuid = data.get("uuid")
+        if record_uuid:
             existing = (await session.execute(
-                select(Contact).where(and_(
-                    Contact.call == data["call"].upper(),
-                    Contact.timestamp == check_ts,
-                ))
+                select(Contact).where(Contact.uuid == record_uuid)
             )).scalar_one_or_none()
             if existing:
                 duplicates += 1
                 continue
+        else:
+            # Fall back to call + timestamp dedup
+            ts = data.get("timestamp")
+            if ts:
+                check_ts = ts.replace(tzinfo=None) if ts.tzinfo else ts
+                existing = (await session.execute(
+                    select(Contact).where(and_(
+                        Contact.call == data["call"].upper(),
+                        Contact.timestamp == check_ts,
+                    ))
+                )).scalar_one_or_none()
+                if existing:
+                    duplicates += 1
+                    continue
         contact = Contact(**data)
         session.add(contact)
         imported += 1

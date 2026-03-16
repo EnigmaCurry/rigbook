@@ -94,6 +94,7 @@ class ContactUpdate(BaseModel):
 
 class ContactResponse(BaseModel):
     id: int
+    uuid: str | None
     call: str
     freq: str | None
     mode: str | None
