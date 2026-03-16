@@ -284,7 +284,9 @@
       <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
       <h1 on:click={() => navigate("hunting")} style="cursor: pointer">Rigbook</h1>
       {#if myCallsign}
-        <span class="callsign">{myCallsign}</span>
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <span class="callsign" on:click={() => navigate("settings")} style="cursor: pointer">{myCallsign}</span>
       {/if}
       {#if vfoEditing}
         <span class="vfo-edit">
