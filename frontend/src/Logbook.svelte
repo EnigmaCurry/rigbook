@@ -540,6 +540,7 @@
       if (res.ok) {
         call = "";
         pota_park = "";
+        potaParkName = "";
         name = "";
         qth = "";
         grid = "";
