@@ -80,7 +80,7 @@
           newSpotIds = justNew;
           // Clear flash after 5 seconds
           if (justNew.size > 0) {
-            setTimeout(() => { newSpotIds = new Set(); }, 5000);
+            setTimeout(() => { newSpotIds = new Set(); }, 15000);
           }
         }
         for (const s of fresh) seenSpotIds.add(s.spotId);
@@ -255,7 +255,7 @@
   }
 
   .card.new-spot {
-    animation: flash 1s ease-in-out 3;
+    animation: flash 1.5s ease-in-out 5;
     border-color: var(--accent);
   }
 
