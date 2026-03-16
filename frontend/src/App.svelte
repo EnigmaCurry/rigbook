@@ -88,7 +88,7 @@
   function parseHash() {
     const hash = window.location.hash.slice(1) || "/";
     if (hash === "/grid") return { page: "grid", editId: null };
-    if (hash === "/parks") return { page: "parks", editId: null };
+    if (hash === "/parks" || hash.startsWith("/parks/")) return { page: "parks", editId: null };
     if (hash === "/about") return { page: "about", editId: null };
     if (hash === "/links") return { page: "links", editId: null };
     if (hash === "/settings") return { page: "settings", editId: null };
