@@ -392,11 +392,12 @@
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <span class="vfo-bezel" use:nonPassiveWheel>
           <span class="vfo-icon" on:click={startVfoEdit}>📻</span>
-          {#each vfoDigits as d}
+          {#each vfoDigits as d, i}
             {#if d.char === "."}
-              <span class="vfo-dot">.</span>
+              <!-- dot is merged into the next digit -->
             {:else}
-              <span class="vfo-digit" data-placehz={d.placeHz} on:click={startVfoEdit} title="Scroll to tune">{d.char}</span>
+              {@const prevDot = i > 0 && vfoDigits[i-1]?.char === "."}
+              <span class="vfo-digit" data-placehz={d.placeHz} on:click={startVfoEdit} title="Scroll to tune">{prevDot ? "." : ""}{d.char}</span>
             {/if}
           {/each}
           <span class="vfo-khz" on:click={startVfoEdit}>{" "}{freqUnit}</span>
@@ -596,13 +597,6 @@
   .vfo-bezel .vfo-icon {
     cursor: pointer;
     margin-right: 0.3rem;
-  }
-
-  .vfo-dot {
-    color: var(--accent-vfo);
-    font-size: 1.1rem;
-    font-family: monospace;
-    font-weight: bold;
   }
 
   .vfo {
