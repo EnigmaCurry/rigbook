@@ -102,7 +102,7 @@
 <div class="gridmap">
   {#if level === "field"}
     <div class="map-header">
-      <span class="map-title">Select Grid Field</span>
+      <span class="map-title">Select Field</span>
       {#if parsedField}
         <span class="current">Current: {value}</span>
       {/if}

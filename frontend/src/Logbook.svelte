@@ -500,7 +500,7 @@
         <div class="grid-picker-overlay" on:click|self={() => showGridPicker = false}>
           <div class="grid-picker-modal">
             <div class="grid-picker-header">
-              <span>Select Grid Square</span>
+              <span>Grid Square</span>
               <button type="button" class="grid-picker-close" on:click={() => showGridPicker = false}>✕</button>
             </div>
             <GridMap bind:value={grid} on:select={() => showGridPicker = false} />
