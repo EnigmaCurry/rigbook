@@ -304,7 +304,7 @@
     <div class="header-left">
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-      <h1 class="app-title" on:click={() => navigate("hunting")} style="cursor: pointer">Rigbook</h1>
+      <h1 class="app-title" on:click={() => navigate("hunting")} style="cursor: pointer"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>
       {#if myCallsign}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -682,9 +682,16 @@
     font-weight: bold;
   }
 
+  .title-short {
+    display: none;
+  }
+
   @media (max-width: 600px) {
-    .vfo-khz, .app-title {
+    .vfo-khz, .title-full {
       display: none;
+    }
+    .title-short {
+      display: inline;
     }
   }
 </style>
