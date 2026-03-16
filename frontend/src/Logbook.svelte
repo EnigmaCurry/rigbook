@@ -863,6 +863,14 @@
             <div class="park-overlay-row"><span class="park-overlay-label">QSOs</span> <span>{parkOverlay.qsos}</span></div>
           {/if}
         </div>
+        {#if parkOverlay.latitude != null && parkOverlay.longitude != null}
+          <iframe
+            class="park-map"
+            title="Park location"
+            src="https://www.openstreetmap.org/export/embed.html?bbox={parkOverlay.longitude - 0.05},{parkOverlay.latitude - 0.03},{parkOverlay.longitude + 0.05},{parkOverlay.latitude + 0.03}&layer=mapnik&marker={parkOverlay.latitude},{parkOverlay.longitude}"
+            frameborder="0"
+          ></iframe>
+        {/if}
         <div class="park-overlay-links">
           <a href="https://pota.app/#/park/{parkOverlay.reference}" target="_blank" rel="noopener">View on POTA</a>
         </div>
@@ -1253,6 +1261,14 @@
     color: var(--text-dim);
     min-width: 10ch;
     flex-shrink: 0;
+  }
+
+  .park-map {
+    width: 100%;
+    height: 200px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    margin-bottom: 0.75rem;
   }
 
   .park-overlay-links a {

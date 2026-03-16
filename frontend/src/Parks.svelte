@@ -410,6 +410,14 @@
               <div class="detail-row"><span class="detail-label">QSOs</span> <span>{parkDetail.qsos}</span></div>
             {/if}
           </div>
+          {#if parkDetail.latitude != null && parkDetail.longitude != null}
+            <iframe
+              class="park-map"
+              title="Park location"
+              src="https://www.openstreetmap.org/export/embed.html?bbox={parkDetail.longitude - 0.05},{parkDetail.latitude - 0.03},{parkDetail.longitude + 0.05},{parkDetail.latitude + 0.03}&layer=mapnik&marker={parkDetail.latitude},{parkDetail.longitude}"
+              frameborder="0"
+            ></iframe>
+          {/if}
           <div class="park-detail-links">
             <a href="https://pota.app/#/park/{parkDetail.reference}" target="_blank" rel="noopener">View on POTA</a>
           </div>
@@ -769,6 +777,15 @@
     color: var(--text-dim);
     min-width: 10ch;
     flex-shrink: 0;
+  }
+
+  .park-map {
+    width: 100%;
+    max-width: 500px;
+    height: 250px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    margin-bottom: 0.75rem;
   }
 
   .park-detail-links {
