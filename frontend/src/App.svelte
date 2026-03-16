@@ -307,10 +307,7 @@
       {:else if vfoConnected}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="vfo" on:click={startVfoEdit} title="Click to change VFO"><span class="vfo-icon">📻 </span>{formatFreq(vfoFreq) + " "}<span class="vfo-khz">KHz</span></span>
-        {#if freqToBand(parseFloat(vfoFreq) / 1000)}
-          <span class="band-tag" style="background: {bandColor(freqToBand(parseFloat(vfoFreq) / 1000))}; color: {bandTextColor(freqToBand(parseFloat(vfoFreq) / 1000))}">{freqToBand(parseFloat(vfoFreq) / 1000)}</span>
-        {/if}
+        <span class="vfo" on:click={startVfoEdit} title="Click to change VFO"><span class="vfo-icon">📻 </span>{formatFreq(vfoFreq) + " "}<span class="vfo-khz">KHz</span>{#if freqToBand(parseFloat(vfoFreq) / 1000)}{" "}<span class="band-tag" style="background: {bandColor(freqToBand(parseFloat(vfoFreq) / 1000))}; color: {bandTextColor(freqToBand(parseFloat(vfoFreq) / 1000))}">{freqToBand(parseFloat(vfoFreq) / 1000)}</span>{/if}</span>
         {#if vfoMode}
           <!-- svelte-ignore a11y-click-events-have-key-events -->
           <!-- svelte-ignore a11y-no-static-element-interactions -->
