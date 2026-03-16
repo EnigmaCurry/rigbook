@@ -8,6 +8,7 @@
     <li><a href="https://skccgroup.com/" target="_blank" rel="noopener">Straight Key Century Club</a></li>
     <li><a href="https://cw.wa7pge.com/" target="_blank" rel="noopener">CW Practice</a></li>
     <li><a href="https://github.com/EnigmaCurry/code-smore" target="_blank" rel="noopener">Code-Smore</a></li>
+    <li><a href="https://github.com/EnigmaCurry/rigbook" target="_blank" rel="noopener">Rigbook</a></li>
     <li><a href="https://wa7pge.com/" target="_blank" rel="noopener">WA7PGE</a></li>
   </ul>
 </div>
