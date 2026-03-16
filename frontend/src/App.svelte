@@ -27,6 +27,7 @@
   let vfoMode = "";
   let vfoConnected = false;
   let vfoEditing = false;
+  let vfoFreqInput;
   let vfoEditFreq = "";
   let vfoEditMode = "";
   let flrigInterval;
@@ -58,6 +59,8 @@
     vfoEditFreq = vfoFreq ? String(parseFloat(vfoFreq) / 1000) : "";
     vfoEditMode = vfoMode;
     vfoEditing = true;
+    // Focus after Svelte renders the input
+    setTimeout(() => vfoFreqInput?.focus(), 0);
   }
 
   async function saveVfo() {
@@ -226,7 +229,7 @@
       {/if}
       {#if vfoEditing}
         <span class="vfo-edit">
-          <input type="text" bind:value={vfoEditFreq} class="vfo-input freq" placeholder="Freq" on:keydown={e => e.key === "Enter" && saveVfo()} />
+          <input bind:this={vfoFreqInput} type="text" bind:value={vfoEditFreq} class="vfo-input freq" placeholder="Freq" on:keydown={e => e.key === "Enter" && saveVfo()} />
           <button class="vfo-btn save" on:click={saveVfo}>Set</button>
           <button class="vfo-btn cancel" on:click={cancelVfoEdit}>X</button>
         </span>
