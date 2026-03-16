@@ -3,8 +3,6 @@
 
   const dispatch = createEventDispatcher();
 
-  export let freqUnit = "KHz";
-
   let inputEl;
   let query = "";
   let open = false;
@@ -134,7 +132,6 @@
     if (!f) return "";
     const n = parseFloat(f);
     if (isNaN(n)) return f;
-    if (freqUnit === "MHz") return parseFloat((n / 1000).toFixed(4)).toString();
     return parseFloat(n.toFixed(1)).toString();
   }
 
@@ -191,7 +188,7 @@
             on:mousedown|preventDefault={() => pick({ type: "pota", data: s })}
           >
             <span class="result-call">{s.activator}</span>
-            <span class="result-detail">{s.reference} {s.name || ""} {formatFreq(s.frequency)} {freqUnit} {s.mode || ""}</span>
+            <span class="result-detail">{s.reference} {s.name || ""} {formatFreq(s.frequency)} KHz {s.mode || ""}</span>
           </div>
         {/each}
       {/if}

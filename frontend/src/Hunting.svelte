@@ -5,7 +5,6 @@
 
   const dispatch = createEventDispatcher();
 
-  export let freqUnit = "KHz";
   let spots = [];
   let loading = true;
   let error = "";
@@ -47,7 +46,6 @@
     if (!f) return "";
     const n = parseFloat(f);
     if (isNaN(n)) return f;
-    if (freqUnit === "MHz") return parseFloat((n / 1000).toFixed(4)).toString();
     return parseFloat(n.toFixed(1)).toString();
   }
 
@@ -153,7 +151,7 @@
           <div class="park-name">{spot.name || spot.reference}</div>
           <div class="park-ref">{spot.reference} — {spot.locationDesc}</div>
           <div class="card-details">
-            <span class="freq">{formatFreq(spot.frequency)} {freqUnit}</span>
+            <span class="freq">{formatFreq(spot.frequency)} KHz</span>
             <span class="grid-sq">{spot.grid4 || ""}</span>
             <span class="time">{timeAgo(spot.spotTime)}</span>
           </div>

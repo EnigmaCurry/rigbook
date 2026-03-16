@@ -141,23 +141,10 @@
     }
   }
 
-  let freqUnit = "KHz";
-
-  async function fetchFreqUnit() {
-    try {
-      const res = await fetch("/api/settings/freq_unit");
-      if (res.ok) {
-        const data = await res.json();
-        if (data.value) freqUnit = data.value;
-      }
-    } catch {}
-  }
-
   function formatFreq(f) {
     if (!f) return "";
     const khz = parseFloat(f) / 1000;
     if (isNaN(khz)) return f;
-    if (freqUnit === "MHz") return parseFloat((khz / 1000).toFixed(4)).toString();
     return parseFloat(khz.toFixed(1)).toString();
   }
 
@@ -168,9 +155,7 @@
     const hz = parseFloat(f);
     if (isNaN(hz)) return [];
     const khz = hz / 1000;
-    const str = freqUnit === "MHz"
-      ? (khz / 1000).toFixed(6)
-      : khz.toFixed(3);
+    const str = khz.toFixed(3);
 
     // Find the decimal point position to calculate place values
     const dotIdx = str.indexOf(".");
@@ -183,7 +168,7 @@
       // Position relative to decimal: chars before dot have positive powers
       const posFromDot = dotIdx >= 0 ? (i < dotIdx ? dotIdx - i : dotIdx - i + 1) : str.length - i;
       // Convert place value from display unit to Hz
-      const unitMultiplier = freqUnit === "MHz" ? 1e9 : 1e3; // MHz->Hz or KHz->Hz
+      const unitMultiplier = 1e3; // KHz->Hz
       const placeHz = Math.round(Math.pow(10, posFromDot - 1) * unitMultiplier);
       digits.push({ char: str[i], placeHz });
     }
@@ -283,7 +268,6 @@
     const paths = { hunting: "/", log: "/logbook", add: "/add", grid: "/grid", export: "/export", settings: "/settings", links: "/links", about: "/about" };
     window.location.hash = paths[p] || "/";
     fetchCallsign();
-    fetchFreqUnit();
   }
 
   async function tuneAndPrefill(spot) {
@@ -350,7 +334,6 @@
     page = parsed.page;
     editId = parsed.editId;
     fetchCallsign();
-    fetchFreqUnit();
   }
 
   // Apply theme from localStorage on load
@@ -396,7 +379,6 @@
     window.addEventListener("storage", applyTheme);
     window.addEventListener("keydown", onGlobalKeydown);
     fetchCallsign();
-    fetchFreqUnit();
     fetchRadioModes();
     pollFlrig();
     flrigInterval = setInterval(pollFlrig, 2000);
@@ -451,7 +433,6 @@
               <span class="vfo-digit" data-placehz={d.placeHz} on:click={startVfoEdit} title="Scroll to tune">{prevDot ? "." : ""}{d.char}</span>
             {/if}
           {/each}
-          <span class="vfo-khz" on:click={startVfoEdit}>{" "}{freqUnit}</span>
           {#if freqToBandForMode(parseFloat(vfoFreq) / 1000, vfoMode)}
             <span class="band-tag" style="background: {bandColor(freqToBandForMode(parseFloat(vfoFreq) / 1000, vfoMode))}; color: {bandTextColor(freqToBandForMode(parseFloat(vfoFreq) / 1000, vfoMode))}" on:click={startVfoEdit}>{freqToBandForMode(parseFloat(vfoFreq) / 1000, vfoMode)}</span>
           {/if}
@@ -465,7 +446,7 @@
         <span class="vfo disconnected" title="Radio not connected">❌ No Radio</span>
       {/if}
     </div>
-    <Search bind:this={searchComponent} {freqUnit} on:action={handleSearchAction} />
+    <Search bind:this={searchComponent} on:action={handleSearchAction} />
     <!-- svelte-ignore a11y-click-events-have-key-events -->
     <!-- svelte-ignore a11y-no-static-element-interactions -->
     <span class="utc-clock" on:click={copyUtcTimestamp} title="Click to copy">{clockCopied ? "Copied!" : utcNow}</span>
@@ -495,11 +476,11 @@
   </header>
 
   {#if page === "log"}
-    <Logbook showForm={false} {vfoFreq} {vfoMode} {freqUnit} on:editchange={e => { editId = e.detail; navigate("add"); window.location.hash = `/log/${e.detail}`; }} on:navigate={e => navigate(e.detail)} />
+    <Logbook showForm={false} {vfoFreq} {vfoMode} on:editchange={e => { editId = e.detail; navigate("add"); window.location.hash = `/log/${e.detail}`; }} on:navigate={e => navigate(e.detail)} />
   {:else if page === "add"}
-    <Logbook showForm={true} {editId} {prefill} {vfoFreq} {vfoMode} {freqUnit} on:editchange={e => { editId = e.detail; window.location.hash = e.detail ? `/log/${e.detail}` : "/add"; }} on:navigate={e => navigate(e.detail)} on:prefillconsumed={() => prefill = null} />
+    <Logbook showForm={true} {editId} {prefill} {vfoFreq} {vfoMode} on:editchange={e => { editId = e.detail; window.location.hash = e.detail ? `/log/${e.detail}` : "/add"; }} on:navigate={e => navigate(e.detail)} on:prefillconsumed={() => prefill = null} />
   {:else if page === "hunting"}
-    <Hunting {freqUnit} on:tune={e => tuneAndPrefill(e.detail)} />
+    <Hunting on:tune={e => tuneAndPrefill(e.detail)} />
   {:else if page === "grid"}
     <GridMap bind:value={gridMapValue} on:select={e => { gridMapValue = e.detail; }} />
   {:else if page === "export"}
@@ -852,7 +833,7 @@
   }
 
   @media (max-width: 600px) {
-    .vfo-khz, .title-full {
+    .title-full {
       display: none;
     }
     .title-short {

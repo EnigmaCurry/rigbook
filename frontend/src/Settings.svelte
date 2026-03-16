@@ -8,7 +8,6 @@
   let flrig_host = "localhost";
   let flrig_port = "12345";
   let theme = localStorage.getItem("rigbook-theme") || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
-  let freqUnit = "KHz";
   let saving = false;
   let message = "";
 
@@ -16,10 +15,6 @@
     theme = theme === "dark" ? "light" : "dark";
     localStorage.setItem("rigbook-theme", theme);
     document.documentElement.classList.toggle("light", theme === "light");
-  }
-
-  function toggleFreqUnit() {
-    freqUnit = freqUnit === "KHz" ? "MHz" : "KHz";
   }
 
   async function clearCache() {
@@ -49,7 +44,6 @@
           if (s.key === "qrz_password") qrz_password = s.value || "";
           if (s.key === "flrig_host") flrig_host = s.value || "localhost";
           if (s.key === "flrig_port") flrig_port = s.value || "12345";
-          if (s.key === "freq_unit") freqUnit = s.value || "KHz";
         }
       }
     } catch {}
@@ -88,11 +82,6 @@
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value: flrig_port.trim() }),
-      });
-      await fetch("/api/settings/freq_unit", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: freqUnit }),
       });
       message = "Settings saved.";
     } catch (e) {
@@ -144,13 +133,6 @@
     <label>Theme</label>
     <button class="theme-toggle" on:click={toggleTheme}>
       {theme === "dark" ? "Dark" : "Light"}
-    </button>
-  </div>
-
-  <div class="setting-row toggle-row">
-    <label>Frequency Unit</label>
-    <button class="theme-toggle" on:click={toggleFreqUnit}>
-      {freqUnit}
     </button>
   </div>
 
