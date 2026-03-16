@@ -117,8 +117,8 @@
 
   <div class="setting-row">
     <label for="qrz_password">QRZ Password</label>
-    <input id="qrz_password" type="password" bind:value={qrz_password} autocomplete="off" />
-    <span class="hint">Your QRZ account password (uses My Callsign as username)</span>
+    <input id="qrz_password" type="password" bind:value={qrz_password} autocomplete="off" disabled={!my_callsign.trim()} />
+    <span class="hint">{my_callsign.trim() ? "Your QRZ account password (uses My Callsign as username)" : "Set My Callsign first"}</span>
   </div>
 
   <h3>Cache</h3>
