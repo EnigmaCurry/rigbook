@@ -203,6 +203,8 @@
     if (prefill.grid) grid = prefill.grid;
     if (prefill.country) country = prefill.country;
     if (prefill.skcc) skcc = prefill.skcc;
+    datePart = "";
+    timePart = "";
     dispatch("prefillconsumed");
     // Lookup name from QRZ
     if (prefill.call) lookupCallsign(prefill.call.toUpperCase());
