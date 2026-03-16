@@ -27,18 +27,43 @@ POTA_LOCATIONS_URL = "https://api.pota.app/locations"
 POTA_LOCATION_PARKS_URL = "https://api.pota.app/location/parks"
 
 TTL = 86400  # 24 hours
+SPOTS_TTL = 30  # seconds
 SELECTED_KEY = "pota_selected_programs"
+
+_spots_cache: list | None = None
+_spots_fetched_at: float = 0
+_spots_lock = None
+
+
+def _get_spots_lock():
+    global _spots_lock
+    import asyncio
+
+    if _spots_lock is None:
+        _spots_lock = asyncio.Lock()
+    return _spots_lock
 
 
 @router.get("/spots")
 async def get_spots():
-    async with httpx.AsyncClient(timeout=10) as client:
-        res = await client.get(
-            POTA_SPOTS_URL,
-            headers={"Accept": "application/json"},
-        )
-        res.raise_for_status()
-        return res.json()
+    global _spots_cache, _spots_fetched_at
+    now = time.time()
+    if _spots_cache is not None and now - _spots_fetched_at < SPOTS_TTL:
+        return _spots_cache
+    async with _get_spots_lock():
+        # Re-check after acquiring lock
+        now = time.time()
+        if _spots_cache is not None and now - _spots_fetched_at < SPOTS_TTL:
+            return _spots_cache
+        async with httpx.AsyncClient(timeout=10) as client:
+            res = await client.get(
+                POTA_SPOTS_URL,
+                headers={"Accept": "application/json"},
+            )
+            res.raise_for_status()
+            _spots_cache = res.json()
+            _spots_fetched_at = time.time()
+            return _spots_cache
 
 
 async def _fetch_and_cache_programs(session: AsyncSession):
