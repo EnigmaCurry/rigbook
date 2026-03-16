@@ -29,6 +29,7 @@
   let vfoConnected = false;
   let vfoEditing = false;
   let vfoFreqInput;
+  let radioModes = [];
   let vfoEditFreq = "";
   let vfoEditMode = "";
   let flrigInterval;
@@ -79,6 +80,28 @@
 
   function cancelVfoEdit() {
     vfoEditing = false;
+  }
+
+  async function fetchRadioModes() {
+    try {
+      const res = await fetch("/api/flrig/modes");
+      if (res.ok) radioModes = await res.json();
+    } catch {}
+  }
+
+  async function cycleMode() {
+    if (!radioModes.length) await fetchRadioModes();
+    if (!radioModes.length || !vfoMode) return;
+    const idx = radioModes.indexOf(vfoMode);
+    const next = radioModes[(idx + 1) % radioModes.length];
+    try {
+      await fetch("/api/flrig/vfo", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: next }),
+      });
+      vfoMode = next;
+    } catch {}
   }
 
   async function fetchCallsign() {
@@ -192,6 +215,9 @@
     } else if (e.key === "l" || e.key === "L") {
       e.preventDefault();
       navigate("log");
+    } else if (e.key === "m" || e.key === "M") {
+      e.preventDefault();
+      cycleMode();
     } else if (e.key === "t" || e.key === "T") {
       e.preventDefault();
       startVfoEdit();
@@ -206,6 +232,7 @@
     window.addEventListener("storage", applyTheme);
     window.addEventListener("keydown", onGlobalKeydown);
     fetchCallsign();
+    fetchRadioModes();
     pollFlrig();
     flrigInterval = setInterval(pollFlrig, 2000);
     window.addEventListener("hashchange", onHashChange);
@@ -243,6 +270,11 @@
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <span class="vfo" on:click={startVfoEdit} title="Click to change VFO">📻 {formatFreq(vfoFreq)}</span>
+        {#if vfoMode}
+          <!-- svelte-ignore a11y-click-events-have-key-events -->
+          <!-- svelte-ignore a11y-no-static-element-interactions -->
+          <span class="vfo-mode" on:click={cycleMode} title="Click or press M to cycle mode">{vfoMode}</span>
+        {/if}
       {:else}
         <span class="vfo disconnected" title="Radio not connected">📻 ❌</span>
       {/if}
@@ -393,6 +425,17 @@
     color: var(--accent-vfo);
     font-size: 1rem;
     cursor: pointer;
+  }
+
+  .vfo-mode {
+    color: var(--accent);
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .vfo-mode:hover {
+    text-decoration: underline;
   }
 
   .vfo:not(.disconnected):hover {

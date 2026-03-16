@@ -18,6 +18,7 @@
       <tr><td class="key">H</td><td>Hunting (home)</td></tr>
       <tr><td class="key">L</td><td>Logbook</td></tr>
       <tr><td class="key">T</td><td>Tune radio</td></tr>
+      <tr><td class="key">M</td><td>Cycle radio mode</td></tr>
       <tr><td class="key">?</td><td>This page</td></tr>
       <tr><td class="key">Esc</td><td>Close search / menu</td></tr>
     </tbody>
