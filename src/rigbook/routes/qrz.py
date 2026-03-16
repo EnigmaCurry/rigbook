@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import time
@@ -11,6 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from rigbook.db import Cache, Setting, get_session
 
 logger = logging.getLogger("rigbook")
+
+_call_locks: dict[str, asyncio.Lock] = {}
 
 router = APIRouter(prefix="/api/qrz", tags=["qrz"])
 
@@ -162,21 +165,30 @@ async def _fetch_callsign(
 async def qrz_lookup(callsign: str, session: AsyncSession = Depends(get_session)):
     call_upper = callsign.upper().strip()
 
-    # Check DB cache
+    # Check DB cache (fast path, no lock needed)
     cached = await _get_cached(call_upper, session)
     if cached:
         return cached
 
-    username, api_key = await _get_credentials(session)
-    if not api_key or not username:
-        return {"error": "QRZ credentials not configured"}
+    # Serialize concurrent fetches for the same callsign
+    if call_upper not in _call_locks:
+        _call_locks[call_upper] = asyncio.Lock()
+    async with _call_locks[call_upper]:
+        # Re-check cache after acquiring lock
+        cached = await _get_cached(call_upper, session)
+        if cached:
+            return cached
 
-    data = await _fetch_callsign(call_upper, username, api_key)
-    if data is None:
-        return {"error": "Callsign not found"}
+        username, api_key = await _get_credentials(session)
+        if not api_key or not username:
+            return {"error": "QRZ credentials not configured"}
 
-    await _store_cached(call_upper, data, session)
-    return data
+        data = await _fetch_callsign(call_upper, username, api_key)
+        if data is None:
+            return {"error": "Callsign not found"}
+
+        await _store_cached(call_upper, data, session)
+        return data
 
 
 @router.delete("/cache")
