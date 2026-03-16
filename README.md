@@ -15,14 +15,21 @@ with a local web UI, optionally connected to your radio via
   clipboard, and **+** adds a new QSO
 - Keyboard shortcuts: `/` search, `N` new QSO, `H` hunting, `L` logbook,
   `T` tune radio, `M` cycle mode, `?` about, `Esc` close
-- Country and state autocomplete (all ISO countries and subdivisions)
+- Country and state autocomplete (all ISO countries and subdivisions),
+  with automatic normalization of codes (US → United States, UT → Utah)
 - Mode autocomplete from your radio's supported modes
+- POTA park autocomplete — search by reference, name, location, or grid
+  with auto-fill of country, state, and grid square
+- Parks browser — download and cache park data by country, browse parks
+  in a tree by country/location, view park details with OpenStreetMap
+  embed, personal QSO count, and award emojis
 - Sortable log table with click-to-edit
 - ADIF export and import
 - Hunting page — browse active Parks on the Air activators, filter by
-  mode/band, click to tune your radio
-- SKCC and POTA park tracking
-- All timestamps in UTC
+  mode/band, click to tune your radio (spots cached server-side for 30s)
+- QRZ callsign lookup with connection test button in Settings
+- SKCC member number auto-lookup
+- All timestamps in UTC with 24-hour format
 - Light and dark themes (toggle in Settings)
 
 ## Requirements
@@ -63,11 +70,14 @@ Open http://localhost:8073 in your browser.
 
 ### Logging contacts
 
-1. Click **Add QSO** or go to the hamburger menu and select **Add QSO**
-2. Fill in the required fields (marked with *)
+1. Click **+** or go to the hamburger menu and select **Add QSO**
+2. Enter a callsign — the date and time auto-fill when you tab out
 3. If flrig is connected, frequency and mode auto-fill from your radio
-4. Click **Log QSO** to save — the form stays open for the next contact
-5. Click **Cancel** to return to the log view
+4. QRZ auto-fills name, QTH, state, country, and grid (if configured)
+5. Type a POTA park reference or name to autocomplete from cached parks
+6. Click the clock button (🕓) to update the timestamp to now
+7. Click **Log QSO** to save — the form clears for the next contact
+8. Click **Cancel** to return to the previous view
 
 ### Editing contacts
 
@@ -113,18 +123,53 @@ pota.app API.
   (requires flrig)
 - Spots refresh automatically every 30 seconds
 
+## POTA Parks
+
+The **Parks** page lets you download and browse
+[Parks on the Air](https://pota.app/) park data.
+
+### Downloading parks
+
+1. Go to **Parks** → **Download** tab
+2. Select the countries you want to cache (use the filter to find them)
+3. Click **Update Parks** — progress streams as each location is fetched
+4. Park data is cached in SQLite with a 24-hour TTL
+
+### Browsing parks
+
+- **By Country** tab shows a tree: expand a country to see its
+  locations, expand a location to see its parks
+- Click any park to view its detail page with name, location, grid,
+  coordinates, activation stats, an OpenStreetMap embed, and your
+  personal QSO count with award emojis (🥇 1, 🥈 2, ⭐ 5, 🌟 10,
+  💎 15, 🏆 20+)
+- Park detail pages are deep-linkable (`/#/parks/park/US-0008`)
+
+### Park autocomplete on QSO form
+
+When adding a QSO, the POTA Park field autocompletes from cached parks.
+Type a reference (e.g. `US1024` or `US-1024`), park name, location, or
+grid square to search. Selecting a park auto-fills the grid, country,
+and state fields. The park name appears as a clickable link that opens
+a detail overlay without leaving the form.
+
 ## QRZ Callsign Lookup
 
 If you have a [QRZ.com](https://www.qrz.com/) XML subscription, Rigbook
 can auto-fill contact details when you enter a callsign.
 
-1. Go to **Settings** and enter your **QRZ Password**
-2. When you type a callsign in the Add QSO form, Rigbook looks it up
-   after a short delay
-3. From a blank form: fills name, QTH, state, country, and grid
-4. From a hunting spot: only fills the operator's name (POTA data takes
+1. Go to **Settings**, enter your callsign first, then set your
+   **QRZ Password**
+2. Click **Test QRZ Connection** to verify it works
+3. When you type a callsign in the Add QSO form, Rigbook looks it up
+   on blur
+4. From a blank form: fills name, QTH, state, country, and grid
+5. From a hunting spot: only fills the operator's name (POTA data takes
    priority for location fields)
-5. Results are cached for 24 hours — clear the cache from Settings
+6. Country codes are normalized to full names (US → United States)
+7. State abbreviations are normalized to full names (UT → Utah)
+8. Results are cached for 24 hours — clear the cache from Settings
+9. The QRZ password is never exposed through the API
 
 ## SKCC
 
