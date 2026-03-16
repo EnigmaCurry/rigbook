@@ -782,7 +782,8 @@
   }
 
   .log-tab:not(.active):hover {
-    background: var(--row-hover);
+    background: var(--btn-secondary);
+    color: var(--text);
   }
 
   .prev-contact {
