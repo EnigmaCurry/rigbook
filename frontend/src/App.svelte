@@ -282,7 +282,7 @@
     <div class="header-left">
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-      <h1 on:click={() => navigate("hunting")} style="cursor: pointer">Rigbook</h1>
+      <h1 class="app-title" on:click={() => navigate("hunting")} style="cursor: pointer">Rigbook</h1>
       {#if myCallsign}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -649,7 +649,7 @@
   }
 
   @media (max-width: 600px) {
-    .vfo-icon, .vfo-khz {
+    .vfo-icon, .vfo-khz, .app-title {
       display: none;
     }
   }
