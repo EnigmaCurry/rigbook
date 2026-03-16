@@ -97,6 +97,11 @@
     return `${zoneNum}${zoneLetter} ${Math.round(easting)}E ${Math.round(northing)}N`;
   }
 
+  function osmUrl(coord) {
+    if (!coord) return "#";
+    return `https://www.openstreetmap.org/?mlat=${coord.lat.toFixed(5)}&mlon=${coord.lon.toFixed(5)}#map=10/${coord.lat.toFixed(5)}/${coord.lon.toFixed(5)}`;
+  }
+
   $: gridCoord = gridToLatLon(value);
 
   // --- OSM tile math for zoomed view ---
@@ -173,11 +178,11 @@
       {/if}
     </div>
     {#if gridCoord}
-      <div class="coord-info">
+      <a class="coord-info" href={osmUrl(gridCoord)} target="_blank" rel="noopener">
         <span>Center: {fmtDecimal(gridCoord)}</span>
         <span>{fmtDMS(gridCoord)}</span>
         <span>{fmtUTM(gridCoord)}</span>
-      </div>
+      </a>
     {/if}
     <svg viewBox="0 0 100 100" class="map-svg">
       <image
@@ -217,11 +222,11 @@
       {/if}
     </div>
     {#if gridCoord}
-      <div class="coord-info">
+      <a class="coord-info" href={osmUrl(gridCoord)} target="_blank" rel="noopener">
         <span>Center: {fmtDecimal(gridCoord)}</span>
         <span>{fmtDMS(gridCoord)}</span>
         <span>{fmtUTM(gridCoord)}</span>
-      </div>
+      </a>
     {/if}
     <div class="zoomed-container" style="aspect-ratio: {fTileW}/{fTileH}">
       <!-- OSM tiles -->
@@ -289,10 +294,15 @@
     gap: 1.5rem;
     font-size: 0.75rem;
     color: var(--text-dim);
+    text-decoration: none;
     margin-bottom: 0.4rem;
     font-family: monospace;
     overflow: hidden;
     white-space: nowrap;
+  }
+
+  .coord-info:hover {
+    color: var(--accent);
   }
 
   .back-btn {
