@@ -268,7 +268,13 @@
       if (res.ok) {
         const results = await res.json();
         const match = results.find(p => p.reference === ref);
-        if (match) potaParkName = match.name;
+        if (match) {
+          potaParkName = match.name;
+        } else {
+          // Extract country prefix and show not-downloaded hint
+          const prefixMatch = ref.match(/^([A-Z]{1,2})-/);
+          if (prefixMatch) potaParkName = `${prefixMatch[1]} parks not downloaded yet`;
+        }
       }
     } catch {}
   }
