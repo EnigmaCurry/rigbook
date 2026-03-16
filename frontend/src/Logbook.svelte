@@ -461,6 +461,7 @@
 
 {#if showForm}
 <form on:submit|preventDefault={editingId ? saveEdit : submitContact} on:keydown={e => e.key === "Enter" && e.target.tagName !== "TEXTAREA" && e.preventDefault()}>
+  <h3 class="form-heading">{editingId ? `Edit QSO — ${call || ""}` : "New QSO"}</h3>
   <div class="form-row">
     <div class="field">
       <label for="call">Call *</label>
@@ -713,6 +714,12 @@
 
   .btn-delete:hover {
     background: var(--accent-delete-hover);
+  }
+
+  .form-heading {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.95rem;
+    color: var(--accent);
   }
 
   .error {
