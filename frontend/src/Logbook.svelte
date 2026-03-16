@@ -495,8 +495,16 @@
         <button type="button" class="grid-picker-btn" on:click={() => showGridPicker = !showGridPicker} title="Pick from map">🌍</button>
       </div>
       {#if showGridPicker}
-        <div class="grid-picker-wrap">
-          <GridMap bind:value={grid} on:select={() => showGridPicker = false} />
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div class="grid-picker-overlay" on:click|self={() => showGridPicker = false}>
+          <div class="grid-picker-modal">
+            <div class="grid-picker-header">
+              <span>Select Grid Square</span>
+              <button type="button" class="grid-picker-close" on:click={() => showGridPicker = false}>✕</button>
+            </div>
+            <GridMap bind:value={grid} on:select={() => showGridPicker = false} />
+          </div>
         </div>
       {/if}
     </div>
@@ -714,8 +722,53 @@
     background: var(--btn-secondary-hover);
   }
 
-  .grid-picker-wrap {
-    margin-top: 0.5rem;
+  .grid-picker-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .grid-picker-modal {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem;
+    width: 100%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .grid-picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    color: var(--accent);
+    font-weight: bold;
+    font-size: 1rem;
+  }
+
+  .grid-picker-close {
+    background: var(--btn-secondary);
+    color: var(--text);
+    border: none;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.9rem;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .grid-picker-close:hover {
+    background: var(--btn-secondary-hover);
   }
 
   .log h2 {

@@ -183,7 +183,7 @@
 <style>
   .gridmap {
     width: 100%;
-    max-width: 600px;
+    max-width: 100%;
   }
 
   .map-header {
