@@ -600,8 +600,10 @@
   <div class="log-title-row">
     <h2>Log ({displayedContacts.length})</h2>
     {#if !editingId && prevContactCount > 0 && showForm}
-      <label class="log-radio"><input type="radio" bind:group={logFilter} value="all" /> All</label>
-      <label class="log-radio"><input type="radio" bind:group={logFilter} value="call" /> {call.trim().toUpperCase()}</label>
+      <div class="log-tabs">
+        <button class="log-tab" class:active={logFilter === "all"} on:click={() => logFilter = "all"}>All</button>
+        <button class="log-tab" class:active={logFilter === "call"} on:click={() => logFilter = "call"}>{call.trim().toUpperCase()}</button>
+      </div>
     {/if}
   </div>
   {#if contacts.length === 0}
@@ -750,13 +752,37 @@
     margin: 0;
   }
 
-  .log-radio {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    cursor: pointer;
+  .log-tabs {
     display: flex;
-    align-items: center;
-    gap: 0.2rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .log-tab {
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    border-right: 1px solid var(--border);
+    padding: 0.2rem 0.6rem;
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 0;
+  }
+
+  .log-tab:last-child {
+    border-right: none;
+  }
+
+  .log-tab.active {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  .log-tab:not(.active):hover {
+    background: var(--row-hover);
   }
 
   .prev-contact {
