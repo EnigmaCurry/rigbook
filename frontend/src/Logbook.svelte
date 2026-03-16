@@ -774,7 +774,7 @@
     <div class="field">
       <label for="time">Time (UTC)</label>
       <div class="time-input-row">
-        <input id="time" type="text" bind:value={timePart} placeholder="HH:MM:SS" pattern="\d{2}:\d{2}(:\d{2})?" maxlength="8" />
+        <input id="time" type="text" bind:value={timePart} placeholder="HH:MM:SS" maxlength="8" />
         <button type="button" class="now-btn" on:click={fillNow} title="Set to now">&#128339;</button>
       </div>
     </div>
