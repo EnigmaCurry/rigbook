@@ -293,31 +293,41 @@ async def search_parks(q: str = "", session: AsyncSession = Depends(get_session)
     pattern = f"%{q}%"
     m = re.match(r"^([A-Za-z]{1,2})(\d.*)$", q)
     ref_pattern = f"%{m.group(1)}-{m.group(2)}%" if m else pattern
-    parks = (
-        (
-            await session.execute(
-                select(PotaPark)
-                .where(
-                    PotaPark.reference.ilike(ref_pattern)
-                    | PotaPark.name.ilike(pattern)
-                    | PotaPark.location_desc.ilike(pattern)
-                    | PotaPark.grid.ilike(pattern)
-                )
-                .group_by(PotaPark.reference)
-                .limit(20)
+    rows = (
+        await session.execute(
+            select(
+                PotaPark,
+                PotaLocation.name.label("location_name"),
+                PotaProgram.name.label("program_name"),
             )
+            .outerjoin(
+                PotaLocation,
+                PotaPark.location_desc == PotaLocation.descriptor,
+            )
+            .outerjoin(
+                PotaProgram,
+                PotaLocation.program_prefix == PotaProgram.prefix,
+            )
+            .where(
+                PotaPark.reference.ilike(ref_pattern)
+                | PotaPark.name.ilike(pattern)
+                | PotaPark.location_desc.ilike(pattern)
+                | PotaPark.grid.ilike(pattern)
+            )
+            .group_by(PotaPark.reference)
+            .limit(20)
         )
-        .scalars()
-        .all()
-    )
+    ).all()
     return [
         {
             "reference": p.reference,
             "name": p.name,
             "location_desc": p.location_desc,
             "grid": p.grid,
+            "location_name": loc_name,
+            "program_name": prog_name,
         }
-        for p in parks
+        for p, loc_name, prog_name in rows
     ]
 
 

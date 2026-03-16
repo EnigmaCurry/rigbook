@@ -252,6 +252,11 @@
   function pickPota(park) {
     pota_park = park.reference;
     if (park.grid && !grid) grid = park.grid;
+    if (park.program_name && !country) {
+      country = park.program_name;
+      onCountryChange();
+    }
+    if (park.location_name && !state) state = park.location_name;
     potaOpen = false;
     potaResults = [];
   }
