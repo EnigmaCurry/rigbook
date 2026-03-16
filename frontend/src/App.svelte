@@ -8,6 +8,7 @@
   import Search from "./Search.svelte";
   import Settings from "./Settings.svelte";
   import About from "./About.svelte";
+  import Links from "./Links.svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
 
   const BANDS = [
@@ -36,6 +37,7 @@
     const hash = window.location.hash.slice(1) || "/";
     if (hash === "/grid") return { page: "grid", editId: null };
     if (hash === "/about") return { page: "about", editId: null };
+    if (hash === "/links") return { page: "links", editId: null };
     if (hash === "/settings") return { page: "settings", editId: null };
     if (hash === "/logbook") return { page: "log", editId: null };
     if (hash === "/export") return { page: "export", editId: null };
@@ -149,7 +151,7 @@
     page = p;
     editId = null;
     menuOpen = false;
-    const paths = { hunting: "/", log: "/logbook", add: "/add", grid: "/grid", export: "/export", settings: "/settings", about: "/about" };
+    const paths = { hunting: "/", log: "/logbook", add: "/add", grid: "/grid", export: "/export", settings: "/settings", links: "/links", about: "/about" };
     window.location.hash = paths[p] || "/";
     fetchCallsign();
   }
@@ -336,6 +338,7 @@
           <button class="menu-item" class:active={page === "grid"} on:click={() => navigate("grid")}>Grid Map</button>
           <button class="menu-item" class:active={page === "export"} on:click={() => navigate("export")}>Export / Import</button>
           <button class="menu-item" class:active={page === "settings"} on:click={() => navigate("settings")}>Settings</button>
+          <button class="menu-item" class:active={page === "links"} on:click={() => navigate("links")}>Links</button>
           <button class="menu-item" class:active={page === "about"} on:click={() => navigate("about")}>About</button>
         </nav>
       {/if}
@@ -357,6 +360,8 @@
     <ExportImport />
   {:else if page === "settings"}
     <Settings />
+  {:else if page === "links"}
+    <Links />
   {:else if page === "about"}
     <About />
   {/if}
