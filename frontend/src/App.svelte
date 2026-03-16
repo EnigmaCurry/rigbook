@@ -576,6 +576,7 @@
 
   .hamburger-wrap {
     position: relative;
+    margin-left: auto;
   }
 
   .hamburger {
