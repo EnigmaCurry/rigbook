@@ -319,6 +319,7 @@
     </div>
     <Search bind:this={searchComponent} on:action={handleSearchAction} />
     <div class="hamburger-wrap">
+      <button class="add-btn" on:click={() => navigate("add")} title="Add QSO">+</button>
       <button class="hamburger" on:click={() => menuOpen = !menuOpen} aria-label="Menu">
         <span class="bar"></span>
         <span class="bar"></span>
@@ -581,6 +582,30 @@
   .hamburger-wrap {
     position: relative;
     margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .add-btn {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    font-size: 1.2rem;
+    font-weight: bold;
+    width: 28px;
+    height: 28px;
+    line-height: 1;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .add-btn:hover {
+    background: var(--accent-hover);
   }
 
   .hamburger {
