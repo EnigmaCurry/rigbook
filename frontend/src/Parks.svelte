@@ -236,16 +236,22 @@
     <h2>POTA Parks</h2>
   </div>
 
-  <div class="stats">
-    <span>{programs.length} countries</span>
-    <span>{totalLocations} locations</span>
-    <span class="stat-highlight">{totalParks} parks cached across {cachedCountries} {cachedCountries === 1 ? "country" : "countries"}</span>
-  </div>
+  {#if tab === "park"}
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <span class="back-link" on:click={() => switchTab("by-country")}>&larr; Back to parks</span>
+  {:else}
+    <div class="stats">
+      <span>{programs.length} countries</span>
+      <span>{totalLocations} locations</span>
+      <span class="stat-highlight">{totalParks} parks cached across {cachedCountries} {cachedCountries === 1 ? "country" : "countries"}</span>
+    </div>
 
-  <div class="tabs">
-    <button class="tab" class:active={tab === "by-country"} on:click={() => switchTab("by-country")}>By Country</button>
-    <button class="tab" class:active={tab === "download"} on:click={() => switchTab("download")}>Download</button>
-  </div>
+    <div class="tabs">
+      <button class="tab" class:active={tab === "by-country"} on:click={() => switchTab("by-country")}>By Country</button>
+      <button class="tab" class:active={tab === "download"} on:click={() => switchTab("download")}>Download</button>
+    </div>
+  {/if}
 
   {#if tab === "by-country"}
     <div class="tab-content">
@@ -440,6 +446,18 @@
     color: var(--text-dim);
     margin-bottom: 0.75rem;
     flex-wrap: wrap;
+  }
+
+  .back-link {
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 0.85rem;
+    display: inline-block;
+    margin-bottom: 0.75rem;
+  }
+
+  .back-link:hover {
+    text-decoration: underline;
   }
 
   .stat-highlight {
