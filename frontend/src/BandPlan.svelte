@@ -121,7 +121,7 @@
 <div class="bandplan" bind:this={bandplanEl}>
   {#each BANDS as band}
     <div class="band-row" class:active={activeBand === band.name}>
-      <span class="band-name">{band.name}</span>
+      <span class="band-name" on:mousedown|preventDefault={() => tune(mid(band.lo, band.hi))} title="{mid(band.lo, band.hi)} KHz">{band.name}</span>
       <div class="band-buttons">
         <button class="bp-btn" class:bp-active={activeBand === band.name && activeThird === "lo"} on:mousedown|preventDefault={() => tune(segFor(band).lo)} title="{segFor(band).lo} KHz">Lo</button>
         <button class="bp-btn" class:bp-active={activeBand === band.name && activeThird === "mid"} on:mousedown|preventDefault={() => tune(mid(segFor(band).lo, segFor(band).hi))} title="{mid(segFor(band).lo, segFor(band).hi)} KHz">Mid</button>
@@ -175,6 +175,7 @@
     font-size: 0.8rem;
     width: 35px;
     flex-shrink: 0;
+    cursor: pointer;
   }
 
   .band-buttons {
