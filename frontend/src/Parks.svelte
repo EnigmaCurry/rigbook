@@ -2,14 +2,14 @@
   import { onMount, onDestroy } from "svelte";
 
   // --- Tab routing ---
-  const TABS = ["list", "cache"];
+  const TABS = ["by-country", "download"];
   let tab = parseTab();
 
   function parseTab() {
     const hash = window.location.hash.slice(1) || "";
     const parts = hash.split("/").filter(Boolean); // ["parks", "list"] or ["parks", "cache"] or ["parks"]
     if (parts.length >= 2 && TABS.includes(parts[1])) return parts[1];
-    return "list";
+    return "by-country";
   }
 
   function switchTab(t) {
@@ -205,14 +205,14 @@
   </div>
 
   <div class="tabs">
-    <button class="tab" class:active={tab === "list"} on:click={() => switchTab("list")}>List</button>
-    <button class="tab" class:active={tab === "cache"} on:click={() => switchTab("cache")}>Cache</button>
+    <button class="tab" class:active={tab === "by-country"} on:click={() => switchTab("by-country")}>By Country</button>
+    <button class="tab" class:active={tab === "download"} on:click={() => switchTab("download")}>Download</button>
   </div>
 
-  {#if tab === "list"}
+  {#if tab === "by-country"}
     <div class="tab-content">
       {#if cachedPrograms.length === 0}
-        <p class="empty">No parks cached yet. Go to the Cache tab to select countries and fetch parks.</p>
+        <p class="empty">No parks cached yet. Go to the Download tab to select countries and fetch parks.</p>
       {:else}
         <input type="text" class="filter-input" placeholder="Filter countries..." bind:value={listFilter} />
         <div class="tree">
@@ -276,7 +276,7 @@
       {/if}
     </div>
 
-  {:else if tab === "cache"}
+  {:else if tab === "download"}
     <div class="tab-content">
       <p class="description">Select countries to cache park data for. Then click Update to fetch all parks for selected countries.</p>
 
