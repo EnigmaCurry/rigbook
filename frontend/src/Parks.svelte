@@ -114,10 +114,7 @@
   <div class="stats">
     <span>{programs.length} countries</span>
     <span>{totalLocations} locations</span>
-    <span>{totalParks} parks cached</span>
-    {#if cachedCountries > 0}
-      <span>({cachedCountries} countries with parks)</span>
-    {/if}
+    <span class="stat-highlight">{totalParks} parks cached across {cachedCountries} {cachedCountries === 1 ? "country" : "countries"}</span>
   </div>
 
   <p class="description">Select countries to cache park data for. Then click Update to fetch all parks for selected countries.</p>
@@ -200,9 +197,13 @@
     display: flex;
     gap: 1rem;
     font-size: 0.85rem;
-    color: var(--text-muted);
+    color: var(--text-dim);
     margin-bottom: 0.5rem;
     flex-wrap: wrap;
+  }
+
+  .stat-highlight {
+    color: var(--accent);
   }
 
   .description {
