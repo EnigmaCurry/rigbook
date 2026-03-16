@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import time
 
@@ -9,6 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from rigbook.db import Cache, get_session
 
 logger = logging.getLogger("rigbook")
+
+_fetch_lock = asyncio.Lock()
 
 
 router = APIRouter(prefix="/api/skcc", tags=["skcc"])
@@ -59,6 +62,16 @@ async def _fetch_and_store(session: AsyncSession):
     logger.info("SKCC cached %d entries", count)
 
 
+async def _ensure_cache(session: AsyncSession):
+    """Populate cache if expired, serializing concurrent callers."""
+    if await _has_valid_cache(session):
+        return
+    async with _fetch_lock:
+        # Re-check after acquiring lock — another caller may have filled it
+        if not await _has_valid_cache(session):
+            await _fetch_and_store(session)
+
+
 async def _lookup_db(call: str, session: AsyncSession) -> str | None:
     result = await session.execute(
         select(Cache.value).where(
@@ -73,8 +86,7 @@ async def _lookup_db(call: str, session: AsyncSession) -> str | None:
 
 @router.get("/lookup/{callsign}")
 async def skcc_lookup(callsign: str, session: AsyncSession = Depends(get_session)):
-    if not await _has_valid_cache(session):
-        await _fetch_and_store(session)
+    await _ensure_cache(session)
 
     call_upper = callsign.upper().strip()
     skcc_nr = await _lookup_db(call_upper, session)
@@ -90,8 +102,7 @@ async def skcc_lookup(callsign: str, session: AsyncSession = Depends(get_session
 async def skcc_search(q: str = "", session: AsyncSession = Depends(get_session)):
     if len(q) < 2:
         return []
-    if not await _has_valid_cache(session):
-        await _fetch_and_store(session)
+    await _ensure_cache(session)
 
     pattern = f"%{q}%"
     result = await session.execute(
