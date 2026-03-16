@@ -6,7 +6,14 @@
   const dispatch = createEventDispatcher();
 
   $: freq = parseFloat(currentFreq) || 0;
-  $: activeBand = BANDS.find(b => freq >= b.lo && freq <= b.hi)?.name || "";
+  $: activeBandObj = BANDS.find(b => freq >= b.lo && freq <= b.hi);
+  $: activeBand = activeBandObj?.name || "";
+  $: activeThird = activeBandObj ? (() => {
+    const third = (activeBandObj.hi - activeBandObj.lo) / 3;
+    if (freq < activeBandObj.lo + third) return "lo";
+    if (freq > activeBandObj.hi - third) return "hi";
+    return "mid";
+  })() : "";
 
   const BANDS = [
     { name: "160m", lo: 1800, hi: 2000, segments: [
@@ -90,9 +97,9 @@
     <div class="band-row" class:active={activeBand === band.name}>
       <span class="band-name">{band.name}</span>
       <div class="band-buttons">
-        <button class="bp-btn" on:mousedown|preventDefault={() => tune(band.lo)} title="{band.lo} KHz">Lo</button>
-        <button class="bp-btn" on:mousedown|preventDefault={() => tune(mid(band.lo, band.hi))} title="{mid(band.lo, band.hi)} KHz">Mid</button>
-        <button class="bp-btn" on:mousedown|preventDefault={() => tune(band.hi)} title="{band.hi} KHz">Hi</button>
+        <button class="bp-btn" class:bp-active={activeBand === band.name && activeThird === "lo"} on:mousedown|preventDefault={() => tune(band.lo)} title="{band.lo} KHz">Lo</button>
+        <button class="bp-btn" class:bp-active={activeBand === band.name && activeThird === "mid"} on:mousedown|preventDefault={() => tune(mid(band.lo, band.hi))} title="{mid(band.lo, band.hi)} KHz">Mid</button>
+        <button class="bp-btn" class:bp-active={activeBand === band.name && activeThird === "hi"} on:mousedown|preventDefault={() => tune(band.hi)} title="{band.hi} KHz">Hi</button>
       </div>
       <div class="segments">
         {#each band.segments as seg}
@@ -162,7 +169,8 @@
     cursor: pointer;
   }
 
-  .bp-btn:hover {
+  .bp-btn:hover,
+  .bp-btn.bp-active {
     background: var(--accent);
     color: var(--bg);
   }
