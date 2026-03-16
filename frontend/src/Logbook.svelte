@@ -268,12 +268,13 @@
     try {
       const res = await fetch(`/api/pota/parks/search?q=${encodeURIComponent(ref)}`);
       if (res.ok) {
+        // Check pota_park hasn't changed/cleared while we were fetching
+        if (pota_park.trim().toUpperCase() !== ref) return;
         const results = await res.json();
         const match = results.find(p => p.reference === ref);
         if (match) {
           potaParkName = match.name;
         } else {
-          // Extract country prefix and show not-downloaded hint
           const prefixMatch = ref.match(/^([A-Z]{1,2})-/);
           if (prefixMatch) potaParkName = `${prefixMatch[1]} parks not downloaded yet`;
         }
@@ -489,6 +490,8 @@
     rst_recv = defaultRst;
     pota_park = "";
     potaParkName = "";
+    parkOverlay = null;
+    parkOverlayLoading = false;
     name = "";
     qth = "";
     state = "";
