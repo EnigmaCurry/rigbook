@@ -40,38 +40,44 @@
 
   function lon2tile(lon) { return ((lon + 180) / 360) * N; }
   function lat2tile(lat) {
-    const rad = (lat * Math.PI) / 180;
+    // Clamp to avoid infinity at poles
+    const clamped = Math.max(-85, Math.min(85, lat));
+    const rad = (clamped * Math.PI) / 180;
     return ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * N;
   }
 
   // Field bounding box in lon/lat
   $: fieldLon = fieldLonIdx * 20 - 180;
   $: fieldLat = fieldLatIdx * 10 - 90;
+  $: fieldLatTop = Math.min(fieldLat + 10, 85);
+  $: fieldLatBot = Math.max(fieldLat, -85);
 
-  // Tile coordinates covering the field
-  $: tileX0 = Math.floor(lon2tile(fieldLon));
-  $: tileX1 = Math.ceil(lon2tile(fieldLon + 20));
-  $: tileY0 = Math.floor(lat2tile(fieldLat + 10));
-  $: tileY1 = Math.ceil(lat2tile(fieldLat));
+  // Only compute tiles when zoomed in
+  $: tileX0 = level === "square" ? Math.floor(lon2tile(fieldLon)) : 0;
+  $: tileX1 = level === "square" ? Math.ceil(lon2tile(fieldLon + 20)) : 0;
+  $: tileY0 = level === "square" ? Math.floor(lat2tile(fieldLatTop)) : 0;
+  $: tileY1 = level === "square" ? Math.ceil(lat2tile(fieldLatBot)) : 0;
 
-  // Pixel positions of the field within the tile grid
-  $: pxFieldLeft = (lon2tile(fieldLon) - tileX0) * 256;
-  $: pxFieldRight = (lon2tile(fieldLon + 20) - tileX0) * 256;
-  $: pxFieldTop = (lat2tile(fieldLat + 10) - tileY0) * 256;
-  $: pxFieldBottom = (lat2tile(fieldLat) - tileY0) * 256;
-  $: pxFieldW = pxFieldRight - pxFieldLeft;
-  $: pxFieldH = pxFieldBottom - pxFieldTop;
+  $: pxFieldLeft = lon2tile(fieldLon) - tileX0;
+  $: pxFieldRight = lon2tile(fieldLon + 20) - tileX0;
+  $: pxFieldTop2 = lat2tile(fieldLatTop) - tileY0;
+  $: pxFieldBottom = lat2tile(fieldLatBot) - tileY0;
+  $: pxFieldW = (pxFieldRight - pxFieldLeft) * 256;
+  $: pxFieldH = (pxFieldBottom - pxFieldTop2) * 256;
 
-  // Build tile list
+  // Build tile list (max 100 tiles safety)
   $: tiles = (() => {
+    if (level !== "square") return [];
     const list = [];
-    for (let ty = tileY0; ty < tileY1; ty++) {
-      for (let tx = tileX0; tx < tileX1; tx++) {
+    const maxTiles = Math.min(tileY1, tileY0 + 10);
+    const maxTilesX = Math.min(tileX1, tileX0 + 10);
+    for (let ty = tileY0; ty < maxTiles; ty++) {
+      for (let tx = tileX0; tx < maxTilesX; tx++) {
         list.push({
           x: tx,
           y: ty,
-          left: (tx - tileX0) * 256 - pxFieldLeft,
-          top: (ty - tileY0) * 256 - pxFieldTop,
+          left: (tx - tileX0) * 256 - pxFieldLeft * 256,
+          top: (ty - tileY0) * 256 - pxFieldTop2 * 256,
         });
       }
     }
