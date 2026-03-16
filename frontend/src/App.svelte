@@ -81,7 +81,7 @@
     if (!f) return "";
     const n = parseFloat(f) / 1000;
     if (isNaN(n)) return f;
-    return parseFloat(n.toFixed(1)).toString() + " KHz";
+    return parseFloat(n.toFixed(1)).toString();
   }
 
   function startVfoEdit() {
@@ -305,7 +305,7 @@
       {:else if vfoConnected}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="vfo" on:click={startVfoEdit} title="Click to change VFO">📻 {formatFreq(vfoFreq)}</span>
+        <span class="vfo" on:click={startVfoEdit} title="Click to change VFO"><span class="vfo-icon">📻 </span>{formatFreq(vfoFreq)}<span class="vfo-khz"> KHz</span></span>
         {#if freqToBand(parseFloat(vfoFreq) / 1000)}
           <span class="band-tag" style="background: {bandColor(freqToBand(parseFloat(vfoFreq) / 1000))}; color: {bandTextColor(freqToBand(parseFloat(vfoFreq) / 1000))}">{freqToBand(parseFloat(vfoFreq) / 1000)}</span>
         {/if}
@@ -315,7 +315,7 @@
           <span class="vfo-mode" on:click={cycleMode} title="Click or press M to cycle mode">{vfoMode}</span>
         {/if}
       {:else}
-        <span class="vfo disconnected" title="Radio not connected">📻 ❌</span>
+        <span class="vfo disconnected" title="Radio not connected"><span class="vfo-icon">📻 </span>❌</span>
       {/if}
     </div>
     <Search bind:this={searchComponent} on:action={handleSearchAction} />
@@ -646,5 +646,11 @@
   .menu-item.active {
     color: var(--accent);
     font-weight: bold;
+  }
+
+  @media (max-width: 600px) {
+    .vfo-icon, .vfo-khz {
+      display: none;
+    }
   }
 </style>
