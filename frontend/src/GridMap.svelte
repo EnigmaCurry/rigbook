@@ -174,7 +174,7 @@
     </div>
     {#if gridCoord}
       <div class="coord-info">
-        <span>{fmtDecimal(gridCoord)}</span>
+        <span>Center: {fmtDecimal(gridCoord)}</span>
         <span>{fmtDMS(gridCoord)}</span>
         <span>{fmtUTM(gridCoord)}</span>
       </div>
@@ -218,7 +218,7 @@
     </div>
     {#if gridCoord}
       <div class="coord-info">
-        <span>{fmtDecimal(gridCoord)}</span>
+        <span>Center: {fmtDecimal(gridCoord)}</span>
         <span>{fmtDMS(gridCoord)}</span>
         <span>{fmtUTM(gridCoord)}</span>
       </div>
@@ -287,11 +287,12 @@
   .coord-info {
     display: flex;
     gap: 1.5rem;
-    flex-wrap: wrap;
     font-size: 0.75rem;
     color: var(--text-dim);
     margin-bottom: 0.4rem;
     font-family: monospace;
+    overflow: hidden;
+    white-space: nowrap;
   }
 
   .back-btn {
