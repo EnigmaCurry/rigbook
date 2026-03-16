@@ -132,7 +132,7 @@
           <div class="park-ref">{spot.reference} — {spot.locationDesc}</div>
           <div class="card-details">
             <span class="freq">{formatFreq(spot.frequency)} KHz</span>
-            <span class="grid">{spot.grid4 || ""}</span>
+            <span class="grid-sq">{spot.grid4 || ""}</span>
             <span class="time">{timeAgo(spot.spotTime)}</span>
           </div>
           {#if spot.comments}
@@ -296,7 +296,7 @@
     font-weight: bold;
   }
 
-  .grid {
+  .grid-sq {
     color: var(--text-muted);
   }
 
