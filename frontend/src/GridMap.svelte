@@ -84,12 +84,29 @@
     return list;
   })();
 
-  // Grid square pixel positions within the field area
+  // Grid square positions using Mercator projection to match OSM tiles
   function sqStyle(lonIdx, latIdx) {
-    // latIdx 0 = top row = highest latitude
-    const left = (lonIdx / 10) * 100;
-    const top = (latIdx / 10) * 100;
-    return `left:${left}%;top:${top}%;width:10%;height:10%`;
+    // lonIdx: 0-9 across, latIdx: 0=top (highest lat) to 9=bottom (lowest lat)
+    const sqLatTop = fieldLatTop - latIdx * 1;  // each square is 1° tall
+    const sqLatBot = sqLatTop - 1;
+    const sqLonLeft = fieldLon + lonIdx * 2;  // each square is 2° wide
+
+    // Convert to Mercator pixel position relative to the field's tile area
+    const yTop = lat2tile(sqLatTop) - tileY0;
+    const yBot = lat2tile(sqLatBot) - tileY0;
+    const xLeft = lon2tile(sqLonLeft) - tileX0;
+    const xRight = lon2tile(sqLonLeft + 2) - tileX0;
+
+    // Convert to percentages of the field area
+    const totalW = pxFieldRight - pxFieldLeft;
+    const totalH = pxFieldBottom - pxFieldTop2;
+
+    const left = ((xLeft - pxFieldLeft) / totalW) * 100;
+    const top = ((yTop - pxFieldTop2) / totalH) * 100;
+    const width = ((xRight - xLeft) / totalW) * 100;
+    const height = ((yBot - yTop) / totalH) * 100;
+
+    return `left:${left}%;top:${top}%;width:${width}%;height:${height}%`;
   }
 </script>
 
