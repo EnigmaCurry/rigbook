@@ -205,7 +205,6 @@
     display: flex;
     gap: 0.4rem;
     flex-wrap: wrap;
-    overflow: hidden;
   }
 
   .seg {
