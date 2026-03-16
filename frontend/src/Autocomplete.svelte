@@ -76,7 +76,8 @@
       e.preventDefault();
       pick(filtered[highlightIndex >= 0 ? highlightIndex : 0]);
     } else if (e.key === "Tab") {
-      pick(filtered[highlightIndex >= 0 ? highlightIndex : 0]);
+      if (highlightIndex >= 0) pick(filtered[highlightIndex]);
+      else open = false;
     } else if (e.key === "Escape") {
       open = false;
     }
