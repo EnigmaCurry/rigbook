@@ -6,6 +6,7 @@
     <li><a href="https://pota.app/#/" target="_blank" rel="noopener">Pota.app</a></li>
     <li><a href="https://www.m0ahn.co.uk/interactivelocatormap.html" target="_blank" rel="noopener">Maidenhead Grid Locator</a></li>
     <li><a href="https://skccgroup.com/" target="_blank" rel="noopener">Straight Key Century Club</a></li>
+    <li><a href="https://cw.wa7pge.com/" target="_blank" rel="noopener">CW Practice</a></li>
     <li><a href="https://wa7pge.com/" target="_blank" rel="noopener">WA7PGE</a></li>
   </ul>
 </div>
