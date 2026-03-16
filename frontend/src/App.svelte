@@ -110,6 +110,60 @@
     return parseFloat(khz.toFixed(1)).toString();
   }
 
+  // Split frequency into individual digit objects for wheel tuning
+  // Each digit gets a place value in Hz for increment/decrement
+  function freqDigits(f) {
+    if (!f) return [];
+    const hz = parseFloat(f);
+    if (isNaN(hz)) return [];
+    const khz = hz / 1000;
+    const str = freqUnit === "MHz"
+      ? parseFloat((khz / 1000).toFixed(4)).toString()
+      : parseFloat(khz.toFixed(1)).toString();
+
+    // Find the decimal point position to calculate place values
+    const dotIdx = str.indexOf(".");
+    const digits = [];
+    for (let i = 0; i < str.length; i++) {
+      if (str[i] === ".") {
+        digits.push({ char: ".", placeHz: 0 });
+        continue;
+      }
+      // Position relative to decimal: chars before dot have positive powers
+      const posFromDot = dotIdx >= 0 ? dotIdx - i : str.length - i;
+      // Convert place value from display unit to Hz
+      const unitMultiplier = freqUnit === "MHz" ? 1e9 : 1e3; // MHz->Hz or KHz->Hz
+      const placeHz = Math.round(Math.pow(10, posFromDot - 1) * unitMultiplier);
+      digits.push({ char: str[i], placeHz });
+    }
+    return digits;
+  }
+
+  $: vfoDigits = freqDigits(vfoFreq);
+
+  // Svelte action to capture wheel events non-passively (required for preventDefault)
+  function nonPassiveWheel(node) {
+    function handler(e) {
+      e.preventDefault();
+      if (vfoEditing) return;
+      const target = e.target.closest(".vfo-digit");
+      if (!target || !target.dataset.placehz) return;
+      const placeHz = parseInt(target.dataset.placehz);
+      if (!placeHz) return;
+      const hz = parseFloat(vfoFreq) || 0;
+      const delta = e.deltaY < 0 ? placeHz : -placeHz;
+      const newHz = Math.max(0, hz + delta);
+      vfoFreq = String(newHz);
+      fetch("/api/flrig/vfo", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ freq: String(newHz) }),
+      }).catch(() => {});
+    }
+    node.addEventListener("wheel", handler, { passive: false });
+    return { destroy() { node.removeEventListener("wheel", handler); } };
+  }
+
   function startVfoEdit() {
     vfoEditFreq = vfoFreq ? String(parseFloat(vfoFreq) / 1000) : "";
     vfoEditMode = vfoMode;
@@ -336,7 +390,20 @@
       {:else if vfoConnected}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="vfo" on:click={startVfoEdit} title="Click to change VFO"><span class="vfo-icon">📻 </span>{formatFreq(vfoFreq) + " "}<span class="vfo-khz">{freqUnit}</span>{#if freqToBand(parseFloat(vfoFreq) / 1000)}{" "}<span class="band-tag" style="background: {bandColor(freqToBand(parseFloat(vfoFreq) / 1000))}; color: {bandTextColor(freqToBand(parseFloat(vfoFreq) / 1000))}">{freqToBand(parseFloat(vfoFreq) / 1000)}</span>{/if}</span>
+        <span class="vfo-bezel" use:nonPassiveWheel>
+          <span class="vfo-icon" on:click={startVfoEdit}>📻</span>
+          {#each vfoDigits as d}
+            {#if d.char === "."}
+              <span class="vfo-dot">.</span>
+            {:else}
+              <span class="vfo-digit" data-placehz={d.placeHz} on:click={startVfoEdit} title="Scroll to tune">{d.char}</span>
+            {/if}
+          {/each}
+          <span class="vfo-khz" on:click={startVfoEdit}>{" "}{freqUnit}</span>
+          {#if freqToBand(parseFloat(vfoFreq) / 1000)}
+            <span class="band-tag" style="background: {bandColor(freqToBand(parseFloat(vfoFreq) / 1000))}; color: {bandTextColor(freqToBand(parseFloat(vfoFreq) / 1000))}" on:click={startVfoEdit}>{freqToBand(parseFloat(vfoFreq) / 1000)}</span>
+          {/if}
+        </span>
         {#if vfoMode}
           <!-- svelte-ignore a11y-click-events-have-key-events -->
           <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -498,6 +565,46 @@
     font-weight: bold;
   }
 
+  .vfo-bezel {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    background: #111218;
+    border: 2px solid #555;
+    border-radius: 6px;
+    padding: 0.15rem 0.5rem;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.05);
+    position: relative;
+    top: -2px;
+  }
+
+  .vfo-digit {
+    color: var(--accent-vfo);
+    font-size: 1.1rem;
+    font-family: monospace;
+    font-weight: bold;
+    cursor: ns-resize;
+    padding: 0 1px;
+    border-radius: 2px;
+    transition: background 0.1s;
+  }
+
+  .vfo-digit:hover {
+    background: rgba(255,255,255,0.12);
+  }
+
+  .vfo-bezel .vfo-icon {
+    cursor: pointer;
+    margin-right: 0.3rem;
+  }
+
+  .vfo-dot {
+    color: var(--accent-vfo);
+    font-size: 1.1rem;
+    font-family: monospace;
+    font-weight: bold;
+  }
+
   .vfo {
     color: var(--accent-vfo);
     font-size: 1rem;
@@ -512,8 +619,8 @@
     font-weight: bold;
     padding: 0.1rem 0.35rem;
     border-radius: 8px;
-    position: relative;
-    top: -3px;
+    margin-left: 0.3rem;
+    cursor: pointer;
   }
 
   .vfo-mode {
