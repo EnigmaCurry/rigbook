@@ -461,6 +461,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    user-select: none;
     flex-wrap: wrap;
     gap: 0.5rem;
     border-bottom: 1px solid var(--border);
@@ -591,6 +592,7 @@
     font-size: 0.75rem;
     color: var(--text-dim);
     font-family: monospace;
+    user-select: text;
     white-space: nowrap;
   }
 
