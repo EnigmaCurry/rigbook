@@ -396,7 +396,7 @@
   }
 
   :global(:root.light) {
-    --bg: #e8e8ec;
+    --bg: #e8e8ff;
     --bg-card: #f4f4f6;
     --bg-input: #ffffff;
     --bg-deep: #f0f0f2;
