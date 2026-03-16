@@ -1040,7 +1040,7 @@
     position: absolute;
     top: 100%;
     left: 0;
-    right: 0;
+    min-width: 500px;
     max-height: 200px;
     overflow-y: auto;
     background: var(--bg-card);
