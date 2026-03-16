@@ -34,6 +34,71 @@
     level = "field";
   }
 
+  // Convert grid square to center lat/lon
+  function gridToLatLon(grid) {
+    if (!grid || grid.length < 4) return null;
+    const g = grid.toUpperCase();
+    const lonField = g.charCodeAt(0) - 65;
+    const latField = g.charCodeAt(1) - 65;
+    const lonSq = parseInt(g[2]);
+    const latSq = parseInt(g[3]);
+    let lon = lonField * 20 - 180 + lonSq * 2 + 1;
+    let lat = latField * 10 - 90 + latSq * 1 + 0.5;
+    if (grid.length >= 6) {
+      const lonSub = g.charCodeAt(4) - 65;
+      const latSub = g.charCodeAt(5) - 65;
+      lon = lonField * 20 - 180 + lonSq * 2 + lonSub * (2/24) + (1/24);
+      lat = latField * 10 - 90 + latSq * 1 + latSub * (1/24) + (1/48);
+    }
+    return { lat, lon };
+  }
+
+  function fmtDecimal(coord) {
+    if (!coord) return "";
+    return `${coord.lat.toFixed(5)}, ${coord.lon.toFixed(5)}`;
+  }
+
+  function fmtDMS(coord) {
+    if (!coord) return "";
+    function toDMS(dd, pos, neg) {
+      const dir = dd >= 0 ? pos : neg;
+      const abs = Math.abs(dd);
+      const d = Math.floor(abs);
+      const m = Math.floor((abs - d) * 60);
+      const s = ((abs - d - m / 60) * 3600).toFixed(1);
+      return `${d}°${String(m).padStart(2, "0")}'${String(s).padStart(4, "0")}"${dir}`;
+    }
+    return `${toDMS(coord.lat, "N", "S")} ${toDMS(coord.lon, "E", "W")}`;
+  }
+
+  function fmtUTM(coord) {
+    if (!coord) return "";
+    const { lat, lon } = coord;
+    if (lat < -80 || lat > 84) return "outside UTM range";
+    const zoneNum = Math.floor((lon + 180) / 6) + 1;
+    const zoneLetter = "CDEFGHJKLMNPQRSTUVWX"[Math.floor((lat + 80) / 8)];
+    const lonRad = (lon * Math.PI) / 180;
+    const latRad = (lat * Math.PI) / 180;
+    const a = 6378137;
+    const f = 1 / 298.257223563;
+    const e = Math.sqrt(2 * f - f * f);
+    const e2 = e * e / (1 - e * e);
+    const n = a / Math.sqrt(1 - e * e * Math.sin(latRad) ** 2);
+    const t = Math.tan(latRad) ** 2;
+    const c = e2 * Math.cos(latRad) ** 2;
+    const A = Math.cos(latRad) * (lonRad - ((zoneNum - 1) * 6 - 180 + 3) * Math.PI / 180);
+    const M = a * ((1 - e*e/4 - 3*e**4/64 - 5*e**6/256) * latRad
+      - (3*e*e/8 + 3*e**4/32 + 45*e**6/1024) * Math.sin(2*latRad)
+      + (15*e**4/256 + 45*e**6/1024) * Math.sin(4*latRad)
+      - (35*e**6/3072) * Math.sin(6*latRad));
+    let easting = 0.9996 * n * (A + (1-t+c)*A**3/6 + (5-18*t+t*t+72*c-58*e2)*A**5/120) + 500000;
+    let northing = 0.9996 * (M + n * Math.tan(latRad) * (A*A/2 + (5-t+9*c+4*c*c)*A**4/24 + (61-58*t+t*t+600*c-330*e2)*A**6/720));
+    if (lat < 0) northing += 10000000;
+    return `${zoneNum}${zoneLetter} ${Math.round(easting)}E ${Math.round(northing)}N`;
+  }
+
+  $: gridCoord = gridToLatLon(value);
+
   // --- OSM tile math for zoomed view ---
   const ZOOM = 5;
   const N = Math.pow(2, ZOOM);
@@ -107,6 +172,13 @@
         <span class="current">Current: {value}</span>
       {/if}
     </div>
+    {#if gridCoord}
+      <div class="coord-info">
+        <span>{fmtDecimal(gridCoord)}</span>
+        <span>{fmtDMS(gridCoord)}</span>
+        <span>{fmtUTM(gridCoord)}</span>
+      </div>
+    {/if}
     <svg viewBox="0 0 100 100" class="map-svg">
       <image
         href="/world-map.jpg"
@@ -144,6 +216,13 @@
         <span class="current">Current: {value}</span>
       {/if}
     </div>
+    {#if gridCoord}
+      <div class="coord-info">
+        <span>{fmtDecimal(gridCoord)}</span>
+        <span>{fmtDMS(gridCoord)}</span>
+        <span>{fmtUTM(gridCoord)}</span>
+      </div>
+    {/if}
     <div class="zoomed-container" style="aspect-ratio: {fTileW}/{fTileH}">
       <!-- OSM tiles -->
       <div class="tiles-layer">
@@ -203,6 +282,16 @@
     color: var(--text-muted);
     font-size: 0.8rem;
     margin-left: auto;
+  }
+
+  .coord-info {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-bottom: 0.4rem;
+    font-family: monospace;
   }
 
   .back-btn {
