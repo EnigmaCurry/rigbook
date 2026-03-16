@@ -314,7 +314,7 @@
           <span class="vfo-mode" on:click={cycleMode} title="Click or press M to cycle mode">{vfoMode}</span>
         {/if}
       {:else}
-        <span class="vfo disconnected" title="Radio not connected"><span class="vfo-icon">📻 </span>❌</span>
+        <span class="vfo disconnected" title="Radio not connected">❌ No Radio</span>
       {/if}
     </div>
     <Search bind:this={searchComponent} on:action={handleSearchAction} />
