@@ -4,7 +4,7 @@
   let my_callsign = "";
   let my_grid = "";
   let default_rst = "599";
-  let qrz_api_key = "";
+  let qrz_password = "";
   let flrig_host = "localhost";
   let flrig_port = "12345";
   let theme = localStorage.getItem("rigbook-theme") || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
@@ -41,7 +41,7 @@
           if (s.key === "my_callsign") my_callsign = s.value || "";
           if (s.key === "my_grid") my_grid = s.value || "";
           if (s.key === "default_rst") default_rst = s.value || "599";
-          if (s.key === "qrz_api_key") qrz_api_key = s.value || "";
+          if (s.key === "qrz_password") qrz_password = s.value || "";
           if (s.key === "flrig_host") flrig_host = s.value || "localhost";
           if (s.key === "flrig_port") flrig_port = s.value || "12345";
         }
@@ -68,10 +68,10 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value: default_rst.trim() }),
       });
-      await fetch("/api/settings/qrz_api_key", {
+      await fetch("/api/settings/qrz_password", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: qrz_api_key.trim() }),
+        body: JSON.stringify({ value: qrz_password.trim() }),
       });
       await fetch("/api/settings/flrig_host", {
         method: "PUT",
@@ -116,9 +116,9 @@
   <h3>QRZ</h3>
 
   <div class="setting-row">
-    <label for="qrz_api_key">QRZ API Key</label>
-    <input id="qrz_api_key" type="password" bind:value={qrz_api_key} autocomplete="off" />
-    <span class="hint">Uses your callsign as QRZ username</span>
+    <label for="qrz_password">QRZ Password</label>
+    <input id="qrz_password" type="password" bind:value={qrz_password} autocomplete="off" />
+    <span class="hint">Your QRZ account password (uses My Callsign as username)</span>
   </div>
 
   <h3>Cache</h3>

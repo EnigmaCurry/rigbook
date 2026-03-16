@@ -25,14 +25,14 @@ async def _get_credentials(session: AsyncSession) -> tuple[str, str]:
     """Return (username, api_key) from settings. Username defaults to my_callsign."""
     result = await session.execute(
         select(Setting).where(
-            Setting.key.in_(["qrz_api_key", "qrz_username", "my_callsign"])
+            Setting.key.in_(["qrz_password", "qrz_username", "my_callsign"])
         )
     )
     api_key = ""
     username = ""
     callsign = ""
     for s in result.scalars():
-        if s.key == "qrz_api_key" and s.value:
+        if s.key == "qrz_password" and s.value:
             api_key = s.value
         if s.key == "qrz_username" and s.value:
             username = s.value
