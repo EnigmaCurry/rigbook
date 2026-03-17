@@ -518,6 +518,7 @@
     --accent-vfo: #00ccff;
     --vfo-bg: #111218;
     --vfo-border: #555;
+    --vfo-text: #00ccff;
     --accent-delete: #cc3333;
     --accent-delete-hover: #aa2222;
     --accent-error: #ff6b6b;
@@ -544,9 +545,10 @@
     --accent: #00994d;
     --accent-hover: #007a3d;
     --accent-callsign: #b8860b;
-    --accent-vfo: #fbfbfb;
+    --accent-vfo: #0077aa;
     --vfo-bg: #0c1e88;
     --vfo-border: #0c1e88;
+    --vfo-text: #fbfbfb;
     --accent-delete: #cc3333;
     --accent-delete-hover: #aa2222;
     --accent-error: #cc2222;
@@ -622,7 +624,7 @@
   }
 
   .vfo-digit {
-    color: var(--accent-vfo);
+    color: var(--vfo-text);
     font-size: 1.1rem;
     font-family: monospace;
     font-weight: bold;
