@@ -300,7 +300,7 @@
     if (loc.startsWith("US-")) {
       prefill.country = "United States";
     }
-    navigate("add");
+    if (page !== "dual") navigate("add");
   }
 
   function handleSearchAction(e) {
@@ -497,7 +497,7 @@
   {:else if page === "dual"}
     <div class="dual-layout">
       <div class="dual-pane">
-        <Logbook showForm={false} {vfoFreq} {vfoMode} on:editchange={e => { editId = e.detail; navigate("add"); window.location.hash = `/log/${e.detail}`; }} on:navigate={e => navigate(e.detail)} />
+        <Logbook showForm={!!prefill} {prefill} {editId} {vfoFreq} {vfoMode} on:editchange={e => { editId = e.detail; if (e.detail) window.location.hash = `/log/${e.detail}`; }} on:navigate={e => { if (e.detail === "hunting" || e.detail === "log") { prefill = null; editId = null; } else navigate(e.detail); }} on:prefillconsumed={() => {}} />
       </div>
       <div class="dual-pane">
         <Hunting on:tune={e => tuneAndPrefill(e.detail)} />
