@@ -975,6 +975,7 @@
 
   .park-row {
     padding-left: 1rem;
+    min-height: 1.2em;
   }
 
   .park-row.clickable {
