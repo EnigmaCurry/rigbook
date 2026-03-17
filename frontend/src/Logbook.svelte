@@ -564,6 +564,7 @@
         body: JSON.stringify(body),
       });
       if (res.ok) {
+        const wasHunting = prefillSource === "hunting";
         call = "";
         pota_park = "";
         potaParkName = "";
@@ -576,6 +577,7 @@
         datePart = "";
         timePart = "";
         await fetchContacts();
+        dispatch("navigate", wasHunting ? "hunting" : "log");
       } else {
         const data = await res.json().catch(() => null);
         errorMsg = data?.detail || `Error: ${res.status} ${res.statusText}`;
