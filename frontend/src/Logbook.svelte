@@ -1087,12 +1087,6 @@
     min-width: 50%;
   }
 
-  .field-pota label {
-    white-space: normal;
-    overflow: visible;
-    text-overflow: unset;
-  }
-
   .field label {
     font-size: 0.75rem;
     color: var(--text-muted);
@@ -1100,6 +1094,12 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .field-pota label {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
   }
 
   input,
