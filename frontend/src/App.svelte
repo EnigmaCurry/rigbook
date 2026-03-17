@@ -290,6 +290,7 @@
     if (p === "back") {
       p = previousPage;
     }
+    if (p === "add" && isWide()) p = "dual";
     if (page !== p) previousPage = page;
     page = p;
     editId = null;
