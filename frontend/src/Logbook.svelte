@@ -817,7 +817,7 @@
       <label for="rst_recv">RST Recv</label>
       <input id="rst_recv" type="text" bind:value={rst_recv} />
     </div>
-    <div class="field">
+    <div class="field field-name">
       <label for="name">Name</label>
       <input id="name" type="text" bind:value={name} />
     </div>
@@ -1080,6 +1080,10 @@
   .field.wide {
     flex: 2;
     min-width: 240px;
+  }
+
+  .field-name {
+    min-width: 50%;
   }
 
   .field label {
