@@ -104,7 +104,7 @@
       await fetch("/api/settings/wide_breakpoint", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: wide_mode_enabled ? wide_breakpoint.trim() : "0" }),
+        body: JSON.stringify({ value: wide_mode_enabled ? String(wide_breakpoint) : "0" }),
       });
       message = "Settings saved.";
     } catch (e) {
