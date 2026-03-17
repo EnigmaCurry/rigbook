@@ -96,6 +96,7 @@
     if (hash === "/export") return { page: "export", editId: null };
     if (hash === "/add") return { page: "add", editId: null };
     if (hash === "/hunting") return { page: "hunting", editId: null };
+    if (hash === "/dual") return { page: "dual", editId: null };
     const match = hash.match(/^\/log\/(\d+)$/);
     if (match) return { page: "add", editId: parseInt(match[1], 10) };
     return { page: "log", editId: null };
@@ -268,7 +269,7 @@
     page = p;
     editId = null;
     menuOpen = false;
-    const paths = { hunting: "/hunting", log: "/logbook", add: "/add", grid: "/grid", parks: "/parks", export: "/export", settings: "/settings", links: "/links", about: "/about" };
+    const paths = { hunting: "/hunting", log: "/logbook", dual: "/dual", add: "/add", grid: "/grid", parks: "/parks", export: "/export", settings: "/settings", links: "/links", about: "/about" };
     window.location.hash = paths[p] || "/";
     fetchCallsign();
   }
@@ -398,7 +399,7 @@
   });
 </script>
 
-<main>
+<main class:dual-mode={page === "dual"}>
   <header>
     <div class="header-left">
       <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -454,7 +455,9 @@
     <!-- svelte-ignore a11y-no-static-element-interactions -->
     <span class="utc-clock" on:click={copyUtcTimestamp} title="Click to copy">{clockCopied ? "Copied!" : utcNow}</span>
     <div class="hamburger-wrap">
-      <button class="add-btn" on:click={() => navigate("hunting")} title="Hunting">🧭</button>
+      <button class="add-btn wide-only" on:click={() => navigate("dual")} title="Logbook & Hunting">📖🧭</button>
+      <button class="add-btn narrow-only" on:click={() => navigate("log")} title="Logbook">📖</button>
+      <button class="add-btn narrow-only" on:click={() => navigate("hunting")} title="Hunting">🧭</button>
       <button class="add-btn parks-btn" on:click={() => navigate("parks")} title="My Parks">🌲</button>
       <button class="add-btn" on:click={() => navigate("add")} title="Add QSO">+</button>
       <button class="hamburger" on:click={() => menuOpen = !menuOpen} aria-label="Menu">
@@ -487,6 +490,15 @@
     <Logbook showForm={true} {editId} {prefill} {vfoFreq} {vfoMode} on:editchange={e => { editId = e.detail; window.location.hash = e.detail ? `/log/${e.detail}` : "/add"; }} on:navigate={e => navigate(e.detail)} on:prefillconsumed={() => prefill = null} />
   {:else if page === "hunting"}
     <Hunting on:tune={e => tuneAndPrefill(e.detail)} />
+  {:else if page === "dual"}
+    <div class="dual-layout">
+      <div class="dual-pane">
+        <Logbook showForm={false} {vfoFreq} {vfoMode} on:editchange={e => { editId = e.detail; navigate("add"); window.location.hash = `/log/${e.detail}`; }} on:navigate={e => navigate(e.detail)} />
+      </div>
+      <div class="dual-pane">
+        <Hunting on:tune={e => tuneAndPrefill(e.detail)} />
+      </div>
+    </div>
   {:else if page === "parks"}
     <Parks on:addqso={e => { prefill = e.detail; navigate("add"); }} />
   {:else if page === "grid"}
@@ -844,6 +856,42 @@
 
   .title-short {
     display: none;
+  }
+
+  .wide-only {
+    display: none;
+  }
+
+  .narrow-only {
+    display: flex;
+  }
+
+  @media (min-width: 1200px) {
+    .wide-only {
+      display: flex;
+      width: auto;
+      padding: 0 0.4rem;
+      font-size: 0.9rem;
+    }
+    .narrow-only {
+      display: none;
+    }
+  }
+
+  main.dual-mode {
+    max-width: 2200px;
+  }
+
+  .dual-layout {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+  }
+
+  .dual-pane {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
   }
 
   @media (max-width: 600px) {
