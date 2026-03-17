@@ -1048,7 +1048,8 @@
 
   .logbook-layout .log {
     flex: 1;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
     min-height: 0;
   }
 
@@ -1324,7 +1325,9 @@
   }
 
   .table-wrap {
-    overflow-x: auto;
+    flex: 1;
+    overflow: auto;
+    min-height: 0;
   }
 
   table {
