@@ -901,7 +901,8 @@
   .dual-pane {
     flex: 1;
     min-width: 0;
-    overflow: hidden;
+    overflow-y: auto;
+    max-height: calc(100vh - 80px);
   }
 
   @media (max-width: 600px) {
