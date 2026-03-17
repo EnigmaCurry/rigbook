@@ -135,7 +135,7 @@ The **Parks** page lets you download and browse
 1. Go to **Parks** → **Cache** tab
 2. Select the countries you want to cache (use the filter to find them)
 3. Click **Update Parks** — progress streams as each location is fetched
-4. Park data is cached in SQLite with a 24-hour TTL
+4. Park data is selected and downloaded by the user and cached in SQLite
 
 ### My Parks
 
