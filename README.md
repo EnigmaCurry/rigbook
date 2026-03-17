@@ -9,10 +9,10 @@ with a local web UI, optionally connected to your radio via
 - Log QSO contacts with callsign, frequency, mode, signal reports, and
   more
 - Auto-fill frequency and mode from your radio via flrig XMLRPC
-- Everything in the header is clickable: **Rigbook** goes to Hunting,
-  **callsign** opens Logbook, **VFO frequency** opens the band plan tuner,
-  **mode** cycles radio modes, **UTC clock** copies the timestamp to
-  clipboard, **🌲** opens My Parks, and **+** adds a new QSO
+- Everything in the header is clickable: **Rigbook** and **callsign** go
+  home, **VFO frequency** opens the VFO editor with band plan, **mode**
+  cycles radio modes, **UTC clock** copies the timestamp to clipboard,
+  **📖** logbook, **🧭** hunting, **🌲** My Parks, and **+** adds a new QSO
 - Keyboard shortcuts: `/` search, `N` new QSO, `H` hunting, `L` logbook,
   `T` tune radio, `M` cycle mode, `?` about, `Esc` close
 - Country and state autocomplete (all ISO countries and subdivisions),
