@@ -496,7 +496,7 @@
     <span class="utc-clock" on:click={copyUtcTimestamp} title="Click to copy">{clockCopied ? "Copied!" : utcNow}</span>
     <div class="hamburger-wrap">
       {#if wide}
-        <button class="add-btn" on:click={() => navigate("dual")} title="Logbook & Hunting">📖🧭</button>
+        <button class="add-btn dual-btn" on:click={() => navigate("dual")} title="Logbook & Hunting">📖🧭</button>
       {:else}
         <button class="add-btn" on:click={() => navigate("log")} title="Logbook">📖</button>
         <button class="add-btn" on:click={() => navigate("hunting")} title="Hunting">🧭</button>
@@ -824,6 +824,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+
+  .add-btn.dual-btn {
+    width: auto;
+    padding: 0 0.4rem;
+    font-size: 0.9rem;
   }
 
   .add-btn:hover {
