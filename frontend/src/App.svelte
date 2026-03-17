@@ -755,8 +755,8 @@
   }
 
   .add-btn {
-    background: var(--accent);
-    color: var(--bg);
+    background: #638676;
+    color: #fff;
     border: none;
     font-size: 1.2rem;
     font-weight: bold;
@@ -772,7 +772,7 @@
   }
 
   .add-btn:hover {
-    background: var(--accent-hover);
+    background: #4a6e5e;
   }
 
   .hamburger {
