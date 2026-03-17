@@ -408,7 +408,7 @@
     <div class="header-left">
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-      <h1 class="app-title" on:click={goHome} style="cursor: pointer"><span class="title-full">Logbook</span><span class="title-short">LB</span></h1>
+      <h1 class="app-title" on:click={goHome} style="cursor: pointer"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>
       {#if myCallsign}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
