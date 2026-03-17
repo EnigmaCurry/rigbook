@@ -453,6 +453,7 @@
     <!-- svelte-ignore a11y-no-static-element-interactions -->
     <span class="utc-clock" on:click={copyUtcTimestamp} title="Click to copy">{clockCopied ? "Copied!" : utcNow}</span>
     <div class="hamburger-wrap">
+      <button class="add-btn parks-btn" on:click={() => navigate("parks")} title="My Parks">🌲</button>
       <button class="add-btn" on:click={() => navigate("add")} title="Add QSO">+</button>
       <button class="hamburger" on:click={() => menuOpen = !menuOpen} aria-label="Menu">
         <span class="bar"></span>
