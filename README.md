@@ -1,4 +1,4 @@
-# Rigbook
+# 📻️ Rigbook
 
 A ham radio logbook web application. Log amateur radio contacts (QSOs)
 with a local web UI, optionally connected to your radio via
