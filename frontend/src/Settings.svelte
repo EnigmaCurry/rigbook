@@ -131,84 +131,83 @@
 <div class="settings">
   <h2>Settings</h2>
 
-  <div class="setting-row">
-    <label for="my_callsign">My Callsign</label>
-    <input id="my_callsign" type="text" bind:value={my_callsign} on:input={stripCallsign} maxlength="10" autocomplete="off" style="text-transform: uppercase" />
-  </div>
-
-  <div class="setting-row">
-    <label for="my_grid">My Grid Square</label>
-    <input id="my_grid" type="text" bind:value={my_grid} on:input={stripGrid} autocomplete="off" style="text-transform: uppercase" />
-  </div>
-
-  <h3>Defaults</h3>
-
-  <div class="setting-row">
-    <label for="default_rst">Default RST</label>
-    <input id="default_rst" type="text" bind:value={default_rst} autocomplete="off" />
-  </div>
-
-  <h3>QRZ</h3>
-
-  <div class="setting-row">
-    <label for="qrz_password">{hasQrzPassword ? "Change QRZ Password" : "QRZ Password"}</label>
-    <input id="qrz_password" type="password" bind:value={qrz_password} autocomplete="off" disabled={!my_callsign.trim()} placeholder={hasQrzPassword ? "Leave blank to keep current" : ""} />
-    <span class="hint">{#if !my_callsign.trim()}Set My Callsign first{:else if hasQrzPassword}Leave blank to remain unchanged{:else}Your QRZ account password (uses My Callsign as username){/if}</span>
-  </div>
-
-  {#if hasQrzPassword}
-    <div class="setting-row qrz-status-row">
-      <button class="theme-toggle" on:click={checkQrz} disabled={qrzChecking}>
-        {qrzChecking ? "Checking..." : "Test QRZ Connection"}
-      </button>
-      {#if qrzStatus}
-        {#if qrzStatus.ok}
-          <span class="qrz-ok">Connected as {qrzStatus.username}</span>
-        {:else}
-          <span class="qrz-error">{qrzStatus.error}</span>
-        {/if}
-      {/if}
+  <section class="settings-section">
+    <h3>Station</h3>
+    <div class="setting-row">
+      <label for="my_callsign">My Callsign</label>
+      <input id="my_callsign" type="text" bind:value={my_callsign} on:input={stripCallsign} maxlength="10" autocomplete="off" style="text-transform: uppercase" />
     </div>
-  {/if}
+    <div class="setting-row">
+      <label for="my_grid">My Grid Square</label>
+      <input id="my_grid" type="text" bind:value={my_grid} on:input={stripGrid} autocomplete="off" style="text-transform: uppercase" />
+    </div>
+    <div class="setting-row">
+      <label for="default_rst">Default RST</label>
+      <input id="default_rst" type="text" bind:value={default_rst} autocomplete="off" />
+    </div>
+  </section>
 
-  <h3>Cache</h3>
+  <section class="settings-section">
+    <h3>QRZ</h3>
+    <div class="setting-row">
+      <label for="qrz_password">{hasQrzPassword ? "Change QRZ Password" : "QRZ Password"}</label>
+      <input id="qrz_password" type="password" bind:value={qrz_password} autocomplete="off" disabled={!my_callsign.trim()} placeholder={hasQrzPassword ? "Leave blank to keep current" : ""} />
+      <span class="hint">{#if !my_callsign.trim()}Set My Callsign first{:else if hasQrzPassword}Leave blank to remain unchanged{:else}Your QRZ account password (uses My Callsign as username){/if}</span>
+    </div>
+    {#if hasQrzPassword}
+      <div class="setting-row qrz-status-row">
+        <button class="theme-toggle" on:click={checkQrz} disabled={qrzChecking}>
+          {qrzChecking ? "Checking..." : "Test QRZ Connection"}
+        </button>
+        {#if qrzStatus}
+          {#if qrzStatus.ok}
+            <span class="qrz-ok">Connected as {qrzStatus.username}</span>
+          {:else}
+            <span class="qrz-error">{qrzStatus.error}</span>
+          {/if}
+        {/if}
+      </div>
+    {/if}
+  </section>
 
-  <div class="setting-row toggle-row">
-    <button class="theme-toggle" on:click={clearCache}>Clear Cache</button>
-  </div>
+  <section class="settings-section">
+    <h3>Appearance</h3>
+    <div class="setting-row toggle-row">
+      <label>Theme</label>
+      <button class="theme-toggle" on:click={toggleTheme}>
+        {theme === "dark" ? "Dark" : "Light"}
+      </button>
+    </div>
+    <div class="setting-row toggle-row">
+      <label>
+        <input type="checkbox" bind:checked={wide_mode_enabled} />
+        Wide Mode
+      </label>
+    </div>
+    <div class="setting-row">
+      <label for="wide_breakpoint">Breakpoint: {wide_breakpoint}px</label>
+      <input id="wide_breakpoint" type="range" min="1200" max="2500" step="50" bind:value={wide_breakpoint} disabled={!wide_mode_enabled} />
+    </div>
+  </section>
 
-  <h3>Appearance</h3>
+  <section class="settings-section">
+    <h3>flrig Connection</h3>
+    <div class="setting-row">
+      <label for="flrig_host">flrig Host</label>
+      <input id="flrig_host" type="text" bind:value={flrig_host} autocomplete="off" />
+    </div>
+    <div class="setting-row">
+      <label for="flrig_port">flrig Port</label>
+      <input id="flrig_port" type="text" bind:value={flrig_port} autocomplete="off" inputmode="numeric" />
+    </div>
+  </section>
 
-  <div class="setting-row toggle-row">
-    <label>Theme</label>
-    <button class="theme-toggle" on:click={toggleTheme}>
-      {theme === "dark" ? "Dark" : "Light"}
-    </button>
-  </div>
-
-  <div class="setting-row toggle-row">
-    <label>
-      <input type="checkbox" bind:checked={wide_mode_enabled} />
-      Wide Mode
-    </label>
-  </div>
-
-  <div class="setting-row">
-    <label for="wide_breakpoint">Breakpoint: {wide_breakpoint}px</label>
-    <input id="wide_breakpoint" type="range" min="1200" max="2500" step="50" bind:value={wide_breakpoint} disabled={!wide_mode_enabled} />
-  </div>
-
-  <h3>flrig Connection</h3>
-
-  <div class="setting-row">
-    <label for="flrig_host">flrig Host</label>
-    <input id="flrig_host" type="text" bind:value={flrig_host} autocomplete="off" />
-  </div>
-
-  <div class="setting-row">
-    <label for="flrig_port">flrig Port</label>
-    <input id="flrig_port" type="text" bind:value={flrig_port} autocomplete="off" inputmode="numeric" />
-  </div>
+  <section class="settings-section">
+    <h3>Cache</h3>
+    <div class="setting-row toggle-row">
+      <button class="theme-toggle" on:click={clearCache}>Clear Cache</button>
+    </div>
+  </section>
 
   <div class="setting-row">
     <button on:click={save} disabled={saving}>
@@ -231,10 +230,20 @@
     margin: 0 0 1rem 0;
   }
 
+  .settings-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+  }
+
   h3 {
-    color: var(--text-muted);
-    font-size: 0.95rem;
-    margin: 1rem 0 0.5rem 0;
+    color: var(--accent);
+    font-size: 0.9rem;
+    margin: 0 0 0.75rem 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
   .setting-row {
