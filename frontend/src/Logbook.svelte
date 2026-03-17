@@ -704,18 +704,7 @@
 <div class="logbook-layout">
 {#if showForm}
 <form on:submit|preventDefault={editingId ? saveEdit : submitContact} on:keydown={e => e.key === "Enter" && e.target.tagName !== "TEXTAREA" && e.preventDefault()}>
-  <h3 class="form-heading">{editingId ? "Edit QSO" : "New QSO"}</h3>
-  {#if call.trim()}
-    <div class="form-callsign">
-      <a class="form-callsign-text" href="https://www.qrz.com/db/{call.trim().toUpperCase()}" target="_blank" rel="noopener" title="View {call.trim().toUpperCase()} on QRZ.com">{call.trim().toUpperCase()}</a>
-      {#if callCountryCode}<span class="form-callsign-flag">{countryFlag(callCountryCode)}</span>{/if}
-      {#if editingId}
-        <span class="prev-contact">({relativeTime(`${datePart}T${timePart || "00:00:00"}Z`)})</span>
-      {:else if prevContactCount > 0}
-        <span class="prev-contact">(contacted {prevContactCount} time{prevContactCount === 1 ? "" : "s"} before)</span>
-      {/if}
-    </div>
-  {/if}
+  <h3 class="form-heading">{editingId ? "Edit QSO" : "New QSO"}{#if call.trim()} <a class="form-callsign-text" href="https://www.qrz.com/db/{call.trim().toUpperCase()}" target="_blank" rel="noopener" title="View {call.trim().toUpperCase()} on QRZ.com">{call.trim().toUpperCase()}</a>{/if}{#if callCountryCode} <span class="form-callsign-flag">{countryFlag(callCountryCode)}</span>{/if}{#if editingId} <span class="prev-contact">({relativeTime(`${datePart}T${timePart || "00:00:00"}Z`)})</span>{:else if prevContactCount > 0} <span class="prev-contact">(contacted {prevContactCount} time{prevContactCount === 1 ? "" : "s"} before)</span>{/if}</h3>
   <div class="form-row">
     <div class="field">
       <label for="call">Call *</label>
@@ -1082,16 +1071,9 @@
   }
 
   .form-heading {
-    margin: 0;
+    margin: 0 0 0.5rem 0;
     font-size: 0.95rem;
     color: var(--accent);
-  }
-
-  .form-callsign {
-    display: flex;
-    align-items: baseline;
-    gap: 0.4rem;
-    margin-bottom: 0.5rem;
   }
 
   .form-callsign-text {
