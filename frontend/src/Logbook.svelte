@@ -955,7 +955,7 @@
             <tr class="clickable" class:editing={editingId === c.id} title={relativeTime(c.timestamp)} on:click={() => editContact(c)}>
               <td>{formatTimestamp(c.timestamp)}</td>
               <td class="call">{c.call}</td>
-              <td class="truncate">{c.name || ""}</td>
+              <td class="truncate truncate-wide">{c.name || ""}</td>
               <td>{formatFreq(c.freq)} {#if freqToBand(c.freq)}<span class="band-tag" style="background: {bandColor(freqToBand(c.freq))}; color: {bandTextColor(freqToBand(c.freq))}">{freqToBand(c.freq)}</span>{/if}</td>
               <td>{c.mode || ""}</td>
               <td class="truncate">{c.pota_park || ""}</td>
@@ -1357,6 +1357,10 @@
     max-width: 14ch;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  td.truncate-wide {
+    max-width: 30ch;
   }
 
   tr.clickable {
