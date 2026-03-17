@@ -314,7 +314,8 @@
     const { type, data } = e.detail;
     if (type === "logbook") {
       editId = data.id;
-      navigate("add");
+      dualShowForm = true;
+      navigate(isWide() ? "dual" : "add");
       window.location.hash = `/log/${data.id}`;
     } else if (type === "pota") {
       tuneAndPrefill(data);
@@ -329,7 +330,8 @@
         state: "",
         skcc: data.skcc || "",
       };
-      navigate("add");
+      dualShowForm = true;
+      navigate(isWide() ? "dual" : "add");
     } else if (type === "qrz") {
       prefill = {
         call: data.call || "",
@@ -340,7 +342,8 @@
         country: data.country || "",
         state: data.state || "",
       };
-      navigate("add");
+      dualShowForm = true;
+      navigate(isWide() ? "dual" : "add");
     }
   }
 
