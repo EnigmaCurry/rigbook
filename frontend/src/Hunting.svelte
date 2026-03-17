@@ -19,10 +19,27 @@
 
   const DIGIT_EMOJIS = ["", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"];
 
-  function callCountEmoji(count) {
-    if (!count || count <= 0) return "";
+  function callCountEmoji(info) {
+    const count = info?.count || 0;
+    if (count <= 0) return "";
     if (count <= 9) return DIGIT_EMOJIS[count];
     return "💯";
+  }
+
+  function callCountTitle(info, call) {
+    if (!info) return "";
+    const count = info.count;
+    let s = `${count} QSO${count !== 1 ? "s" : ""} with ${call}`;
+    if (info.last) {
+      const ago = Date.now() - new Date(info.last).getTime();
+      const mins = Math.floor(ago / 60000);
+      const hrs = Math.floor(mins / 60);
+      const days = Math.floor(hrs / 24);
+      if (days > 0) s += `, the last time was ${days} day${days !== 1 ? "s" : ""} ago`;
+      else if (hrs > 0) s += `, the last time was ${hrs} hour${hrs !== 1 ? "s" : ""} ago`;
+      else s += `, the last time was ${mins} minute${mins !== 1 ? "s" : ""} ago`;
+    }
+    return s;
   }
 
   async function fetchCallCounts() {
@@ -184,7 +201,7 @@
             <span class="activator">{spot.activator}</span>
             <span class="badge mode">{spot.mode || "?"}</span>
             <span class="badge band" style="background: {bandColor(freqToBand(spot.frequency))}; color: {bandTextColor(freqToBand(spot.frequency))}">{freqToBand(spot.frequency) || "?"}</span>
-            {#if myCallCounts[spot.activator]}<span class="call-count" title="{myCallCounts[spot.activator]} QSO{myCallCounts[spot.activator] !== 1 ? 's' : ''} with {spot.activator}">{callCountEmoji(myCallCounts[spot.activator])}</span>{/if}
+            {#if myCallCounts[spot.activator]}<span class="call-count" title="{callCountTitle(myCallCounts[spot.activator], spot.activator)}">{callCountEmoji(myCallCounts[spot.activator])}</span>{/if}
           </div>
           <div class="park-name">{#if myParkQsos[spot.reference]}<span title="{parkAwardTitle(myParkQsos[spot.reference])}">{parkAward(myParkQsos[spot.reference])}</span> {/if}{spot.name || spot.reference}</div>
           <div class="park-ref">{spot.reference} — {spot.locationDesc}</div>

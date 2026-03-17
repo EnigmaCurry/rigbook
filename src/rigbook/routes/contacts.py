@@ -122,11 +122,21 @@ class ContactResponse(BaseModel):
 async def callsign_counts(session: AsyncSession = Depends(get_session)):
     rows = (
         await session.execute(
-            select(Contact.call, func.count())
+            select(
+                Contact.call,
+                func.count(),
+                func.max(Contact.timestamp),
+            )
             .group_by(Contact.call)
         )
     ).all()
-    return {call: count for call, count in rows}
+    return {
+        call: {
+            "count": count,
+            "last": last.isoformat() if last else None,
+        }
+        for call, count, last in rows
+    }
 
 
 @router.get("/", response_model=list[ContactResponse])
