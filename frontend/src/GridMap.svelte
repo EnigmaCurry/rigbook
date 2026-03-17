@@ -4,14 +4,17 @@
 
   const dispatch = createEventDispatcher();
 
-  let level = "field"; // "field" or "square"
+  let level = "field"; // "field", "square", or "subsquare"
   let selectedField = "";
+  let selectedSquare = "";
 
   const LETTERS = "ABCDEFGHIJKLMNOPQR".split("");
+  const SUB_LETTERS = "abcdefghijklmnopqrstuvwx".split("");
 
   // Parse a grid value to determine what's selected
   $: parsedField = value.length >= 2 ? value.substring(0, 2).toUpperCase() : "";
   $: parsedSquare = value.length >= 4 ? value.substring(0, 4).toUpperCase() : "";
+  $: parsedSub = value.length >= 6 ? value.substring(0, 4).toUpperCase() + value.substring(4, 6).toLowerCase() : "";
 
   let fieldLonIdx = 0;
   let fieldLatIdx = 0;
@@ -24,14 +27,20 @@
   }
 
   function selectSquare(sqLon, sqLat) {
-    const grid = selectedField + sqLon + sqLat;
+    selectedSquare = selectedField + sqLon + sqLat;
+    level = "subsquare";
+  }
+
+  function selectSubsquare(subLon, subLat) {
+    const grid = selectedSquare + SUB_LETTERS[subLon] + SUB_LETTERS[subLat];
     value = grid;
     dispatch("select", grid);
     level = "field";
   }
 
-  function backToFields() {
-    level = "field";
+  function goBack() {
+    if (level === "subsquare") level = "square";
+    else if (level === "square") level = "field";
   }
 
   // Convert grid square to center lat/lon
@@ -104,67 +113,102 @@
 
   $: gridCoord = gridToLatLon(value);
 
-  // --- OSM tile math for zoomed view ---
-  const ZOOM = 5;
-  const N = Math.pow(2, ZOOM);
-
-  function lon2tile(lon) { return ((lon + 180) / 360) * N; }
-  function lat2tile(lat) {
-    // Clamp to avoid infinity at poles
+  // --- OSM tile math for zoomed views ---
+  function lon2tile(lon, zoom) { return ((lon + 180) / 360) * Math.pow(2, zoom); }
+  function lat2tile(lat, zoom) {
     const clamped = Math.max(-85, Math.min(85, lat));
     const rad = (clamped * Math.PI) / 180;
-    return ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * N;
+    return ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * Math.pow(2, zoom);
   }
 
-  // Field bounding box in lon/lat
+  // --- Square level (zoom 5) ---
+  const SQ_ZOOM = 5;
+
   $: fieldLon = fieldLonIdx * 20 - 180;
   $: fieldLat = fieldLatIdx * 10 - 90;
   $: fieldLatTop = Math.min(fieldLat + 10, 85);
   $: fieldLatBot = Math.max(fieldLat, -85);
 
-  // Mercator tile units for the field bounds
-  $: fTileLeft = level === "square" ? lon2tile(fieldLon) : 0;
-  $: fTileRight = level === "square" ? lon2tile(fieldLon + 20) : 0;
-  $: fTileTop = level === "square" ? lat2tile(fieldLatTop) : 0;
-  $: fTileBot = level === "square" ? lat2tile(fieldLatBot) : 0;
-  $: fTileW = fTileRight - fTileLeft;
-  $: fTileH = fTileBot - fTileTop;
+  $: sqTileLeft = level !== "field" ? lon2tile(fieldLon, SQ_ZOOM) : 0;
+  $: sqTileRight = level !== "field" ? lon2tile(fieldLon + 20, SQ_ZOOM) : 0;
+  $: sqTileTop = level !== "field" ? lat2tile(fieldLatTop, SQ_ZOOM) : 0;
+  $: sqTileBot = level !== "field" ? lat2tile(fieldLatBot, SQ_ZOOM) : 0;
+  $: sqTileW = sqTileRight - sqTileLeft;
+  $: sqTileH = sqTileBot - sqTileTop;
 
-  // Integer tile range
-  $: tileX0 = Math.floor(fTileLeft);
-  $: tileX1 = Math.ceil(fTileRight);
-  $: tileY0 = Math.floor(fTileTop);
-  $: tileY1 = Math.ceil(fTileBot);
-
-  // Build tile list with percentage positions relative to the field
-  $: tiles = (() => {
-    if (level !== "square" || fTileW === 0) return [];
+  $: sqTiles = (() => {
+    if (level !== "square" || sqTileW === 0) return [];
     const list = [];
-    for (let ty = tileY0; ty < Math.min(tileY1, tileY0 + 10); ty++) {
-      for (let tx = tileX0; tx < Math.min(tileX1, tileX0 + 10); tx++) {
+    for (let ty = Math.floor(sqTileTop); ty < Math.min(Math.ceil(sqTileBot), Math.floor(sqTileTop) + 10); ty++) {
+      for (let tx = Math.floor(sqTileLeft); tx < Math.min(Math.ceil(sqTileRight), Math.floor(sqTileLeft) + 10); tx++) {
         list.push({
-          x: tx, y: ty,
-          left: ((tx - fTileLeft) / fTileW) * 100,
-          top: ((ty - fTileTop) / fTileH) * 100,
-          width: (1 / fTileW) * 100,
-          height: (1 / fTileH) * 100,
+          x: tx, y: ty, zoom: SQ_ZOOM,
+          left: ((tx - sqTileLeft) / sqTileW) * 100,
+          top: ((ty - sqTileTop) / sqTileH) * 100,
+          width: (1 / sqTileW) * 100,
+          height: (1 / sqTileH) * 100,
         });
       }
     }
     return list;
   })();
 
-  // Grid square positions using Mercator to match tiles
   function sqStyle(lonIdx, latIdx) {
     const sqLatTop = fieldLatTop - latIdx * 1;
     const sqLatBot = sqLatTop - 1;
     const sqLonLeft = fieldLon + lonIdx * 2;
+    const left = ((lon2tile(sqLonLeft, SQ_ZOOM) - sqTileLeft) / sqTileW) * 100;
+    const right = ((lon2tile(sqLonLeft + 2, SQ_ZOOM) - sqTileLeft) / sqTileW) * 100;
+    const top = ((lat2tile(sqLatTop, SQ_ZOOM) - sqTileTop) / sqTileH) * 100;
+    const bottom = ((lat2tile(sqLatBot, SQ_ZOOM) - sqTileTop) / sqTileH) * 100;
+    return `left:${left}%;top:${top}%;width:${right - left}%;height:${bottom - top}%`;
+  }
 
-    const left = ((lon2tile(sqLonLeft) - fTileLeft) / fTileW) * 100;
-    const right = ((lon2tile(sqLonLeft + 2) - fTileLeft) / fTileW) * 100;
-    const top = ((lat2tile(sqLatTop) - fTileTop) / fTileH) * 100;
-    const bottom = ((lat2tile(sqLatBot) - fTileTop) / fTileH) * 100;
+  // --- Subsquare level (zoom 10) ---
+  const SUB_ZOOM = 10;
 
+  // Parse selectedSquare to get bounding box
+  $: sqLonBase = selectedSquare.length >= 4
+    ? (selectedSquare.charCodeAt(0) - 65) * 20 - 180 + parseInt(selectedSquare[2]) * 2
+    : 0;
+  $: sqLatBase = selectedSquare.length >= 4
+    ? (selectedSquare.charCodeAt(1) - 65) * 10 - 90 + parseInt(selectedSquare[3])
+    : 0;
+  $: sqLatTopSub = Math.min(sqLatBase + 1, 85);
+  $: sqLatBotSub = Math.max(sqLatBase, -85);
+
+  $: subTileLeft = level === "subsquare" ? lon2tile(sqLonBase, SUB_ZOOM) : 0;
+  $: subTileRight = level === "subsquare" ? lon2tile(sqLonBase + 2, SUB_ZOOM) : 0;
+  $: subTileTop = level === "subsquare" ? lat2tile(sqLatTopSub, SUB_ZOOM) : 0;
+  $: subTileBot = level === "subsquare" ? lat2tile(sqLatBotSub, SUB_ZOOM) : 0;
+  $: subTileW = subTileRight - subTileLeft;
+  $: subTileH = subTileBot - subTileTop;
+
+  $: subTiles = (() => {
+    if (level !== "subsquare" || subTileW === 0) return [];
+    const list = [];
+    for (let ty = Math.floor(subTileTop); ty < Math.min(Math.ceil(subTileBot), Math.floor(subTileTop) + 20); ty++) {
+      for (let tx = Math.floor(subTileLeft); tx < Math.min(Math.ceil(subTileRight), Math.floor(subTileLeft) + 20); tx++) {
+        list.push({
+          x: tx, y: ty, zoom: SUB_ZOOM,
+          left: ((tx - subTileLeft) / subTileW) * 100,
+          top: ((ty - subTileTop) / subTileH) * 100,
+          width: (1 / subTileW) * 100,
+          height: (1 / subTileH) * 100,
+        });
+      }
+    }
+    return list;
+  })();
+
+  function subStyle(lonIdx, latIdx) {
+    const subLonLeft = sqLonBase + lonIdx * (2 / 24);
+    const subLatTop = sqLatTopSub - latIdx * (1 / 24);
+    const subLatBot = subLatTop - (1 / 24);
+    const left = ((lon2tile(subLonLeft, SUB_ZOOM) - subTileLeft) / subTileW) * 100;
+    const right = ((lon2tile(subLonLeft + 2/24, SUB_ZOOM) - subTileLeft) / subTileW) * 100;
+    const top = ((lat2tile(subLatTop, SUB_ZOOM) - subTileTop) / subTileH) * 100;
+    const bottom = ((lat2tile(subLatBot, SUB_ZOOM) - subTileTop) / subTileH) * 100;
     return `left:${left}%;top:${top}%;width:${right - left}%;height:${bottom - top}%`;
   }
 </script>
@@ -213,9 +257,10 @@
         {/each}
       {/each}
     </svg>
-  {:else}
+
+  {:else if level === "square"}
     <div class="map-header">
-      <button class="back-btn" on:click={backToFields}>← Back</button>
+      <button class="back-btn" on:click={goBack}>← Back</button>
       <span class="map-title">{selectedField} — Select Square</span>
       {#if parsedSquare}
         <span class="current">Current: {value}</span>
@@ -228,19 +273,17 @@
         <span>{fmtUTM(gridCoord)}</span>
       </a>
     {/if}
-    <div class="zoomed-container" style="aspect-ratio: {fTileW}/{fTileH}">
-      <!-- OSM tiles -->
+    <div class="zoomed-container" style="aspect-ratio: {sqTileW}/{sqTileH}">
       <div class="tiles-layer">
-        {#each tiles as tile}
+        {#each sqTiles as tile}
           <img
-            src="/api/tiles/{ZOOM}/{tile.x}/{tile.y}.png"
+            src="/api/tiles/{tile.zoom}/{tile.x}/{tile.y}.png"
             alt=""
             class="tile"
             style="left:{tile.left}%;top:{tile.top}%;width:{tile.width}%;height:{tile.height}%"
           />
         {/each}
       </div>
-      <!-- Grid overlay -->
       <div class="grid-overlay">
         {#each Array(10) as _, lonIdx}
           {#each Array(10) as _, latIdx}
@@ -255,6 +298,53 @@
               tabindex="0"
             >
               <span class="sq-label">{lonIdx}{9 - latIdx}</span>
+            </div>
+          {/each}
+        {/each}
+      </div>
+      <div class="osm-attr">© OpenStreetMap</div>
+    </div>
+
+  {:else if level === "subsquare"}
+    <div class="map-header">
+      <button class="back-btn" on:click={goBack}>← Back</button>
+      <span class="map-title">{selectedSquare} — Select Subsquare</span>
+      {#if parsedSub}
+        <span class="current">Current: {value}</span>
+      {/if}
+    </div>
+    {#if gridCoord}
+      <a class="coord-info" href={osmUrl(gridCoord)} target="_blank" rel="noopener">
+        <span>Center: {fmtDecimal(gridCoord)}</span>
+        <span>{fmtDMS(gridCoord)}</span>
+        <span>{fmtUTM(gridCoord)}</span>
+      </a>
+    {/if}
+    <div class="zoomed-container" style="aspect-ratio: {subTileW}/{subTileH}">
+      <div class="tiles-layer">
+        {#each subTiles as tile}
+          <img
+            src="/api/tiles/{tile.zoom}/{tile.x}/{tile.y}.png"
+            alt=""
+            class="tile"
+            style="left:{tile.left}%;top:{tile.top}%;width:{tile.width}%;height:{tile.height}%"
+          />
+        {/each}
+      </div>
+      <div class="grid-overlay">
+        {#each Array(24) as _, lonIdx}
+          {#each Array(24) as _, latIdx}
+            {@const code = selectedSquare + SUB_LETTERS[lonIdx] + SUB_LETTERS[23 - latIdx]}
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <div
+              class="sq-cell sub-cell"
+              class:selected={code === parsedSub}
+              style={subStyle(lonIdx, latIdx)}
+              on:click={() => selectSubsquare(lonIdx, 23 - latIdx)}
+              role="button"
+              tabindex="0"
+            >
+              <span class="sub-label">{SUB_LETTERS[lonIdx]}{SUB_LETTERS[23 - latIdx]}</span>
             </div>
           {/each}
         {/each}
@@ -420,6 +510,22 @@
   }
 
   .sq-cell.selected .sq-label {
+    color: var(--accent);
+  }
+
+  .sub-cell {
+    border-color: rgba(128, 128, 128, 0.2);
+  }
+
+  .sub-label {
+    color: var(--text);
+    font-size: 0.5rem;
+    font-weight: bold;
+    text-shadow: 0 0 2px var(--bg), 0 0 4px var(--bg);
+    pointer-events: none;
+  }
+
+  .sub-cell.selected .sub-label {
     color: var(--accent);
   }
 
