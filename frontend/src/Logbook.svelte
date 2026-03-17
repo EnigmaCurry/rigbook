@@ -1542,6 +1542,7 @@
 
   .pota-ac {
     position: relative;
+    min-width: 0;
   }
 
   .pota-dropdown {
