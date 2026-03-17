@@ -40,7 +40,7 @@
         .sort((a, b) => b.score - a.score)
         .slice(0, 20)
         .map(x => x.item)
-    : items.slice(0, 20);
+    : items;
 
   function onInput() {
     open = true;
@@ -149,7 +149,7 @@
     top: 100%;
     left: 0;
     right: 0;
-    max-height: 200px;
+    max-height: 300px;
     overflow-y: auto;
     background: var(--bg-card);
     border: 1px solid var(--border-input);
