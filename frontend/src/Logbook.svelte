@@ -67,7 +67,7 @@
   let countries = [];
   let subdivisions = [];
   let availableModes = [];
-  $: countryItems = countries.map(c => ({ name: c.name, aliases: c.aliases || [] }));
+  $: countryItems = countries.map(c => ({ name: c.name, aliases: c.aliases || [], display: `${c.code} — ${c.name}` }));
   $: subdivisionNames = subdivisions.map(s => s.name);
 
   function normalizeCountry() {

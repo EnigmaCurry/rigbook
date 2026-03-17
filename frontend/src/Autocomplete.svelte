@@ -33,6 +33,11 @@
     return typeof item === "string" ? item : item.name;
   }
 
+  function displayLabel(item) {
+    if (typeof item === "object" && item.display) return item.display;
+    return label(item);
+  }
+
   $: filtered = value
     ? items
         .map(i => ({ item: i, score: matchScore(i, value) }))
@@ -104,7 +109,7 @@
           class:highlighted={i === highlightIndex}
           on:mousedown|preventDefault={() => pick(item)}
         >
-          {label(item)}
+          {displayLabel(item)}
         </li>
       {/each}
     </ul>
