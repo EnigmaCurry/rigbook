@@ -110,6 +110,8 @@
   let gridMapValue = "";
   let menuOpen = false;
   let myCallsign = "";
+  let wideBreakpoint = 1200;
+  let wide = typeof window !== "undefined" && window.innerWidth >= 1200;
   let vfoFreq = "";
   let vfoMode = "";
   let vfoConnected = false;
@@ -264,11 +266,23 @@
   }
 
   function isWide() {
-    return typeof window !== "undefined" && window.innerWidth >= 1200;
+    return typeof window !== "undefined" && window.innerWidth >= wideBreakpoint;
   }
 
   function goHome() {
-    navigate(window.innerWidth >= 1200 ? "dual" : "log");
+    navigate(isWide() ? "dual" : "log");
+  }
+
+  async function fetchWideBreakpoint() {
+    try {
+      const res = await fetch("/api/settings/wide_breakpoint");
+      if (res.ok) {
+        const data = await res.json();
+        const v = parseInt(data.value, 10);
+        if (v > 0) wideBreakpoint = v;
+      }
+    } catch {}
+    wide = isWide();
   }
 
   function navigate(p) {
@@ -397,6 +411,7 @@
     window.addEventListener("storage", applyTheme);
     window.addEventListener("keydown", onGlobalKeydown);
     fetchCallsign();
+    fetchWideBreakpoint();
     fetchRadioModes();
     pollFlrig();
     flrigInterval = setInterval(pollFlrig, 2000);
@@ -406,7 +421,7 @@
   });
 
   function onResize() {
-    const wide = isWide();
+    wide = isWide();
     if (page === "dual" && !wide) {
       navigate("log");
     } else if ((page === "log" || page === "hunting") && wide) {
@@ -480,9 +495,12 @@
     <!-- svelte-ignore a11y-no-static-element-interactions -->
     <span class="utc-clock" on:click={copyUtcTimestamp} title="Click to copy">{clockCopied ? "Copied!" : utcNow}</span>
     <div class="hamburger-wrap">
-      <button class="add-btn wide-only" on:click={() => navigate("dual")} title="Logbook & Hunting">📖🧭</button>
-      <button class="add-btn narrow-only" on:click={() => navigate("log")} title="Logbook">📖</button>
-      <button class="add-btn narrow-only" on:click={() => navigate("hunting")} title="Hunting">🧭</button>
+      {#if wide}
+        <button class="add-btn" on:click={() => navigate("dual")} title="Logbook & Hunting">📖🧭</button>
+      {:else}
+        <button class="add-btn" on:click={() => navigate("log")} title="Logbook">📖</button>
+        <button class="add-btn" on:click={() => navigate("hunting")} title="Hunting">🧭</button>
+      {/if}
       <button class="add-btn parks-btn" on:click={() => navigate("parks")} title="My Parks">🌲</button>
       <button class="add-btn" on:click={() => { if (page === "dual") { dualShowForm = true; prefill = null; editId = null; } else navigate("add"); }} title="Add QSO">+</button>
       <button class="hamburger" on:click={() => menuOpen = !menuOpen} aria-label="Menu">
@@ -881,26 +899,6 @@
 
   .title-short {
     display: none;
-  }
-
-  .wide-only {
-    display: none;
-  }
-
-  .narrow-only {
-    display: flex;
-  }
-
-  @media (min-width: 1200px) {
-    .wide-only {
-      display: flex;
-      width: auto;
-      padding: 0 0.4rem;
-      font-size: 0.9rem;
-    }
-    .narrow-only {
-      display: none;
-    }
   }
 
   main.dual-mode {

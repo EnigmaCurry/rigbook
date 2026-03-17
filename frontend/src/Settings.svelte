@@ -8,6 +8,7 @@
   let hasQrzPassword = false;
   let flrig_host = "localhost";
   let flrig_port = "12345";
+  let wide_breakpoint = "1200";
   let theme = localStorage.getItem("rigbook-theme") || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
   let saving = false;
   let message = "";
@@ -47,6 +48,7 @@
           if (s.key === "qrz_password") hasQrzPassword = !!s.value && s.value !== "";
           if (s.key === "flrig_host") flrig_host = s.value || "localhost";
           if (s.key === "flrig_port") flrig_port = s.value || "12345";
+          if (s.key === "wide_breakpoint") wide_breakpoint = s.value || "1200";
         }
       }
     } catch {}
@@ -89,6 +91,11 @@
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value: flrig_port.trim() }),
+      });
+      await fetch("/api/settings/wide_breakpoint", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: wide_breakpoint.trim() }),
       });
       message = "Settings saved.";
     } catch (e) {
@@ -168,6 +175,12 @@
     <button class="theme-toggle" on:click={toggleTheme}>
       {theme === "dark" ? "Dark" : "Light"}
     </button>
+  </div>
+
+  <div class="setting-row">
+    <label for="wide_breakpoint">Wide Mode Breakpoint (px)</label>
+    <input id="wide_breakpoint" type="text" bind:value={wide_breakpoint} autocomplete="off" inputmode="numeric" />
+    <span class="hint">Minimum window width to show dual-pane layout (default: 1200)</span>
   </div>
 
   <h3>flrig Connection</h3>
