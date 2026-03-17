@@ -398,6 +398,9 @@
     } else if (e.key === "l" || e.key === "L") {
       e.preventDefault();
       navigate("log");
+    } else if (e.key === "p" || e.key === "P") {
+      e.preventDefault();
+      navigate("parks");
     } else if (e.key === "m" || e.key === "M") {
       e.preventDefault();
       cycleMode();

@@ -14,7 +14,7 @@ with a local web UI, optionally connected to your radio via
   cycles radio modes, **UTC clock** copies the timestamp to clipboard,
   **📖** logbook, **🧭** hunting, **🌲** My Parks, and **+** adds a new QSO
 - Keyboard shortcuts: `/` search, `N` new QSO, `H` hunting, `L` logbook,
-  `T` tune radio, `M` cycle mode, `?` about, `Esc` close
+  `P` parks, `T` tune radio, `M` cycle mode, `?` about, `Esc` close
 - Country and state autocomplete (all ISO countries and subdivisions),
   with automatic normalization of codes (US → United States, UT → Utah)
 - Mode autocomplete from your radio's supported modes
