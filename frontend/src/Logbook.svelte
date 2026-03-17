@@ -3,6 +3,7 @@
   import Autocomplete from "./Autocomplete.svelte";
   import GridMap from "./GridMap.svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
+  import { parkAward } from "./parkAward.js";
 
   export let editId = null;
   export let prefill = null;
@@ -377,16 +378,6 @@
       parkOverlay = null;
       parkOverlayLoading = false;
     }
-  }
-
-  function parkAward(count) {
-    if (count >= 20) return "🏆";
-    if (count >= 15) return "💎";
-    if (count >= 10) return "🌟";
-    if (count >= 5) return "⭐";
-    if (count >= 2) return "🥈";
-    if (count >= 1) return "🥇";
-    return "";
   }
 
   async function openParkOverlay() {

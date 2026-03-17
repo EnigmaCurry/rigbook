@@ -2,6 +2,7 @@
   import { onMount, onDestroy, tick } from "svelte";
   import L from "leaflet";
   import "leaflet/dist/leaflet.css";
+  import { parkAward } from "./parkAward.js";
 
   // --- Tab routing ---
   const TABS = ["my-qsos", "by-country", "download"];
@@ -234,16 +235,6 @@
       loadingParks[descriptor] = false;
       loadingParks = loadingParks;
     }
-  }
-
-  function parkAward(count) {
-    if (count >= 20) return "🏆";
-    if (count >= 15) return "💎";
-    if (count >= 10) return "🌟";
-    if (count >= 5) return "⭐";
-    if (count >= 2) return "🥈";
-    if (count >= 1) return "🥇";
-    return "";
   }
 
   function destroyMap() {
