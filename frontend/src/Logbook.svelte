@@ -707,7 +707,7 @@
   <h3 class="form-heading">{editingId ? "Edit QSO" : "New QSO"}</h3>
   {#if call.trim()}
     <div class="form-callsign">
-      <a class="form-callsign-text" href="https://www.qrz.com/db/{call.trim().toUpperCase()}" target="_blank" rel="noopener" title="Open on QRZ.com">{call.trim().toUpperCase()}</a>
+      <a class="form-callsign-text" href="https://www.qrz.com/db/{call.trim().toUpperCase()}" target="_blank" rel="noopener" title="View {call.trim().toUpperCase()} on QRZ.com">{call.trim().toUpperCase()}</a>
       {#if callCountryCode}<span class="form-callsign-flag">{countryFlag(callCountryCode)}</span>{/if}
       {#if editingId}
         <span class="prev-contact">({relativeTime(`${datePart}T${timePart || "00:00:00"}Z`)})</span>
