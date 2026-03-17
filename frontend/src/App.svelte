@@ -102,6 +102,8 @@
     return { page: isWide() ? "dual" : "log", editId: null };
   }
 
+  let wideBreakpoint = 1500;
+  let wide = typeof window !== "undefined" && window.innerWidth >= 1500;
   let { page, editId } = parseHash();
   let previousPage = "log";
   let prefill = null;
@@ -110,8 +112,6 @@
   let gridMapValue = "";
   let menuOpen = false;
   let myCallsign = "";
-  let wideBreakpoint = 1500;
-  let wide = typeof window !== "undefined" && window.innerWidth >= 1500;
   let vfoFreq = "";
   let vfoMode = "";
   let vfoConnected = false;
