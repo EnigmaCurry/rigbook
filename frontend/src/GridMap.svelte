@@ -431,4 +431,22 @@
     color: var(--text-dim);
     opacity: 0.7;
   }
+
+  :global(:root.light) .map-svg image {
+    opacity: 0.7 !important;
+  }
+
+  :global(:root.light) .cell {
+    stroke: #555;
+    stroke-width: 0.15;
+    opacity: 1;
+  }
+
+  :global(:root.light) .cell-label {
+    fill: #333;
+  }
+
+  :global(:root.light) .tiles-layer {
+    opacity: 0.85;
+  }
 </style>
