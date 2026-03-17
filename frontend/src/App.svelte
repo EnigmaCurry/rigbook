@@ -486,7 +486,7 @@
   {:else if page === "hunting"}
     <Hunting on:tune={e => tuneAndPrefill(e.detail)} />
   {:else if page === "parks"}
-    <Parks />
+    <Parks on:addqso={e => { prefill = e.detail; navigate("add"); }} />
   {:else if page === "grid"}
     <GridMap bind:value={gridMapValue} on:select={e => { gridMapValue = e.detail; }} />
   {:else if page === "export"}

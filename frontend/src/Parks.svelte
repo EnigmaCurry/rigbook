@@ -1,8 +1,10 @@
 <script>
-  import { onMount, onDestroy, tick } from "svelte";
+  import { onMount, onDestroy, tick, createEventDispatcher } from "svelte";
   import L from "leaflet";
   import "leaflet/dist/leaflet.css";
   import { parkAward, parkAwardTitle } from "./parkAward.js";
+
+  const dispatch = createEventDispatcher();
 
   // --- Tab routing ---
   const TABS = ["my-qsos", "by-country", "download"];
@@ -582,6 +584,7 @@
               </div>
               <div class="park-detail-links">
                 <a href="https://pota.app/#/park/{parkDetail.reference}" target="_blank" rel="noopener">View on POTA</a>
+                <button class="add-qso-btn" on:click={() => dispatch("addqso", { pota_park: parkDetail.reference, grid: parkDetail.grid || "", country: parkDetail.program_name || "", state: parkDetail.location_name || "" })}>+ Add QSO</button>
               </div>
             </div>
             {#if parkDetail.latitude != null && parkDetail.longitude != null}
@@ -1117,6 +1120,22 @@
 
   .park-detail-links a:hover {
     text-decoration: underline;
+  }
+
+  .add-qso-btn {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    padding: 0.3rem 0.8rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: bold;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .add-qso-btn:hover {
+    background: var(--accent-hover);
   }
 
   .park-qsos-heading {
