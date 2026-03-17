@@ -1549,6 +1549,11 @@
     min-width: 0;
   }
 
+  .pota-ac input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
   .pota-dropdown {
     position: absolute;
     top: 100%;
