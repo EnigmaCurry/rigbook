@@ -33,6 +33,31 @@ SELECTED_KEY = "pota_selected_programs"
 
 _spots_cache: list | None = None
 _spots_fetched_at: float = 0
+
+PROGRAM_NAME_OVERRIDES: dict[int, str] = {
+    30: "Taiwan",
+    160: "Vietnam",
+    175: "Korea",
+}
+
+# Built at import time from the ID map; populated after first fetch
+_program_name_cache: dict[str, str] = {}
+
+
+def _build_name_cache(programs):
+    """Build a prefix->override lookup from program objects."""
+    _program_name_cache.clear()
+    for p in programs:
+        pid = p.program_id if hasattr(p, "program_id") else p.get("program_id", 0)
+        prefix = p.prefix if hasattr(p, "prefix") else p.get("prefix", "")
+        if pid in PROGRAM_NAME_OVERRIDES:
+            _program_name_cache[prefix] = PROGRAM_NAME_OVERRIDES[pid]
+
+
+def _fix_program_name(name: str, prefix: str = "") -> str:
+    if prefix and prefix in _program_name_cache:
+        return _program_name_cache[prefix]
+    return name
 _spots_lock = None
 
 
@@ -121,6 +146,7 @@ async def get_programs(session: AsyncSession = Depends(get_session)):
         await _fetch_and_cache_programs(session)
 
     programs = (await session.execute(select(PotaProgram))).scalars().all()
+    _build_name_cache(programs)
 
     # Park counts per program prefix
     park_counts = dict(
@@ -151,7 +177,7 @@ async def get_programs(session: AsyncSession = Depends(get_session)):
     return [
         {
             "prefix": p.prefix,
-            "name": p.name,
+            "name": _fix_program_name(p.name, p.prefix),
             "location_count": prefix_loc_count.get(p.prefix, 0),
             "park_count": prefix_park_count.get(p.prefix, 0),
             "selected": p.prefix in selected,
@@ -351,7 +377,7 @@ async def search_parks(q: str = "", session: AsyncSession = Depends(get_session)
             "location_desc": p.location_desc,
             "grid": p.grid,
             "location_name": loc_name,
-            "program_name": prog_name,
+            "program_name": _fix_program_name(prog_name, p.reference.split("-")[0] if p.reference else ""),
         }
         for p, loc_name, prog_name in rows
     ]
@@ -453,7 +479,7 @@ async def get_park(reference: str, session: AsyncSession = Depends(get_session))
         "my_qsos": len(contacts),
         "contacts": contacts,
         "location_name": loc_name,
-        "program_name": prog_name,
+        "program_name": _fix_program_name(prog_name, p.reference.split("-")[0] if p.reference else ""),
     }
 
 

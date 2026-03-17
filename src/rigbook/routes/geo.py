@@ -3,6 +3,11 @@ from fastapi import APIRouter
 
 router = APIRouter(prefix="/api/geo", tags=["geo"])
 
+COUNTRY_NAME_OVERRIDES: dict[str, str] = {
+    "VN": "Vietnam",
+    "TW": "Taiwan",
+}
+
 COUNTRY_ALIASES: dict[str, list[str]] = {
     "US": ["US", "USA"],
     "GB": ["UK"],
@@ -17,10 +22,11 @@ COUNTRY_ALIASES: dict[str, list[str]] = {
 async def list_countries():
     results = []
     for c in sorted(pycountry.countries, key=lambda c: c.name):
+        name = COUNTRY_NAME_OVERRIDES.get(c.alpha_2, c.name)
         aliases = [c.alpha_2]
         if c.alpha_2 in COUNTRY_ALIASES:
             aliases = COUNTRY_ALIASES[c.alpha_2]
-        results.append({"code": c.alpha_2, "name": c.name, "aliases": aliases})
+        results.append({"code": c.alpha_2, "name": name, "aliases": aliases})
     return results
 
 
