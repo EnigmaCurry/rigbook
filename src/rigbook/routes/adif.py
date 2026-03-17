@@ -145,14 +145,17 @@ async def import_adif(file: UploadFile, session: AsyncSession = Depends(get_sess
                 duplicates += 1
                 continue
         else:
-            # Fall back to call + timestamp dedup
+            # Fall back to call + timestamp dedup (ignore seconds)
             ts = data.get("timestamp")
             if ts:
-                check_ts = ts.replace(tzinfo=None) if ts.tzinfo else ts
+                check_ts = ts.replace(second=0, tzinfo=None) if ts.tzinfo else ts.replace(second=0)
+                minute_start = check_ts
+                minute_end = check_ts.replace(second=59)
                 existing = (await session.execute(
                     select(Contact).where(and_(
                         Contact.call == data["call"].upper(),
-                        Contact.timestamp == check_ts,
+                        Contact.timestamp >= minute_start,
+                        Contact.timestamp <= minute_end,
                     ))
                 )).scalar_one_or_none()
                 if existing:
