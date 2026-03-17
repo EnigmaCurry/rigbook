@@ -1061,6 +1061,7 @@
     gap: 0.5rem;
     margin-bottom: 0.5rem;
     flex-wrap: wrap;
+    align-items: flex-end;
   }
 
   .field {
