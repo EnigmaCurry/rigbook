@@ -367,6 +367,7 @@
     page = parsed.page;
     editId = parsed.editId;
     fetchCallsign();
+    fetchWideBreakpoint();
   }
 
   // Apply theme from localStorage on load
