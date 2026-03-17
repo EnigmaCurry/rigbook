@@ -261,6 +261,10 @@
     } catch {}
   }
 
+  function goHome() {
+    navigate(window.innerWidth >= 1200 ? "dual" : "log");
+  }
+
   function navigate(p) {
     if (p === "back") {
       p = previousPage;
@@ -404,11 +408,11 @@
     <div class="header-left">
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-      <h1 class="app-title" on:click={() => navigate("log")} style="cursor: pointer"><span class="title-full">Logbook</span><span class="title-short">LB</span></h1>
+      <h1 class="app-title" on:click={goHome} style="cursor: pointer"><span class="title-full">Logbook</span><span class="title-short">LB</span></h1>
       {#if myCallsign}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="callsign" on:click={() => navigate("log")} style="cursor: pointer">{myCallsign}</span>
+        <span class="callsign" on:click={goHome} style="cursor: pointer">{myCallsign}</span>
       {/if}
       {#if vfoEditing}
         <span class="vfo-edit">
