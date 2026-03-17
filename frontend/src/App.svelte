@@ -92,20 +92,20 @@
     if (hash === "/about") return { page: "about", editId: null };
     if (hash === "/links") return { page: "links", editId: null };
     if (hash === "/settings") return { page: "settings", editId: null };
-    if (hash === "/logbook") return { page: "log", editId: null };
+    if (hash === "/logbook") return { page: isWide() ? "dual" : "log", editId: null };
     if (hash === "/export") return { page: "export", editId: null };
-    if (hash === "/add") return { page: "add", editId: null };
-    if (hash === "/hunting") return { page: "hunting", editId: null };
+    if (hash === "/add") return { page: isWide() ? "dual" : "add", editId: null };
+    if (hash === "/hunting") return { page: isWide() ? "dual" : "hunting", editId: null };
     if (hash === "/dual") return { page: "dual", editId: null };
     const match = hash.match(/^\/log\/(\d+)$/);
-    if (match) return { page: "add", editId: parseInt(match[1], 10) };
-    return { page: "log", editId: null };
+    if (match) return { page: isWide() ? "dual" : "add", editId: parseInt(match[1], 10) };
+    return { page: isWide() ? "dual" : "log", editId: null };
   }
 
   let { page, editId } = parseHash();
   let previousPage = "log";
   let prefill = null;
-  let dualShowForm = false;
+  let dualShowForm = !!editId || (page === "dual" && (window.location.hash.slice(1) === "/add"));
   let gridMapValue = "";
   let menuOpen = false;
   let myCallsign = "";
@@ -260,6 +260,10 @@
         myCallsign = data.value || "";
       }
     } catch {}
+  }
+
+  function isWide() {
+    return typeof window !== "undefined" && window.innerWidth >= 1200;
   }
 
   function goHome() {
