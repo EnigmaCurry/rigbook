@@ -389,7 +389,7 @@
           potaParkName = match.name;
         } else {
           const prefixMatch = ref.match(/^([A-Z]{1,2})-/);
-          if (prefixMatch) potaParkName = `${prefixMatch[1]} parks not downloaded yet`;
+          if (prefixMatch) potaParkName = `${prefixMatch[1]} not downloaded`;
         }
       }
     } catch {}
@@ -863,7 +863,7 @@
     <div class="field">
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <!-- svelte-ignore a11y-no-static-element-interactions -->
-      <label for="pota_park">POTA Park{#if potaParkName} — <span class="pota-park-name" on:click|preventDefault|stopPropagation={openParkOverlay}>{potaParkName}</span>{/if}</label>
+      <label for="pota_park">POTA Park{#if potaParkName} — {#if potaParkName.endsWith("not downloaded")}<a class="pota-park-name" href="#/parks/download" on:click|stopPropagation>{potaParkName}</a>{:else}<span class="pota-park-name" on:click|preventDefault|stopPropagation={openParkOverlay}>{potaParkName}</span>{/if}{/if}</label>
       <div class="pota-ac">
         <input id="pota_park" type="text" bind:value={pota_park} on:input={onPotaInput} on:focus={onPotaFocus} on:blur={onPotaBlur} on:keydown={onPotaKeydown} style="text-transform: uppercase" autocomplete="off" />
         {#if potaOpen && potaResults.length > 0}
