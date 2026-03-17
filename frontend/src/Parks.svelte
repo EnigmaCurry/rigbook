@@ -41,6 +41,47 @@
   let selectedPark = null;
   let detailMapEl;
   let detailMap = null;
+  let fullscreenMap = null; // reference to the map currently fullscreen
+  let fullscreenWrap = null; // reference to the wrap element
+
+  function addExpandControl(map, wrapEl) {
+    const ExpandControl = L.Control.extend({
+      options: { position: "topright" },
+      onAdd() {
+        const btn = L.DomUtil.create("div", "leaflet-bar leaflet-control map-expand-btn");
+        btn.innerHTML = "⛶";
+        btn.title = "Toggle fullscreen";
+        btn.onclick = (e) => { e.stopPropagation(); toggleFullscreen(map, wrapEl); };
+        return btn;
+      }
+    });
+    map.addControl(new ExpandControl());
+  }
+
+  function toggleFullscreen(map, wrapEl) {
+    if (fullscreenMap) {
+      exitFullscreen();
+    } else {
+      fullscreenMap = map;
+      fullscreenWrap = wrapEl;
+      wrapEl.classList.add("map-fullscreen");
+      document.body.style.overflow = "hidden";
+      setTimeout(() => map.invalidateSize(), 100);
+    }
+  }
+
+  function exitFullscreen() {
+    if (!fullscreenMap) return;
+    fullscreenWrap.classList.remove("map-fullscreen");
+    document.body.style.overflow = "";
+    setTimeout(() => fullscreenMap.invalidateSize(), 100);
+    fullscreenMap = null;
+    fullscreenWrap = null;
+  }
+
+  function onFullscreenKey(e) {
+    if (e.key === "Escape" && fullscreenMap) exitFullscreen();
+  }
 
   function parseTab() {
     const hash = window.location.hash.slice(1) || "";
@@ -60,6 +101,7 @@
   function switchTab(t) {
     tab = t;
     parkDetail = null;
+    exitFullscreen();
     destroyMap();
     destroyDetailMap();
     if (t === "my-qsos") loadMyParks();
@@ -91,6 +133,7 @@
       .bindPopup(`<b>${parkDetail.reference}</b><br>${parkDetail.name || ""}`)
       .openPopup();
     detailMap.setView(ll, 12);
+    addExpandControl(detailMap, detailMapEl.parentElement);
   }
 
   async function loadParkDetail(ref) {
@@ -360,6 +403,7 @@
       markersByRef[p.reference] = m;
     }
     leafletMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 8 });
+    addExpandControl(leafletMap, mapEl.parentElement);
   }
 
   async function loadMyParks() {
@@ -377,12 +421,15 @@
     loadMyParks();
     if (tab === "park" && parkRef) loadParkDetail(parkRef);
     window.addEventListener("hashchange", onHashChange);
+    window.addEventListener("keydown", onFullscreenKey);
   });
 
   onDestroy(() => {
+    exitFullscreen();
     destroyMap();
     destroyDetailMap();
     window.removeEventListener("hashchange", onHashChange);
+    window.removeEventListener("keydown", onFullscreenKey);
   });
 </script>
 
@@ -1201,5 +1248,38 @@
 
   :global(.leaflet-attribution-flag) {
     display: none !important;
+  }
+
+  :global(.map-expand-btn) {
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    font-size: 1.2rem;
+    cursor: pointer;
+    background: white;
+  }
+
+  :global(.map-expand-btn:hover) {
+    background: #f4f4f4;
+  }
+
+  .map-fullscreen {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+  }
+
+  .map-fullscreen .my-map,
+  .map-fullscreen .park-detail-map {
+    height: 100% !important;
   }
 </style>
