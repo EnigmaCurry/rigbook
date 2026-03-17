@@ -195,6 +195,28 @@
   // Auto-fill freq/mode from VFO when not editing
   // Apply prefill from hunting spot
   $: if (prefill && !editingId) {
+    // Clear form first to avoid stale data from previous prefill
+    lastQrzCall = "";
+    callCountryCode = "";
+    call = "";
+    freq = "";
+    mode = "CW";
+    rst_sent = defaultRst;
+    rst_recv = defaultRst;
+    pota_park = "";
+    potaParkName = "";
+    name = "";
+    qth = "";
+    state = "";
+    country = "";
+    grid = "";
+    skcc = "";
+    comments = "";
+    notes = "";
+    datePart = "";
+    timePart = "";
+    subdivisions = [];
+
     prefillSource = "hunting";
     if (prefill.call) call = prefill.call;
     if (prefill.freq) freq = prefill.freq;
@@ -202,9 +224,8 @@
     if (prefill.pota_park) { pota_park = prefill.pota_park; resolvePotaParkName(); }
     if (prefill.grid) grid = prefill.grid;
     if (prefill.country) country = prefill.country;
+    if (prefill.state) state = prefill.state;
     if (prefill.skcc) skcc = prefill.skcc;
-    datePart = "";
-    timePart = "";
     dispatch("prefillconsumed");
     // Lookup name from QRZ
     if (prefill.call) lookupCallsign(prefill.call.toUpperCase());
