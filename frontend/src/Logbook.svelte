@@ -1074,6 +1074,7 @@
     flex-direction: column;
     flex: 1;
     min-width: 120px;
+    overflow: hidden;
   }
 
   .field.wide {
@@ -1085,6 +1086,9 @@
     font-size: 0.75rem;
     color: var(--text-muted);
     margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   input,
