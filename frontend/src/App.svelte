@@ -504,7 +504,7 @@
         <button class="add-btn" on:click={() => navigate("hunting")} title="Hunting">🧭</button>
       {/if}
       <button class="add-btn parks-btn" on:click={() => navigate("parks")} title="My Parks">🌲</button>
-      <button class="add-btn" on:click={() => { if (page === "dual") { dualShowForm = true; prefill = null; editId = null; } else navigate("add"); }} title="Add QSO">+</button>
+      <button class="add-btn" on:click={() => { dualShowForm = true; prefill = null; editId = null; if (page === "dual") { /* already on dual */ } else navigate("add"); }} title="Add QSO">+</button>
       <button class="hamburger" on:click={() => menuOpen = !menuOpen} aria-label="Menu">
         <span class="bar"></span>
         <span class="bar"></span>
