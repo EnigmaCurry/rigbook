@@ -545,7 +545,7 @@
     --accent: #00994d;
     --accent-hover: #007a3d;
     --accent-callsign: #b8860b;
-    --accent-vfo: #0077aa;
+    --accent-vfo: #332525;
     --vfo-bg: #0c1e88;
     --vfo-border: #0c1e88;
     --vfo-text: #fbfbfb;
