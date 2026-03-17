@@ -162,7 +162,6 @@ async def _fetch_callsign(
                     "qth": get("addr2"),
                     "state": get("state"),
                     "country": get("country"),
-                    "country_code": get("ccode"),
                     "grid": get("grid"),
                 }
         except Exception as e:

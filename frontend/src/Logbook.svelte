@@ -263,20 +263,19 @@
       const data = await res.json();
       if (data.error) return;
       // If from hunting spot, only fill name. Otherwise fill all empty fields.
-      if (data.country_code) callCountryCode = data.country_code;
+      // Derive ISO country code for flag display
+      if (data.country) {
+        const cm = countries.find(c => c.name === data.country || (c.aliases || []).includes(data.country));
+        if (cm) callCountryCode = cm.code;
+      }
       if (prefillSource === "hunting") {
         if (!name && data.name) name = data.name;
       } else {
         if (!name && data.name) name = data.name;
         if (!qth && data.qth) qth = data.qth;
-        if (!country) {
-          // Prefer country_code for reliable normalization
-          if (data.country_code) {
-            country = data.country_code;
-            normalizeCountry();
-          } else if (data.country) {
-            country = data.country;
-          }
+        if (!country && data.country) {
+          country = data.country;
+          normalizeCountry();
           const match = countries.find(c => c.name === country);
           if (match) await fetchSubdivisions(match.code);
         }
