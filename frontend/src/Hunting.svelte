@@ -26,21 +26,34 @@
     return "💯";
   }
 
+  function timeAgoStr(isoStr) {
+    if (!isoStr) return "";
+    const lastStr = isoStr.endsWith("Z") ? isoStr : isoStr + "Z";
+    const ago = Date.now() - new Date(lastStr).getTime();
+    if (ago < 0) return "";
+    const mins = Math.floor(ago / 60000);
+    const hrs = Math.floor(mins / 60);
+    const days = Math.floor(hrs / 24);
+    if (days > 0) return `${days} day${days !== 1 ? "s" : ""} ago`;
+    if (hrs > 0) return `${hrs} hour${hrs !== 1 ? "s" : ""} ago`;
+    return `${mins} minute${mins !== 1 ? "s" : ""} ago`;
+  }
+
   function callCountTitle(info, call) {
     if (!info) return "";
     const count = info.count;
     let s = `${count} QSO${count !== 1 ? "s" : ""} with ${call}`;
-    if (info.last) {
-      const lastStr = info.last.endsWith("Z") ? info.last : info.last + "Z";
-      const ago = Date.now() - new Date(lastStr).getTime();
-      if (ago < 0) return s;
-      const mins = Math.floor(ago / 60000);
-      const hrs = Math.floor(mins / 60);
-      const days = Math.floor(hrs / 24);
-      if (days > 0) s += `, ${days} day${days !== 1 ? "s" : ""} ago`;
-      else if (hrs > 0) s += `, ${hrs} hour${hrs !== 1 ? "s" : ""} ago`;
-      else s += `, ${mins} minute${mins !== 1 ? "s" : ""} ago`;
-    }
+    const ago = timeAgoStr(info.last);
+    if (ago) s += `, ${ago}`;
+    return s;
+  }
+
+  function parkQsoTitle(info) {
+    if (!info) return "";
+    const count = info.count;
+    let s = parkAwardTitle(count);
+    const ago = timeAgoStr(info.last);
+    if (ago) s += `, ${ago}`;
     return s;
   }
 
@@ -57,7 +70,7 @@
       if (res.ok) {
         const parks = await res.json();
         const map = {};
-        for (const p of parks) map[p.reference] = p.qso_count;
+        for (const p of parks) map[p.reference] = { count: p.qso_count, last: p.last_contact };
         myParkQsos = map;
       }
     } catch {}
@@ -205,7 +218,7 @@
             <span class="badge band" style="background: {bandColor(freqToBand(spot.frequency))}; color: {bandTextColor(freqToBand(spot.frequency))}">{freqToBand(spot.frequency) || "?"}</span>
             {#if myCallCounts[spot.activator]}<span class="call-count" title="{callCountTitle(myCallCounts[spot.activator], spot.activator)}">{callCountEmoji(myCallCounts[spot.activator])}</span>{/if}
           </div>
-          <div class="park-name">{#if myParkQsos[spot.reference]}<span title="{parkAwardTitle(myParkQsos[spot.reference])}">{parkAward(myParkQsos[spot.reference])}</span> {/if}{spot.name || spot.reference}</div>
+          <div class="park-name">{#if myParkQsos[spot.reference]}<span title="{parkQsoTitle(myParkQsos[spot.reference])}">{parkAward(myParkQsos[spot.reference].count)}</span> {/if}{spot.name || spot.reference}</div>
           <div class="park-ref">{spot.reference} — {spot.locationDesc}</div>
           <div class="card-details">
             <span class="freq">{formatFreq(spot.frequency)} KHz</span>
