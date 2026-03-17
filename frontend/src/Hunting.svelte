@@ -117,6 +117,10 @@
     dispatch("tune", spot);
   }
 
+  export function refreshAwards() {
+    fetchMyParks();
+  }
+
   onMount(() => {
     fetchSpots();
     fetchMyParks();

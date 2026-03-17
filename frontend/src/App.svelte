@@ -106,6 +106,7 @@
   let previousPage = "log";
   let prefill = null;
   let dualShowForm = !!editId || (page === "dual" && (window.location.hash.slice(1) === "/add"));
+  let dualHunting;
   let gridMapValue = "";
   let menuOpen = false;
   let myCallsign = "";
@@ -514,10 +515,10 @@
   {:else if page === "dual"}
     <div class="dual-layout">
       <div class="dual-pane">
-        <Logbook showForm={dualShowForm || !!prefill || !!editId} {prefill} {editId} {vfoFreq} {vfoMode} on:editchange={e => { editId = e.detail; dualShowForm = !!e.detail; }} on:navigate={e => { if (e.detail === "hunting" || e.detail === "log" || e.detail === "back") { prefill = null; editId = null; dualShowForm = false; } else navigate(e.detail); }} on:prefillconsumed={() => prefill = null} />
+        <Logbook showForm={dualShowForm || !!prefill || !!editId} {prefill} {editId} {vfoFreq} {vfoMode} on:editchange={e => { editId = e.detail; dualShowForm = !!e.detail; }} on:navigate={e => { if (e.detail === "hunting" || e.detail === "log" || e.detail === "back") { prefill = null; editId = null; dualShowForm = false; dualHunting?.refreshAwards(); } else navigate(e.detail); }} on:prefillconsumed={() => prefill = null} />
       </div>
       <div class="dual-pane">
-        <Hunting on:tune={e => tuneAndPrefill(e.detail)} />
+        <Hunting bind:this={dualHunting} on:tune={e => tuneAndPrefill(e.detail)} />
       </div>
     </div>
   {:else if page === "parks"}
