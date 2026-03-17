@@ -398,12 +398,23 @@
     flrigInterval = setInterval(pollFlrig, 2000);
     clockInterval = setInterval(() => { utcNow = new Date().toISOString().slice(0, 19).replace("T", " ") + "z"; }, 1000);
     window.addEventListener("hashchange", onHashChange);
+    window.addEventListener("resize", onResize);
   });
+
+  function onResize() {
+    const wide = isWide();
+    if (page === "dual" && !wide) {
+      navigate("log");
+    } else if ((page === "log" || page === "hunting") && wide) {
+      navigate("dual");
+    }
+  }
 
   onDestroy(() => {
     clearInterval(flrigInterval);
     clearInterval(clockInterval);
     window.removeEventListener("hashchange", onHashChange);
+    window.removeEventListener("resize", onResize);
     window.removeEventListener("storage", applyTheme);
     window.removeEventListener("keydown", onGlobalKeydown);
   });
