@@ -403,7 +403,7 @@
   });
 </script>
 
-<main class:dual-mode={page === "dual"}>
+<main class:dual-mode={page === "dual"} class:wide-mode={page === "grid"}>
   <header>
     <div class="header-left">
       <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -884,6 +884,10 @@
 
   main.dual-mode {
     max-width: 2200px;
+  }
+
+  main.wide-mode {
+    max-width: 1600px;
   }
 
   .dual-layout {
