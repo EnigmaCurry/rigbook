@@ -1,6 +1,6 @@
 # 📻️ Rigbook
 
-A ham radio logbook web application. Log amateur radio contacts (QSOs)
+A ham radio logbook app. Log amateur radio contacts (QSOs)
 with a local web UI, optionally connected to your radio via
 [flrig](http://www.w1hkj.com/flrig-help/).
 
