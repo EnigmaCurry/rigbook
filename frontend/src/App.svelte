@@ -883,7 +883,7 @@
   }
 
   main.dual-mode {
-    max-width: 2200px;
+    max-width: 100%;
   }
 
   main.wide-mode {
