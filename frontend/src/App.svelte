@@ -499,7 +499,7 @@
   {:else if page === "dual"}
     <div class="dual-layout">
       <div class="dual-pane">
-        <Logbook showForm={dualShowForm || !!prefill} {prefill} {editId} {vfoFreq} {vfoMode} on:editchange={e => { editId = e.detail; if (e.detail) window.location.hash = `/log/${e.detail}`; }} on:navigate={e => { if (e.detail === "hunting" || e.detail === "log" || e.detail === "back") { prefill = null; editId = null; dualShowForm = false; } else navigate(e.detail); }} on:prefillconsumed={() => {}} />
+        <Logbook showForm={dualShowForm || !!prefill} {prefill} {editId} {vfoFreq} {vfoMode} on:editchange={e => { editId = e.detail; if (e.detail) window.location.hash = `/log/${e.detail}`; }} on:navigate={e => { if (e.detail === "hunting" || e.detail === "log" || e.detail === "back") { prefill = null; editId = null; dualShowForm = false; } else navigate(e.detail); }} on:prefillconsumed={() => prefill = null} />
       </div>
       <div class="dual-pane">
         <Hunting on:tune={e => tuneAndPrefill(e.detail)} />
