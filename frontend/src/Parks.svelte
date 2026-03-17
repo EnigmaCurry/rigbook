@@ -61,11 +61,15 @@
   }
 
   function onHashChange() {
+    const prevTab = tab;
     tab = parseTab();
     const newRef = parseParkRef();
     if (tab === "park" && newRef && newRef !== parkRef) {
       parkRef = newRef;
       loadParkDetail(newRef);
+    }
+    if (tab === "my-qsos" && prevTab !== "my-qsos") {
+      renderMap();
     }
   }
 
