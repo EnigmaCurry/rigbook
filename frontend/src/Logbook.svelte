@@ -455,6 +455,10 @@
     }
   }
 
+  function autoFocus(node) {
+    setTimeout(() => node.focus(), 0);
+  }
+
   function focusOverlay(node) {
     node.focus();
   }
@@ -794,6 +798,7 @@
         maxlength="10"
         autocomplete="off"
         style="text-transform: uppercase"
+        use:autoFocus
       />
     </div>
     <div class="field">
