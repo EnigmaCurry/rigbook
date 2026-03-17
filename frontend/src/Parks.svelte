@@ -539,39 +539,45 @@
         <div class="park-detail">
           <h3>{parkDetail.reference}</h3>
           <p class="park-detail-name">{parkDetail.name}</p>
-          <div class="park-detail-grid">
-            <div class="detail-row"><span class="detail-label">Location</span> <span>{parkDetail.location_name || ""} ({parkDetail.location_desc})</span></div>
-            <div class="detail-row"><span class="detail-label">Country</span> <span>{parkDetail.program_name || ""}</span></div>
-            {#if parkDetail.grid}
-              <div class="detail-row"><span class="detail-label">Grid</span> <span>{parkDetail.grid}</span></div>
-            {/if}
-            {#if parkDetail.latitude != null && parkDetail.longitude != null}
-              <div class="detail-row"><span class="detail-label">Coordinates</span> <span>{parkDetail.latitude}, {parkDetail.longitude}</span></div>
-            {/if}
-            {#if parkDetail.activations != null}
-              <div class="detail-row"><span class="detail-label">Activations</span> <span>{parkDetail.activations}</span></div>
-            {/if}
-            {#if parkDetail.attempts != null}
-              <div class="detail-row"><span class="detail-label">Attempts</span> <span>{parkDetail.attempts}</span></div>
-            {/if}
-            {#if parkDetail.qsos != null}
-              <div class="detail-row"><span class="detail-label">QSOs</span> <span>{parkDetail.qsos}</span></div>
-            {/if}
-            <div class="detail-row">
-              <span class="detail-label">My QSOs</span>
-              <span>{parkDetail.my_qsos || 0} {parkAward(parkDetail.my_qsos || 0)}</span>
+          <div class="park-detail-layout">
+            <div class="park-detail-info">
+              <div class="park-detail-grid">
+                <div class="detail-row"><span class="detail-label">Location</span> <span>{parkDetail.location_name || ""} ({parkDetail.location_desc})</span></div>
+                <div class="detail-row"><span class="detail-label">Country</span> <span>{parkDetail.program_name || ""}</span></div>
+                {#if parkDetail.grid}
+                  <div class="detail-row"><span class="detail-label">Grid</span> <span>{parkDetail.grid}</span></div>
+                {/if}
+                {#if parkDetail.latitude != null && parkDetail.longitude != null}
+                  <div class="detail-row"><span class="detail-label">Coordinates</span> <span>{parkDetail.latitude}, {parkDetail.longitude}</span></div>
+                {/if}
+                {#if parkDetail.activations != null}
+                  <div class="detail-row"><span class="detail-label">Activations</span> <span>{parkDetail.activations}</span></div>
+                {/if}
+                {#if parkDetail.attempts != null}
+                  <div class="detail-row"><span class="detail-label">Attempts</span> <span>{parkDetail.attempts}</span></div>
+                {/if}
+                {#if parkDetail.qsos != null}
+                  <div class="detail-row"><span class="detail-label">QSOs</span> <span>{parkDetail.qsos}</span></div>
+                {/if}
+                <div class="detail-row">
+                  <span class="detail-label">My QSOs</span>
+                  <span>{parkDetail.my_qsos || 0} {parkAward(parkDetail.my_qsos || 0)}</span>
+                </div>
+              </div>
+              <div class="park-detail-links">
+                <a href="https://pota.app/#/park/{parkDetail.reference}" target="_blank" rel="noopener">View on POTA</a>
+              </div>
             </div>
-          </div>
-          {#if parkDetail.latitude != null && parkDetail.longitude != null}
-            <iframe
-              class="park-map"
-              title="Park location"
-              src="https://www.openstreetmap.org/export/embed.html?bbox={parkDetail.longitude - 0.05},{parkDetail.latitude - 0.03},{parkDetail.longitude + 0.05},{parkDetail.latitude + 0.03}&layer=mapnik&marker={parkDetail.latitude},{parkDetail.longitude}"
-              frameborder="0"
-            ></iframe>
-          {/if}
-          <div class="park-detail-links">
-            <a href="https://pota.app/#/park/{parkDetail.reference}" target="_blank" rel="noopener">View on POTA</a>
+            {#if parkDetail.latitude != null && parkDetail.longitude != null}
+              <div class="park-detail-map-wrap">
+                <iframe
+                  class="park-detail-map"
+                  title="Park location"
+                  src="https://www.openstreetmap.org/export/embed.html?bbox={parkDetail.longitude - 0.05},{parkDetail.latitude - 0.03},{parkDetail.longitude + 0.05},{parkDetail.latitude + 0.03}&layer=mapnik&marker={parkDetail.latitude},{parkDetail.longitude}"
+                  frameborder="0"
+                ></iframe>
+              </div>
+            {/if}
           </div>
           {#if parkDetail.contacts && parkDetail.contacts.length > 0}
             <h4 class="park-qsos-heading">My QSOs ({parkDetail.contacts.length})</h4>
@@ -1018,13 +1024,37 @@
     flex-shrink: 0;
   }
 
-  .park-map {
+  .park-detail-layout {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+  }
+
+  .park-detail-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .park-detail-map-wrap {
+    flex-shrink: 0;
+    width: 350px;
+  }
+
+  .park-detail-map {
     width: 100%;
-    max-width: 500px;
-    height: 250px;
+    height: 280px;
     border: 1px solid var(--border);
     border-radius: 3px;
-    margin-bottom: 0.75rem;
+  }
+
+  @media (max-width: 700px) {
+    .park-detail-layout {
+      flex-direction: column;
+    }
+
+    .park-detail-map-wrap {
+      width: 100%;
+    }
   }
 
   .park-detail-links {
