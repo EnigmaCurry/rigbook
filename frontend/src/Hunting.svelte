@@ -15,6 +15,22 @@
   let seenSpotKeys = new Set();
   let newSpotKeys = new Set();
   let myParkQsos = {};
+  let myCallCounts = {};
+
+  const DIGIT_EMOJIS = ["", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"];
+
+  function callCountEmoji(count) {
+    if (!count || count <= 0) return "";
+    if (count <= 9) return DIGIT_EMOJIS[count];
+    return "💯";
+  }
+
+  async function fetchCallCounts() {
+    try {
+      const res = await fetch("/api/contacts/callsign-counts");
+      if (res.ok) myCallCounts = await res.json();
+    } catch {}
+  }
 
   async function fetchMyParks() {
     try {
@@ -119,11 +135,13 @@
 
   export function refreshAwards() {
     fetchMyParks();
+    fetchCallCounts();
   }
 
   onMount(() => {
     fetchSpots();
     fetchMyParks();
+    fetchCallCounts();
     pollInterval = setInterval(fetchSpots, 30000);
   });
 
@@ -166,6 +184,7 @@
             <span class="activator">{spot.activator}</span>
             <span class="badge mode">{spot.mode || "?"}</span>
             <span class="badge band" style="background: {bandColor(freqToBand(spot.frequency))}; color: {bandTextColor(freqToBand(spot.frequency))}">{freqToBand(spot.frequency) || "?"}</span>
+            {#if myCallCounts[spot.activator]}<span class="call-count" title="{myCallCounts[spot.activator]} QSO{myCallCounts[spot.activator] !== 1 ? 's' : ''} with {spot.activator}">{callCountEmoji(myCallCounts[spot.activator])}</span>{/if}
           </div>
           <div class="park-name">{#if myParkQsos[spot.reference]}<span title="{parkAwardTitle(myParkQsos[spot.reference])}">{parkAward(myParkQsos[spot.reference])}</span> {/if}{spot.name || spot.reference}</div>
           <div class="park-ref">{spot.reference} — {spot.locationDesc}</div>
@@ -298,6 +317,11 @@
     color: var(--accent-callsign);
     font-weight: bold;
     font-size: 1rem;
+  }
+
+  .call-count {
+    font-size: 0.85rem;
+    margin-left: 0.2rem;
   }
 
   .badge {

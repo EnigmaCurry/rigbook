@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, field_serializer, field_validator
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from rigbook.db import Contact, get_session
@@ -116,6 +116,17 @@ class ContactResponse(BaseModel):
         return v.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     model_config = {"from_attributes": True}
+
+
+@router.get("/callsign-counts")
+async def callsign_counts(session: AsyncSession = Depends(get_session)):
+    rows = (
+        await session.execute(
+            select(Contact.call, func.count())
+            .group_by(Contact.call)
+        )
+    ).all()
+    return {call: count for call, count in rows}
 
 
 @router.get("/", response_model=list[ContactResponse])
