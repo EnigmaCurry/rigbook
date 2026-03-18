@@ -11,6 +11,7 @@ dependencies = [
     "pycountry>=26.2.16",
     "pyadif-file>=1.4",
     "python-multipart>=0.0.22",
+    "httpx",
 ]
 
 [project.scripts]
@@ -28,7 +29,6 @@ dev = [
     "ruff",
     "pytest",
     "pytest-asyncio",
-    "httpx",
 ]
 
 [tool.ruff]
