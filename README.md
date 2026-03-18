@@ -2,7 +2,10 @@
 
 A ham radio logbook web application. Log amateur radio contacts (QSOs)
 with a local web UI, optionally connected to your radio via
-[flrig](http://www.w1hkj.com/flrig-help/).
+[flrig](http://www.w1hkj.com/flrig-help/). 
+
+The current release of Rigbook is a feature-rich logbook for operators 
+engaged in POTA and/or SKCC activities. 
 
 ## Features
 
@@ -76,10 +79,11 @@ Open http://localhost:8073 in your browser.
 3. If flrig is connected, frequency and mode auto-fill from your radio
 4. QRZ auto-fills name, QTH, state, country, and grid (if configured)
 5. Type a POTA park reference or name to autocomplete from cached parks
-6. Click the clock button (🕓) to update the timestamp to now
-7. Click **Log QSO** to save — returns to Hunting (if from a spot) or
+6. Current timestamp will be used as QSO date/time if left blank
+7. Supply a timestamp if current time is not desired
+8. Click **Log QSO** to save — returns to Hunting (if from a spot) or
    Logbook (if manual)
-8. Click **Cancel** to return to the previous view
+9. Click **Cancel** to return to the previous view
 
 ### Editing contacts
 
@@ -170,7 +174,7 @@ a detail overlay without leaving the form.
 
 ## QRZ Callsign Lookup
 
-If you have a [QRZ.com](https://www.qrz.com/) XML subscription, Rigbook
+If you have a [QRZ.com](https://www.qrz.com/) account, Rigbook
 can auto-fill contact details when you enter a callsign.
 
 1. Go to **Settings**, enter your callsign first, then set your
