@@ -307,6 +307,8 @@
 
   function onCallInput() {
     call = call.replace(/\s/g, "");
+    skcc = "";
+    skcc_exch = false;
   }
 
   function onCallBlur() {
