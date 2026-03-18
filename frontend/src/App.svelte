@@ -329,10 +329,15 @@
   function handleSearchAction(e) {
     const { type, data } = e.detail;
     if (type === "logbook") {
+      const target = isWide() ? "dual" : "add";
+      if ((target === "add" || target === "hunting" || target === "log") && isWide()) { /* already dual */ }
+      if (page !== target) previousPage = page;
+      page = target;
+      menuOpen = false;
       dualShowForm = true;
-      navigate(isWide() ? "dual" : "add");
       editId = data.id;
       window.location.hash = `/log/${data.id}`;
+      fetchCallsign();
     } else if (type === "pota") {
       tuneAndPrefill(data);
     } else if (type === "skcc") {
