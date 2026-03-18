@@ -893,7 +893,7 @@
       <label for="skcc">SKCC # / Validated?</label>
       <div class="skcc-input-row">
         <input id="skcc" type="text" bind:value={skcc} on:input={stripSkcc} style="text-transform: uppercase" />
-        <input id="skcc_exch" type="checkbox" bind:checked={skcc_exch} title="Valid SKCC exchange (RST, QTH, Name, SKCC#)" />
+        <button type="button" class="skcc-exch-btn" class:active={skcc_exch} on:click={() => skcc_exch = !skcc_exch} title="Valid SKCC exchange (RST, QTH, Name, SKCC#)">✓</button>
       </div>
     </div>
     <div class="field wide">
@@ -1278,10 +1278,25 @@
     min-width: 0;
   }
 
-  .skcc-input-row input[type="checkbox"] {
-    margin: 0;
-    width: 1.1em;
-    height: 1.1em;
+  .skcc-exch-btn {
+    background: var(--btn-secondary);
+    border: none;
+    padding: 0.2rem 0.4rem;
+    font-size: 0.85rem;
+    border-radius: 3px;
+    cursor: pointer;
+    line-height: 1;
+    opacity: 0.4;
+  }
+
+  .skcc-exch-btn:hover {
+    background: var(--btn-secondary-hover);
+  }
+
+  .skcc-exch-btn.active {
+    opacity: 1;
+    background: var(--accent);
+    color: var(--bg);
   }
 
   .grid-picker-btn {
