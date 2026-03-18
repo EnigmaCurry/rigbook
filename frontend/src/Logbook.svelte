@@ -890,7 +890,7 @@
       </div>
     </div>
     <div class="field">
-      <label for="skcc">SKCC # / Validated?</label>
+      <label for="skcc">SKCC # / {skcc_exch ? "Validated!" : "Validated?"}</label>
       <div class="skcc-input-row">
         <input id="skcc" type="text" bind:value={skcc} on:input={stripSkcc} style="text-transform: uppercase" readonly={skcc_exch} />
         <button type="button" class="skcc-exch-btn" class:active={skcc_exch} on:click={() => skcc_exch = !skcc_exch} title="Valid SKCC exchange (RST, QTH, Name, SKCC#)">✓</button>
