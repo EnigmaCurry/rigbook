@@ -149,16 +149,28 @@
 
   .park-detail-layout {
     display: flex;
-    flex-direction: column;
-    gap: 1rem;
+    gap: 1.5rem;
+    align-items: flex-start;
   }
 
   .park-detail-info {
+    flex: 1;
     min-width: 0;
   }
 
   .park-detail-map-wrap {
-    width: 100%;
+    flex-shrink: 0;
+    width: 350px;
+  }
+
+  @media (max-width: 700px) {
+    .park-detail-layout {
+      flex-direction: column;
+    }
+
+    .park-detail-map-wrap {
+      width: 100%;
+    }
   }
 
   .park-detail-map {

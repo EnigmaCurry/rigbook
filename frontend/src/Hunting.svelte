@@ -556,8 +556,8 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 1.5rem;
-    max-width: 550px;
-    width: 90%;
+    max-width: 900px;
+    width: 95%;
     max-height: 80vh;
     overflow-y: auto;
     position: relative;
