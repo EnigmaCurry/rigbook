@@ -309,6 +309,11 @@
     call = call.replace(/\s/g, "");
     skcc = "";
     skcc_exch = false;
+    name = "";
+    qth = "";
+    country = "";
+    state = "";
+    grid = "";
   }
 
   function onCallBlur() {
