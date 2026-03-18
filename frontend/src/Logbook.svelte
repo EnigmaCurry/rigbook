@@ -101,11 +101,31 @@
   let submitting = false;
   let errorMsg = "";
   let editingId = null;
+  let editOriginal = null;
   let showGridPicker = false;
   $: if (typeof document !== "undefined") {
     document.body.style.overflow = showGridPicker ? "hidden" : "";
   }
   export let showForm = true;
+  $: editHasChanges = !editingId || !editOriginal || (
+    call !== editOriginal.call ||
+    freq !== editOriginal.freq ||
+    mode !== editOriginal.mode ||
+    rst_sent !== editOriginal.rst_sent ||
+    rst_recv !== editOriginal.rst_recv ||
+    pota_park !== editOriginal.pota_park ||
+    name !== editOriginal.name ||
+    qth !== editOriginal.qth ||
+    state !== editOriginal.state ||
+    country !== editOriginal.country ||
+    grid !== editOriginal.grid ||
+    skcc !== editOriginal.skcc ||
+    skcc_exch !== editOriginal.skcc_exch ||
+    comments !== editOriginal.comments ||
+    notes !== editOriginal.notes ||
+    datePart !== editOriginal.datePart ||
+    timePart !== editOriginal.timePart
+  );
 
   let sortCol = "timestamp";
   let sortAsc = false;
@@ -542,6 +562,10 @@
       timePart = "";
     }
     errorMsg = "";
+    editOriginal = {
+      call, freq, mode, rst_sent, rst_recv, pota_park, name, qth,
+      state, country, grid, skcc, skcc_exch, comments, notes, datePart, timePart,
+    };
     const match = countries.find(co => co.name === country);
     fetchSubdivisions(match ? match.code : "");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -549,6 +573,7 @@
 
   function cancelEdit() {
     editingId = null;
+    editOriginal = null;
     dispatch("editchange", null);
     dispatch("navigate", "back");
     clearForm();
@@ -603,6 +628,7 @@
       });
       if (res.ok) {
         editingId = null;
+        editOriginal = null;
         dispatch("editchange", null);
         clearForm();
         await fetchContacts();
@@ -926,7 +952,7 @@
   </div>
 
   <div class="form-row">
-    <button type="submit" disabled={submitting || !call.trim() || !freq.trim() || !mode.trim()}>
+    <button type="submit" disabled={submitting || !call.trim() || !freq.trim() || !mode.trim() || !editHasChanges}>
       {#if editingId}
         {submitting ? "Saving..." : "Save Edit"}
       {:else}
