@@ -334,7 +334,7 @@
       {#if modalParkLoading}
         <p class="status">Loading park details...</p>
       {:else if modalParkDetail}
-        <ParkDetail park={modalParkDetail} />
+        <ParkDetail park={modalParkDetail} on:close={closeParkModal} />
       {:else}
         {@const prefix = modalParkRef.match(/^([A-Z]{1,2})-/)?.[1] || ""}
         <p class="status">Park {modalParkRef} not found in cache.</p>

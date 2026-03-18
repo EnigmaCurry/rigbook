@@ -956,7 +956,7 @@
       {#if parkOverlayLoading}
         <p class="park-overlay-loading">Loading park...</p>
       {:else if parkOverlay}
-        <ParkDetail park={parkOverlay} />
+        <ParkDetail park={parkOverlay} on:close={closeParkOverlay} />
       {:else}
         {@const parkRef = pota_park.trim().toUpperCase()}
         {@const prefix = parkRef.match(/^([A-Z]{1,2})-/)?.[1] || ""}

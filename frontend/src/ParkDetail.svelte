@@ -148,7 +148,7 @@
           {#each park.contacts as c}
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-            <tr class="qso-row" on:click={() => { window.location.hash = `/log/${c.id}`; }}>
+            <tr class="qso-row" on:click={() => { dispatch("close"); window.location.hash = `/log/${c.id}`; }}>
               <td>{c.timestamp ? c.timestamp.slice(0, 10) : ""}</td>
               <td class="call">{c.call}</td>
               <td>{c.name || ""}</td>
