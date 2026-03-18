@@ -1,9 +1,34 @@
 <script>
+  import { onMount } from "svelte";
+  import Autocomplete from "./Autocomplete.svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
 
   let importing = false;
   let message = "";
   let messageType = "";
+
+  // Country autocomplete
+  let countries = [];
+  $: countryItems = countries.map(c => ({ name: c.name, aliases: c.aliases || [], display: `${c.code} — ${c.name}` }));
+
+  async function fetchCountries() {
+    try {
+      const res = await fetch("/api/geo/countries");
+      if (res.ok) countries = await res.json();
+    } catch { /* ignore */ }
+  }
+
+  function normalizeCountry() {
+    if (!countryFilter || !countries.length) return;
+    const upper = countryFilter.toUpperCase().trim();
+    if (countries.some(c => c.name === countryFilter)) return;
+    const byCode = countries.find(c => c.code.toUpperCase() === upper);
+    if (byCode) { countryFilter = byCode.name; return; }
+    const byAlias = countries.find(c => (c.aliases || []).some(a => a.toUpperCase() === upper));
+    if (byAlias) { countryFilter = byAlias.name; return; }
+  }
+
+  onMount(fetchCountries);
 
   // Filter state
   let dateFrom = "";
@@ -152,7 +177,7 @@
       </label>
       <label>
         Country
-        <input type="text" bind:value={countryFilter} placeholder="exact match" />
+        <Autocomplete bind:value={countryFilter} items={countryItems} on:blur={normalizeCountry} />
       </label>
     </div>
     <div class="filter-row">
