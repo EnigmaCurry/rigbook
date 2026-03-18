@@ -4,6 +4,7 @@
   import "leaflet/dist/leaflet.css";
   import { parkAward, parkAwardTitle } from "./parkAward.js";
   import { countryFlag, prefixFromRef } from "./countryFlag.js";
+  import ParkDetail from "./ParkDetail.svelte";
 
   const dispatch = createEventDispatcher();
 
@@ -42,8 +43,6 @@
   let leafletMap = null;
   let markersByRef = {};
   let selectedPark = null;
-  let detailMapEl;
-  let detailMap = null;
   let fullscreenMap = null; // reference to the map currently fullscreen
   let fullscreenWrap = null; // reference to the wrap element
 
@@ -107,7 +106,6 @@
     parkDetail = null;
     exitFullscreen();
     destroyMap();
-    destroyDetailMap();
     if (t === "my-qsos") loadMyParks();
     window.location.hash = `/parks/${t}`;
   }
@@ -117,27 +115,6 @@
     tab = "park";
     window.location.hash = `/parks/park/${encodeURIComponent(ref)}`;
     loadParkDetail(ref);
-  }
-
-  function destroyDetailMap() {
-    if (detailMap) { detailMap.remove(); detailMap = null; }
-  }
-
-  async function renderDetailMap() {
-    await tick();
-    destroyDetailMap();
-    if (!detailMapEl || !parkDetail || parkDetail.latitude == null) return;
-    detailMap = L.map(detailMapEl, { scrollWheelZoom: true });
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
-      maxZoom: 18,
-    }).addTo(detailMap);
-    const ll = [parkDetail.latitude, parkDetail.longitude];
-    L.marker(ll).addTo(detailMap)
-      .bindPopup(`<b>${parkDetail.reference}</b><br>${parkDetail.name || ""}`)
-      .openPopup();
-    detailMap.setView(ll, 12);
-    addExpandControl(detailMap, detailMapEl.parentElement);
   }
 
   async function loadParkDetail(ref) {
@@ -151,7 +128,6 @@
       }
     } catch {}
     parkLoading = false;
-    if (parkDetail) renderDetailMap();
   }
 
   function onHashChange() {
@@ -431,7 +407,6 @@
   onDestroy(() => {
     exitFullscreen();
     destroyMap();
-    destroyDetailMap();
     window.removeEventListener("hashchange", onHashChange);
     window.removeEventListener("keydown", onFullscreenKey);
   });
@@ -636,77 +611,7 @@
       {#if parkLoading}
         <p class="loading">Loading park...</p>
       {:else if parkDetail}
-        <div class="park-detail">
-          <h3>{parkDetail.reference}</h3>
-          <p class="park-detail-name">{parkDetail.name}</p>
-          <div class="park-detail-layout">
-            <div class="park-detail-info">
-              <div class="park-detail-grid">
-                <div class="detail-row"><span class="detail-label">Location</span> <span>{parkDetail.location_name || ""} ({parkDetail.location_desc})</span></div>
-                <div class="detail-row"><span class="detail-label">Country</span> <span>{parkDetail.program_name || ""}</span></div>
-                {#if parkDetail.grid}
-                  <div class="detail-row"><span class="detail-label">Grid</span> <span>{parkDetail.grid}</span></div>
-                {/if}
-                {#if parkDetail.latitude != null && parkDetail.longitude != null}
-                  <div class="detail-row"><span class="detail-label">Coordinates</span> <span>{parkDetail.latitude}, {parkDetail.longitude}</span></div>
-                {/if}
-                {#if parkDetail.activations != null}
-                  <div class="detail-row"><span class="detail-label">Activations</span> <span>{parkDetail.activations}</span></div>
-                {/if}
-                {#if parkDetail.attempts != null}
-                  <div class="detail-row"><span class="detail-label">Attempts</span> <span>{parkDetail.attempts}</span></div>
-                {/if}
-                {#if parkDetail.qsos != null}
-                  <div class="detail-row"><span class="detail-label">QSOs</span> <span>{parkDetail.qsos}</span></div>
-                {/if}
-                <div class="detail-row">
-                  <span class="detail-label">My QSOs</span>
-                  <span>{parkDetail.my_qsos || 0} <span title="{parkAwardTitle(parkDetail.my_qsos || 0)}">{parkAward(parkDetail.my_qsos || 0)}</span></span>
-                </div>
-              </div>
-              <div class="park-detail-links">
-                <a href="https://pota.app/#/park/{parkDetail.reference}" target="_blank" rel="noopener">View on POTA</a>
-                <button class="add-qso-btn" on:click={() => dispatch("addqso", { pota_park: parkDetail.reference, grid: parkDetail.grid || "", country: parkDetail.program_name || "", state: parkDetail.location_name || "" })}>+ Add QSO</button>
-              </div>
-            </div>
-            {#if parkDetail.latitude != null && parkDetail.longitude != null}
-              <div class="park-detail-map-wrap">
-                <div class="park-detail-map" bind:this={detailMapEl}></div>
-              </div>
-            {/if}
-          </div>
-          {#if parkDetail.contacts && parkDetail.contacts.length > 0}
-            <h4 class="park-qsos-heading">My QSOs ({parkDetail.contacts.length})</h4>
-            <div class="park-qsos-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Call</th>
-                    <th>Name</th>
-                    <th>Freq</th>
-                    <th>Mode</th>
-                    <th>RST S</th>
-                    <th>RST R</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {#each parkDetail.contacts as c}
-                    <tr class="qso-row" on:click={() => { window.location.hash = `/log/${c.id}`; }}>
-                      <td>{c.timestamp ? c.timestamp.slice(0, 10) : ""}</td>
-                      <td class="call">{c.call}</td>
-                      <td>{c.name || ""}</td>
-                      <td>{c.freq || ""}</td>
-                      <td>{c.mode || ""}</td>
-                      <td>{c.rst_sent || ""}</td>
-                      <td>{c.rst_recv || ""}</td>
-                    </tr>
-                  {/each}
-                </tbody>
-              </table>
-            </div>
-          {/if}
-        </div>
+        <ParkDetail park={parkDetail} showAddQso={true} on:addqso />
       {:else}
         <p class="empty">Park {parkRef} not found in cache.</p>
       {/if}
@@ -1144,141 +1049,6 @@
   }
 
   /* Park detail */
-  .park-detail h3 {
-    color: var(--accent-vfo);
-    font-size: 1.3rem;
-    margin: 0 0 0.25rem 0;
-  }
-
-  .park-detail-name {
-    font-size: 1.1rem;
-    color: var(--text);
-    margin: 0 0 1rem 0;
-  }
-
-  .park-detail-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    margin-bottom: 1rem;
-  }
-
-  .detail-row {
-    display: flex;
-    gap: 0.75rem;
-    font-size: 0.9rem;
-  }
-
-  .detail-label {
-    color: var(--text-dim);
-    min-width: 10ch;
-    flex-shrink: 0;
-  }
-
-  .park-detail-layout {
-    display: flex;
-    gap: 1.5rem;
-    align-items: flex-start;
-  }
-
-  .park-detail-info {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .park-detail-map-wrap {
-    flex-shrink: 0;
-    width: 350px;
-  }
-
-  .park-detail-map {
-    width: 100%;
-    height: 280px;
-    border: 1px solid var(--border);
-    border-radius: 3px;
-  }
-
-  @media (max-width: 700px) {
-    .park-detail-layout {
-      flex-direction: column;
-    }
-
-    .park-detail-map-wrap {
-      width: 100%;
-    }
-  }
-
-  .park-detail-links {
-    margin-top: 0.75rem;
-  }
-
-  .park-detail-links a {
-    color: var(--accent);
-    text-decoration: none;
-    font-size: 0.85rem;
-  }
-
-  .park-detail-links a:hover {
-    text-decoration: underline;
-  }
-
-  .add-qso-btn {
-    background: var(--accent);
-    color: var(--bg);
-    border: none;
-    padding: 0.3rem 0.8rem;
-    font-family: inherit;
-    font-size: 0.85rem;
-    font-weight: bold;
-    border-radius: 3px;
-    cursor: pointer;
-  }
-
-  .add-qso-btn:hover {
-    background: var(--accent-hover);
-  }
-
-  .park-qsos-heading {
-    color: var(--text-muted);
-    font-size: 0.95rem;
-    margin: 1rem 0 0.5rem 0;
-  }
-
-  .park-qsos-table {
-    overflow-x: auto;
-  }
-
-  .park-qsos-table table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.85rem;
-  }
-
-  .park-qsos-table th {
-    text-align: left;
-    color: var(--text-dim);
-    font-weight: normal;
-    padding: 0.25rem 0.5rem;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .park-qsos-table td {
-    padding: 0.3rem 0.5rem;
-  }
-
-  .park-qsos-table td.call {
-    color: var(--accent-callsign);
-    font-weight: bold;
-  }
-
-  .qso-row {
-    cursor: pointer;
-  }
-
-  .qso-row:hover {
-    background: var(--row-hover);
-  }
-
   :global(.leaflet-attribution-flag) {
     display: none !important;
   }

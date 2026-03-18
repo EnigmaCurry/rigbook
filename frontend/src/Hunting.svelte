@@ -1,10 +1,9 @@
 <script>
-  import { onMount, onDestroy, tick } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { createEventDispatcher } from "svelte";
-  import L from "leaflet";
-  import "leaflet/dist/leaflet.css";
   import { bandColor, bandTextColor } from "./bandColors.js";
   import { parkAward, parkAwardTitle } from "./parkAward.js";
+  import ParkDetail from "./ParkDetail.svelte";
 
   const dispatch = createEventDispatcher();
 
@@ -24,8 +23,6 @@
   let modalParkRef = null;
   let modalParkDetail = null;
   let modalParkLoading = false;
-  let modalMapEl;
-  let modalMap = null;
 
   const DIGIT_EMOJIS = ["", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"];
 
@@ -203,26 +200,6 @@
     } catch {}
   }
 
-  function destroyModalMap() {
-    if (modalMap) { modalMap.remove(); modalMap = null; }
-  }
-
-  async function renderModalMap() {
-    await tick();
-    destroyModalMap();
-    if (!modalMapEl || !modalParkDetail || modalParkDetail.latitude == null) return;
-    modalMap = L.map(modalMapEl, { scrollWheelZoom: true });
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
-      maxZoom: 18,
-    }).addTo(modalMap);
-    const ll = [modalParkDetail.latitude, modalParkDetail.longitude];
-    L.marker(ll).addTo(modalMap)
-      .bindPopup(`<b>${modalParkDetail.reference}</b><br>${modalParkDetail.name || ""}`)
-      .openPopup();
-    modalMap.setView(ll, 12);
-  }
-
   async function openParkModal(ref) {
     modalParkRef = ref;
     modalParkDetail = null;
@@ -234,11 +211,9 @@
       }
     } catch {}
     modalParkLoading = false;
-    if (modalParkDetail) renderModalMap();
   }
 
   function closeParkModal() {
-    destroyModalMap();
     modalParkRef = null;
     modalParkDetail = null;
     modalParkLoading = false;
@@ -264,7 +239,6 @@
 
   onDestroy(() => {
     if (pollInterval) clearInterval(pollInterval);
-    destroyModalMap();
   });
 </script>
 
@@ -348,61 +322,7 @@
       {#if modalParkLoading}
         <p class="status">Loading park details...</p>
       {:else if modalParkDetail}
-        <h3>{modalParkDetail.reference}</h3>
-        <p class="modal-park-name">{modalParkDetail.name}</p>
-        <div class="modal-detail-grid">
-          <div class="detail-row"><span class="detail-label">Location</span> <span>{modalParkDetail.location_name || ""} ({modalParkDetail.location_desc || ""})</span></div>
-          <div class="detail-row"><span class="detail-label">Country</span> <span>{modalParkDetail.program_name || ""}</span></div>
-          {#if modalParkDetail.grid}
-            <div class="detail-row"><span class="detail-label">Grid</span> <span>{modalParkDetail.grid}</span></div>
-          {/if}
-          {#if modalParkDetail.latitude != null && modalParkDetail.longitude != null}
-            <div class="detail-row"><span class="detail-label">Coordinates</span> <span>{modalParkDetail.latitude}, {modalParkDetail.longitude}</span></div>
-          {/if}
-          {#if modalParkDetail.activations != null}
-            <div class="detail-row"><span class="detail-label">Activations</span> <span>{modalParkDetail.activations}</span></div>
-          {/if}
-          {#if modalParkDetail.qsos != null}
-            <div class="detail-row"><span class="detail-label">QSOs</span> <span>{modalParkDetail.qsos}</span></div>
-          {/if}
-          <div class="detail-row">
-            <span class="detail-label">My QSOs</span>
-            <span>{modalParkDetail.my_qsos || 0} <span title="{parkAwardTitle(modalParkDetail.my_qsos || 0)}">{parkAward(modalParkDetail.my_qsos || 0)}</span></span>
-          </div>
-        </div>
-        {#if modalParkDetail.latitude != null && modalParkDetail.longitude != null}
-          <div class="modal-map-wrap">
-            <div class="modal-map" bind:this={modalMapEl}></div>
-          </div>
-        {/if}
-        <div class="modal-links">
-          <a href="https://pota.app/#/park/{modalParkDetail.reference}" target="_blank" rel="noopener">View on POTA</a>
-        </div>
-        {#if modalParkDetail.contacts && modalParkDetail.contacts.length > 0}
-          <h4 class="modal-qsos-heading">My QSOs ({modalParkDetail.contacts.length})</h4>
-          <div class="modal-qsos-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Call</th>
-                  <th>Freq</th>
-                  <th>Mode</th>
-                </tr>
-              </thead>
-              <tbody>
-                {#each modalParkDetail.contacts as c}
-                  <tr>
-                    <td>{c.timestamp ? c.timestamp.slice(0, 10) : ""}</td>
-                    <td class="call">{c.call}</td>
-                    <td>{c.freq || ""}</td>
-                    <td>{c.mode || ""}</td>
-                  </tr>
-                {/each}
-              </tbody>
-            </table>
-          </div>
-        {/if}
+        <ParkDetail park={modalParkDetail} />
       {:else}
         <p class="status">Failed to load park details.</p>
       {/if}
@@ -660,92 +580,4 @@
     color: var(--text);
   }
 
-  .modal-content h3 {
-    color: var(--accent-vfo);
-    font-size: 1.3rem;
-    margin: 0 0 0.25rem 0;
-  }
-
-  .modal-park-name {
-    font-size: 1.1rem;
-    color: var(--text);
-    margin: 0 0 1rem 0;
-  }
-
-  .modal-detail-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    margin-bottom: 1rem;
-  }
-
-  .detail-row {
-    display: flex;
-    gap: 0.75rem;
-    font-size: 0.9rem;
-  }
-
-  .detail-label {
-    color: var(--text-dim);
-    min-width: 10ch;
-    flex-shrink: 0;
-  }
-
-  .modal-map-wrap {
-    margin-bottom: 1rem;
-  }
-
-  .modal-map {
-    width: 100%;
-    height: 250px;
-    border: 1px solid var(--border);
-    border-radius: 3px;
-  }
-
-  .modal-links {
-    margin-top: 0.75rem;
-  }
-
-  .modal-links a {
-    color: var(--accent);
-    text-decoration: none;
-    font-size: 0.85rem;
-  }
-
-  .modal-links a:hover {
-    text-decoration: underline;
-  }
-
-  .modal-qsos-heading {
-    color: var(--text-muted);
-    font-size: 0.95rem;
-    margin: 1rem 0 0.5rem 0;
-  }
-
-  .modal-qsos-table {
-    overflow-x: auto;
-  }
-
-  .modal-qsos-table table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.85rem;
-  }
-
-  .modal-qsos-table th {
-    text-align: left;
-    color: var(--text-dim);
-    font-weight: normal;
-    padding: 0.25rem 0.5rem;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .modal-qsos-table td {
-    padding: 0.3rem 0.5rem;
-  }
-
-  .modal-qsos-table td.call {
-    color: var(--accent-callsign);
-    font-weight: bold;
-  }
 </style>
