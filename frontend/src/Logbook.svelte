@@ -327,8 +327,8 @@
 
   function onCallInput() {
     call = call.replace(/\s/g, "");
+    callCountryCode = "";
     if (!editingId) {
-      callCountryCode = "";
       skcc = "";
       skcc_exch = false;
       name = "";
