@@ -44,7 +44,7 @@ Linux, macOS, and Windows (amd64 and arm64).
 
 1. Download the binary for your platform
 2. Make it executable (Linux/macOS): `chmod +x rigbook-*`
-3. Run it: `./rigbook-linux-amd64` (or whichever binary you downloaded)
+3. Run it in your terminal: `./rigbook-linux-amd64` (or whichever binary you downloaded)
 4. Open http://localhost:8073 in your browser
 
 **macOS:** The binary is unsigned, so macOS will block it by default.
