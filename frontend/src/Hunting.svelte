@@ -1,6 +1,8 @@
 <script>
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, tick } from "svelte";
   import { createEventDispatcher } from "svelte";
+  import L from "leaflet";
+  import "leaflet/dist/leaflet.css";
   import { bandColor, bandTextColor } from "./bandColors.js";
   import { parkAward, parkAwardTitle } from "./parkAward.js";
 
@@ -22,6 +24,8 @@
   let modalParkRef = null;
   let modalParkDetail = null;
   let modalParkLoading = false;
+  let modalMapEl;
+  let modalMap = null;
 
   const DIGIT_EMOJIS = ["", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"];
 
@@ -199,6 +203,26 @@
     } catch {}
   }
 
+  function destroyModalMap() {
+    if (modalMap) { modalMap.remove(); modalMap = null; }
+  }
+
+  async function renderModalMap() {
+    await tick();
+    destroyModalMap();
+    if (!modalMapEl || !modalParkDetail || modalParkDetail.latitude == null) return;
+    modalMap = L.map(modalMapEl, { scrollWheelZoom: true });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+      maxZoom: 18,
+    }).addTo(modalMap);
+    const ll = [modalParkDetail.latitude, modalParkDetail.longitude];
+    L.marker(ll).addTo(modalMap)
+      .bindPopup(`<b>${modalParkDetail.reference}</b><br>${modalParkDetail.name || ""}`)
+      .openPopup();
+    modalMap.setView(ll, 12);
+  }
+
   async function openParkModal(ref) {
     modalParkRef = ref;
     modalParkDetail = null;
@@ -210,9 +234,11 @@
       }
     } catch {}
     modalParkLoading = false;
+    if (modalParkDetail) renderModalMap();
   }
 
   function closeParkModal() {
+    destroyModalMap();
     modalParkRef = null;
     modalParkDetail = null;
     modalParkLoading = false;
@@ -238,6 +264,7 @@
 
   onDestroy(() => {
     if (pollInterval) clearInterval(pollInterval);
+    destroyModalMap();
   });
 </script>
 
@@ -343,6 +370,11 @@
             <span>{modalParkDetail.my_qsos || 0} <span title="{parkAwardTitle(modalParkDetail.my_qsos || 0)}">{parkAward(modalParkDetail.my_qsos || 0)}</span></span>
           </div>
         </div>
+        {#if modalParkDetail.latitude != null && modalParkDetail.longitude != null}
+          <div class="modal-map-wrap">
+            <div class="modal-map" bind:this={modalMapEl}></div>
+          </div>
+        {/if}
         <div class="modal-links">
           <a href="https://pota.app/#/park/{modalParkDetail.reference}" target="_blank" rel="noopener">View on POTA</a>
         </div>
@@ -657,6 +689,17 @@
     color: var(--text-dim);
     min-width: 10ch;
     flex-shrink: 0;
+  }
+
+  .modal-map-wrap {
+    margin-bottom: 1rem;
+  }
+
+  .modal-map {
+    width: 100%;
+    height: 250px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
   }
 
   .modal-links {
