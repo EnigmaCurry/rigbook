@@ -327,14 +327,16 @@
 
   function onCallInput() {
     call = call.replace(/\s/g, "");
-    callCountryCode = "";
-    skcc = "";
-    skcc_exch = false;
-    name = "";
-    qth = "";
-    country = "";
-    state = "";
-    grid = "";
+    if (!editingId) {
+      callCountryCode = "";
+      skcc = "";
+      skcc_exch = false;
+      name = "";
+      qth = "";
+      country = "";
+      state = "";
+      grid = "";
+    }
   }
 
   function onCallBlur() {
