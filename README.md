@@ -36,6 +36,26 @@ with a local web UI, optionally connected to your radio via
 - All timestamps in UTC with 24-hour format
 - Light and dark themes (toggle in Settings)
 
+## Docker
+
+A pre-built image is available from GitHub Container Registry:
+
+```bash
+docker run -d --name rigbook \
+  -p 8073:8073 \
+  -v rigbook-data:/home/rigbook/.local/rigbook \
+  ghcr.io/enigmacurry/rigbook:latest
+```
+
+Open http://localhost:8073 in your browser.
+
+The database is persisted in the `rigbook-data` volume. To build the
+image locally:
+
+```bash
+docker build -t rigbook .
+```
+
 ## Requirements
 
 - [Python](https://www.python.org/) 3.12+
