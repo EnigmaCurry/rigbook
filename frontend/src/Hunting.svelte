@@ -207,7 +207,8 @@
     try {
       const res = await fetch(`/api/pota/park/${encodeURIComponent(ref)}`);
       if (res.ok) {
-        modalParkDetail = await res.json();
+        const data = await res.json();
+        if (!data.error) modalParkDetail = data;
       }
     } catch {}
     modalParkLoading = false;
