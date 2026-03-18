@@ -890,12 +890,11 @@
       </div>
     </div>
     <div class="field">
-      <label for="skcc">SKCC</label>
-      <input id="skcc" type="text" bind:value={skcc} on:input={stripSkcc} style="text-transform: uppercase" />
-    </div>
-    <div class="field">
-      <label for="skcc_exch">Exchanged?</label>
-      <input id="skcc_exch" type="checkbox" bind:checked={skcc_exch} title="Valid SKCC exchange (RST, QTH, Name, SKCC#)" />
+      <label for="skcc">SKCC # / Validated?</label>
+      <div class="skcc-input-row">
+        <input id="skcc" type="text" bind:value={skcc} on:input={stripSkcc} style="text-transform: uppercase" />
+        <input id="skcc_exch" type="checkbox" bind:checked={skcc_exch} title="Valid SKCC exchange (RST, QTH, Name, SKCC#)" />
+      </div>
     </div>
     <div class="field wide">
       <label for="comments">Comments (public)</label>
@@ -1266,6 +1265,23 @@
   .grid-input-row input {
     flex: 1;
     min-width: 0;
+  }
+
+  .skcc-input-row {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .skcc-input-row input[type="text"] {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .skcc-input-row input[type="checkbox"] {
+    margin: 0;
+    width: 1.1em;
+    height: 1.1em;
   }
 
   .grid-picker-btn {
