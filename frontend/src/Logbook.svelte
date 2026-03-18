@@ -754,7 +754,10 @@
     handledEditId = null;
   }
 
-  $: console.log("tab debug", { prevContactCount, showForm, editingId, call: call.trim(), contactsLen: contacts.length });
+  $: {
+    const matchingCalls = contacts.filter(c => c.call?.toUpperCase() === call.trim().toUpperCase());
+    console.log("tab debug", { prevContactCount, showForm, editingId, call: call.trim(), contactsLen: contacts.length, matchingCalls: matchingCalls.length, sampleContact: contacts[0] });
+  }
 
   onMount(() => {
     fetchContacts();
