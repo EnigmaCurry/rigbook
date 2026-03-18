@@ -23,10 +23,12 @@ NAMESPACE = "skcc"
 
 async def _has_valid_cache(session: AsyncSession) -> bool:
     result = await session.execute(
-        select(Cache.id).where(
+        select(Cache.id)
+        .where(
             Cache.namespace == NAMESPACE,
             Cache.expires_at > time.time(),
-        ).limit(1)
+        )
+        .limit(1)
     )
     return result.scalar_one_or_none() is not None
 
@@ -54,7 +56,12 @@ async def _fetch_and_store(session: AsyncSession):
             base_call = callsign.split("/")[0]
             if base_call and skcc_nr:
                 session.add(
-                    Cache(namespace=NAMESPACE, key=base_call, value=skcc_nr, expires_at=expires)
+                    Cache(
+                        namespace=NAMESPACE,
+                        key=base_call,
+                        value=skcc_nr,
+                        expires_at=expires,
+                    )
                 )
                 count += 1
 
@@ -106,11 +113,13 @@ async def skcc_search(q: str = "", session: AsyncSession = Depends(get_session))
 
     pattern = f"%{q}%"
     result = await session.execute(
-        select(Cache.key, Cache.value).where(
+        select(Cache.key, Cache.value)
+        .where(
             Cache.namespace == NAMESPACE,
             Cache.expires_at > time.time(),
             (Cache.value.ilike(pattern) | Cache.key.ilike(pattern)),
-        ).limit(5)
+        )
+        .limit(5)
     )
     return [{"call": row.key, "skcc": row.value} for row in result.all()]
 

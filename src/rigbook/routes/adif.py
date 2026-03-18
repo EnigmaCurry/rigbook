@@ -95,9 +95,7 @@ def adif_record_to_contact_dict(record: dict) -> dict:
 
 @router.get("/export")
 async def export_adif(session: AsyncSession = Depends(get_session)):
-    result = await session.execute(
-        select(Contact).order_by(Contact.timestamp.asc())
-    )
+    result = await session.execute(select(Contact).order_by(Contact.timestamp.asc()))
     contacts = result.scalars().all()
 
     doc = {
@@ -111,9 +109,9 @@ async def export_adif(session: AsyncSession = Depends(get_session)):
 
     output = adi.dumps(doc)
 
-    callsign_row = (await session.execute(
-        select(Setting).where(Setting.key == "my_callsign")
-    )).scalar_one_or_none()
+    callsign_row = (
+        await session.execute(select(Setting).where(Setting.key == "my_callsign"))
+    ).scalar_one_or_none()
     callsign = callsign_row.value if callsign_row and callsign_row.value else "rigbook"
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H%M%Sz")
     filename = f"{callsign} - {ts}.adi"
@@ -121,7 +119,7 @@ async def export_adif(session: AsyncSession = Depends(get_session)):
     return StreamingResponse(
         StringIO(output),
         media_type="application/octet-stream",
-        headers={"Content-Disposition": f"attachment; filename=\"{filename}\""},
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
@@ -142,9 +140,11 @@ async def import_adif(file: UploadFile, session: AsyncSession = Depends(get_sess
         # Dedup by UUID first
         record_uuid = data.get("uuid")
         if record_uuid:
-            existing = (await session.execute(
-                select(Contact).where(Contact.uuid == record_uuid)
-            )).scalar_one_or_none()
+            existing = (
+                await session.execute(
+                    select(Contact).where(Contact.uuid == record_uuid)
+                )
+            ).scalar_one_or_none()
             if existing:
                 duplicates += 1
                 continue
@@ -152,16 +152,24 @@ async def import_adif(file: UploadFile, session: AsyncSession = Depends(get_sess
             # Fall back to call + timestamp dedup (ignore seconds)
             ts = data.get("timestamp")
             if ts:
-                check_ts = ts.replace(second=0, tzinfo=None) if ts.tzinfo else ts.replace(second=0)
+                check_ts = (
+                    ts.replace(second=0, tzinfo=None)
+                    if ts.tzinfo
+                    else ts.replace(second=0)
+                )
                 minute_start = check_ts
                 minute_end = check_ts.replace(second=59)
-                existing = (await session.execute(
-                    select(Contact).where(and_(
-                        Contact.call == data["call"].upper(),
-                        Contact.timestamp >= minute_start,
-                        Contact.timestamp <= minute_end,
-                    ))
-                )).scalar_one_or_none()
+                existing = (
+                    await session.execute(
+                        select(Contact).where(
+                            and_(
+                                Contact.call == data["call"].upper(),
+                                Contact.timestamp >= minute_start,
+                                Contact.timestamp <= minute_end,
+                            )
+                        )
+                    )
+                ).scalar_one_or_none()
                 if existing:
                     duplicates += 1
                     continue

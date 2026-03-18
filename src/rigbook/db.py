@@ -19,7 +19,9 @@ class Contact(Base):
     __tablename__ = "contacts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    uuid: Mapped[str | None] = mapped_column(String, unique=True, nullable=True, default=lambda: str(_uuid.uuid4()))
+    uuid: Mapped[str | None] = mapped_column(
+        String, unique=True, nullable=True, default=lambda: str(_uuid.uuid4())
+    )
     call: Mapped[str] = mapped_column(String, nullable=False)
     freq: Mapped[str | None] = mapped_column(String, nullable=True)
     mode: Mapped[str | None] = mapped_column(String, nullable=True)
@@ -110,7 +112,9 @@ async def init_db() -> None:
         await conn.run_sync(_add_missing_columns)
         # Backfill UUIDs for existing contacts that don't have one
         await conn.execute(
-            text("UPDATE contacts SET uuid = lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)),2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6))) WHERE uuid IS NULL")
+            text(
+                "UPDATE contacts SET uuid = lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)),2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6))) WHERE uuid IS NULL"
+            )
         )
 
 
@@ -123,7 +127,9 @@ def _add_missing_columns(conn):
         for col in table.columns:
             if col.name not in existing:
                 col_type = col.type.compile(conn.dialect)
-                conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {col.name} {col_type}"))
+                conn.execute(
+                    text(f"ALTER TABLE {table_name} ADD COLUMN {col.name} {col_type}")
+                )
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:

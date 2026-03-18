@@ -33,7 +33,9 @@ class ContactCreate(BaseModel):
     def validate_call(cls, v: str) -> str:
         v = v.strip()
         if not v or " " in v or len(v) > 10:
-            raise ValueError("callsign must be non-whitespace and at most 10 characters")
+            raise ValueError(
+                "callsign must be non-whitespace and at most 10 characters"
+            )
         return v.upper()
 
     @field_validator("pota_park")
@@ -132,6 +134,27 @@ class ContactResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+@router.get("/today-pota")
+async def today_pota_contacts(session: AsyncSession = Depends(get_session)):
+    today_start = (
+        datetime.now(timezone.utc)
+        .replace(hour=0, minute=0, second=0, microsecond=0)
+        .replace(tzinfo=None)
+    )
+    rows = (
+        await session.execute(
+            select(Contact.call, Contact.freq, Contact.mode, Contact.pota_park)
+            .where(Contact.pota_park.isnot(None))
+            .where(Contact.pota_park != "")
+            .where(Contact.timestamp >= today_start)
+        )
+    ).all()
+    return [
+        {"call": call, "freq": freq, "mode": mode, "pota_park": park}
+        for call, freq, mode, park in rows
+    ]
+
+
 @router.get("/callsign-counts")
 async def callsign_counts(session: AsyncSession = Depends(get_session)):
     rows = (
@@ -140,8 +163,7 @@ async def callsign_counts(session: AsyncSession = Depends(get_session)):
                 Contact.call,
                 func.count(),
                 func.max(Contact.timestamp),
-            )
-            .group_by(Contact.call)
+            ).group_by(Contact.call)
         )
     ).all()
     return {
@@ -155,9 +177,7 @@ async def callsign_counts(session: AsyncSession = Depends(get_session)):
 
 @router.get("/", response_model=list[ContactResponse])
 async def list_contacts(session: AsyncSession = Depends(get_session)):
-    result = await session.execute(
-        select(Contact).order_by(Contact.timestamp.desc())
-    )
+    result = await session.execute(select(Contact).order_by(Contact.timestamp.desc()))
     return result.scalars().all()
 
 
@@ -173,9 +193,7 @@ async def create_contact(
 
 
 @router.get("/{contact_id}", response_model=ContactResponse)
-async def get_contact(
-    contact_id: int, session: AsyncSession = Depends(get_session)
-):
+async def get_contact(contact_id: int, session: AsyncSession = Depends(get_session)):
     contact = await session.get(Contact, contact_id)
     if not contact:
         raise HTTPException(status_code=404, detail="Contact not found")
@@ -199,9 +217,7 @@ async def update_contact(
 
 
 @router.delete("/{contact_id}", status_code=204)
-async def delete_contact(
-    contact_id: int, session: AsyncSession = Depends(get_session)
-):
+async def delete_contact(contact_id: int, session: AsyncSession = Depends(get_session)):
     contact = await session.get(Contact, contact_id)
     if not contact:
         raise HTTPException(status_code=404, detail="Contact not found")

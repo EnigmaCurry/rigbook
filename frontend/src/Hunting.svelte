@@ -16,6 +16,12 @@
   let newSpotKeys = new Set();
   let myParkQsos = {};
   let myCallCounts = {};
+  let workedTodayKeys = new Set();
+
+  // Park modal state
+  let modalParkRef = null;
+  let modalParkDetail = null;
+  let modalParkLoading = false;
 
   const DIGIT_EMOJIS = ["", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"];
 
@@ -166,15 +172,67 @@
     dispatch("tune", spot);
   }
 
+  function addQsoFromSpot(spot) {
+    dispatch("addqso", spot);
+  }
+
+  function isWorkedToday(spot) {
+    const band = freqToBand(parseFloat(spot.frequency));
+    const key = `${(spot.activator || "").toUpperCase()}|${band}|${(spot.mode || "").toUpperCase()}|${(spot.reference || "").toUpperCase()}`;
+    return workedTodayKeys.has(key);
+  }
+
+  async function fetchTodayPota() {
+    try {
+      const res = await fetch("/api/contacts/today-pota");
+      if (res.ok) {
+        const contacts = await res.json();
+        const keys = new Set();
+        for (const c of contacts) {
+          const freqMhz = parseFloat(c.freq);
+          const band = freqToBand(isNaN(freqMhz) ? 0 : freqMhz * 1000);
+          const key = `${(c.call || "").toUpperCase()}|${band}|${(c.mode || "").toUpperCase()}|${(c.pota_park || "").toUpperCase()}`;
+          keys.add(key);
+        }
+        workedTodayKeys = keys;
+      }
+    } catch {}
+  }
+
+  async function openParkModal(ref) {
+    modalParkRef = ref;
+    modalParkDetail = null;
+    modalParkLoading = true;
+    try {
+      const res = await fetch(`/api/pota/park/${encodeURIComponent(ref)}`);
+      if (res.ok) {
+        modalParkDetail = await res.json();
+      }
+    } catch {}
+    modalParkLoading = false;
+  }
+
+  function closeParkModal() {
+    modalParkRef = null;
+    modalParkDetail = null;
+    modalParkLoading = false;
+  }
+
+  function onModalKeydown(e) {
+    if (e.key === "Escape") closeParkModal();
+  }
+
   export function refreshAwards() {
     fetchMyParks();
     fetchCallCounts();
+    fetchTodayPota();
   }
 
   onMount(() => {
     fetchSpots();
     fetchMyParks();
     fetchCallCounts();
+    fetchTodayPota();
     pollInterval = setInterval(fetchSpots, 30000);
   });
 
@@ -212,17 +270,30 @@
   {:else}
     <div class="grid">
       {#each filteredSpots as spot}
-        <div class="card" class:new-spot={newSpotKeys.has(spotKey(spot))} on:click={() => tuneToSpot(spot)} on:keydown={e => e.key === "Enter" && tuneToSpot(spot)} tabindex="0" role="button">
+        {@const worked = isWorkedToday(spot)}
+        <div class="card" class:new-spot={newSpotKeys.has(spotKey(spot))} class:worked={worked}>
           <div class="card-header">
-            <span class="activator">{spot.activator}</span>
+            {#if worked}
+              <span class="activator worked-call" title="Already worked today">{spot.activator}</span>
+            {:else}
+              <!-- svelte-ignore a11y-click-events-have-key-events -->
+              <!-- svelte-ignore a11y-no-static-element-interactions -->
+              <span class="activator clickable" on:click={() => addQsoFromSpot(spot)} title="Add QSO">{spot.activator}</span>
+            {/if}
             <span class="badge mode">{spot.mode || "?"}</span>
             <span class="badge band" style="background: {bandColor(freqToBand(spot.frequency))}; color: {bandTextColor(freqToBand(spot.frequency))}">{freqToBand(spot.frequency) || "?"}</span>
             {#if myCallCounts[spot.activator]}<span class="call-count" title="{callCountTitle(myCallCounts[spot.activator], spot.activator)}">{callCountEmoji(myCallCounts[spot.activator])}</span>{/if}
           </div>
-          <div class="park-name">{spot.name || spot.reference}</div>
-          <div class="park-ref" title="{myParkQsos[spot.reference] ? parkQsoTitle(myParkQsos[spot.reference], spot.reference) : ''}">{#if myParkQsos[spot.reference]}{parkAward(myParkQsos[spot.reference].count)}{/if}{spot.reference} — {spot.locationDesc}</div>
+          <!-- svelte-ignore a11y-click-events-have-key-events -->
+          <!-- svelte-ignore a11y-no-static-element-interactions -->
+          <div class="park-name clickable" on:click={() => openParkModal(spot.reference)}>{spot.name || spot.reference}</div>
+          <!-- svelte-ignore a11y-click-events-have-key-events -->
+          <!-- svelte-ignore a11y-no-static-element-interactions -->
+          <div class="park-ref" title="{myParkQsos[spot.reference] ? parkQsoTitle(myParkQsos[spot.reference], spot.reference) : ''}">{#if myParkQsos[spot.reference]}{parkAward(myParkQsos[spot.reference].count)}{/if}<span class="clickable" on:click={() => openParkModal(spot.reference)}>{spot.reference}</span> — {spot.locationDesc}</div>
           <div class="card-details">
-            <span class="freq">{formatFreq(spot.frequency)} KHz</span>
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <span class="freq clickable" on:click={() => tuneToSpot(spot)} title="Tune radio">{formatFreq(spot.frequency)} KHz</span>
             <span class="grid-sq">{spot.grid4 || ""}</span>
             <span class="time">{timeAgo(spot.spotTime)}</span>
           </div>
@@ -238,6 +309,76 @@
     </div>
   {/if}
 </div>
+
+{#if modalParkRef}
+  <!-- svelte-ignore a11y-click-events-have-key-events -->
+  <!-- svelte-ignore a11y-no-static-element-interactions -->
+  <div class="modal-backdrop" on:click={closeParkModal}>
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <div class="modal-content" on:click|stopPropagation on:keydown={onModalKeydown}>
+      <button class="modal-close" on:click={closeParkModal}>X</button>
+      {#if modalParkLoading}
+        <p class="status">Loading park details...</p>
+      {:else if modalParkDetail}
+        <h3>{modalParkDetail.reference}</h3>
+        <p class="modal-park-name">{modalParkDetail.name}</p>
+        <div class="modal-detail-grid">
+          <div class="detail-row"><span class="detail-label">Location</span> <span>{modalParkDetail.location_name || ""} ({modalParkDetail.location_desc || ""})</span></div>
+          <div class="detail-row"><span class="detail-label">Country</span> <span>{modalParkDetail.program_name || ""}</span></div>
+          {#if modalParkDetail.grid}
+            <div class="detail-row"><span class="detail-label">Grid</span> <span>{modalParkDetail.grid}</span></div>
+          {/if}
+          {#if modalParkDetail.latitude != null && modalParkDetail.longitude != null}
+            <div class="detail-row"><span class="detail-label">Coordinates</span> <span>{modalParkDetail.latitude}, {modalParkDetail.longitude}</span></div>
+          {/if}
+          {#if modalParkDetail.activations != null}
+            <div class="detail-row"><span class="detail-label">Activations</span> <span>{modalParkDetail.activations}</span></div>
+          {/if}
+          {#if modalParkDetail.qsos != null}
+            <div class="detail-row"><span class="detail-label">QSOs</span> <span>{modalParkDetail.qsos}</span></div>
+          {/if}
+          <div class="detail-row">
+            <span class="detail-label">My QSOs</span>
+            <span>{modalParkDetail.my_qsos || 0} <span title="{parkAwardTitle(modalParkDetail.my_qsos || 0)}">{parkAward(modalParkDetail.my_qsos || 0)}</span></span>
+          </div>
+        </div>
+        <div class="modal-links">
+          <a href="https://pota.app/#/park/{modalParkDetail.reference}" target="_blank" rel="noopener">View on POTA</a>
+        </div>
+        {#if modalParkDetail.contacts && modalParkDetail.contacts.length > 0}
+          <h4 class="modal-qsos-heading">My QSOs ({modalParkDetail.contacts.length})</h4>
+          <div class="modal-qsos-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Call</th>
+                  <th>Freq</th>
+                  <th>Mode</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each modalParkDetail.contacts as c}
+                  <tr>
+                    <td>{c.timestamp ? c.timestamp.slice(0, 10) : ""}</td>
+                    <td class="call">{c.call}</td>
+                    <td>{c.freq || ""}</td>
+                    <td>{c.mode || ""}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        {/if}
+      {:else}
+        <p class="status">Failed to load park details.</p>
+      {/if}
+    </div>
+  </div>
+{/if}
+
+<svelte:window on:keydown={e => { if (modalParkRef && e.key === "Escape") closeParkModal(); }} />
 
 <style>
   .hunting {
@@ -316,17 +457,11 @@
     border: 1px solid var(--border);
     border-radius: 6px;
     padding: 0.75rem;
-    cursor: pointer;
     transition: border-color 0.15s;
   }
 
-  .card:hover {
-    border-color: var(--accent);
-  }
-
-  .card:focus {
-    outline: none;
-    border-color: var(--accent);
+  .card.worked {
+    opacity: 0.5;
   }
 
   .card.new-spot {
@@ -350,6 +485,27 @@
     color: var(--accent-callsign);
     font-weight: bold;
     font-size: 1rem;
+  }
+
+  .activator.clickable {
+    cursor: pointer;
+  }
+
+  .activator.clickable:hover {
+    text-decoration: underline;
+  }
+
+  .activator.worked-call {
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+
+  .clickable {
+    cursor: pointer;
+  }
+
+  .clickable:hover {
+    text-decoration: underline;
   }
 
   .call-count {
@@ -428,5 +584,125 @@
 
   .count {
     color: #658a62;
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    max-width: 550px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1rem;
+    font-family: inherit;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .modal-close:hover {
+    color: var(--text);
+  }
+
+  .modal-content h3 {
+    color: var(--accent-vfo);
+    font-size: 1.3rem;
+    margin: 0 0 0.25rem 0;
+  }
+
+  .modal-park-name {
+    font-size: 1.1rem;
+    color: var(--text);
+    margin: 0 0 1rem 0;
+  }
+
+  .modal-detail-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+  }
+
+  .detail-row {
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .detail-label {
+    color: var(--text-dim);
+    min-width: 10ch;
+    flex-shrink: 0;
+  }
+
+  .modal-links {
+    margin-top: 0.75rem;
+  }
+
+  .modal-links a {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.85rem;
+  }
+
+  .modal-links a:hover {
+    text-decoration: underline;
+  }
+
+  .modal-qsos-heading {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin: 1rem 0 0.5rem 0;
+  }
+
+  .modal-qsos-table {
+    overflow-x: auto;
+  }
+
+  .modal-qsos-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  .modal-qsos-table th {
+    text-align: left;
+    color: var(--text-dim);
+    font-weight: normal;
+    padding: 0.25rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .modal-qsos-table td {
+    padding: 0.3rem 0.5rem;
+  }
+
+  .modal-qsos-table td.call {
+    color: var(--accent-callsign);
+    font-weight: bold;
   }
 </style>

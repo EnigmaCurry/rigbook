@@ -109,9 +109,7 @@ _NOT_FOUND = "NOT_FOUND"
 _FETCH_ERROR = "FETCH_ERROR"
 
 
-async def _fetch_callsign(
-    callsign: str, username: str, api_key: str
-) -> dict | str:
+async def _fetch_callsign(callsign: str, username: str, api_key: str) -> dict | str:
     """Return a dict on success, _NOT_FOUND if QRZ says unknown, _FETCH_ERROR on failure."""
     global _session_key
     logger.info("QRZ fetching: %s", callsign)
