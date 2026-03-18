@@ -192,7 +192,16 @@
 
   function isWorkedToday(spot) {
     const band = freqToBand(parseFloat(spot.frequency));
-    const key = `${(spot.activator || "").toUpperCase()}|${band}|${normalizeMode(spot.mode)}|${(spot.reference || "").toUpperCase()}`;
+    const mode = normalizeMode(spot.mode);
+    if (!mode || mode === "?") {
+      const prefix = `${(spot.activator || "").toUpperCase()}|${band}|`;
+      const suffix = `|${(spot.reference || "").toUpperCase()}`;
+      for (const k of workedTodayKeys) {
+        if (k.startsWith(prefix) && k.endsWith(suffix)) return true;
+      }
+      return false;
+    }
+    const key = `${(spot.activator || "").toUpperCase()}|${band}|${mode}|${(spot.reference || "").toUpperCase()}`;
     return workedTodayKeys.has(key);
   }
 
