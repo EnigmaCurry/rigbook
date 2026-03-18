@@ -1,0 +1,83 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-amd64
+          - os: ubuntu-24.04-arm
+            target: linux-arm64
+          - os: macos-13
+            target: macos-amd64
+          - os: macos-latest
+            target: macos-arm64
+          - os: windows-latest
+            target: windows-amd64
+
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install pyinstaller
+          pip install .
+
+      - name: Build binary
+        run: pyinstaller rigbook.spec
+
+      - name: Rename binary (unix)
+        if: runner.os != 'Windows'
+        run: mv dist/rigbook dist/rigbook-${{ matrix.target }}
+
+      - name: Rename binary (windows)
+        if: runner.os == 'Windows'
+        run: mv dist/rigbook.exe dist/rigbook-${{ matrix.target }}.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rigbook-${{ matrix.target }}
+          path: dist/rigbook-*
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "${{ github.ref_name }}" artifacts/* --repo "${{ github.repository }}" --generate-notes

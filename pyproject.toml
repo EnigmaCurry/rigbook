@@ -30,6 +30,9 @@ dev = [
     "pytest",
     "pytest-asyncio",
 ]
+build = [
+    "pyinstaller>=6.0",
+]
 
 [tool.ruff]
 line-length = 88
