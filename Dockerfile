@@ -18,4 +18,4 @@ RUN mkdir -p /home/rigbook/.local/rigbook && chown -R rigbook:rigbook /app /home
 USER rigbook
 EXPOSE 8073
 VOLUME /home/rigbook/.local/rigbook
-CMD ["uv", "run", "rigbook"]
+CMD [".venv/bin/rigbook"]
