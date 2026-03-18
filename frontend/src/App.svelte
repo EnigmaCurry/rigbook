@@ -329,9 +329,9 @@
   function handleSearchAction(e) {
     const { type, data } = e.detail;
     if (type === "logbook") {
-      editId = data.id;
       dualShowForm = true;
       navigate(isWide() ? "dual" : "add");
+      editId = data.id;
       window.location.hash = `/log/${data.id}`;
     } else if (type === "pota") {
       tuneAndPrefill(data);
