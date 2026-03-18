@@ -272,7 +272,7 @@
       const res = await fetch(`/api/skcc/lookup/${callsign}`);
       if (res.ok) {
         const data = await res.json();
-        skcc = data.skcc || "";
+        if (!skcc.trim()) skcc = data.skcc || "";
       }
     } catch {}
 
