@@ -40,6 +40,7 @@
   let country = "";
   let grid = "";
   let skcc = "";
+  let skcc_exch = false;
   function utcNowDate() { return new Date().toISOString().slice(0, 10); }
   function utcNowTime() { return new Date().toISOString().slice(11, 19); }
   function normalizeTime() {
@@ -100,11 +101,31 @@
   let submitting = false;
   let errorMsg = "";
   let editingId = null;
+  let editOriginal = null;
   let showGridPicker = false;
   $: if (typeof document !== "undefined") {
     document.body.style.overflow = showGridPicker ? "hidden" : "";
   }
   export let showForm = true;
+  $: editHasChanges = !editingId || !editOriginal || (
+    call !== editOriginal.call ||
+    freq !== editOriginal.freq ||
+    mode !== editOriginal.mode ||
+    rst_sent !== editOriginal.rst_sent ||
+    rst_recv !== editOriginal.rst_recv ||
+    pota_park !== editOriginal.pota_park ||
+    name !== editOriginal.name ||
+    qth !== editOriginal.qth ||
+    state !== editOriginal.state ||
+    country !== editOriginal.country ||
+    grid !== editOriginal.grid ||
+    skcc !== editOriginal.skcc ||
+    skcc_exch !== editOriginal.skcc_exch ||
+    comments !== editOriginal.comments ||
+    notes !== editOriginal.notes ||
+    datePart !== editOriginal.datePart ||
+    timePart !== editOriginal.timePart
+  );
 
   let sortCol = "timestamp";
   let sortAsc = false;
@@ -226,6 +247,7 @@
     country = "";
     grid = "";
     skcc = "";
+    skcc_exch = false;
     comments = "";
     notes = "";
     datePart = "";
@@ -270,7 +292,7 @@
       const res = await fetch(`/api/skcc/lookup/${callsign}`);
       if (res.ok) {
         const data = await res.json();
-        skcc = data.skcc || "";
+        if (!skcc.trim()) skcc = data.skcc || "";
       }
     } catch {}
 
@@ -305,10 +327,20 @@
 
   function onCallInput() {
     call = call.replace(/\s/g, "");
+    callCountryCode = "";
+    if (!editingId) {
+      skcc = "";
+      skcc_exch = false;
+      name = "";
+      qth = "";
+      country = "";
+      state = "";
+      grid = "";
+    }
   }
 
   function onCallBlur() {
-    if (call.length >= 3) {
+    if (!editingId && call.length >= 3) {
       lookupCallsign(call.toUpperCase());
     }
   }
@@ -520,6 +552,7 @@
     country = c.country || "";
     grid = c.grid || "";
     skcc = c.skcc || "";
+    skcc_exch = !!c.skcc_exch;
     comments = c.comments || "";
     notes = c.notes || "";
     if (c.timestamp) {
@@ -531,6 +564,10 @@
       timePart = "";
     }
     errorMsg = "";
+    editOriginal = {
+      call, freq, mode, rst_sent, rst_recv, pota_park, name, qth,
+      state, country, grid, skcc, skcc_exch, comments, notes, datePart, timePart,
+    };
     const match = countries.find(co => co.name === country);
     fetchSubdivisions(match ? match.code : "");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -538,6 +575,7 @@
 
   function cancelEdit() {
     editingId = null;
+    editOriginal = null;
     dispatch("editchange", null);
     dispatch("navigate", "back");
     clearForm();
@@ -580,6 +618,7 @@
         country: country.trim() || null,
         grid: grid.trim().toUpperCase() || null,
         skcc: skcc.trim().toUpperCase() || null,
+        skcc_exch: skcc_exch,
         comments: comments || null,
         notes: notes || null,
         timestamp: `${datePart}T${timePart || "00:00:00"}Z`,
@@ -591,6 +630,7 @@
       });
       if (res.ok) {
         editingId = null;
+        editOriginal = null;
         dispatch("editchange", null);
         clearForm();
         await fetchContacts();
@@ -622,6 +662,7 @@
     country = "";
     grid = "";
     skcc = "";
+    skcc_exch = false;
     comments = "";
     notes = "";
     datePart = "";
@@ -673,6 +714,7 @@
         qth = "";
         grid = "";
         skcc = "";
+        skcc_exch = false;
         comments = "";
         notes = "";
         datePart = "";
@@ -884,8 +926,11 @@
       </div>
     </div>
     <div class="field">
-      <label for="skcc">SKCC</label>
-      <input id="skcc" type="text" bind:value={skcc} on:input={stripSkcc} style="text-transform: uppercase" />
+      <label for="skcc">SKCC # / {skcc_exch ? "Validated!" : "Validated?"}</label>
+      <div class="skcc-input-row">
+        <input id="skcc" type="text" bind:value={skcc} on:input={stripSkcc} style="text-transform: uppercase" readonly={skcc_exch} />
+        <button type="button" class="skcc-exch-btn" class:active={skcc_exch} on:click={() => skcc_exch = !skcc_exch} title="Valid SKCC exchange (RST, QTH, Name, SKCC#)">✓</button>
+      </div>
     </div>
     <div class="field wide">
       <label for="comments">Comments (public)</label>
@@ -909,7 +954,7 @@
   </div>
 
   <div class="form-row">
-    <button type="submit" disabled={submitting || !call.trim() || !freq.trim() || !mode.trim()}>
+    <button type="submit" disabled={submitting || !call.trim() || !freq.trim() || !mode.trim() || !editHasChanges}>
       {#if editingId}
         {submitting ? "Saving..." : "Save Edit"}
       {:else}
@@ -1256,6 +1301,38 @@
   .grid-input-row input {
     flex: 1;
     min-width: 0;
+  }
+
+  .skcc-input-row {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .skcc-input-row input[type="text"] {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .skcc-exch-btn {
+    background: var(--btn-secondary);
+    border: none;
+    padding: 0.2rem 0.4rem;
+    font-size: 0.85rem;
+    border-radius: 3px;
+    cursor: pointer;
+    line-height: 1;
+    opacity: 0.4;
+  }
+
+  .skcc-exch-btn:hover {
+    background: var(--btn-secondary-hover);
+  }
+
+  .skcc-exch-btn.active {
+    opacity: 1;
+    background: var(--accent);
+    color: var(--bg);
   }
 
   .grid-picker-btn {
@@ -1663,4 +1740,5 @@
   :global(.leaflet-attribution-flag) {
     display: none !important;
   }
+
 </style>

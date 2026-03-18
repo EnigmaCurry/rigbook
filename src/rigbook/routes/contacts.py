@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, field_serializer, field_validator
+from pydantic import BaseModel, field_serializer, field_validator, model_validator
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,6 +23,7 @@ class ContactCreate(BaseModel):
     country: str | None = None
     grid: str | None = None
     skcc: str | None = None
+    skcc_exch: bool = False
     comments: str | None = None
     notes: str | None = None
     timestamp: datetime | None = None
@@ -78,6 +79,7 @@ class ContactUpdate(BaseModel):
     country: str | None = None
     grid: str | None = None
     skcc: str | None = None
+    skcc_exch: bool | None = None
     comments: str | None = None
     notes: str | None = None
     timestamp: datetime | None = None
@@ -107,9 +109,21 @@ class ContactResponse(BaseModel):
     country: str | None
     grid: str | None
     skcc: str | None
+    skcc_exch: bool = False
     comments: str | None
     notes: str | None
     timestamp: datetime
+
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_skcc_exch(cls, data):
+        if hasattr(data, "__dict__"):
+            val = getattr(data, "skcc_exch", None)
+            if val is None:
+                object.__setattr__(data, "skcc_exch", 0)
+        elif isinstance(data, dict) and data.get("skcc_exch") is None:
+            data["skcc_exch"] = False
+        return data
 
     @field_serializer("timestamp")
     def serialize_timestamp(self, v: datetime) -> str:

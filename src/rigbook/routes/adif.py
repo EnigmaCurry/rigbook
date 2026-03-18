@@ -39,6 +39,8 @@ def contact_to_adif_record(c: Contact) -> dict:
         record["POTA_REF"] = c.pota_park
     if c.skcc is not None:
         record["SKCC"] = str(c.skcc)
+    if c.skcc_exch:
+        record["APP_RIGBOOK_SKCC_EXCH"] = "Y"
     if c.comments:
         record["COMMENT"] = c.comments
     if c.notes:
@@ -69,6 +71,8 @@ def adif_record_to_contact_dict(record: dict) -> dict:
     skcc = record.get("SKCC")
     if skcc:
         data["skcc"] = skcc
+    if record.get("APP_RIGBOOK_SKCC_EXCH", "").upper() == "Y":
+        data["skcc_exch"] = 1
     data["comments"] = record.get("COMMENT")
     data["notes"] = record.get("NOTES")
     app_uuid = record.get("APP_RIGBOOK_UUID")

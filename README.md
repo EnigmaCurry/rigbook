@@ -41,7 +41,7 @@ with a local web UI, optionally connected to your radio via
 A pre-built image is available from GitHub Container Registry:
 
 ```bash
-docker run -d --name rigbook \
+podman run -d --name rigbook \
   -p 127.0.0.1:8073:8073 \
   -v rigbook-data:/home/rigbook/.local/rigbook \
   ghcr.io/enigmacurry/rigbook:latest
