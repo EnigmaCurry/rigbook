@@ -747,11 +747,14 @@
   $: if (editId && editId !== handledEditId && contacts.length > 0) {
     handledEditId = editId;
     const c = contacts.find(x => x.id === editId);
+    console.log("editId reactive fired", { editId, found: !!c, contactsLen: contacts.length });
     if (c) editContact(c);
     else loadEditFromId(editId);
   } else if (!editId) {
     handledEditId = null;
   }
+
+  $: console.log("tab debug", { prevContactCount, showForm, editingId, call: call.trim(), contactsLen: contacts.length });
 
   onMount(() => {
     fetchContacts();
