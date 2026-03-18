@@ -313,6 +313,7 @@
     font-size: 1.2rem;
     cursor: pointer;
     background: white;
+    color: #333;
   }
 
   :global(.map-expand-btn:hover) {
