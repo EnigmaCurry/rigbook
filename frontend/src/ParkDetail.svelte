@@ -21,8 +21,46 @@
 
   let mapEl;
   let map = null;
+  let fullscreen = false;
+  let fullscreenWrap = null;
+
+  function addExpandControl(m, wrapEl) {
+    const ExpandControl = L.Control.extend({
+      options: { position: "topright" },
+      onAdd() {
+        const btn = L.DomUtil.create("div", "leaflet-bar leaflet-control map-expand-btn");
+        btn.innerHTML = "⛶";
+        btn.title = "Toggle fullscreen";
+        btn.onclick = (e) => { e.stopPropagation(); toggleFullscreen(m, wrapEl); };
+        return btn;
+      }
+    });
+    m.addControl(new ExpandControl());
+  }
+
+  function toggleFullscreen(m, wrapEl) {
+    if (fullscreen) {
+      exitFullscreen();
+    } else {
+      fullscreen = true;
+      fullscreenWrap = wrapEl;
+      wrapEl.classList.add("map-fullscreen");
+      document.body.style.overflow = "hidden";
+      setTimeout(() => m.invalidateSize(), 100);
+    }
+  }
+
+  function exitFullscreen() {
+    if (!fullscreen) return;
+    fullscreenWrap?.classList.remove("map-fullscreen");
+    document.body.style.overflow = "";
+    fullscreen = false;
+    fullscreenWrap = null;
+    setTimeout(() => map?.invalidateSize(), 100);
+  }
 
   function destroyMap() {
+    exitFullscreen();
     if (map) { map.remove(); map = null; }
   }
 
@@ -40,6 +78,7 @@
       .bindPopup(`<b>${park.reference}</b><br>${park.name || ""}`)
       .openPopup();
     map.setView(ll, 12);
+    addExpandControl(map, mapEl.parentElement);
   }
 
   $: if (park) renderMap();
@@ -124,6 +163,8 @@
     </div>
   {/if}
 </div>
+
+<svelte:window on:keydown={e => { if (fullscreen && e.key === "Escape") exitFullscreen(); }} />
 
 <style>
   .park-detail h3 {
@@ -262,5 +303,42 @@
 
   .qso-row:hover {
     background: var(--row-hover);
+  }
+
+  :global(.map-expand-btn) {
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    font-size: 1.2rem;
+    cursor: pointer;
+    background: white;
+  }
+
+  :global(.map-expand-btn:hover) {
+    background: #f4f4f4;
+  }
+
+  :global(.map-fullscreen) {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  :global(.map-fullscreen .park-detail-map) {
+    height: 100% !important;
+  }
+
+  :global(.leaflet-attribution-flag) {
+    display: none !important;
   }
 </style>

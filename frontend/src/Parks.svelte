@@ -1048,42 +1048,7 @@
     flex-shrink: 0;
   }
 
-  /* Park detail */
-  :global(.leaflet-attribution-flag) {
-    display: none !important;
-  }
-
-  :global(.map-expand-btn) {
-    width: 30px;
-    height: 30px;
-    line-height: 30px;
-    text-align: center;
-    font-size: 1.2rem;
-    cursor: pointer;
-    background: white;
-  }
-
-  :global(.map-expand-btn:hover) {
-    background: #f4f4f4;
-  }
-
-  :global(.map-fullscreen) {
-    position: fixed !important;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 9999;
-    width: 100% !important;
-    height: 100% !important;
-    max-width: none !important;
-    border-radius: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  :global(.map-fullscreen .my-map),
-  :global(.map-fullscreen .park-detail-map) {
+  :global(.map-fullscreen .my-map) {
     height: 100% !important;
   }
 </style>
