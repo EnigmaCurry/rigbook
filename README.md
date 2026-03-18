@@ -61,7 +61,7 @@ The server binds to localhost only because Rigbook has no built-in
 authentication. Set `RIGBOOK_HOST` and `RIGBOOK_PORT` environment
 variables to change the bind address.
 
-## Docker
+## Container image
 
 A pre-built image is available from GitHub Container Registry:
 
