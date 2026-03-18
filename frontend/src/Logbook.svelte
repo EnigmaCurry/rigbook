@@ -40,6 +40,7 @@
   let country = "";
   let grid = "";
   let skcc = "";
+  let skcc_exch = false;
   function utcNowDate() { return new Date().toISOString().slice(0, 10); }
   function utcNowTime() { return new Date().toISOString().slice(11, 19); }
   function normalizeTime() {
@@ -226,6 +227,7 @@
     country = "";
     grid = "";
     skcc = "";
+    skcc_exch = false;
     comments = "";
     notes = "";
     datePart = "";
@@ -520,6 +522,7 @@
     country = c.country || "";
     grid = c.grid || "";
     skcc = c.skcc || "";
+    skcc_exch = !!c.skcc_exch;
     comments = c.comments || "";
     notes = c.notes || "";
     if (c.timestamp) {
@@ -580,6 +583,7 @@
         country: country.trim() || null,
         grid: grid.trim().toUpperCase() || null,
         skcc: skcc.trim().toUpperCase() || null,
+        skcc_exch: skcc_exch,
         comments: comments || null,
         notes: notes || null,
         timestamp: `${datePart}T${timePart || "00:00:00"}Z`,
@@ -622,6 +626,7 @@
     country = "";
     grid = "";
     skcc = "";
+    skcc_exch = false;
     comments = "";
     notes = "";
     datePart = "";
@@ -673,6 +678,7 @@
         qth = "";
         grid = "";
         skcc = "";
+        skcc_exch = false;
         comments = "";
         notes = "";
         datePart = "";
@@ -885,7 +891,13 @@
     </div>
     <div class="field">
       <label for="skcc">SKCC</label>
-      <input id="skcc" type="text" bind:value={skcc} on:input={stripSkcc} style="text-transform: uppercase" />
+      <div class="skcc-row">
+        <input id="skcc" type="text" bind:value={skcc} on:input={stripSkcc} style="text-transform: uppercase" />
+        <label class="skcc-exch-label" title="Valid SKCC exchange (RST, QTH, Name, SKCC#)">
+          <input type="checkbox" bind:checked={skcc_exch} />
+          Exch
+        </label>
+      </div>
     </div>
     <div class="field wide">
       <label for="comments">Comments (public)</label>
@@ -1662,5 +1674,26 @@
 
   :global(.leaflet-attribution-flag) {
     display: none !important;
+  }
+
+  .skcc-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .skcc-row input[type="text"] {
+    flex: 1;
+    min-width: 0;
+  }
+  .skcc-exch-label {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .skcc-exch-label input[type="checkbox"] {
+    margin: 0;
   }
 </style>
