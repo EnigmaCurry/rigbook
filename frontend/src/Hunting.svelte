@@ -178,7 +178,7 @@
   }
 
   const MODE_NORMALIZE = {
-    "USB": "SSB", "LSB": "SSB", "AM": "SSB",
+    "USB": "SSB", "LSB": "SSB",
     "CW-R": "CW", "CWR": "CW",
     "FT8": "FT8", "FT4": "FT4",
     "RTTY": "RTTY", "RTTY-R": "RTTY",
