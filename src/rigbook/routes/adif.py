@@ -1,15 +1,83 @@
 from datetime import datetime, timezone
 from io import StringIO
+from typing import Optional
 
 from adif_file import adi
-from fastapi import APIRouter, Depends, UploadFile
+from fastapi import APIRouter, Depends, Query, UploadFile
 from fastapi.responses import StreamingResponse
-from sqlalchemy import and_, select
+from sqlalchemy import and_, cast, Float, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from rigbook.db import Contact, Setting, get_session
+from rigbook.routes.contacts import ContactResponse
 
 router = APIRouter(prefix="/api/adif", tags=["adif"])
+
+BAND_FREQ_MAP = {
+    "160m": (1800, 2000),
+    "80m": (3500, 4000),
+    "60m": (5330, 5410),
+    "40m": (7000, 7300),
+    "30m": (10100, 10150),
+    "20m": (14000, 14350),
+    "17m": (18068, 18168),
+    "15m": (21000, 21450),
+    "12m": (24890, 24990),
+    "10m": (28000, 29700),
+    "6m": (50000, 54000),
+    "2m": (144000, 148000),
+}
+
+
+def _build_filtered_query(
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    comment: Optional[str] = None,
+    skcc_validated: bool = False,
+    country: Optional[str] = None,
+    mode: Optional[str] = None,
+    band: Optional[str] = None,
+):
+    stmt = select(Contact)
+    if date_from:
+        try:
+            dt = datetime.strptime(date_from, "%Y-%m-%d")
+            stmt = stmt.where(Contact.timestamp >= dt)
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            dt = datetime.strptime(date_to, "%Y-%m-%d").replace(
+                hour=23, minute=59, second=59
+            )
+            stmt = stmt.where(Contact.timestamp <= dt)
+        except ValueError:
+            pass
+    if comment:
+        pattern = f"%{comment}%"
+        stmt = stmt.where(
+            or_(
+                Contact.comments.ilike(pattern),
+                Contact.notes.ilike(pattern),
+            )
+        )
+    if skcc_validated:
+        stmt = stmt.where(Contact.skcc_exch == 1)
+    if country:
+        stmt = stmt.where(Contact.country.ilike(country))
+    if mode:
+        stmt = stmt.where(Contact.mode.ilike(mode))
+    if band:
+        freq_range = BAND_FREQ_MAP.get(band.lower())
+        if freq_range:
+            lo, hi = freq_range
+            stmt = stmt.where(
+                and_(
+                    cast(Contact.freq, Float) >= lo,
+                    cast(Contact.freq, Float) <= hi,
+                )
+            )
+    return stmt
 
 
 def contact_to_adif_record(c: Contact) -> dict:
@@ -93,9 +161,51 @@ def adif_record_to_contact_dict(record: dict) -> dict:
     return {k: v for k, v in data.items() if v is not None and v != ""}
 
 
+@router.get("/preview")
+async def preview_adif(
+    date_from: Optional[str] = Query(None),
+    date_to: Optional[str] = Query(None),
+    comment: Optional[str] = Query(None),
+    skcc_validated: bool = Query(False),
+    country: Optional[str] = Query(None),
+    mode: Optional[str] = Query(None),
+    band: Optional[str] = Query(None),
+    session: AsyncSession = Depends(get_session),
+):
+    total_result = await session.execute(select(Contact))
+    total = len(total_result.scalars().all())
+
+    stmt = _build_filtered_query(
+        date_from, date_to, comment, skcc_validated, country, mode, band
+    ).order_by(Contact.timestamp.desc())
+    result = await session.execute(stmt)
+    contacts = result.scalars().all()
+    included = len(contacts)
+
+    return {
+        "contacts": [ContactResponse.model_validate(c).model_dump() for c in contacts],
+        "total": total,
+        "included": included,
+        "excluded": total - included,
+    }
+
+
 @router.get("/export")
-async def export_adif(session: AsyncSession = Depends(get_session)):
-    result = await session.execute(select(Contact).order_by(Contact.timestamp.asc()))
+async def export_adif(
+    date_from: Optional[str] = Query(None),
+    date_to: Optional[str] = Query(None),
+    comment: Optional[str] = Query(None),
+    skcc_validated: bool = Query(False),
+    country: Optional[str] = Query(None),
+    mode: Optional[str] = Query(None),
+    band: Optional[str] = Query(None),
+    title: Optional[str] = Query(None),
+    session: AsyncSession = Depends(get_session),
+):
+    stmt = _build_filtered_query(
+        date_from, date_to, comment, skcc_validated, country, mode, band
+    ).order_by(Contact.timestamp.asc())
+    result = await session.execute(stmt)
     contacts = result.scalars().all()
 
     doc = {
@@ -114,7 +224,15 @@ async def export_adif(session: AsyncSession = Depends(get_session)):
     ).scalar_one_or_none()
     callsign = callsign_row.value if callsign_row and callsign_row.value else "rigbook"
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H%M%Sz")
-    filename = f"{callsign} - {ts}.adi"
+    safe_title = ""
+    if title:
+        safe_title = "".join(
+            c for c in title.strip() if c.isalnum() or c in " -_"
+        ).strip()
+    if safe_title:
+        filename = f"{callsign} - {safe_title} - {ts}.adi"
+    else:
+        filename = f"{callsign} - {ts}.adi"
 
     return StreamingResponse(
         StringIO(output),
