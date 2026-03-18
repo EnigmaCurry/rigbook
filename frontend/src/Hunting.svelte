@@ -141,6 +141,7 @@
     return true;
   });
 
+
   async function fetchSpots() {
     try {
       const res = await fetch("/api/pota/spots");
@@ -283,10 +284,9 @@
   {:else}
     <div class="grid">
       {#each filteredSpots as spot}
-        {@const worked = isWorkedToday(spot)}
-        <div class="card" class:new-spot={newSpotKeys.has(spotKey(spot))} class:worked={worked}>
+        <div class="card" class:new-spot={newSpotKeys.has(spotKey(spot))} class:worked={workedTodayKeys && isWorkedToday(spot)}>
           <div class="card-header">
-            {#if worked}
+            {#if workedTodayKeys && isWorkedToday(spot)}
               <span class="activator worked-call" title="Already worked today">{spot.activator}</span>
             {:else}
               <!-- svelte-ignore a11y-click-events-have-key-events -->
