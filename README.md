@@ -42,12 +42,13 @@ A pre-built image is available from GitHub Container Registry:
 
 ```bash
 docker run -d --name rigbook \
-  -p 8073:8073 \
+  -p 127.0.0.1:8073:8073 \
   -v rigbook-data:/home/rigbook/.local/rigbook \
   ghcr.io/enigmacurry/rigbook:latest
 ```
 
-Open http://localhost:8073 in your browser.
+Open http://localhost:8073 in your browser. The port is bound to
+localhost only because Rigbook has no built-in authentication.
 
 The database is persisted in the `rigbook-data` volume. To build the
 image locally:
@@ -83,7 +84,8 @@ just run
 
 ```
 
-Open http://localhost:8073 in your browser.
+Open http://localhost:8073 in your browser. The server binds to
+localhost only because Rigbook has no built-in authentication.
 
 ### First-time setup
 

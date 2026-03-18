@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -76,5 +77,8 @@ def run() -> None:
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
     uvicorn.run(
-        "rigbook.main:app", host="0.0.0.0", port=8073, access_log=False
+        "rigbook.main:app",
+        host=os.environ.get("RIGBOOK_HOST", "127.0.0.1"),
+        port=int(os.environ.get("RIGBOOK_PORT", "8073")),
+        access_log=False,
     )

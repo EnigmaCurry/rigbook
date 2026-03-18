@@ -20,6 +20,7 @@ COPY --from=backend /app /app
 COPY --from=frontend /app/src/rigbook/static src/rigbook/static
 RUN mkdir -p /home/rigbook/.local/rigbook && chown -R rigbook:rigbook /app /home/rigbook/.local/rigbook
 USER rigbook
+ENV RIGBOOK_HOST=0.0.0.0
 EXPOSE 8073
 VOLUME /home/rigbook/.local/rigbook
 CMD [".venv/bin/rigbook"]
