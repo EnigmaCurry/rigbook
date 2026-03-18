@@ -338,7 +338,7 @@
   }
 
   function onCallBlur() {
-    if (call.length >= 3) {
+    if (!editingId && call.length >= 3) {
       lookupCallsign(call.toUpperCase());
     }
   }
