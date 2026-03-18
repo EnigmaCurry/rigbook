@@ -199,6 +199,7 @@ async def export_adif(
     country: Optional[str] = Query(None),
     mode: Optional[str] = Query(None),
     band: Optional[str] = Query(None),
+    title: Optional[str] = Query(None),
     session: AsyncSession = Depends(get_session),
 ):
     stmt = _build_filtered_query(
@@ -223,7 +224,15 @@ async def export_adif(
     ).scalar_one_or_none()
     callsign = callsign_row.value if callsign_row and callsign_row.value else "rigbook"
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H%M%Sz")
-    filename = f"{callsign} - {ts}.adi"
+    safe_title = ""
+    if title:
+        safe_title = "".join(
+            c for c in title.strip() if c.isalnum() or c in " -_"
+        ).strip()
+    if safe_title:
+        filename = f"{callsign} - {safe_title} - {ts}.adi"
+    else:
+        filename = f"{callsign} - {ts}.adi"
 
     return StreamingResponse(
         StringIO(output),

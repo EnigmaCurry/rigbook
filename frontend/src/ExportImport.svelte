@@ -38,6 +38,7 @@
   let countryFilter = "";
   let modeFilter = "";
   let bandFilter = "";
+  let exportTitle = "";
 
   // Preview state
   let preview = null;
@@ -121,6 +122,7 @@
 
   function exportAdif() {
     const params = buildParams();
+    if (exportTitle.trim()) params.set("title", exportTitle.trim());
     const qs = params.toString();
     window.location.href = "/api/adif/export" + (qs ? "?" + qs : "");
   }
@@ -158,6 +160,13 @@
 
 <div class="export-import">
   <h2>Export</h2>
+
+  <div class="title-row">
+    <label>
+      Title
+      <input type="text" bind:value={exportTitle} placeholder="optional — included in filename" />
+    </label>
+  </div>
 
   <div class="filters">
     <div class="filter-row">
@@ -269,6 +278,29 @@
     color: var(--text-muted);
     font-size: 0.9rem;
     margin: 0 0 0.75rem 0;
+  }
+
+  .title-row {
+    margin-bottom: 0.75rem;
+  }
+
+  .title-row label {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    gap: 0.2rem;
+  }
+
+  .title-row input {
+    background: var(--bg-input, var(--bg));
+    color: var(--text);
+    border: 1px solid var(--border, #555);
+    padding: 0.35rem 0.5rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    border-radius: 3px;
+    max-width: 400px;
   }
 
   .filters {
