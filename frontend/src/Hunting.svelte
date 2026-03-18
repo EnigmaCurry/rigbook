@@ -324,7 +324,9 @@
       {:else if modalParkDetail}
         <ParkDetail park={modalParkDetail} />
       {:else}
-        <p class="status">Failed to load park details.</p>
+        {@const prefix = modalParkRef.match(/^([A-Z]{1,2})-/)?.[1] || ""}
+        <p class="status">Park {modalParkRef} not found in cache.</p>
+        <p class="cache-link">Go to <a href="#/parks/download">Cache</a> to download park data{prefix ? ` for country code ${prefix}` : ""}.</p>
       {/if}
     </div>
   </div>
@@ -578,6 +580,19 @@
 
   .modal-close:hover {
     color: var(--text);
+  }
+
+  .cache-link {
+    font-size: 0.9rem;
+  }
+
+  .cache-link a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .cache-link a:hover {
+    text-decoration: underline;
   }
 
 </style>

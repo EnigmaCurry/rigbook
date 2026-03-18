@@ -957,6 +957,11 @@
         <p class="park-overlay-loading">Loading park...</p>
       {:else if parkOverlay}
         <ParkDetail park={parkOverlay} />
+      {:else}
+        {@const parkRef = pota_park.trim().toUpperCase()}
+        {@const prefix = parkRef.match(/^([A-Z]{1,2})-/)?.[1] || ""}
+        <p class="park-overlay-loading">Park {parkRef} not found in cache.</p>
+        <p class="cache-link">Go to <a href="#/parks/download">Cache</a> to download park data{prefix ? ` for country code ${prefix}` : ""}.</p>
       {/if}
     </div>
   </div>
@@ -1414,6 +1419,19 @@
   .park-overlay-loading {
     color: var(--text-muted);
     font-style: italic;
+  }
+
+  .cache-link {
+    font-size: 0.9rem;
+  }
+
+  .cache-link a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .cache-link a:hover {
+    text-decoration: underline;
   }
 
   .pota-ac {
