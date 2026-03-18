@@ -747,16 +747,10 @@
   $: if (editId && editId !== handledEditId && contacts.length > 0) {
     handledEditId = editId;
     const c = contacts.find(x => x.id === editId);
-    console.log("editId reactive fired", { editId, found: !!c, contactsLen: contacts.length });
-    if (c) editContact(c);
+    if (c) setTimeout(() => editContact(c), 0);
     else loadEditFromId(editId);
   } else if (!editId) {
     handledEditId = null;
-  }
-
-  $: {
-    const matchingCalls = contacts.filter(c => c.call?.toUpperCase() === call.trim().toUpperCase());
-    console.log("tab debug", { prevContactCount, showForm, editingId, call: call.trim(), contactsLen: contacts.length, matchingCalls: matchingCalls.length, sampleContact: contacts[0] });
   }
 
   onMount(() => {
