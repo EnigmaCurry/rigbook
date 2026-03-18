@@ -177,9 +177,21 @@
     dispatch("addqso", spot);
   }
 
+  const MODE_NORMALIZE = {
+    "USB": "SSB", "LSB": "SSB", "AM": "SSB",
+    "CW-R": "CW", "CWR": "CW",
+    "FT8": "FT8", "FT4": "FT4",
+    "RTTY": "RTTY", "RTTY-R": "RTTY",
+  };
+
+  function normalizeMode(m) {
+    const u = (m || "").toUpperCase();
+    return MODE_NORMALIZE[u] || u;
+  }
+
   function isWorkedToday(spot) {
     const band = freqToBand(parseFloat(spot.frequency));
-    const key = `${(spot.activator || "").toUpperCase()}|${band}|${(spot.mode || "").toUpperCase()}|${(spot.reference || "").toUpperCase()}`;
+    const key = `${(spot.activator || "").toUpperCase()}|${band}|${normalizeMode(spot.mode)}|${(spot.reference || "").toUpperCase()}`;
     return workedTodayKeys.has(key);
   }
 
@@ -190,9 +202,8 @@
         const contacts = await res.json();
         const keys = new Set();
         for (const c of contacts) {
-          const freqMhz = parseFloat(c.freq);
-          const band = freqToBand(isNaN(freqMhz) ? 0 : freqMhz * 1000);
-          const key = `${(c.call || "").toUpperCase()}|${band}|${(c.mode || "").toUpperCase()}|${(c.pota_park || "").toUpperCase()}`;
+          const band = freqToBand(parseFloat(c.freq));
+          const key = `${(c.call || "").toUpperCase()}|${band}|${normalizeMode(c.mode)}|${(c.pota_park || "").toUpperCase()}`;
           keys.add(key);
         }
         workedTodayKeys = keys;
