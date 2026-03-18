@@ -1,8 +1,19 @@
 <script>
+  import { onMount } from "svelte";
+
+  let version = "";
+
+  onMount(async () => {
+    try {
+      const res = await fetch("/api/version");
+      const data = await res.json();
+      version = data.version;
+    } catch {}
+  });
 </script>
 
 <div class="about">
-  <h2>Rigbook</h2>
+  <h2>Rigbook {version ? `v${version}` : ""}</h2>
   <p>A ham radio logbook web application.</p>
   <p>
     <a href="https://github.com/EnigmaCurry/rigbook" target="_blank" rel="noopener">

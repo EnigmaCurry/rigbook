@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 from contextlib import asynccontextmanager
+from importlib.metadata import version
 from pathlib import Path
 
 import uvicorn
@@ -53,6 +54,11 @@ async def log_errors(request: Request, call_next):
             response.status_code,
         )
     return response
+
+
+@app.get("/api/version")
+async def get_version():
+    return {"version": version("rigbook")}
 
 
 app.include_router(contacts_router)
