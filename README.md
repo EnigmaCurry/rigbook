@@ -36,6 +36,21 @@ with a local web UI, optionally connected to your radio via
 - All timestamps in UTC with 24-hour format
 - Light and dark themes (toggle in Settings)
 
+## Binary Release
+
+Pre-built binaries are available from the
+[Releases](https://github.com/EnigmaCurry/rigbook/releases) page for
+Linux, macOS, and Windows (amd64 and arm64).
+
+1. Download the binary for your platform
+2. Make it executable (Linux/macOS): `chmod +x rigbook-*`
+3. Run it: `./rigbook-linux-amd64` (or whichever binary you downloaded)
+4. Open http://localhost:8073 in your browser
+
+The server binds to localhost only because Rigbook has no built-in
+authentication. Set `RIGBOOK_HOST` and `RIGBOOK_PORT` environment
+variables to change the bind address.
+
 ## Docker
 
 A pre-built image is available from GitHub Container Registry:
