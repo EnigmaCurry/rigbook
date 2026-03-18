@@ -47,6 +47,13 @@ Linux, macOS, and Windows (amd64 and arm64).
 3. Run it: `./rigbook-linux-amd64` (or whichever binary you downloaded)
 4. Open http://localhost:8073 in your browser
 
+**macOS:** The binary is unsigned, so macOS will block it by default.
+After downloading, remove the quarantine attribute:
+
+```bash
+xattr -d com.apple.quarantine rigbook-macos-arm64
+```
+
 The server binds to localhost only because Rigbook has no built-in
 authentication. Set `RIGBOOK_HOST` and `RIGBOOK_PORT` environment
 variables to change the bind address.
