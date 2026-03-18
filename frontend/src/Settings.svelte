@@ -8,7 +8,7 @@
   let hasQrzPassword = false;
   let flrig_host = "localhost";
   let flrig_port = "12345";
-  let wide_breakpoint = "1500";
+  let wide_breakpoint = "1200";
   let wide_mode_enabled = true;
   let theme = localStorage.getItem("rigbook-theme") || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
   let saving = false;
@@ -52,7 +52,7 @@
           if (s.key === "wide_breakpoint") {
             if (s.value === "0") {
               wide_mode_enabled = false;
-              wide_breakpoint = "1500";
+              wide_breakpoint = "1200";
             } else {
               wide_mode_enabled = true;
               wide_breakpoint = s.value || "1500";
