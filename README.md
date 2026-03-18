@@ -50,12 +50,7 @@ docker run -d --name rigbook \
 Open http://localhost:8073 in your browser. The port is bound to
 localhost only because Rigbook has no built-in authentication.
 
-The database is persisted in the `rigbook-data` volume. To build the
-image locally:
-
-```bash
-docker build -t rigbook .
-```
+The database is persisted in the `rigbook-data` volume.
 
 ## Requirements
 
