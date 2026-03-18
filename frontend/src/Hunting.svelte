@@ -461,10 +461,6 @@
     text-decoration: underline;
   }
 
-  .activator.worked-call {
-    text-decoration: line-through;
-    opacity: 0.7;
-  }
 
   .clickable {
     cursor: pointer;
