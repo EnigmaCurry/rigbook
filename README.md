@@ -67,9 +67,9 @@ A pre-built image is available from GitHub Container Registry:
 
 ```bash
 mkdir -p ${HOME}/.local/rigbook && \
-podman run -d --name rigbook \
+podman run --rm -it --name rigbook \
   --network=host \
-  -v ${HOME}/.local/rigbook:/home/rigbook/.local/rigbook \
+  -v ${HOME}/.local/rigbook:/root/.local/rigbook \
   ghcr.io/enigmacurry/rigbook:latest
 ```
 
