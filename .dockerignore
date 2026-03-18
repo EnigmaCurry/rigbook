@@ -1,0 +1,9 @@
+node_modules
+frontend/node_modules
+src/rigbook/static
+__pycache__
+*.pyc
+.git
+.github
+.ruff_cache
+*.egg-info
