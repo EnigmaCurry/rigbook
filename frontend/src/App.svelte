@@ -300,6 +300,17 @@
     fetchCallsign();
   }
 
+  async function tuneOnly(spot) {
+    try {
+      await fetch("/api/flrig/vfo", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ freq: String(parseFloat(spot.frequency) * 1000), mode: spot.mode }),
+      });
+      pollFlrig();
+    } catch {}
+  }
+
   async function tuneAndPrefill(spot) {
     try {
       await fetch("/api/flrig/vfo", {
@@ -539,14 +550,14 @@
   {:else if page === "add"}
     <Logbook showForm={true} {editId} {prefill} {vfoFreq} {vfoMode} on:editchange={e => { editId = e.detail; window.location.hash = e.detail ? `/log/${e.detail}` : "/add"; }} on:navigate={e => navigate(e.detail)} on:prefillconsumed={() => prefill = null} />
   {:else if page === "hunting"}
-    <Hunting on:tune={e => tuneAndPrefill(e.detail)} />
+    <Hunting on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
   {:else if page === "dual"}
     <div class="dual-layout">
       <div class="dual-pane">
         <Logbook showForm={dualShowForm || !!prefill || !!editId} {prefill} {editId} {vfoFreq} {vfoMode} on:editchange={e => { editId = e.detail; dualShowForm = !!e.detail; }} on:navigate={e => { if (e.detail === "hunting" || e.detail === "log" || e.detail === "back") { prefill = null; editId = null; dualShowForm = false; dualHunting?.refreshAwards(); } else navigate(e.detail); }} on:prefillconsumed={() => prefill = null} />
       </div>
       <div class="dual-pane">
-        <Hunting bind:this={dualHunting} on:tune={e => tuneAndPrefill(e.detail)} />
+        <Hunting bind:this={dualHunting} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
       </div>
     </div>
   {:else if page === "parks"}

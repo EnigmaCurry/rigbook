@@ -1,19 +1,8 @@
 <script>
-  import { onMount, tick, createEventDispatcher } from "svelte";
-  import L from "leaflet";
-  import "leaflet/dist/leaflet.css";
-  import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-  import markerIcon from "leaflet/dist/images/marker-icon.png";
-  import markerShadow from "leaflet/dist/images/marker-shadow.png";
-
-  delete L.Icon.Default.prototype._getIconUrl;
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: markerIcon2x,
-    iconUrl: markerIcon,
-    shadowUrl: markerShadow,
-  });
+  import { onMount, createEventDispatcher } from "svelte";
   import Autocomplete from "./Autocomplete.svelte";
   import GridMap from "./GridMap.svelte";
+  import ParkDetail from "./ParkDetail.svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
   import { parkAward, parkAwardTitle } from "./parkAward.js";
   import { countryFlag, prefixFromRef } from "./countryFlag.js";
@@ -361,54 +350,6 @@
   let potaParkName = "";
   let parkOverlay = null;
   let parkOverlayLoading = false;
-  let overlayMapEl;
-  let overlayMap = null;
-
-  let overlayFullscreen = false;
-
-  function addExpandControl(map, wrapEl) {
-    const ExpandControl = L.Control.extend({
-      options: { position: "topright" },
-      onAdd() {
-        const btn = L.DomUtil.create("div", "leaflet-bar leaflet-control map-expand-btn");
-        btn.innerHTML = "⛶";
-        btn.title = "Toggle fullscreen";
-        btn.onclick = (e) => {
-          e.stopPropagation();
-          overlayFullscreen = !overlayFullscreen;
-          if (overlayFullscreen) {
-            wrapEl.classList.add("map-fullscreen");
-          } else {
-            wrapEl.classList.remove("map-fullscreen");
-          }
-          setTimeout(() => map.invalidateSize(), 100);
-        };
-        return btn;
-      }
-    });
-    map.addControl(new ExpandControl());
-  }
-
-  function destroyOverlayMap() {
-    if (overlayMap) { overlayMap.remove(); overlayMap = null; }
-  }
-
-  async function renderOverlayMap() {
-    await tick();
-    destroyOverlayMap();
-    if (!overlayMapEl || !parkOverlay || parkOverlay.latitude == null) return;
-    overlayMap = L.map(overlayMapEl, { scrollWheelZoom: true });
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
-      maxZoom: 18,
-    }).addTo(overlayMap);
-    const ll = [parkOverlay.latitude, parkOverlay.longitude];
-    L.marker(ll).addTo(overlayMap)
-      .bindPopup(`<b>${parkOverlay.reference}</b><br>${parkOverlay.name || ""}`)
-      .openPopup();
-    overlayMap.setView(ll, 12);
-    addExpandControl(overlayMap, overlayMapEl);
-  }
 
   async function resolvePotaParkName() {
     const ref = pota_park.trim().toUpperCase();
@@ -499,23 +440,8 @@
   }
 
   function closeParkOverlay() {
-    if (overlayFullscreen && overlayMapEl) overlayMapEl.classList.remove("map-fullscreen");
-    overlayFullscreen = false;
-    destroyOverlayMap();
     parkOverlay = null;
     parkOverlayLoading = false;
-  }
-
-  function onParkOverlayKeydown(e) {
-    if (e.key === "Escape") {
-      if (overlayFullscreen && overlayMapEl) {
-        overlayMapEl.classList.remove("map-fullscreen");
-        overlayFullscreen = false;
-        setTimeout(() => overlayMap?.invalidateSize(), 100);
-        return;
-      }
-      closeParkOverlay();
-    }
   }
 
   async function openParkOverlay() {
@@ -531,7 +457,6 @@
       }
     } catch {}
     parkOverlayLoading = false;
-    if (parkOverlay) renderOverlayMap();
   }
 
   function editContact(c) {
@@ -1023,68 +948,26 @@
 {#if parkOverlay || parkOverlayLoading}
   <!-- svelte-ignore a11y-click-events-have-key-events -->
   <!-- svelte-ignore a11y-no-static-element-interactions -->
-  <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
-  <div class="park-overlay-backdrop" tabindex="0" on:click={closeParkOverlay} on:keydown={onParkOverlayKeydown} use:focusOverlay>
+  <div class="park-overlay-backdrop" on:click={closeParkOverlay}>
     <!-- svelte-ignore a11y-click-events-have-key-events -->
     <!-- svelte-ignore a11y-no-static-element-interactions -->
     <div class="park-overlay" on:click|stopPropagation>
-      <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <!-- svelte-ignore a11y-no-static-element-interactions -->
-      <span class="park-overlay-close" on:click={closeParkOverlay}>&times;</span>
+      <button class="park-overlay-close" on:click={closeParkOverlay}>X</button>
       {#if parkOverlayLoading}
         <p class="park-overlay-loading">Loading park...</p>
       {:else if parkOverlay}
-        <h3 class="park-overlay-ref">{parkOverlay.reference}</h3>
-        <p class="park-overlay-name">{parkOverlay.name}</p>
-        <div class="park-overlay-details">
-          <div class="park-overlay-row"><span class="park-overlay-label">Location</span> <span>{parkOverlay.location_name || ""} ({parkOverlay.location_desc})</span></div>
-          <div class="park-overlay-row"><span class="park-overlay-label">Country</span> <span>{countryFlag(prefixFromRef(parkOverlay.reference))} {parkOverlay.program_name || ""}</span></div>
-          {#if parkOverlay.grid}
-            <div class="park-overlay-row"><span class="park-overlay-label">Grid</span> <span>{parkOverlay.grid}</span></div>
-          {/if}
-          {#if parkOverlay.latitude != null && parkOverlay.longitude != null}
-            <div class="park-overlay-row"><span class="park-overlay-label">Coordinates</span> <span>{parkOverlay.latitude}, {parkOverlay.longitude}</span></div>
-          {/if}
-          {#if parkOverlay.activations != null}
-            <div class="park-overlay-row"><span class="park-overlay-label">Activations</span> <span>{parkOverlay.activations}</span></div>
-          {/if}
-          {#if parkOverlay.attempts != null}
-            <div class="park-overlay-row"><span class="park-overlay-label">Attempts</span> <span>{parkOverlay.attempts}</span></div>
-          {/if}
-          {#if parkOverlay.qsos != null}
-            <div class="park-overlay-row"><span class="park-overlay-label">QSOs</span> <span>{parkOverlay.qsos}</span></div>
-          {/if}
-          <div class="park-overlay-row">
-            <span class="park-overlay-label">My QSOs</span>
-            <span>{parkOverlay.my_qsos || 0} <span title="{parkAwardTitle(parkOverlay.my_qsos || 0)}">{parkAward(parkOverlay.my_qsos || 0)}</span></span>
-          </div>
-        </div>
-        {#if parkOverlay.latitude != null && parkOverlay.longitude != null}
-          <div class="park-map" bind:this={overlayMapEl}></div>
-        {/if}
-        <div class="park-overlay-links">
-          <a href="https://pota.app/#/park/{parkOverlay.reference}" target="_blank" rel="noopener">View on POTA</a>
-          <a href="#/parks/park/{encodeURIComponent(parkOverlay.reference)}">View details</a>
-        </div>
-        {#if parkOverlay.contacts && parkOverlay.contacts.length > 0}
-          <h4 class="park-overlay-qsos-heading">My QSOs ({parkOverlay.contacts.length})</h4>
-          <div class="park-overlay-qsos">
-            {#each parkOverlay.contacts as c}
-              <!-- svelte-ignore a11y-click-events-have-key-events -->
-              <!-- svelte-ignore a11y-no-static-element-interactions -->
-              <div class="park-overlay-qso-row" on:click={() => { closeParkOverlay(); window.location.hash = `/log/${c.id}`; }}>
-                <span class="poq-date">{c.timestamp ? c.timestamp.slice(0, 10) : ""}</span>
-                <span class="poq-call">{c.call}</span>
-                <span class="poq-name">{c.name || ""}</span>
-                <span class="poq-mode">{c.mode || ""}</span>
-              </div>
-            {/each}
-          </div>
-        {/if}
+        <ParkDetail park={parkOverlay} on:close={closeParkOverlay} />
+      {:else}
+        {@const parkRef = pota_park.trim().toUpperCase()}
+        {@const prefix = parkRef.match(/^([A-Z]{1,2})-/)?.[1] || ""}
+        <p class="park-overlay-loading">Park {parkRef} not found in cache.</p>
+        <p class="cache-link">Go to <a href="#/parks/download">Cache</a> to download park data{prefix ? ` for country code ${prefix}` : ""}.</p>
       {/if}
     </div>
   </div>
 {/if}
+
+<svelte:window on:keydown={e => { if ((parkOverlay || parkOverlayLoading) && e.key === "Escape") closeParkOverlay(); }} />
 
 <style>
   .logbook-layout {
@@ -1498,7 +1381,7 @@
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.6);
-    z-index: 200;
+    z-index: 10000;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1507,10 +1390,12 @@
   .park-overlay {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 8px;
     padding: 1.5rem;
-    max-width: 500px;
-    width: 90%;
+    max-width: 900px;
+    width: 95%;
+    max-height: 80vh;
+    overflow-y: auto;
     position: relative;
   }
 
@@ -1518,10 +1403,13 @@
     position: absolute;
     top: 0.5rem;
     right: 0.75rem;
-    font-size: 1.4rem;
-    color: var(--text-dim);
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1rem;
+    font-family: inherit;
+    font-weight: bold;
     cursor: pointer;
-    line-height: 1;
   }
 
   .park-overlay-close:hover {
@@ -1533,107 +1421,17 @@
     font-style: italic;
   }
 
-  .park-overlay-ref {
-    color: var(--accent-vfo);
-    font-size: 1.3rem;
-    margin: 0 0 0.25rem 0;
-  }
-
-  .park-overlay-name {
-    font-size: 1.1rem;
-    color: var(--text);
-    margin: 0 0 1rem 0;
-  }
-
-  .park-overlay-details {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    margin-bottom: 1rem;
-  }
-
-  .park-overlay-row {
-    display: flex;
-    gap: 0.75rem;
+  .cache-link {
     font-size: 0.9rem;
   }
 
-  .park-overlay-label {
-    color: var(--text-dim);
-    min-width: 10ch;
-    flex-shrink: 0;
-  }
-
-  .park-map {
-    width: 100%;
-    height: 200px;
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    margin-bottom: 0.75rem;
-  }
-
-  .park-overlay-links {
-    display: flex;
-    gap: 1rem;
-  }
-
-  .park-overlay-links a {
+  .cache-link a {
     color: var(--accent);
     text-decoration: none;
-    font-size: 0.85rem;
   }
 
-  .park-overlay-links a:hover {
+  .cache-link a:hover {
     text-decoration: underline;
-  }
-
-  .park-overlay-qsos-heading {
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    margin: 0.75rem 0 0.4rem 0;
-  }
-
-  .park-overlay-qsos {
-    max-height: 150px;
-    overflow-y: auto;
-  }
-
-  .park-overlay-qso-row {
-    display: flex;
-    gap: 0.5rem;
-    padding: 0.2rem 0.3rem;
-    font-size: 0.8rem;
-    cursor: pointer;
-    border-radius: 3px;
-    line-height: 1.5;
-  }
-
-  .park-overlay-qso-row:hover {
-    background: var(--row-hover);
-  }
-
-  .poq-date {
-    color: var(--text-dim);
-    flex-shrink: 0;
-  }
-
-  .poq-call {
-    color: var(--accent-callsign);
-    font-weight: bold;
-    flex-shrink: 0;
-  }
-
-  .poq-name {
-    color: var(--text);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .poq-mode {
-    color: var(--text-dim);
-    flex-shrink: 0;
-    margin-left: auto;
   }
 
   .pota-ac {
@@ -1708,37 +1506,5 @@
     color: var(--bg);
   }
 
-  :global(.map-expand-btn) {
-    width: 30px;
-    height: 30px;
-    line-height: 30px;
-    text-align: center;
-    font-size: 1.2rem;
-    cursor: pointer;
-    background: white;
-  }
-
-  :global(.map-expand-btn:hover) {
-    background: #f4f4f4;
-  }
-
-  :global(.map-fullscreen) {
-    position: fixed !important;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 10000;
-    width: 100% !important;
-    height: 100% !important;
-    max-width: none !important;
-    border-radius: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  :global(.leaflet-attribution-flag) {
-    display: none !important;
-  }
 
 </style>

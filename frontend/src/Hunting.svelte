@@ -3,6 +3,7 @@
   import { createEventDispatcher } from "svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
   import { parkAward, parkAwardTitle } from "./parkAward.js";
+  import ParkDetail from "./ParkDetail.svelte";
 
   const dispatch = createEventDispatcher();
 
@@ -16,6 +17,12 @@
   let newSpotKeys = new Set();
   let myParkQsos = {};
   let myCallCounts = {};
+  let workedTodayKeys = new Set();
+
+  // Park modal state
+  let modalParkRef = null;
+  let modalParkDetail = null;
+  let modalParkLoading = false;
 
   const DIGIT_EMOJIS = ["", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"];
 
@@ -134,6 +141,7 @@
     return true;
   });
 
+
   async function fetchSpots() {
     try {
       const res = await fetch("/api/pota/spots");
@@ -166,15 +174,88 @@
     dispatch("tune", spot);
   }
 
+  function addQsoFromSpot(spot) {
+    dispatch("addqso", spot);
+  }
+
+  const MODE_NORMALIZE = {
+    "USB": "SSB", "LSB": "SSB",
+    "CW-R": "CW", "CWR": "CW",
+    "FT8": "FT8", "FT4": "FT4",
+    "RTTY": "RTTY", "RTTY-R": "RTTY",
+  };
+
+  function normalizeMode(m) {
+    const u = (m || "").toUpperCase();
+    return MODE_NORMALIZE[u] || u;
+  }
+
+  function isWorkedToday(spot) {
+    const band = freqToBand(parseFloat(spot.frequency));
+    const mode = normalizeMode(spot.mode);
+    if (!mode || mode === "?") {
+      const prefix = `${(spot.activator || "").toUpperCase()}|${band}|`;
+      const suffix = `|${(spot.reference || "").toUpperCase()}`;
+      for (const k of workedTodayKeys) {
+        if (k.startsWith(prefix) && k.endsWith(suffix)) return true;
+      }
+      return false;
+    }
+    const key = `${(spot.activator || "").toUpperCase()}|${band}|${mode}|${(spot.reference || "").toUpperCase()}`;
+    return workedTodayKeys.has(key);
+  }
+
+  async function fetchTodayPota() {
+    try {
+      const res = await fetch("/api/contacts/today-pota");
+      if (res.ok) {
+        const contacts = await res.json();
+        const keys = new Set();
+        for (const c of contacts) {
+          const band = freqToBand(parseFloat(c.freq));
+          const key = `${(c.call || "").toUpperCase()}|${band}|${normalizeMode(c.mode)}|${(c.pota_park || "").toUpperCase()}`;
+          keys.add(key);
+        }
+        workedTodayKeys = keys;
+      }
+    } catch {}
+  }
+
+  async function openParkModal(ref) {
+    modalParkRef = ref;
+    modalParkDetail = null;
+    modalParkLoading = true;
+    try {
+      const res = await fetch(`/api/pota/park/${encodeURIComponent(ref)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (!data.error) modalParkDetail = data;
+      }
+    } catch {}
+    modalParkLoading = false;
+  }
+
+  function closeParkModal() {
+    modalParkRef = null;
+    modalParkDetail = null;
+    modalParkLoading = false;
+  }
+
+  function onModalKeydown(e) {
+    if (e.key === "Escape") closeParkModal();
+  }
+
   export function refreshAwards() {
     fetchMyParks();
     fetchCallCounts();
+    fetchTodayPota();
   }
 
   onMount(() => {
     fetchSpots();
     fetchMyParks();
     fetchCallCounts();
+    fetchTodayPota();
     pollInterval = setInterval(fetchSpots, 30000);
   });
 
@@ -212,17 +293,29 @@
   {:else}
     <div class="grid">
       {#each filteredSpots as spot}
-        <div class="card" class:new-spot={newSpotKeys.has(spotKey(spot))} on:click={() => tuneToSpot(spot)} on:keydown={e => e.key === "Enter" && tuneToSpot(spot)} tabindex="0" role="button">
+        <div class="card" class:new-spot={newSpotKeys.has(spotKey(spot))} class:worked={workedTodayKeys && isWorkedToday(spot)}>
           <div class="card-header">
-            <span class="activator">{spot.activator}</span>
+            {#if workedTodayKeys && isWorkedToday(spot)}
+              <span class="activator worked-call" title="Already worked today">{spot.activator}</span>
+            {:else}
+              <!-- svelte-ignore a11y-click-events-have-key-events -->
+              <!-- svelte-ignore a11y-no-static-element-interactions -->
+              <span class="activator clickable" on:click={() => addQsoFromSpot(spot)} title="Add QSO">{spot.activator}</span>
+            {/if}
             <span class="badge mode">{spot.mode || "?"}</span>
             <span class="badge band" style="background: {bandColor(freqToBand(spot.frequency))}; color: {bandTextColor(freqToBand(spot.frequency))}">{freqToBand(spot.frequency) || "?"}</span>
             {#if myCallCounts[spot.activator]}<span class="call-count" title="{callCountTitle(myCallCounts[spot.activator], spot.activator)}">{callCountEmoji(myCallCounts[spot.activator])}</span>{/if}
           </div>
-          <div class="park-name">{spot.name || spot.reference}</div>
-          <div class="park-ref" title="{myParkQsos[spot.reference] ? parkQsoTitle(myParkQsos[spot.reference], spot.reference) : ''}">{#if myParkQsos[spot.reference]}{parkAward(myParkQsos[spot.reference].count)}{/if}{spot.reference} — {spot.locationDesc}</div>
+          <!-- svelte-ignore a11y-click-events-have-key-events -->
+          <!-- svelte-ignore a11y-no-static-element-interactions -->
+          <div class="park-name clickable" on:click={() => openParkModal(spot.reference)}>{spot.name || spot.reference}</div>
+          <!-- svelte-ignore a11y-click-events-have-key-events -->
+          <!-- svelte-ignore a11y-no-static-element-interactions -->
+          <div class="park-ref" title="{myParkQsos[spot.reference] ? parkQsoTitle(myParkQsos[spot.reference], spot.reference) : ''}">{#if myParkQsos[spot.reference]}{parkAward(myParkQsos[spot.reference].count)}{/if}<span class="clickable" on:click={() => openParkModal(spot.reference)}>{spot.reference}</span> — {spot.locationDesc}</div>
           <div class="card-details">
-            <span class="freq">{formatFreq(spot.frequency)} KHz</span>
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <span class="freq clickable" on:click={() => tuneToSpot(spot)} title="Tune radio">{formatFreq(spot.frequency)} KHz</span>
             <span class="grid-sq">{spot.grid4 || ""}</span>
             <span class="time">{timeAgo(spot.spotTime)}</span>
           </div>
@@ -238,6 +331,29 @@
     </div>
   {/if}
 </div>
+
+{#if modalParkRef}
+  <!-- svelte-ignore a11y-click-events-have-key-events -->
+  <!-- svelte-ignore a11y-no-static-element-interactions -->
+  <div class="modal-backdrop" on:click={closeParkModal}>
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <div class="modal-content" on:click|stopPropagation on:keydown={onModalKeydown}>
+      <button class="modal-close" on:click={closeParkModal}>X</button>
+      {#if modalParkLoading}
+        <p class="status">Loading park details...</p>
+      {:else if modalParkDetail}
+        <ParkDetail park={modalParkDetail} on:close={closeParkModal} />
+      {:else}
+        {@const prefix = modalParkRef.match(/^([A-Z]{1,2})-/)?.[1] || ""}
+        <p class="status">Park {modalParkRef} not found in cache.</p>
+        <p class="cache-link">Go to <a href="#/parks/download">Cache</a> to download park data{prefix ? ` for country code ${prefix}` : ""}.</p>
+      {/if}
+    </div>
+  </div>
+{/if}
+
+<svelte:window on:keydown={e => { if (modalParkRef && e.key === "Escape") closeParkModal(); }} />
 
 <style>
   .hunting {
@@ -316,17 +432,11 @@
     border: 1px solid var(--border);
     border-radius: 6px;
     padding: 0.75rem;
-    cursor: pointer;
     transition: border-color 0.15s;
   }
 
-  .card:hover {
-    border-color: var(--accent);
-  }
-
-  .card:focus {
-    outline: none;
-    border-color: var(--accent);
+  .card.worked {
+    opacity: 0.5;
   }
 
   .card.new-spot {
@@ -350,6 +460,23 @@
     color: var(--accent-callsign);
     font-weight: bold;
     font-size: 1rem;
+  }
+
+  .activator.clickable {
+    cursor: pointer;
+  }
+
+  .activator.clickable:hover {
+    text-decoration: underline;
+  }
+
+
+  .clickable {
+    cursor: pointer;
+  }
+
+  .clickable:hover {
+    text-decoration: underline;
   }
 
   .call-count {
@@ -429,4 +556,60 @@
   .count {
     color: #658a62;
   }
+
+  .modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    max-width: 900px;
+    width: 95%;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1rem;
+    font-family: inherit;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .modal-close:hover {
+    color: var(--text);
+  }
+
+  .cache-link {
+    font-size: 0.9rem;
+  }
+
+  .cache-link a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .cache-link a:hover {
+    text-decoration: underline;
+  }
+
 </style>

@@ -58,6 +58,8 @@ def _fix_program_name(name: str, prefix: str = "") -> str:
     if prefix and prefix in _program_name_cache:
         return _program_name_cache[prefix]
     return name
+
+
 _spots_lock = None
 
 
@@ -138,9 +140,7 @@ async def _fetch_and_cache_programs(session: AsyncSession):
 
 @router.get("/programs")
 async def get_programs(session: AsyncSession = Depends(get_session)):
-    row = (
-        await session.execute(select(func.min(PotaProgram.fetched_at)))
-    ).scalar()
+    row = (await session.execute(select(func.min(PotaProgram.fetched_at)))).scalar()
 
     if row is None or time.time() - row > TTL:
         await _fetch_and_cache_programs(session)
@@ -188,9 +188,7 @@ async def get_programs(session: AsyncSession = Depends(get_session)):
 
 async def _get_selected(session: AsyncSession) -> set[str]:
     row = (
-        await session.execute(
-            select(Setting.value).where(Setting.key == SELECTED_KEY)
-        )
+        await session.execute(select(Setting.value).where(Setting.key == SELECTED_KEY))
     ).scalar()
     if row:
         return set(json.loads(row))
@@ -198,9 +196,7 @@ async def _get_selected(session: AsyncSession) -> set[str]:
 
 
 @router.get("/programs/{prefix}/locations")
-async def get_locations(
-    prefix: str, session: AsyncSession = Depends(get_session)
-):
+async def get_locations(prefix: str, session: AsyncSession = Depends(get_session)):
     locations = (
         (
             await session.execute(
@@ -239,9 +235,7 @@ async def set_selected_programs(
 ):
     prefixes = body.get("prefixes", [])
     existing = (
-        await session.execute(
-            select(Setting).where(Setting.key == SELECTED_KEY)
-        )
+        await session.execute(select(Setting).where(Setting.key == SELECTED_KEY))
     ).scalar_one_or_none()
     if existing:
         existing.value = json.dumps(prefixes)
@@ -262,9 +256,7 @@ async def fetch_parks_for_selected(session: AsyncSession = Depends(get_session))
     locations = (
         (
             await session.execute(
-                select(PotaLocation).where(
-                    PotaLocation.program_prefix.in_(selected)
-                )
+                select(PotaLocation).where(PotaLocation.program_prefix.in_(selected))
             )
         )
         .scalars()
@@ -297,9 +289,7 @@ async def fetch_parks_for_selected(session: AsyncSession = Depends(get_session))
 
                 async with async_session() as s:
                     await s.execute(
-                        delete(PotaPark).where(
-                            PotaPark.location_desc == loc.descriptor
-                        )
+                        delete(PotaPark).where(PotaPark.location_desc == loc.descriptor)
                     )
                     t = time.time()
                     for p in parks_data:
@@ -319,7 +309,9 @@ async def fetch_parks_for_selected(session: AsyncSession = Depends(get_session))
                         )
                     # Mark location as fetched
                     await s.execute(
-                        text("UPDATE pota_locations SET parks_fetched_at = :t WHERE descriptor = :d"),
+                        text(
+                            "UPDATE pota_locations SET parks_fetched_at = :t WHERE descriptor = :d"
+                        ),
                         {"t": t, "d": loc.descriptor},
                     )
                     await s.commit()
@@ -377,7 +369,9 @@ async def search_parks(q: str = "", session: AsyncSession = Depends(get_session)
             "location_desc": p.location_desc,
             "grid": p.grid,
             "location_name": loc_name,
-            "program_name": _fix_program_name(prog_name, p.reference.split("-")[0] if p.reference else ""),
+            "program_name": _fix_program_name(
+                prog_name, p.reference.split("-")[0] if p.reference else ""
+            ),
         }
         for p, loc_name, prog_name in rows
     ]
@@ -402,20 +396,26 @@ async def get_my_parks(session: AsyncSession = Depends(get_session)):
     results = []
     for pota_park, qso_count, last_contact in rows:
         park = (
-            await session.execute(
-                select(PotaPark).where(PotaPark.reference == pota_park)
+            (
+                await session.execute(
+                    select(PotaPark).where(PotaPark.reference == pota_park)
+                )
             )
-        ).scalars().first()
-        results.append({
-            "reference": pota_park,
-            "name": park.name if park else None,
-            "latitude": park.latitude if park else None,
-            "longitude": park.longitude if park else None,
-            "grid": park.grid if park else None,
-            "location_desc": park.location_desc if park else None,
-            "qso_count": qso_count,
-            "last_contact": last_contact.isoformat() if last_contact else None,
-        })
+            .scalars()
+            .first()
+        )
+        results.append(
+            {
+                "reference": pota_park,
+                "name": park.name if park else None,
+                "latitude": park.latitude if park else None,
+                "longitude": park.longitude if park else None,
+                "grid": park.grid if park else None,
+                "location_desc": park.location_desc if park else None,
+                "qso_count": qso_count,
+                "last_contact": last_contact.isoformat() if last_contact else None,
+            }
+        )
     return results
 
 
@@ -445,12 +445,16 @@ async def get_park(reference: str, session: AsyncSession = Depends(get_session))
     p, loc_name, prog_name = park
 
     my_qsos_rows = (
-        await session.execute(
-            select(Contact)
-            .where(Contact.pota_park == ref)
-            .order_by(Contact.timestamp.desc())
+        (
+            await session.execute(
+                select(Contact)
+                .where(Contact.pota_park == ref)
+                .order_by(Contact.timestamp.desc())
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     contacts = [
         {
@@ -479,14 +483,14 @@ async def get_park(reference: str, session: AsyncSession = Depends(get_session))
         "my_qsos": len(contacts),
         "contacts": contacts,
         "location_name": loc_name,
-        "program_name": _fix_program_name(prog_name, p.reference.split("-")[0] if p.reference else ""),
+        "program_name": _fix_program_name(
+            prog_name, p.reference.split("-")[0] if p.reference else ""
+        ),
     }
 
 
 @router.get("/locations/{descriptor}/parks")
-async def get_parks(
-    descriptor: str, session: AsyncSession = Depends(get_session)
-):
+async def get_parks(descriptor: str, session: AsyncSession = Depends(get_session)):
     parks = (
         (
             await session.execute(
