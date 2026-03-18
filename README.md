@@ -73,7 +73,7 @@ podman run -d --name rigbook \
 Open http://localhost:8073 in your browser. The port is bound to
 localhost only because Rigbook has no built-in authentication.
 
-## Requirements
+## Development Requirements
 
 - [Python](https://www.python.org/) 3.12+
 - [uv](https://docs.astral.sh/uv/getting-started/installation/) (Python package manager)
@@ -81,7 +81,7 @@ localhost only because Rigbook has no built-in authentication.
 - [just](https://github.com/casey/just) (command runner, optional but recommended)
 - [flrig](http://www.w1hkj.com/flrig-help/) (optional, for radio integration)
 
-## Installation
+## Development Installation
 
 ```bash
 git clone https://github.com/EnigmaCurry/rigbook.git
@@ -92,7 +92,7 @@ just deps
 
 ```
 
-## Usage
+## Development Usage
 
 ```bash
 # Build frontend and start the server
@@ -252,22 +252,6 @@ standard).
 The database is stored at `~/.local/rigbook/rigbook.db` (SQLite). It is
 created automatically on first run.
 
-## Development
-
-```bash
-# In one terminal, run the backend
-just run
-
-# In another terminal, run the frontend dev server with hot reload
-just dev
-
-# Lint and format
-just check
-just fix
-
-# Run tests
-just test
-```
 
 ### Available just recipes
 
