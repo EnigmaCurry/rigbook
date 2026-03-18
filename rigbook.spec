@@ -12,6 +12,7 @@ a = Analysis(
     datas=[(str(static_dir), "static")] if static_dir.is_dir() else [],
     hiddenimports=[
         "aiosqlite",
+        "greenlet",
         "sqlalchemy.dialects.sqlite",
         "sqlalchemy.dialects.sqlite.aiosqlite",
         "uvicorn.logging",
