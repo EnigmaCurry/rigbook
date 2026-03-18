@@ -891,13 +891,11 @@
     </div>
     <div class="field">
       <label for="skcc">SKCC</label>
-      <div class="skcc-row">
-        <input id="skcc" type="text" bind:value={skcc} on:input={stripSkcc} style="text-transform: uppercase" />
-        <label class="skcc-exch-label" title="Valid SKCC exchange (RST, QTH, Name, SKCC#)">
-          <input type="checkbox" bind:checked={skcc_exch} />
-          Exch
-        </label>
-      </div>
+      <input id="skcc" type="text" bind:value={skcc} on:input={stripSkcc} style="text-transform: uppercase" />
+    </div>
+    <div class="field">
+      <label for="skcc_exch">Exchanged?</label>
+      <input id="skcc_exch" type="checkbox" bind:checked={skcc_exch} title="Valid SKCC exchange (RST, QTH, Name, SKCC#)" />
     </div>
     <div class="field wide">
       <label for="comments">Comments (public)</label>
@@ -1676,24 +1674,4 @@
     display: none !important;
   }
 
-  .skcc-row {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-  }
-  .skcc-row input[type="text"] {
-    flex: 1;
-    min-width: 0;
-  }
-  .skcc-exch-label {
-    display: flex;
-    align-items: center;
-    gap: 0.2rem;
-    font-size: 0.8rem;
-    white-space: nowrap;
-    cursor: pointer;
-  }
-  .skcc-exch-label input[type="checkbox"] {
-    margin: 0;
-  }
 </style>
