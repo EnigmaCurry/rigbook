@@ -88,8 +88,9 @@ localhost only because Rigbook has no built-in authentication.
 ### Dev Installation
 
 ```bash
-git clone https://github.com/EnigmaCurry/rigbook.git
-cd rigbook
+git clone https://github.com/EnigmaCurry/rigbook.git \
+          ~/git/vendor/enigmacurry/rigbook
+cd ~/git/vendor/enigmacurry/rigbook
 
 # Install all dependencies:
 just deps
