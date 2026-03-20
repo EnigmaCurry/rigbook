@@ -137,12 +137,12 @@
     return i > 0 ? ref.slice(0, i) : ref;
   }
 
-  $: modes = [...new Set(spots.map(s => s.mode).filter(Boolean))].sort();
-  $: bands = [...new Set(spots.map(s => freqToBand(s.frequency)).filter(Boolean))].sort((a, b) => {
+  $: modes = [...new Set([...spots.map(s => s.mode), filterMode].filter(Boolean))].sort();
+  $: bands = [...new Set([...spots.map(s => freqToBand(s.frequency)), filterBand].filter(Boolean))].sort((a, b) => {
     const order = Object.keys(BANDS);
     return order.indexOf(a) - order.indexOf(b);
   });
-  $: programs = [...new Set(spots.map(s => spotProgram(s)).filter(Boolean))].sort();
+  $: programs = [...new Set([...spots.map(s => spotProgram(s)), filterProgram].filter(Boolean))].sort();
 
   $: filteredSpots = spots.filter(s => {
     if (filterMode && s.mode !== filterMode) return false;
