@@ -1,6 +1,8 @@
 import pycountry
 from fastapi import APIRouter
 
+from rigbook.dxcc import ISO_TO_DXCC, dxcc_country
+
 router = APIRouter(prefix="/api/geo", tags=["geo"])
 
 COUNTRY_NAME_OVERRIDES: dict[str, str] = {
@@ -26,7 +28,12 @@ async def list_countries():
         aliases = [c.alpha_2]
         if c.alpha_2 in COUNTRY_ALIASES:
             aliases = COUNTRY_ALIASES[c.alpha_2]
-        results.append({"code": c.alpha_2, "name": name, "aliases": aliases})
+        entry = {"code": c.alpha_2, "name": name, "aliases": aliases}
+        dxcc_code = ISO_TO_DXCC.get(c.alpha_2)
+        if dxcc_code is not None:
+            entry["dxcc"] = dxcc_code
+            entry["dxcc_name"] = dxcc_country(dxcc_code) or ""
+        results.append(entry)
     return results
 
 

@@ -214,10 +214,15 @@
   }
 
   function onCountryChange() {
-    dxcc = null;
-    dxccName = "";
     state = "";
     const match = countries.find(c => c.name === country);
+    if (match && match.dxcc != null) {
+      dxcc = match.dxcc;
+      dxccName = match.dxcc_name || "";
+    } else {
+      dxcc = null;
+      dxccName = "";
+    }
     fetchSubdivisions(match ? match.code : "");
   }
 

@@ -416,3 +416,253 @@ def dxcc_country(code: int | str | None) -> str | None:
         return DXCC_ENTITIES.get(int(code))
     except (ValueError, TypeError):
         return None
+
+
+# ISO 3166-1 alpha-2 to primary DXCC entity code
+ISO_TO_DXCC: dict[str, int] = {
+    "AD": 203,  # Andorra
+    "AF": 3,  # Afghanistan
+    "AG": 94,  # Antigua & Barbuda
+    "AI": 12,  # Anguilla
+    "AL": 7,  # Albania
+    "AM": 14,  # Armenia
+    "AO": 401,  # Angola
+    "AQ": 13,  # Antarctica
+    "AR": 100,  # Argentina
+    "AS": 9,  # American Samoa
+    "AT": 206,  # Austria
+    "AU": 150,  # Australia
+    "AW": 91,  # Aruba
+    "AX": 5,  # Aland Is.
+    "AZ": 18,  # Azerbaijan
+    "BA": 501,  # Bosnia-Herzegovina
+    "BB": 62,  # Barbados
+    "BD": 305,  # Bangladesh
+    "BE": 209,  # Belgium
+    "BF": 480,  # Burkina Faso
+    "BG": 212,  # Bulgaria
+    "BH": 304,  # Bahrain
+    "BI": 404,  # Burundi
+    "BJ": 416,  # Benin
+    "BL": 516,  # Saint Barthelemy
+    "BM": 64,  # Bermuda
+    "BN": 345,  # Brunei Darussalam
+    "BO": 104,  # Bolivia
+    "BQ": 520,  # Bonaire
+    "BR": 108,  # Brazil
+    "BS": 60,  # Bahamas
+    "BT": 306,  # Bhutan
+    "BV": 24,  # Bouvet
+    "BW": 402,  # Botswana
+    "BY": 27,  # Belarus
+    "BZ": 66,  # Belize
+    "CA": 1,  # Canada
+    "CC": 38,  # Cocos (Keeling) Is.
+    "CD": 414,  # Democratic Republic of the Congo
+    "CF": 408,  # Central Africa
+    "CG": 412,  # Republic of the Congo
+    "CH": 287,  # Switzerland
+    "CI": 428,  # Cote d'Ivoire
+    "CK": 234,  # South Cook Is.
+    "CL": 112,  # Chile
+    "CM": 406,  # Cameroon
+    "CN": 318,  # China
+    "CO": 116,  # Colombia
+    "CR": 308,  # Costa Rica
+    "CU": 70,  # Cuba
+    "CV": 409,  # Cape Verde
+    "CW": 517,  # Curacao
+    "CX": 35,  # Christmas I.
+    "CY": 215,  # Cyprus
+    "CZ": 503,  # Czech Republic
+    "DE": 81,  # Germany
+    "DJ": 382,  # Djibouti
+    "DK": 221,  # Denmark
+    "DM": 95,  # Dominica
+    "DO": 72,  # Dominican Republic
+    "DZ": 400,  # Algeria
+    "EC": 120,  # Ecuador
+    "EE": 52,  # Estonia
+    "EG": 478,  # Egypt
+    "EH": 302,  # Western Sahara
+    "ER": 51,  # Eritrea
+    "ES": 281,  # Spain
+    "ET": 53,  # Ethiopia
+    "FI": 224,  # Finland
+    "FJ": 176,  # Fiji
+    "FK": 141,  # Falkland Is.
+    "FM": 173,  # Micronesia
+    "FO": 222,  # Faroe Is.
+    "FR": 227,  # France
+    "GA": 420,  # Gabon
+    "GB": 223,  # England
+    "GD": 77,  # Grenada
+    "GE": 75,  # Georgia
+    "GF": 63,  # French Guiana
+    "GG": 106,  # Guernsey
+    "GH": 424,  # Ghana
+    "GI": 233,  # Gibraltar
+    "GL": 237,  # Greenland
+    "GM": 422,  # The Gambia
+    "GN": 107,  # Guinea
+    "GP": 79,  # Guadeloupe
+    "GQ": 49,  # Equatorial Guinea
+    "GR": 236,  # Greece
+    "GS": 235,  # South Georgia I.
+    "GT": 76,  # Guatemala
+    "GU": 103,  # Guam
+    "GW": 109,  # Guinea-Bissau
+    "GY": 129,  # Guyana
+    "HK": 321,  # Hong Kong
+    "HM": 111,  # Heard I.
+    "HN": 80,  # Honduras
+    "HR": 497,  # Croatia
+    "HT": 78,  # Haiti
+    "HU": 239,  # Hungary
+    "ID": 327,  # Indonesia
+    "IE": 245,  # Ireland
+    "IL": 336,  # Israel
+    "IM": 114,  # Isle of Man
+    "IN": 324,  # India
+    "IQ": 333,  # Iraq
+    "IR": 330,  # Iran
+    "IS": 242,  # Iceland
+    "IT": 248,  # Italy
+    "JE": 122,  # Jersey
+    "JM": 82,  # Jamaica
+    "JO": 342,  # Jordan
+    "JP": 339,  # Japan
+    "KE": 430,  # Kenya
+    "KG": 135,  # Kyrgyzstan
+    "KH": 312,  # Cambodia
+    "KI": 301,  # W. Kiribati (Gilbert Is.)
+    "KM": 411,  # Comoros
+    "KN": 249,  # St. Kitts & Nevis
+    "KP": 344,  # Democratic People's Rep. of Korea
+    "KR": 137,  # Republic of Korea
+    "KW": 348,  # Kuwait
+    "KY": 69,  # Cayman Is.
+    "KZ": 130,  # Kazakhstan
+    "LA": 143,  # Laos
+    "LB": 354,  # Lebanon
+    "LC": 97,  # St. Lucia
+    "LI": 251,  # Liechtenstein
+    "LK": 315,  # Sri Lanka
+    "LR": 434,  # Liberia
+    "LS": 432,  # Lesotho
+    "LT": 146,  # Lithuania
+    "LU": 254,  # Luxembourg
+    "LV": 145,  # Latvia
+    "LY": 436,  # Libya
+    "MA": 446,  # Morocco
+    "MC": 260,  # Monaco
+    "MD": 179,  # Moldova
+    "ME": 514,  # Montenegro
+    "MF": 213,  # Saint Martin
+    "MG": 438,  # Madagascar
+    "MH": 168,  # Marshall Is.
+    "MK": 502,  # North Macedonia
+    "ML": 442,  # Mali
+    "MM": 309,  # Myanmar
+    "MN": 363,  # Mongolia
+    "MO": 152,  # Macao
+    "MQ": 84,  # Martinique
+    "MR": 444,  # Mauritania
+    "MS": 96,  # Montserrat
+    "MT": 257,  # Malta
+    "MU": 165,  # Mauritius
+    "MV": 159,  # Maldives
+    "MW": 440,  # Malawi
+    "MX": 50,  # Mexico
+    "MY": 299,  # West Malaysia
+    "MZ": 181,  # Mozambique
+    "NA": 464,  # Namibia
+    "NC": 162,  # New Caledonia
+    "NE": 187,  # Niger
+    "NF": 189,  # Norfolk I.
+    "NG": 450,  # Nigeria
+    "NI": 86,  # Nicaragua
+    "NL": 263,  # Netherlands
+    "NO": 266,  # Norway
+    "NP": 369,  # Nepal
+    "NR": 157,  # Nauru
+    "NU": 188,  # Niue
+    "NZ": 170,  # New Zealand
+    "OM": 370,  # Oman
+    "PA": 88,  # Panama
+    "PE": 136,  # Peru
+    "PF": 175,  # French Polynesia
+    "PG": 163,  # Papua New Guinea
+    "PH": 375,  # Philippines
+    "PK": 372,  # Pakistan
+    "PL": 269,  # Poland
+    "PM": 277,  # St. Pierre & Miquelon
+    "PN": 172,  # Pitcairn I.
+    "PR": 202,  # Puerto Rico
+    "PS": 510,  # Palestine
+    "PT": 272,  # Portugal
+    "PW": 22,  # Palau
+    "PY": 132,  # Paraguay
+    "QA": 376,  # Qatar
+    "RE": 453,  # Reunion I.
+    "RO": 275,  # Romania
+    "RS": 296,  # Serbia
+    "RU": 54,  # European Russia
+    "RW": 454,  # Rwanda
+    "SA": 378,  # Saudi Arabia
+    "SB": 185,  # Solomon Is.
+    "SC": 379,  # Seychelles
+    "SD": 466,  # Sudan
+    "SE": 284,  # Sweden
+    "SG": 381,  # Singapore
+    "SH": 250,  # St. Helena
+    "SI": 499,  # Slovenia
+    "SJ": 259,  # Svalbard
+    "SK": 504,  # Slovak Republic
+    "SL": 458,  # Sierra Leone
+    "SM": 278,  # San Marino
+    "SN": 456,  # Senegal
+    "SO": 232,  # Somalia
+    "SR": 140,  # Suriname
+    "SS": 521,  # South Sudan
+    "ST": 219,  # Sao Tome & Principe
+    "SV": 74,  # El Salvador
+    "SX": 518,  # Sint Maarten
+    "SY": 384,  # Syria
+    "SZ": 468,  # Kingdom of Eswatini
+    "TC": 89,  # Turks & Caicos Is.
+    "TD": 410,  # Chad
+    "TG": 483,  # Togo
+    "TH": 387,  # Thailand
+    "TJ": 262,  # Tajikistan
+    "TK": 270,  # Tokelau Is.
+    "TL": 511,  # Timor-Leste
+    "TM": 280,  # Turkmenistan
+    "TN": 474,  # Tunisia
+    "TO": 160,  # Tonga
+    "TR": 390,  # Turkey
+    "TT": 90,  # Trinidad & Tobago
+    "TV": 282,  # Tuvalu
+    "TW": 386,  # Taiwan
+    "TZ": 470,  # Tanzania
+    "UA": 288,  # Ukraine
+    "UG": 286,  # Uganda
+    "US": 291,  # United States of America
+    "UY": 144,  # Uruguay
+    "UZ": 292,  # Uzbekistan
+    "VA": 295,  # Vatican
+    "VC": 98,  # St. Vincent
+    "VE": 148,  # Venezuela
+    "VG": 65,  # British Virgin Is.
+    "VI": 285,  # Virgin Is.
+    "VN": 293,  # Viet Nam
+    "VU": 158,  # Vanuatu
+    "WF": 298,  # Wallis & Futuna Is.
+    "WS": 190,  # Samoa
+    "XK": 522,  # Republic of Kosovo
+    "YE": 492,  # Yemen
+    "YT": 169,  # Mayotte
+    "ZA": 462,  # Republic of South Africa
+    "ZM": 482,  # Zambia
+    "ZW": 452,  # Zimbabwe
+}
