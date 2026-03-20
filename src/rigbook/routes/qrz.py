@@ -154,7 +154,10 @@ async def _fetch_callsign(callsign: str, username: str, api_key: str) -> dict | 
                 fname = get("fname") or ""
                 lname = get("name") or ""
 
-                return {
+                from rigbook.dxcc import dxcc_country
+
+                dxcc_code = get("dxcc")
+                result_data = {
                     "call": get("call"),
                     "name": f"{fname} {lname}".strip(),
                     "qth": get("addr2"),
@@ -162,6 +165,16 @@ async def _fetch_callsign(callsign: str, username: str, api_key: str) -> dict | 
                     "country": get("country"),
                     "grid": get("grid"),
                 }
+                if dxcc_code is not None:
+                    try:
+                        dxcc_int = int(dxcc_code)
+                        result_data["dxcc"] = dxcc_int
+                        adif_name = dxcc_country(dxcc_int)
+                        if adif_name:
+                            result_data["dxcc_name"] = adif_name
+                    except (ValueError, TypeError):
+                        pass
+                return result_data
         except Exception as e:
             logger.warning("QRZ fetch error for %s: %s", callsign, e)
             return _FETCH_ERROR

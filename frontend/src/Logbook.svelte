@@ -27,6 +27,8 @@
   let qth = "";
   let state = "";
   let country = "";
+  let dxcc = null;
+  let dxccName = "";
   let grid = "";
   let skcc = "";
   let skcc_exch = false;
@@ -214,6 +216,13 @@
   function onCountryChange() {
     state = "";
     const match = countries.find(c => c.name === country);
+    if (match && match.dxcc != null) {
+      dxcc = match.dxcc;
+      dxccName = match.dxcc_name || "";
+    } else {
+      dxcc = null;
+      dxccName = "";
+    }
     fetchSubdivisions(match ? match.code : "");
   }
 
@@ -234,6 +243,8 @@
     qth = "";
     state = "";
     country = "";
+    dxcc = null;
+    dxccName = "";
     grid = "";
     skcc = "";
     skcc_exch = false;
@@ -249,7 +260,14 @@
     if (prefill.mode) mode = prefill.mode;
     if (prefill.pota_park) { pota_park = prefill.pota_park; resolvePotaParkName(); }
     if (prefill.grid) grid = prefill.grid;
-    if (prefill.country) country = prefill.country;
+    if (prefill.country) {
+      country = prefill.country;
+      const cm = countries.find(c => c.name === country || (c.aliases || []).includes(country));
+      if (cm) {
+        country = cm.name;
+        if (cm.dxcc != null) { dxcc = cm.dxcc; dxccName = cm.dxcc_name || ""; }
+      }
+    }
     if (prefill.state) state = prefill.state;
     if (prefill.skcc) skcc = prefill.skcc;
     dispatch("prefillconsumed");
@@ -304,6 +322,10 @@
         if (!qth && data.qth) qth = data.qth;
         if (!country && data.country) {
           country = data.country;
+          if (data.dxcc != null) {
+            dxcc = data.dxcc;
+            dxccName = data.dxcc_name || "";
+          }
           normalizeCountry();
           const match = countries.find(c => c.name === country);
           if (match) await fetchSubdivisions(match.code);
@@ -323,6 +345,8 @@
       name = "";
       qth = "";
       country = "";
+      dxcc = null;
+      dxccName = "";
       state = "";
       grid = "";
     }
@@ -475,6 +499,7 @@
     qth = c.qth || "";
     state = c.state || "";
     country = c.country || "";
+    dxcc = c.dxcc != null ? c.dxcc : null;
     grid = c.grid || "";
     skcc = c.skcc || "";
     skcc_exch = !!c.skcc_exch;
@@ -541,6 +566,7 @@
         qth: qth.trim() || null,
         state: state.trim() || null,
         country: country.trim() || null,
+        dxcc: dxcc,
         grid: grid.trim().toUpperCase() || null,
         skcc: skcc.trim().toUpperCase() || null,
         skcc_exch: skcc_exch,
@@ -585,6 +611,8 @@
     qth = "";
     state = "";
     country = "";
+    dxcc = null;
+    dxccName = "";
     grid = "";
     skcc = "";
     skcc_exch = false;
@@ -618,6 +646,7 @@
         qth: qth.trim() || null,
         state: state.trim() || null,
         country: country.trim() || null,
+        dxcc: dxcc,
         grid: grid.trim().toUpperCase() || null,
         skcc: skcc.trim().toUpperCase() || null,
         comments: comments || null,
@@ -799,7 +828,7 @@
       <input id="qth" type="text" bind:value={qth} />
     </div>
     <div class="field">
-      <label>Country</label>
+      <label>Country{#if dxcc != null} — <span class="dxcc-label">DXCC {dxcc}{#if dxccName}: {dxccName}{/if}</span>{/if}</label>
       <Autocomplete bind:value={country} items={countryItems} on:pick={onCountryChange} on:input={onCountryChange} on:blur={normalizeCountry} />
     </div>
     <div class="field">
@@ -1362,6 +1391,11 @@
     border-radius: 8px;
     margin-left: 0.3rem;
     vertical-align: middle;
+  }
+
+  .dxcc-label {
+    color: var(--accent-vfo);
+    font-weight: normal;
   }
 
   .pota-park-name {

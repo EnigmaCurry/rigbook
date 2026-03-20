@@ -32,6 +32,7 @@ class Contact(Base):
     qth: Mapped[str | None] = mapped_column(String, nullable=True)
     state: Mapped[str | None] = mapped_column(String, nullable=True)
     country: Mapped[str | None] = mapped_column(String, nullable=True)
+    dxcc: Mapped[int | None] = mapped_column(Integer, nullable=True)
     grid: Mapped[str | None] = mapped_column(String, nullable=True)
     skcc: Mapped[str | None] = mapped_column(String, nullable=True)
     skcc_exch: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)

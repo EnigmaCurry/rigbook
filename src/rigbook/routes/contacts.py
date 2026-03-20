@@ -21,6 +21,7 @@ class ContactCreate(BaseModel):
     qth: str | None = None
     state: str | None = None
     country: str | None = None
+    dxcc: int | None = None
     grid: str | None = None
     skcc: str | None = None
     skcc_exch: bool = False
@@ -79,6 +80,7 @@ class ContactUpdate(BaseModel):
     qth: str | None = None
     state: str | None = None
     country: str | None = None
+    dxcc: int | None = None
     grid: str | None = None
     skcc: str | None = None
     skcc_exch: bool | None = None
@@ -109,6 +111,7 @@ class ContactResponse(BaseModel):
     qth: str | None
     state: str | None
     country: str | None
+    dxcc: int | None = None
     grid: str | None
     skcc: str | None
     skcc_exch: bool = False
