@@ -28,6 +28,7 @@
   let state = "";
   let country = "";
   let dxcc = null;
+  let dxccName = "";
   let grid = "";
   let skcc = "";
   let skcc_exch = false;
@@ -214,6 +215,7 @@
 
   function onCountryChange() {
     dxcc = null;
+    dxccName = "";
     state = "";
     const match = countries.find(c => c.name === country);
     fetchSubdivisions(match ? match.code : "");
@@ -237,6 +239,7 @@
     state = "";
     country = "";
     dxcc = null;
+    dxccName = "";
     grid = "";
     skcc = "";
     skcc_exch = false;
@@ -307,7 +310,10 @@
         if (!qth && data.qth) qth = data.qth;
         if (!country && data.country) {
           country = data.country;
-          if (data.dxcc != null) dxcc = data.dxcc;
+          if (data.dxcc != null) {
+            dxcc = data.dxcc;
+            dxccName = data.dxcc_name || "";
+          }
           normalizeCountry();
           const match = countries.find(c => c.name === country);
           if (match) await fetchSubdivisions(match.code);
@@ -328,6 +334,7 @@
       qth = "";
       country = "";
       dxcc = null;
+      dxccName = "";
       state = "";
       grid = "";
     }
@@ -593,6 +600,7 @@
     state = "";
     country = "";
     dxcc = null;
+    dxccName = "";
     grid = "";
     skcc = "";
     skcc_exch = false;
@@ -808,7 +816,7 @@
       <input id="qth" type="text" bind:value={qth} />
     </div>
     <div class="field">
-      <label>Country{#if dxcc != null} — <span class="dxcc-label">DXCC {dxcc}</span>{/if}</label>
+      <label>Country{#if dxcc != null} — <span class="dxcc-label">DXCC {dxcc}{#if dxccName}: {dxccName}{/if}</span>{/if}</label>
       <Autocomplete bind:value={country} items={countryItems} on:pick={onCountryChange} on:input={onCountryChange} on:blur={normalizeCountry} />
     </div>
     <div class="field">

@@ -157,22 +157,21 @@ async def _fetch_callsign(callsign: str, username: str, api_key: str) -> dict | 
                 from rigbook.dxcc import dxcc_country
 
                 dxcc_code = get("dxcc")
-                country = get("country")
                 result_data = {
                     "call": get("call"),
                     "name": f"{fname} {lname}".strip(),
                     "qth": get("addr2"),
                     "state": get("state"),
-                    "country": country,
+                    "country": get("country"),
                     "grid": get("grid"),
                 }
                 if dxcc_code is not None:
                     try:
                         dxcc_int = int(dxcc_code)
                         result_data["dxcc"] = dxcc_int
-                        adif_country = dxcc_country(dxcc_int)
-                        if adif_country:
-                            result_data["country"] = adif_country
+                        adif_name = dxcc_country(dxcc_int)
+                        if adif_name:
+                            result_data["dxcc_name"] = adif_name
                     except (ValueError, TypeError):
                         pass
                 return result_data
