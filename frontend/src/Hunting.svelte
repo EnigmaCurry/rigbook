@@ -13,6 +13,8 @@
   let pollInterval;
   let filterMode = "";
   let filterBand = "";
+  let filterProgram = "";
+  let filtersLoaded = false;
   let seenSpotKeys = new Set();
   let newSpotKeys = new Set();
   let myParkQsos = {};
@@ -129,18 +131,62 @@
     return `${Math.floor(mins / 60)}h ${mins % 60}m ago`;
   }
 
+  function spotProgram(spot) {
+    const ref = spot.reference || "";
+    const i = ref.indexOf("-");
+    return i > 0 ? ref.slice(0, i) : ref;
+  }
+
   $: modes = [...new Set(spots.map(s => s.mode).filter(Boolean))].sort();
   $: bands = [...new Set(spots.map(s => freqToBand(s.frequency)).filter(Boolean))].sort((a, b) => {
     const order = Object.keys(BANDS);
     return order.indexOf(a) - order.indexOf(b);
   });
+  $: programs = [...new Set(spots.map(s => spotProgram(s)).filter(Boolean))].sort();
 
   $: filteredSpots = spots.filter(s => {
     if (filterMode && s.mode !== filterMode) return false;
     if (filterBand && freqToBand(s.frequency) !== filterBand) return false;
+    if (filterProgram && spotProgram(s) !== filterProgram) return false;
     return true;
   });
 
+
+  const FILTER_SETTINGS_KEY = "pota_spot_filters";
+
+  async function loadFilters() {
+    try {
+      const res = await fetch(`/api/settings/${FILTER_SETTINGS_KEY}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.value) {
+          const saved = JSON.parse(data.value);
+          filterMode = saved.mode || "";
+          filterBand = saved.band || "";
+          filterProgram = saved.program || "";
+        }
+      }
+    } catch {}
+    filtersLoaded = true;
+  }
+
+  async function saveFilters() {
+    if (!filtersLoaded) return;
+    try {
+      await fetch(`/api/settings/${FILTER_SETTINGS_KEY}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: JSON.stringify({ mode: filterMode, band: filterBand, program: filterProgram }) }),
+      });
+    } catch {}
+  }
+
+  // Save filters whenever they change (after initial load)
+  // Reference all three variables so Svelte tracks them as dependencies
+  $: if (filtersLoaded) {
+    const _filters = { m: filterMode, b: filterBand, p: filterProgram };
+    saveFilters();
+  }
 
   async function fetchSpots() {
     try {
@@ -251,7 +297,8 @@
     fetchTodayPota();
   }
 
-  onMount(() => {
+  onMount(async () => {
+    await loadFilters();
     fetchSpots();
     fetchMyParks();
     fetchCallCounts();
@@ -278,6 +325,12 @@
         <option value="">All Bands</option>
         {#each bands as b}
           <option value={b}>{b}</option>
+        {/each}
+      </select>
+      <select bind:value={filterProgram}>
+        <option value="">All Programs</option>
+        {#each programs as p}
+          <option value={p}>{p}</option>
         {/each}
       </select>
       <button class="btn-refresh" on:click={() => { loading = true; fetchSpots(); }}>Refresh</button>
