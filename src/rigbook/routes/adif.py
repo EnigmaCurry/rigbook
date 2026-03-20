@@ -101,6 +101,8 @@ def contact_to_adif_record(c: Contact) -> dict:
         record["STATE"] = c.state
     if c.country:
         record["COUNTRY"] = c.country
+    if c.dxcc is not None:
+        record["DXCC"] = str(c.dxcc)
     if c.grid:
         record["GRIDSQUARE"] = c.grid
     if c.pota_park:
@@ -134,6 +136,12 @@ def adif_record_to_contact_dict(record: dict) -> dict:
     data["qth"] = record.get("QTH")
     data["state"] = record.get("STATE")
     data["country"] = record.get("COUNTRY")
+    dxcc_val = record.get("DXCC")
+    if dxcc_val:
+        try:
+            data["dxcc"] = int(dxcc_val)
+        except (ValueError, TypeError):
+            pass
     data["grid"] = record.get("GRIDSQUARE")
     data["pota_park"] = record.get("POTA_REF")
     skcc = record.get("SKCC")

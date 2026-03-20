@@ -27,6 +27,7 @@
   let qth = "";
   let state = "";
   let country = "";
+  let dxcc = null;
   let grid = "";
   let skcc = "";
   let skcc_exch = false;
@@ -212,6 +213,7 @@
   }
 
   function onCountryChange() {
+    dxcc = null;
     state = "";
     const match = countries.find(c => c.name === country);
     fetchSubdivisions(match ? match.code : "");
@@ -234,6 +236,7 @@
     qth = "";
     state = "";
     country = "";
+    dxcc = null;
     grid = "";
     skcc = "";
     skcc_exch = false;
@@ -304,6 +307,7 @@
         if (!qth && data.qth) qth = data.qth;
         if (!country && data.country) {
           country = data.country;
+          if (data.dxcc != null) dxcc = data.dxcc;
           normalizeCountry();
           const match = countries.find(c => c.name === country);
           if (match) await fetchSubdivisions(match.code);
@@ -323,6 +327,7 @@
       name = "";
       qth = "";
       country = "";
+      dxcc = null;
       state = "";
       grid = "";
     }
@@ -475,6 +480,7 @@
     qth = c.qth || "";
     state = c.state || "";
     country = c.country || "";
+    dxcc = c.dxcc != null ? c.dxcc : null;
     grid = c.grid || "";
     skcc = c.skcc || "";
     skcc_exch = !!c.skcc_exch;
@@ -541,6 +547,7 @@
         qth: qth.trim() || null,
         state: state.trim() || null,
         country: country.trim() || null,
+        dxcc: dxcc,
         grid: grid.trim().toUpperCase() || null,
         skcc: skcc.trim().toUpperCase() || null,
         skcc_exch: skcc_exch,
@@ -585,6 +592,7 @@
     qth = "";
     state = "";
     country = "";
+    dxcc = null;
     grid = "";
     skcc = "";
     skcc_exch = false;
@@ -618,6 +626,7 @@
         qth: qth.trim() || null,
         state: state.trim() || null,
         country: country.trim() || null,
+        dxcc: dxcc,
         grid: grid.trim().toUpperCase() || null,
         skcc: skcc.trim().toUpperCase() || null,
         comments: comments || null,
@@ -799,7 +808,7 @@
       <input id="qth" type="text" bind:value={qth} />
     </div>
     <div class="field">
-      <label>Country</label>
+      <label>Country{#if dxcc != null} — <span class="dxcc-label">DXCC {dxcc}</span>{/if}</label>
       <Autocomplete bind:value={country} items={countryItems} on:pick={onCountryChange} on:input={onCountryChange} on:blur={normalizeCountry} />
     </div>
     <div class="field">
@@ -1362,6 +1371,11 @@
     border-radius: 8px;
     margin-left: 0.3rem;
     vertical-align: middle;
+  }
+
+  .dxcc-label {
+    color: var(--accent-vfo);
+    font-weight: normal;
   }
 
   .pota-park-name {
