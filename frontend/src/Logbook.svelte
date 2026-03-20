@@ -260,7 +260,14 @@
     if (prefill.mode) mode = prefill.mode;
     if (prefill.pota_park) { pota_park = prefill.pota_park; resolvePotaParkName(); }
     if (prefill.grid) grid = prefill.grid;
-    if (prefill.country) country = prefill.country;
+    if (prefill.country) {
+      country = prefill.country;
+      const cm = countries.find(c => c.name === country || (c.aliases || []).includes(country));
+      if (cm) {
+        country = cm.name;
+        if (cm.dxcc != null) { dxcc = cm.dxcc; dxccName = cm.dxcc_name || ""; }
+      }
+    }
     if (prefill.state) state = prefill.state;
     if (prefill.skcc) skcc = prefill.skcc;
     dispatch("prefillconsumed");
