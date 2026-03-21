@@ -19,7 +19,6 @@
   // RBN settings
   let rbn_enabled = false;
   let rbn_host = "telnet.reversebeacon.net";
-  let rbn_port = "7001";
 
   // HamAlert settings
   let hamalert_enabled = false;
@@ -75,7 +74,6 @@
           if (s.key === "flrig_port") flrig_port = s.value || "12345";
           if (s.key === "rbn_enabled") rbn_enabled = s.value === "true";
           if (s.key === "rbn_host") rbn_host = s.value || "telnet.reversebeacon.net";
-          if (s.key === "rbn_port") rbn_port = s.value || "7000";
           if (s.key === "hamalert_enabled") hamalert_enabled = s.value === "true";
           if (s.key === "hamalert_host") hamalert_host = s.value || "hamalert.org";
           if (s.key === "hamalert_port") hamalert_port = s.value || "7300";
@@ -148,11 +146,6 @@
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value: rbn_host.trim() }),
-      });
-      await fetch("/api/settings/rbn_port", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: rbn_port.trim() }),
       });
       // HamAlert settings
       await fetch("/api/settings/hamalert_enabled", {
@@ -307,11 +300,7 @@
       <label for="rbn_host">RBN Host</label>
       <input id="rbn_host" type="text" bind:value={rbn_host} autocomplete="off" />
     </div>
-    <div class="setting-row">
-      <label for="rbn_port">RBN Port</label>
-      <input id="rbn_port" type="text" bind:value={rbn_port} autocomplete="off" inputmode="numeric" />
-    </div>
-    <p class="hint">RBN uses your My Callsign to authenticate.</p>
+    <p class="hint">Connects to CW (port 7000) and digital (port 7001) feeds. Uses your My Callsign to authenticate.</p>
   </section>
 
   <section class="settings-section">

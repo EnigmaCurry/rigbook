@@ -334,10 +334,61 @@ class BaseFeed:
 # ---------------------------------------------------------------------------
 
 
-class RBNFeed(BaseFeed):
-    async def _connect_and_read(self, **kwargs: object) -> None:
+class RBNFeed:
+    """Connects to both RBN CW (port 7000) and digital (port 7001) feeds."""
+
+    # RBN serves different modes on different ports
+    RBN_PORTS = {"cw": 7000, "digital": 7001}
+
+    def __init__(self, cache: SpotCache) -> None:
+        self.cache = cache
+        self._tasks: dict[str, asyncio.Task] = {}
+        self._connected: dict[str, bool] = {}
+        self._should_run = False
+
+    @property
+    def connected(self) -> bool:
+        return any(self._connected.values())
+
+    async def start(self, **kwargs: object) -> None:
+        await self.stop()
+        self._should_run = True
         host = str(kwargs.get("host", "telnet.reversebeacon.net"))
-        port = int(kwargs.get("port", 7001))  # type: ignore[arg-type]
+        callsign = str(kwargs.get("callsign", ""))
+        for name, port in self.RBN_PORTS.items():
+            self._connected[name] = False
+            self._tasks[name] = asyncio.create_task(
+                self._run_loop(name=name, host=host, port=port, callsign=callsign)
+            )
+
+    async def stop(self) -> None:
+        self._should_run = False
+        for name, task in list(self._tasks.items()):
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+        self._tasks.clear()
+        self._connected.clear()
+
+    async def _run_loop(self, **kwargs: object) -> None:
+        name = str(kwargs.get("name", ""))
+        while self._should_run:
+            try:
+                await self._connect_and_read(**kwargs)
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:
+                logger.warning("RBN/%s connection error: %s", name, e)
+                self._connected[name] = False
+            if self._should_run:
+                await asyncio.sleep(10)
+
+    async def _connect_and_read(self, **kwargs: object) -> None:
+        name = str(kwargs.get("name", ""))
+        host = str(kwargs.get("host", "telnet.reversebeacon.net"))
+        port = int(kwargs.get("port", 7000))  # type: ignore[arg-type]
         callsign = str(kwargs.get("callsign", ""))
 
         if not callsign:
@@ -345,26 +396,24 @@ class RBNFeed(BaseFeed):
             await asyncio.sleep(30)
             return
 
-        logger.info("RBN: connecting to %s:%d as %s", host, port, callsign)
+        logger.info("RBN/%s: connecting to %s:%d as %s", name, host, port, callsign)
         reader, writer = await asyncio.wait_for(
             asyncio.open_connection(host, port), timeout=15
         )
 
         try:
-            # Read login prompt and authenticate
             await asyncio.wait_for(reader.readuntil(b"call: "), timeout=15)
             writer.write(f"{callsign}\r\n".encode("ascii"))
             await writer.drain()
-            # Read welcome message
             await asyncio.wait_for(reader.readuntil(b">\r\n"), timeout=15)
 
-            self._connected = True
-            logger.info("RBN: connected")
+            self._connected[name] = True
+            logger.info("RBN/%s: connected", name)
 
             while self._should_run:
                 line_bytes = await asyncio.wait_for(reader.readline(), timeout=120)
                 if not line_bytes:
-                    logger.info("RBN: connection closed by server")
+                    logger.info("RBN/%s: connection closed by server", name)
                     break
 
                 line = line_bytes.rstrip().decode("ascii", errors="replace")
@@ -372,7 +421,7 @@ class RBNFeed(BaseFeed):
                 if parsed:
                     await self.cache.add(parsed)
         finally:
-            self._connected = False
+            self._connected[name] = False
             writer.close()
             try:
                 await asyncio.wait_for(writer.wait_closed(), timeout=2)
@@ -611,7 +660,6 @@ async def _read_feed_settings() -> dict[str, str]:
     keys = [
         "rbn_enabled",
         "rbn_host",
-        "rbn_port",
         "hamalert_enabled",
         "hamalert_host",
         "hamalert_port",
@@ -643,7 +691,6 @@ async def _apply_settings(settings: dict[str, str]) -> None:
         if callsign:
             await rbn_feed.start(
                 host=settings.get("rbn_host", "telnet.reversebeacon.net"),
-                port=int(settings.get("rbn_port", "7001")),
                 callsign=callsign,
             )
         else:
