@@ -113,14 +113,18 @@
       if (res.ok) {
         spots = await res.json();
         // QRZ lookups: only if fewer than 100 missing, burst 20 then drip 1/s
+        // Reset queue to only contain callsigns in current results
         {
+          if (qrzDripTimer) { clearInterval(qrzDripTimer); qrzDripTimer = null; }
+
+          const visibleCalls = new Set(spots.map(s => s.callsign));
           const allMissing = [...new Set(
             spots.filter(s => !s.country).map(s => s.callsign)
           )];
           qrzSkipped = allMissing.length >= 100;
 
           if (!qrzSkipped) {
-            const newCalls = allMissing.filter(c => !qrzLookedUp.has(c) && !qrzQueue.includes(c));
+            const newCalls = allMissing.filter(c => !qrzLookedUp.has(c));
             for (const c of newCalls) qrzLookedUp.add(c);
 
             const burstAvail = Math.max(0, 20 - qrzBurstUsed);
@@ -133,10 +137,14 @@
               spots = spots;
             }
 
-            qrzQueue.push(...dripCalls);
+            // Rebuild queue: new drip calls + remaining old queue entries still visible
+            qrzQueue = [
+              ...dripCalls,
+              ...qrzQueue.filter(c => visibleCalls.has(c) && !qrzLookedUp.has(c))
+            ];
             qrzPending = qrzQueue.length;
 
-            if (qrzQueue.length > 0 && !qrzDripTimer) {
+            if (qrzQueue.length > 0) {
               qrzDripTimer = setInterval(async () => {
                 if (qrzQueue.length === 0) {
                   clearInterval(qrzDripTimer);
@@ -150,6 +158,9 @@
                 spots = spots;
               }, 1000);
             }
+          } else {
+            qrzQueue = [];
+            qrzPending = 0;
           }
         }
       }
