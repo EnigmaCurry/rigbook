@@ -97,7 +97,7 @@
             <div class="card-body">
               <!-- svelte-ignore a11y-click-events-have-key-events -->
               <!-- svelte-ignore a11y-no-static-element-interactions -->
-              <span class="freq clickable" on:click={() => dispatch("tune", spot)} title="Tune radio">{formatFreq(spot.frequency, 1)} KHz</span>
+              <span class="freq clickable" on:click={() => dispatch("tune", spot)} title="Tune radio">{spot.frequency} KHz</span>
               <span class="skcc-nr">SKCC #{spot.skcc}</span>
             </div>
             <div class="card-body">
