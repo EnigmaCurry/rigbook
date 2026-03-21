@@ -122,7 +122,7 @@
               qrzPending = qrzQueue.length;
               await qrzLookupOne(call);
               spots = spots;
-            }, 2000);
+            }, 1000);
           }
         }
       }
