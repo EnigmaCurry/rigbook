@@ -379,33 +379,63 @@ class RBNFeed(BaseFeed):
             except Exception:
                 pass
 
-    # Regex to parse RBN spot lines:
-    # DX de SPOTTER-#:  FREQ  CALLSIGN  MODE  dB  SPEED  TYPE  HHMMZ
-    # Speed unit is WPM for CW, BPS for digital modes
-    _RBN_LINE_RE = re.compile(
+    # RBN spot formats vary by mode:
+    # CW:      DX de SPOTTER-#:  FREQ  CALL  CW    26 dB  31 WPM  CQ      1832Z
+    # Digital: DX de SPOTTER-#:  FREQ  CALL  FT8  -21 dB          CQ      1831Z
+    # Digital: DX de SPOTTER-#:  FREQ  CALL  FT8    1 dB  IM99    CQ      1831Z
+    # Common prefix up to dB, then variable tail
+    _RBN_PREFIX_RE = re.compile(
         r"^DX de\s+(\S+)-#:\s+"  # spotter
         r"(\d+\.\d+)\s+"  # frequency kHz
         r"(\S+)\s+"  # callsign
-        r"(\S+)\s+"  # mode (CW, RTTY, FT8, FT4, PSK31, etc.)
-        r"(\d+)\s+dB\s+"  # snr
-        r"(\d+)\s+(?:WPM|BPS|bps)\s+"  # speed (WPM for CW, BPS for digital)
-        r"(\S+)\s+"  # type (CQ, BEACON, NCDXF, etc.)
-        r"(\d{4}Z)\s*$"  # time
+        r"(\S+)\s+"  # mode
+        r"(-?\d+)\s+dB\s+"  # snr (can be negative)
     )
 
     @staticmethod
     def _parse_line(line: str) -> ParsedSpot | None:
-        """Parse an RBN spot line into a Spot object."""
+        """Parse an RBN spot line into a ParsedSpot."""
         if not line.startswith("DX de "):
             return None
 
-        m = RBNFeed._RBN_LINE_RE.match(line)
+        m = RBNFeed._RBN_PREFIX_RE.match(line)
         if not m:
             return None
 
-        spotter, freq_str, callsign, mode, snr_str, wpm_str, spot_type, zulu = (
-            m.groups()
-        )
+        spotter, freq_str, callsign, mode, snr_str = m.groups()
+
+        # Parse the tail after "NN dB  " — variable fields then HHMMZ
+        tail = line[m.end() :].strip()
+
+        # Time is always the last token (HHMMZ)
+        if not tail or not tail.endswith("Z"):
+            return None
+        tokens = tail.split()
+        if not tokens:
+            return None
+        zulu = tokens[-1]
+        if not re.match(r"^\d{4}Z$", zulu):
+            return None
+
+        # Look for spot type (CQ, BEACON, NCDXF, etc.) — second to last
+        # and optional WPM/grid before that
+        wpm: int | None = None
+        spot_type = ""
+        remaining = tokens[:-1]  # everything except time
+
+        # Look for "NN WPM" or "NN BPS" anywhere in remaining tokens
+        if remaining:
+            for i, tok in enumerate(remaining):
+                if tok in ("WPM", "BPS") and i > 0 and remaining[i - 1].isdigit():
+                    if tok == "WPM":
+                        wpm = int(remaining[i - 1])
+                    break
+
+            # spot_type is the last token that isn't part of WPM/BPS/grid
+            spot_type = remaining[-1]
+            if spot_type in ("WPM", "BPS"):
+                # "31 WPM" was the last thing — no explicit type
+                spot_type = "CQ"
 
         if spot_type == "BEACON":
             return None
@@ -420,7 +450,7 @@ class RBNFeed(BaseFeed):
             source="rbn",
             spotter=spotter,
             snr=int(snr_str),
-            wpm=int(wpm_str),
+            wpm=wpm,
             time=zulu,
             band=band,
         )
