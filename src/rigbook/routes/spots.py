@@ -1,13 +1,31 @@
 """API routes for querying RBN and HamAlert spot data."""
 
+import time
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from rigbook.db import Setting, get_session
+from rigbook.db import Cache, Setting, get_session
 from rigbook.spots import hamalert_feed, rbn_feed, refresh_feeds, spot_cache
 
 router = APIRouter(prefix="/api/spots", tags=["spots"])
+
+
+async def _batch_skcc_lookup(
+    callsigns: list[str], session: AsyncSession
+) -> dict[str, str]:
+    """Look up SKCC numbers for a batch of callsigns. Returns {call: skcc_nr}."""
+    if not callsigns:
+        return {}
+    result = await session.execute(
+        select(Cache.key, Cache.value).where(
+            Cache.namespace == "skcc",
+            Cache.key.in_(callsigns),
+            Cache.expires_at > time.time(),
+        )
+    )
+    return dict(result.all())
 
 
 @router.get("/")
@@ -18,9 +36,11 @@ async def query_spots(
     band: str | None = None,
     min_freq: float | None = None,
     max_freq: float | None = None,
+    skcc: str | None = None,
     limit: int = 200,
+    session: AsyncSession = Depends(get_session),
 ):
-    return await spot_cache.query(
+    spots = await spot_cache.query(
         source=source,
         callsign=callsign,
         mode=mode,
@@ -29,6 +49,19 @@ async def query_spots(
         max_freq=max_freq,
         limit=limit,
     )
+
+    # Enrich with SKCC numbers for CW spots
+    cw_calls = list({s["callsign"].upper() for s in spots if s["mode"] == "CW"})
+    skcc_map = await _batch_skcc_lookup(cw_calls, session) if cw_calls else {}
+
+    for s in spots:
+        s["skcc"] = skcc_map.get(s["callsign"].upper())
+
+    # Filter by SKCC if requested
+    if skcc == "required":
+        spots = [s for s in spots if s.get("skcc")]
+
+    return spots
 
 
 @router.get("/status")

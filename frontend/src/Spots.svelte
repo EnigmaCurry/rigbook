@@ -10,6 +10,7 @@
   let filterBand = "";
   let filterMode = "";
   let filterCallsign = "";
+  let filterSkcc = "";
   let restarting = false;
 
   let statusInterval;
@@ -43,6 +44,7 @@
       if (filterBand) params.set("band", filterBand);
       if (filterMode) params.set("mode", filterMode);
       if (filterCallsign) params.set("callsign", filterCallsign);
+      if (filterSkcc) params.set("skcc", filterSkcc);
       params.set("limit", "200");
       const res = await fetch(`/api/spots/?${params}`);
       if (res.ok) spots = await res.json();
@@ -130,13 +132,19 @@
         <option value={b}>{b} ({bands[b]})</option>
       {/each}
     </select>
-    <select bind:value={filterMode} on:change={fetchSpots}>
+    <select bind:value={filterMode} on:change={() => { if (filterMode !== "CW") filterSkcc = ""; fetchSpots(); }}>
       <option value="">All Modes</option>
       {#each modeList as m}
         <option value={m}>{m} ({modes[m]})</option>
       {/each}
     </select>
     <input type="text" placeholder="Callsign" bind:value={filterCallsign} on:input={fetchSpots} style="text-transform: uppercase" />
+    {#if filterMode === "CW"}
+      <select bind:value={filterSkcc} on:change={fetchSpots}>
+        <option value="">SKCC: Any</option>
+        <option value="required">SKCC: Required</option>
+      </select>
+    {/if}
   </div>
 
   {#if bandList.length > 0}
@@ -163,6 +171,7 @@
         <tr>
           <th>Time</th>
           <th>Callsign</th>
+          {#if filterMode === "CW"}<th>SKCC</th>{/if}
           <th>Freq (MHz)</th>
           <th>Band</th>
           <th>Mode</th>
@@ -178,6 +187,7 @@
           <tr>
             <td class="mono">{formatTime(spot)}</td>
             <td class="mono call">{spot.callsign}</td>
+            {#if filterMode === "CW"}<td class="mono skcc">{spot.skcc ?? ""}</td>{/if}
             <td class="mono">{formatFreq(spot.frequency)}</td>
             <td><span class="band-tag" style="background: {bandColor(spot.band)}">{spot.band}</span></td>
             <td>{spot.mode}</td>
@@ -189,7 +199,7 @@
           </tr>
         {/each}
         {#if spots.length === 0}
-          <tr><td colspan="10" class="empty">No spots{filterSource || filterBand || filterMode || filterCallsign ? " matching filters" : ""}. {status.rbn.enabled || status.hamalert.enabled ? "Waiting for data..." : "Enable RBN or HamAlert in Settings."}</td></tr>
+          <tr><td colspan={filterMode === "CW" ? 11 : 10} class="empty">No spots{filterSource || filterBand || filterMode || filterCallsign ? " matching filters" : ""}. {status.rbn.enabled || status.hamalert.enabled ? "Waiting for data..." : "Enable RBN or HamAlert in Settings."}</td></tr>
         {/if}
       </tbody>
     </table>
