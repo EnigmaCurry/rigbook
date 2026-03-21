@@ -21,6 +21,9 @@
 
   $: visible = !filterMode || filterMode === "CW";
 
+  // Force spots re-render when workedTodayKeys changes
+  $: if (workedTodayKeys) { spots = [...spots]; }
+
   function isWorked(spot) {
     const key = `${spot.callsign.toUpperCase()}|${spot.band}|CW`;
     return workedTodayKeys.has(key);
