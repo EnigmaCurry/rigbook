@@ -128,19 +128,19 @@ class SpotCache:
     """Stores one AggregateSpot per (callsign, frequency, mode) key."""
 
     def __init__(self) -> None:
-        self._entries: dict[tuple[str, float, str], AggregateSpot] = {}
+        self._entries: dict[tuple[str, str], AggregateSpot] = {}
         self._lock = asyncio.Lock()
 
     async def add(self, spot: ParsedSpot) -> None:
-        # Round frequency to 1 decimal to merge near-duplicate spots
-        # (different RBN nodes report slightly different frequencies)
+        key = (spot.callsign, spot.mode)
         freq = round(spot.frequency, 1)
-        key = (spot.callsign, freq, spot.mode)
         now = _time.time()
         async with self._lock:
             entry = self._entries.get(key)
             if entry:
-                # Update existing aggregate
+                # Update existing aggregate with latest data
+                entry.frequency = freq
+                entry.band = spot.band or entry.band
                 if spot.spotter:
                     entry.spotters[spot.spotter] = now
                 if spot.snr is not None and (
