@@ -13,10 +13,12 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import math
 import re
 import time as _time
 from dataclasses import dataclass, field
 
+import httpx
 from sqlalchemy import select
 
 from rigbook.db import Setting, async_session
@@ -49,6 +51,134 @@ def freq_to_band(freq_khz: float) -> str:
         if lo <= freq_khz <= hi:
             return band
     return ""
+
+
+# ---------------------------------------------------------------------------
+# Maidenhead grid utilities
+# ---------------------------------------------------------------------------
+
+_GRID_RE = re.compile(r"^[A-R]{2}\d{2}([A-X]{2})?$", re.IGNORECASE)
+
+
+def grid_to_latlon(grid: str) -> tuple[float, float] | None:
+    """Convert a 4 or 6 character Maidenhead grid to (lat, lon) degrees."""
+    grid = grid.upper()
+    if not _GRID_RE.match(grid):
+        return None
+
+    lon = (ord(grid[0]) - ord("A")) * 20 - 180 + (ord(grid[2]) - ord("0")) * 2
+    lat = (ord(grid[1]) - ord("A")) * 10 - 90 + (ord(grid[3]) - ord("0"))
+
+    if len(grid) >= 6:
+        lon += (ord(grid[4]) - ord("A")) * (2 / 24) + (1 / 24)
+        lat += (ord(grid[5]) - ord("A")) * (1 / 24) + (0.5 / 24)
+    else:
+        lon += 1
+        lat += 0.5
+
+    return lat, lon
+
+
+def grid_distance_km(grid1: str, grid2: str) -> float | None:
+    """Great-circle distance in km between two Maidenhead grid squares."""
+    c1 = grid_to_latlon(grid1)
+    c2 = grid_to_latlon(grid2)
+    if not c1 or not c2:
+        return None
+
+    lat1, lon1 = math.radians(c1[0]), math.radians(c1[1])
+    lat2, lon2 = math.radians(c2[0]), math.radians(c2[1])
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+
+    a = (
+        math.sin(dlat / 2) ** 2
+        + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    )
+    return 2 * 6371 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+def grid_distance_mi(grid1: str, grid2: str) -> int | None:
+    """Great-circle distance in miles between two Maidenhead grid squares."""
+    km = grid_distance_km(grid1, grid2)
+    if km is None:
+        return None
+    return round(km * 0.621371)
+
+
+# ---------------------------------------------------------------------------
+# Spotter grid cache (fetched from RBN status page)
+# ---------------------------------------------------------------------------
+
+RBN_STATUS_URL = "https://reversebeacon.net/cont_includes/status.php?t=skt"
+
+
+class SpotterGrids:
+    """Cache of spotter callsign -> grid square, fetched from RBN status page."""
+
+    def __init__(self) -> None:
+        self._grids: dict[str, str] = {}  # spotter -> grid
+        self._fetched_at: float = 0
+        self._ttl: float = 3600  # refresh hourly
+        self._lock = asyncio.Lock()
+
+    async def ensure_loaded(self) -> None:
+        if _time.time() - self._fetched_at < self._ttl:
+            return
+        async with self._lock:
+            if _time.time() - self._fetched_at < self._ttl:
+                return
+            await self._fetch()
+
+    async def _fetch(self) -> None:
+        logger.info("Fetching spotter grids from RBN status page...")
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                response = await client.get(RBN_STATUS_URL)
+                if response.status_code != 200:
+                    logger.warning("RBN status page returned %d", response.status_code)
+                    return
+                html = response.text
+
+            # Parse HTML table rows for spotter callsign and grid
+            # Format: <td><a href="...">SPOTTER</a></td> ... <td>GRID</td>
+            grids: dict[str, str] = {}
+            row_re = re.compile(
+                r'<tr.*?online24h online7d total">(.*?)</tr>', re.DOTALL
+            )
+            col_re = re.compile(
+                r'<td.*?><a href="/dxsd1\.php\?f=.*?>\s*(.*?)\s*</a>.*?</td>\s*'
+                r"<td.*?>\s*(.*?)</a></td>\s*<td.*?>(.*?)</td>",
+                re.DOTALL,
+            )
+            for row in row_re.findall(html):
+                for spotter, _, grid in col_re.findall(row):
+                    grid = grid.strip()
+                    if grid and _GRID_RE.match(grid) and grid != "XX88LL":
+                        grids[spotter.strip()] = grid.upper()
+
+            self._grids = grids
+            self._fetched_at = _time.time()
+            logger.info("Loaded %d spotter grids", len(grids))
+        except Exception as e:
+            logger.warning("Failed to fetch spotter grids: %s", e)
+
+    def get(self, spotter: str) -> str | None:
+        return self._grids.get(spotter)
+
+    def closest_distance(self, my_grid: str, spotters: list[str]) -> int | None:
+        """Return the distance in miles to the closest spotter with a known grid."""
+        best: int | None = None
+        for spotter in spotters:
+            grid = self._grids.get(spotter)
+            if grid:
+                dist = grid_distance_mi(my_grid, grid)
+                if dist is not None and (best is None or dist < best):
+                    best = dist
+        return best
+
+
+spotter_grids = SpotterGrids()
 
 
 # ---------------------------------------------------------------------------

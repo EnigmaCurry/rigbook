@@ -7,7 +7,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from rigbook.db import Cache, Setting, get_session
-from rigbook.spots import hamalert_feed, rbn_feed, refresh_feeds, spot_cache
+from rigbook.spots import (
+    hamalert_feed,
+    rbn_feed,
+    refresh_feeds,
+    spot_cache,
+    spotter_grids,
+)
 
 router = APIRouter(prefix="/api/spots", tags=["spots"])
 
@@ -60,6 +66,21 @@ async def query_spots(
     # Filter by SKCC if requested
     if skcc == "required":
         spots = [s for s in spots if s.get("skcc")]
+
+    # Enrich with closest spotter distance
+    result = await session.execute(
+        select(Setting.value).where(Setting.key == "my_grid")
+    )
+    my_grid = (result.scalar_one_or_none() or "").strip()
+    if my_grid:
+        await spotter_grids.ensure_loaded()
+        for s in spots:
+            s["distance_mi"] = spotter_grids.closest_distance(
+                my_grid, s.get("spotters", [])
+            )
+    else:
+        for s in spots:
+            s["distance_mi"] = None
 
     return spots
 

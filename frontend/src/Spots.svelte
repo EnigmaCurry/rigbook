@@ -126,6 +126,7 @@
       case "snr":         va = a.best_snr ?? -999; vb = b.best_snr ?? -999; break;
       case "wpm":         va = a.wpm ?? 0; vb = b.wpm ?? 0; break;
       case "source":      va = a.source || ""; vb = b.source || ""; break;
+      case "distance":    va = a.distance_mi ?? 99999; vb = b.distance_mi ?? 99999; break;
       default:            va = a.callsign || ""; vb = b.callsign || "";
     }
     if (typeof va === "string") return sortDir * va.localeCompare(vb);
@@ -214,6 +215,7 @@
           <th class="sortable" on:click={() => toggleSort("snr")}>SNR{sortIndicator("snr")}</th>
           <th class="sortable" on:click={() => toggleSort("wpm")}>WPM{sortIndicator("wpm")}</th>
           <th class="sortable" on:click={() => toggleSort("source")}>Source{sortIndicator("source")}</th>
+          <th class="sortable" on:click={() => toggleSort("distance")}>Dist{sortIndicator("distance")}</th>
           <th>Info</th>
         </tr>
       </thead>
@@ -230,11 +232,12 @@
             <td class="mono">{spot.best_snr ?? ""}</td>
             <td class="mono">{spot.wpm ?? ""}</td>
             <td class="source-tag {spot.source}">{spot.source}</td>
+            <td class="mono">{spot.distance_mi != null ? `${spot.distance_mi}mi` : ""}</td>
             <td class="info">{spot.state}{spot.wwff_ref ? ` ${spot.wwff_ref}` : ""}{spot.comment ? ` ${spot.comment}` : ""}</td>
           </tr>
         {/each}
         {#if spots.length === 0}
-          <tr><td colspan={filterMode === "CW" ? 11 : 10} class="empty">No spots{filterSource || filterBand || filterMode || filterCallsign ? " matching filters" : ""}. {status.rbn.enabled || status.hamalert.enabled ? "Waiting for data..." : "Enable RBN or HamAlert in Settings."}</td></tr>
+          <tr><td colspan={filterMode === "CW" ? 12 : 11} class="empty">No spots{filterSource || filterBand || filterMode || filterCallsign ? " matching filters" : ""}. {status.rbn.enabled || status.hamalert.enabled ? "Waiting for data..." : "Enable RBN or HamAlert in Settings."}</td></tr>
         {/if}
       </tbody>
     </table>
