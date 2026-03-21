@@ -25,6 +25,7 @@
   let myParkQsos = {};
   let myCallCounts = {};
   let workedTodayKeys = new Set();
+  let workedTodayCwKeys = new Set();
 
   // Park modal state
   let modalParkRef = null;
@@ -281,6 +282,22 @@
     } catch {}
   }
 
+  async function fetchTodayCw() {
+    try {
+      const res = await fetch("/api/contacts/today-cw");
+      if (res.ok) {
+        const contacts = await res.json();
+        const keys = new Set();
+        for (const c of contacts) {
+          const band = freqToBand(parseFloat(c.freq));
+          const key = `${(c.call || "").toUpperCase()}|${band}|CW`;
+          keys.add(key);
+        }
+        workedTodayCwKeys = keys;
+      }
+    } catch {}
+  }
+
   async function openParkModal(ref) {
     modalParkRef = ref;
     modalParkDetail = null;
@@ -309,6 +326,7 @@
     fetchMyParks();
     fetchCallCounts();
     fetchTodayPota();
+    fetchTodayCw();
   }
 
   onMount(async () => {
@@ -317,6 +335,7 @@
     fetchMyParks();
     fetchCallCounts();
     fetchTodayPota();
+    fetchTodayCw();
     pollInterval = setInterval(fetchSpots, 30000);
   });
 
@@ -358,7 +377,7 @@
   </div>
 
   {#if skccSkimmerEnabled}
-    <SkccSkimmer filterMode={filterMode} filterBand={filterBand} filterDistance={filterDistance ? parseInt(filterDistance) : 0} on:tune on:addqso />
+    <SkccSkimmer filterMode={filterMode} filterBand={filterBand} filterDistance={filterDistance ? parseInt(filterDistance) : 0} workedTodayKeys={workedTodayCwKeys} on:tune on:addqso />
   {/if}
 
   <h2>POTA Spots ({filteredSpots.length})</h2>

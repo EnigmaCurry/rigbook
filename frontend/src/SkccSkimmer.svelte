@@ -8,6 +8,7 @@
   export let filterMode = "";
   export let filterBand = "";
   export let filterDistance = 0; // 0 = unlimited
+  export let workedTodayKeys = new Set();
 
   let spots = [];
   let loading = true;
@@ -19,6 +20,11 @@
   const SPOT_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
   $: visible = !filterMode || filterMode === "CW";
+
+  function isWorked(spot) {
+    const key = `${spot.callsign.toUpperCase()}|${spot.band}|CW`;
+    return workedTodayKeys.has(key);
+  }
 
   async function fetchSkccSpots() {
     if (!visible) { spots = []; spotMap = {}; loading = false; return; }
@@ -87,11 +93,15 @@
     <h2>SKCC Skimmer ({spots.length})</h2>
       <div class="grid">
         {#each spots as spot (spot.callsign)}
-          <div class="card">
+          <div class="card" class:worked={isWorked(spot)}>
             <div class="card-header">
-              <!-- svelte-ignore a11y-click-events-have-key-events -->
-              <!-- svelte-ignore a11y-no-static-element-interactions -->
-              <span class="callsign clickable" on:click={() => dispatch("addqso", spot)} title="Add QSO">{spot.callsign}</span>
+              {#if isWorked(spot)}
+                <span class="callsign worked-call" title="Already worked today">{spot.callsign}</span>
+              {:else}
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <span class="callsign clickable" on:click={() => dispatch("addqso", spot)} title="Add QSO">{spot.callsign}</span>
+              {/if}
               <span class="skcc-nr">#{spot.skcc}</span>
               <span class="badge band" style="background: {bandColor(spot.band)}; color: {bandTextColor(spot.band)}">{spot.band}</span>
             </div>
@@ -143,6 +153,14 @@
     border-radius: 4px;
     padding: 0.5rem 0.65rem;
     font-size: 0.8rem;
+  }
+
+  .card.worked {
+    opacity: 0.5;
+  }
+
+  .worked-call {
+    color: var(--text-dim);
   }
 
   .card-header {
