@@ -36,7 +36,7 @@
       if (filterMode) params.set("mode", filterMode);
       if (filterCallsign) params.set("callsign", filterCallsign);
       params.set("limit", "200");
-      const res = await fetch(`/api/spots/?${params}`);
+      const res = await fetch(`/api/spots/aggregate?${params}`);
       if (res.ok) spots = await res.json();
     } catch {}
   }
@@ -148,7 +148,7 @@
           <th>Freq (MHz)</th>
           <th>Band</th>
           <th>Mode</th>
-          <th>Spotter</th>
+          <th>Spotters</th>
           <th>SNR</th>
           <th>WPM</th>
           <th>Source</th>
@@ -156,15 +156,15 @@
         </tr>
       </thead>
       <tbody>
-        {#each spots as spot (spot.id)}
+        {#each spots as spot (spot.callsign + spot.frequency + spot.mode)}
           <tr>
             <td class="mono">{formatTime(spot)}</td>
             <td class="mono call">{spot.callsign}</td>
             <td class="mono">{formatFreq(spot.frequency)}</td>
             <td><span class="band-tag" style="background: {bandColor(spot.band)}">{spot.band}</span></td>
             <td>{spot.mode}</td>
-            <td class="mono">{spot.spotter}</td>
-            <td class="mono">{spot.snr ?? ""}</td>
+            <td class="mono" title={spot.spotters ? spot.spotters.join(", ") : ""}>{spot.spotter_count}</td>
+            <td class="mono">{spot.best_snr ?? ""}</td>
             <td class="mono">{spot.wpm ?? ""}</td>
             <td class="source-tag {spot.source}">{spot.source}</td>
             <td class="info">{spot.state}{spot.wwff_ref ? ` ${spot.wwff_ref}` : ""}{spot.comment ? ` ${spot.comment}` : ""}</td>

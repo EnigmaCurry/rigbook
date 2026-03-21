@@ -36,6 +36,27 @@ async def query_spots(
     return [s.to_dict() for s in spots]
 
 
+@router.get("/aggregate")
+async def aggregate_spots(
+    source: str | None = None,
+    callsign: str | None = None,
+    mode: str | None = None,
+    band: str | None = None,
+    min_freq: float | None = None,
+    max_freq: float | None = None,
+    limit: int = 200,
+):
+    return await spot_cache.aggregate(
+        source=source,
+        callsign=callsign,
+        mode=mode,
+        band=band,
+        min_freq=min_freq,
+        max_freq=max_freq,
+        limit=limit,
+    )
+
+
 @router.get("/status")
 async def feed_status(session: AsyncSession = Depends(get_session)):
     # Read enabled settings from DB

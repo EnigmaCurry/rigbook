@@ -168,6 +168,70 @@ class SpotCache:
                     counts[s.band] = counts.get(s.band, 0) + 1
             return counts
 
+    async def aggregate(
+        self,
+        *,
+        source: str | None = None,
+        callsign: str | None = None,
+        mode: str | None = None,
+        band: str | None = None,
+        min_freq: float | None = None,
+        max_freq: float | None = None,
+        limit: int = 200,
+    ) -> list[dict]:
+        """Group spots by callsign/frequency/mode, counting spotters."""
+        cutoff = _time.time() - SPOT_TTL
+        async with self._lock:
+            live = [s for s in self._spots.values() if s.received_at > cutoff]
+
+        # Apply filters
+        if source:
+            live = [s for s in live if s.source == source]
+        if callsign:
+            q = callsign.upper()
+            live = [s for s in live if q in s.callsign.upper()]
+        if mode:
+            live = [s for s in live if s.mode.upper() == mode.upper()]
+        if band:
+            live = [s for s in live if s.band == band.lower()]
+        if min_freq is not None:
+            live = [s for s in live if s.frequency >= min_freq]
+        if max_freq is not None:
+            live = [s for s in live if s.frequency <= max_freq]
+
+        # Group by (callsign, frequency, mode)
+        groups: dict[tuple[str, float, str], list[Spot]] = {}
+        for s in live:
+            key = (s.callsign, s.frequency, s.mode)
+            groups.setdefault(key, []).append(s)
+
+        results = []
+        for (call, freq, m), spots in groups.items():
+            spotters = sorted({s.spotter for s in spots if s.spotter})
+            best_snr = max((s.snr for s in spots if s.snr is not None), default=None)
+            latest = max(spots, key=lambda s: s.received_at)
+            results.append(
+                {
+                    "callsign": call,
+                    "frequency": freq,
+                    "mode": m,
+                    "band": latest.band,
+                    "spotter_count": len(spotters),
+                    "spotters": spotters,
+                    "best_snr": best_snr,
+                    "wpm": latest.wpm,
+                    "time": latest.time,
+                    "received_at": latest.received_at,
+                    "source": latest.source,
+                    "state": latest.state,
+                    "comment": latest.comment,
+                    "wwff_ref": latest.wwff_ref,
+                }
+            )
+
+        results.sort(key=lambda r: r["received_at"], reverse=True)
+        return results[:limit]
+
     async def count(self) -> int:
         async with self._lock:
             return len(self._spots)
