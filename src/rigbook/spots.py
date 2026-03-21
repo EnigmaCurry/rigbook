@@ -249,6 +249,12 @@ class SpotCache:
         async with self._lock:
             return len(self._live_entries(cutoff))
 
+    async def modes(self) -> list[str]:
+        """Return sorted list of distinct modes in live entries."""
+        cutoff = _time.time() - SPOT_TTL
+        async with self._lock:
+            return sorted({e.mode for e in self._live_entries(cutoff) if e.mode})
+
     async def stats(self) -> dict:
         """Cache statistics: callsigns, total spots, average spots per callsign."""
         cutoff = _time.time() - SPOT_TTL

@@ -55,6 +55,11 @@ async def feed_status(session: AsyncSession = Depends(get_session)):
     }
 
 
+@router.get("/modes")
+async def list_modes():
+    return await spot_cache.modes()
+
+
 @router.get("/bands")
 async def band_summary():
     return await spot_cache.band_summary()

@@ -5,6 +5,7 @@
   let spots = [];
   let status = { rbn: { connected: false, enabled: false }, hamalert: { connected: false, enabled: false }, callsigns: 0, entries: 0, total_spots: 0, avg_spots_per_callsign: 0 };
   let bands = {};
+  let modes = [];
   let filterSource = "";
   let filterBand = "";
   let filterMode = "";
@@ -25,6 +26,13 @@
     try {
       const res = await fetch("/api/spots/bands");
       if (res.ok) bands = await res.json();
+    } catch {}
+  }
+
+  async function fetchModes() {
+    try {
+      const res = await fetch("/api/spots/modes");
+      if (res.ok) modes = await res.json();
     } catch {}
   }
 
@@ -68,8 +76,9 @@
   onMount(() => {
     fetchStatus();
     fetchBands();
+    fetchModes();
     fetchSpots();
-    statusInterval = setInterval(() => { fetchStatus(); fetchBands(); }, 5000);
+    statusInterval = setInterval(() => { fetchStatus(); fetchBands(); fetchModes(); }, 5000);
     spotsInterval = setInterval(fetchSpots, 3000);
   });
 
@@ -119,7 +128,12 @@
         <option value={b}>{b} ({bands[b]})</option>
       {/each}
     </select>
-    <input type="text" placeholder="Mode" bind:value={filterMode} on:input={fetchSpots} />
+    <select bind:value={filterMode} on:change={fetchSpots}>
+      <option value="">All Modes</option>
+      {#each modes as m}
+        <option value={m}>{m}</option>
+      {/each}
+    </select>
     <input type="text" placeholder="Callsign" bind:value={filterCallsign} on:input={fetchSpots} style="text-transform: uppercase" />
   </div>
 
