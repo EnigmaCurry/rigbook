@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from rigbook.db import Cache, Setting, get_session
+from rigbook.routes.skcc import _ensure_cache as ensure_skcc_cache
 from rigbook.spots import (
     hamalert_feed,
     rbn_feed,
@@ -65,6 +66,8 @@ async def query_spots(
         for c in all_calls
         if any(s["callsign"].upper() == c and s["mode"] == "CW" for s in spots)
     ]
+    if cw_calls:
+        await ensure_skcc_cache(session)
     skcc_map = await _batch_cache_lookup("skcc", cw_calls, session) if cw_calls else {}
 
     for s in spots:
