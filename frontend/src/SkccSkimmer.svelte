@@ -92,13 +92,13 @@
               <!-- svelte-ignore a11y-click-events-have-key-events -->
               <!-- svelte-ignore a11y-no-static-element-interactions -->
               <span class="callsign clickable" on:click={() => dispatch("addqso", spot)} title="Add QSO">{spot.callsign}</span>
+              <span class="skcc-nr">#{spot.skcc}</span>
               <span class="badge band" style="background: {bandColor(spot.band)}; color: {bandTextColor(spot.band)}">{spot.band}</span>
             </div>
             <div class="card-body">
               <!-- svelte-ignore a11y-click-events-have-key-events -->
               <!-- svelte-ignore a11y-no-static-element-interactions -->
               <span class="freq clickable" on:click={() => dispatch("tune", spot)} title="Tune radio">{spot.frequency} KHz</span>
-              <span class="skcc-nr">SKCC #{spot.skcc}</span>
             </div>
             <div class="card-body">
               <span class="location">{locationStr(spot)}</span>
