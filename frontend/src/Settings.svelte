@@ -432,7 +432,7 @@
     accent-color: var(--accent);
   }
 
-  input[type="range"]:disabled {
+  input:disabled, select:disabled {
     opacity: 0.4;
   }
 
