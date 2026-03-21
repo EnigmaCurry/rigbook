@@ -382,7 +382,7 @@ async def search_parks(q: str = "", session: AsyncSession = Depends(get_session)
             "name": p.name,
             "location_desc": p.location_desc,
             "grid": p.grid,
-            "location_name": loc_name if loc_count == 1 else None,
+            "location_name": loc_name if loc_count == 1 else "",
             "program_name": _fix_program_name(
                 prog_name, p.reference.split("-")[0] if p.reference else ""
             ),
@@ -467,7 +467,7 @@ async def get_park(reference: str, session: AsyncSession = Depends(get_session))
             .where(PotaPark.reference == ref)
         )
     ).all()
-    locations = [{"descriptor": d, "name": n} for d, n in all_locs]
+    locations = [{"descriptor": d, "name": n or ""} for d, n in all_locs]
 
     my_qsos_rows = (
         (

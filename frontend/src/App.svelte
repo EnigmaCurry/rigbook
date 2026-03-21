@@ -320,18 +320,11 @@
       });
       pollFlrig();
     } catch {}
-    prefill = {
-      call: spot.activator || "",
-      freq: spot.frequency || "",
-      mode: spot.mode || "",
-      pota_park: spot.reference || "",
-      grid: spot.grid4 || "",
-      country: "",
-      state: "",
-    };
     const loc = spot.locationDesc || "";
+    let spotCountry = "";
+    let spotState = "";
     if (loc.startsWith("US-")) {
-      prefill.country = "United States";
+      spotCountry = "United States";
     }
     // Resolve state from local park cache
     if (spot.reference) {
@@ -339,16 +332,25 @@
         const res = await fetch(`/api/pota/park/${encodeURIComponent(spot.reference)}`);
         if (res.ok) {
           const park = await res.json();
-          if (park.program_name) prefill.country = park.program_name;
+          if (park.program_name) spotCountry = park.program_name;
           if (park.locations && park.locations.length === 1) {
-            prefill.state = park.locations[0].name || "";
+            spotState = park.locations[0].name || "";
           } else if (park.locations && loc) {
             const match = park.locations.find(l => l.descriptor === loc);
-            if (match) prefill.state = match.name || "";
+            if (match) spotState = match.name || "";
           }
         }
       } catch {}
     }
+    prefill = {
+      call: spot.activator || "",
+      freq: spot.frequency || "",
+      mode: spot.mode || "",
+      pota_park: spot.reference || "",
+      grid: spot.grid4 || "",
+      country: spotCountry,
+      state: spotState,
+    };
     if (page === "dual") dualShowForm = true;
     else navigate("add");
   }
