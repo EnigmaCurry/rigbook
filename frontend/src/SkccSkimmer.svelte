@@ -1,7 +1,7 @@
 <script>
   import { onMount, onDestroy, createEventDispatcher } from "svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
-  import { QrzLookup, formatFreq, locationStr, timeAgo } from "./qrzLookup.js";
+  import { QrzLookup, locationStr, timeAgo } from "./qrzLookup.js";
 
   const dispatch = createEventDispatcher();
 
@@ -9,16 +9,10 @@
   export let filterBand = "";
   export let workedTodayKeys = new Set();
 
-  let skccDistance = 500;
-
   let spots = [];
   let loading = true;
   let pollInterval;
   const qrz = new QrzLookup(() => { spots = spots; });
-
-  // Track spots with their first-seen time so they persist for at least TTL
-  let spotMap = {}; // callsign -> { spot, firstSeen }
-  const SPOT_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
   $: visible = !filterMode || filterMode === "CW";
 
@@ -31,38 +25,13 @@
   }
 
   async function fetchSkccSpots() {
-    if (!visible) { spots = []; spotMap = {}; loading = false; return; }
+    if (!visible) { spots = []; loading = false; return; }
     try {
       const params = new URLSearchParams();
-      params.set("mode", "CW");
-      params.set("skcc", "required");
-      if (skccDistance > 0) params.set("max_distance", String(skccDistance));
       if (filterBand) params.set("band", filterBand);
-      params.set("limit", "50");
-      const res = await fetch(`/api/spots/?${params}`);
+      const res = await fetch(`/api/spots/skcc?${params}`);
       if (res.ok) {
-        const fresh = await res.json();
-        const now = Date.now();
-
-        // Merge: update existing, add new
-        const freshKeys = new Set();
-        for (const s of fresh) {
-          freshKeys.add(s.callsign);
-          if (spotMap[s.callsign]) {
-            spotMap[s.callsign].spot = s;
-          } else {
-            spotMap[s.callsign] = { spot: s, firstSeen: now };
-          }
-        }
-
-        // Keep old spots that haven't expired yet (even if not in latest results)
-        for (const key of Object.keys(spotMap)) {
-          if (!freshKeys.has(key) && now - spotMap[key].firstSeen > SPOT_TTL_MS) {
-            delete spotMap[key];
-          }
-        }
-
-        spots = Object.values(spotMap).map(e => e.spot);
+        spots = await res.json();
         await qrz.enqueue(spots);
       }
     } catch {}
@@ -75,22 +44,10 @@
   $: if (filterMode !== prevFilterMode || filterBand !== prevFilterBand) {
     prevFilterMode = filterMode;
     prevFilterBand = filterBand;
-    spotMap = {};
     fetchSkccSpots();
   }
 
-  async function loadDistance() {
-    try {
-      const res = await fetch("/api/settings/skcc_skimmer_distance");
-      if (res.ok) {
-        const data = await res.json();
-        if (data.value) skccDistance = parseInt(data.value) || 500;
-      }
-    } catch {}
-  }
-
-  onMount(async () => {
-    await loadDistance();
+  onMount(() => {
     fetchSkccSpots();
     pollInterval = setInterval(fetchSkccSpots, 10000);
   });
@@ -147,11 +104,6 @@
     color: var(--accent);
     font-size: 1.1rem;
     margin: 0 0 0.75rem 0;
-  }
-
-  .status {
-    color: var(--text-muted);
-    font-size: 0.85rem;
   }
 
   .grid {

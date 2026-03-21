@@ -158,6 +158,34 @@ async def query_spots(
     return spots
 
 
+@router.get("/skcc")
+async def skcc_skimmer(
+    band: str | None = None,
+    limit: int = 50,
+    session: AsyncSession = Depends(get_session),
+):
+    """Pre-filtered SKCC skimmer view: CW + SKCC members + distance limit from settings."""
+    # Read distance setting
+    result = await session.execute(
+        select(Setting.value).where(Setting.key == "skcc_skimmer_distance")
+    )
+    dist_str = result.scalar_one_or_none()
+    max_dist = int(dist_str) if dist_str and dist_str.isdigit() else 500
+
+    return await query_spots(
+        source=None,
+        callsign=None,
+        mode="CW",
+        band=band,
+        min_freq=None,
+        max_freq=None,
+        skcc="required",
+        max_distance=max_dist if max_dist > 0 else None,
+        limit=limit,
+        session=session,
+    )
+
+
 @router.get("/status")
 async def feed_status(session: AsyncSession = Depends(get_session)):
     result = await session.execute(
