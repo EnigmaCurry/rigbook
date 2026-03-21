@@ -119,7 +119,7 @@
       <div class="park-detail-links">
         <a href="https://pota.app/#/park/{park.reference}" target="_blank" rel="noopener">View on POTA</a>
         {#if showAddQso}
-          <button class="add-qso-btn" on:click={() => dispatch("addqso", { pota_park: park.reference, grid: park.grid || "", country: park.program_name || "", state: park.location_name || "" })}>+ Add QSO</button>
+          <button class="add-qso-btn" on:click={() => dispatch("addqso", { pota_park: park.reference, grid: park.grid || "", country: park.program_name || "", state: (park.locations && park.locations.length === 1) ? park.locations[0].name || "" : "" })}>+ Add QSO</button>
         {/if}
       </div>
     </div>

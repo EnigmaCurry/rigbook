@@ -432,7 +432,7 @@
       country = park.program_name;
       onCountryChange();
     }
-    if (park.location_name && !state) state = park.location_name;
+    if (park.location_name && !state && (park.location_count || 1) === 1) state = park.location_name;
     potaOpen = false;
     potaResults = [];
   }

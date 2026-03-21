@@ -333,6 +333,22 @@
     if (loc.startsWith("US-")) {
       prefill.country = "United States";
     }
+    // Resolve state from local park cache
+    if (spot.reference) {
+      try {
+        const res = await fetch(`/api/pota/park/${encodeURIComponent(spot.reference)}`);
+        if (res.ok) {
+          const park = await res.json();
+          if (park.program_name) prefill.country = park.program_name;
+          if (park.locations && park.locations.length === 1) {
+            prefill.state = park.locations[0].name || "";
+          } else if (park.locations && loc) {
+            const match = park.locations.find(l => l.descriptor === loc);
+            if (match) prefill.state = match.name || "";
+          }
+        }
+      } catch {}
+    }
     if (page === "dual") dualShowForm = true;
     else navigate("add");
   }

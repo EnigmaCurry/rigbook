@@ -337,12 +337,22 @@ async def search_parks(q: str = "", session: AsyncSession = Depends(get_session)
     pattern = f"%{q}%"
     m = re.match(r"^([A-Za-z]{1,2})(\d.*)$", q)
     ref_pattern = f"%{m.group(1)}-{m.group(2)}%" if m else pattern
+    # Subquery to count locations per reference
+    loc_count_sub = (
+        select(
+            PotaPark.reference.label("ref"),
+            func.count().label("loc_count"),
+        )
+        .group_by(PotaPark.reference)
+        .subquery()
+    )
     rows = (
         await session.execute(
             select(
                 PotaPark,
                 PotaLocation.name.label("location_name"),
                 PotaProgram.name.label("program_name"),
+                loc_count_sub.c.loc_count,
             )
             .outerjoin(
                 PotaLocation,
@@ -351,6 +361,10 @@ async def search_parks(q: str = "", session: AsyncSession = Depends(get_session)
             .outerjoin(
                 PotaProgram,
                 PotaLocation.program_prefix == PotaProgram.prefix,
+            )
+            .outerjoin(
+                loc_count_sub,
+                PotaPark.reference == loc_count_sub.c.ref,
             )
             .where(
                 PotaPark.reference.ilike(ref_pattern)
@@ -368,12 +382,13 @@ async def search_parks(q: str = "", session: AsyncSession = Depends(get_session)
             "name": p.name,
             "location_desc": p.location_desc,
             "grid": p.grid,
-            "location_name": loc_name,
+            "location_name": loc_name if loc_count == 1 else None,
             "program_name": _fix_program_name(
                 prog_name, p.reference.split("-")[0] if p.reference else ""
             ),
+            "location_count": loc_count or 1,
         }
-        for p, loc_name, prog_name in rows
+        for p, loc_name, prog_name, loc_count in rows
     ]
 
 
@@ -444,6 +459,16 @@ async def get_park(reference: str, session: AsyncSession = Depends(get_session))
         return {"error": "Park not found"}
     p, loc_name, prog_name = park
 
+    # All locations for this park (multi-state parks have multiple rows)
+    all_locs = (
+        await session.execute(
+            select(PotaPark.location_desc, PotaLocation.name)
+            .outerjoin(PotaLocation, PotaPark.location_desc == PotaLocation.descriptor)
+            .where(PotaPark.reference == ref)
+        )
+    ).all()
+    locations = [{"descriptor": d, "name": n} for d, n in all_locs]
+
     my_qsos_rows = (
         (
             await session.execute(
@@ -486,6 +511,7 @@ async def get_park(reference: str, session: AsyncSession = Depends(get_session))
         "program_name": _fix_program_name(
             prog_name, p.reference.split("-")[0] if p.reference else ""
         ),
+        "locations": locations,
     }
 
 
