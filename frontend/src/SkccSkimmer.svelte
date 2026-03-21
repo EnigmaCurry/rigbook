@@ -1,11 +1,11 @@
 <script>
   import { onMount, onDestroy } from "svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
-  import { countryFlag } from "./countryFlag.js";
   import { QrzLookup, formatFreq, locationStr, timeAgo } from "./qrzLookup.js";
 
   export let filterMode = "";
   export let filterBand = "";
+  export let filterDistance = 0; // 0 = unlimited
 
   let spots = [];
   let loading = true;
@@ -24,7 +24,7 @@
       const params = new URLSearchParams();
       params.set("mode", "CW");
       params.set("skcc", "required");
-      params.set("max_distance", "500");
+      if (filterDistance > 0) params.set("max_distance", String(filterDistance));
       if (filterBand) params.set("band", filterBand);
       params.set("limit", "50");
       const res = await fetch(`/api/spots/?${params}`);
@@ -60,9 +60,11 @@
   // Re-fetch when filters actually change
   let prevFilterMode = filterMode;
   let prevFilterBand = filterBand;
-  $: if (filterMode !== prevFilterMode || filterBand !== prevFilterBand) {
+  let prevFilterDistance = filterDistance;
+  $: if (filterMode !== prevFilterMode || filterBand !== prevFilterBand || filterDistance !== prevFilterDistance) {
     prevFilterMode = filterMode;
     prevFilterBand = filterBand;
+    prevFilterDistance = filterDistance;
     spotMap = {};
     fetchSkccSpots();
   }
@@ -78,19 +80,14 @@
   });
 </script>
 
-{#if visible}
+{#if visible && spots.length > 0}
   <div class="skcc-skimmer">
     <h2>SKCC Skimmer ({spots.length})</h2>
-    {#if loading}
-      <p class="status">Loading...</p>
-    {:else if spots.length === 0}
-      <p class="status">No nearby SKCC members on CW{filterBand ? ` (${filterBand})` : ""}.</p>
-    {:else}
       <div class="grid">
         {#each spots as spot (spot.callsign)}
           <div class="card">
             <div class="card-header">
-              <span class="callsign">{#if spot.country_code}{countryFlag(spot.country_code)} {/if}{spot.callsign}</span>
+              <span class="callsign">{spot.callsign}</span>
               <span class="badge band" style="background: {bandColor(spot.band)}; color: {bandTextColor(spot.band)}">{spot.band}</span>
             </div>
             <div class="card-body">
@@ -107,7 +104,6 @@
           </div>
         {/each}
       </div>
-    {/if}
   </div>
 {/if}
 
@@ -115,6 +111,7 @@
   .skcc-skimmer {
     width: 100%;
     margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
   }
 
   h2 {

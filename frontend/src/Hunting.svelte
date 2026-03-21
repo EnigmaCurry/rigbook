@@ -5,7 +5,7 @@
   import { parkAward, parkAwardTitle } from "./parkAward.js";
   import ParkDetail from "./ParkDetail.svelte";
   import SkccSkimmer from "./SkccSkimmer.svelte";
-  import { timeAgo } from "./qrzLookup.js";
+  import { timeAgo, gridDistanceMi } from "./qrzLookup.js";
 
   const dispatch = createEventDispatcher();
 
@@ -16,6 +16,8 @@
   let filterMode = "";
   let filterBand = "";
   let filterProgram = "";
+  let filterDistance = ""; // "", "100", "500", "1000"
+  let myGrid = "";
   let filtersLoaded = false;
   let seenSpotKeys = new Set();
   let newSpotKeys = new Set();
@@ -141,6 +143,10 @@
     if (filterMode && s.mode !== filterMode) return false;
     if (filterBand && freqToBand(s.frequency) !== filterBand) return false;
     if (filterProgram && spotProgram(s) !== filterProgram) return false;
+    if (filterDistance && myGrid && s.grid4) {
+      const dist = gridDistanceMi(myGrid, s.grid4);
+      if (dist === null || dist > parseInt(filterDistance)) return false;
+    }
     return true;
   });
 
@@ -157,7 +163,15 @@
           filterMode = saved.mode || "";
           filterBand = saved.band || "";
           filterProgram = saved.program || "";
+          filterDistance = saved.distance || "";
         }
+      }
+    } catch {}
+    try {
+      const res = await fetch("/api/settings/my_grid");
+      if (res.ok) {
+        const data = await res.json();
+        myGrid = (data.value || "").trim();
       }
     } catch {}
     filtersLoaded = true;
@@ -169,15 +183,14 @@
       await fetch(`/api/settings/${FILTER_SETTINGS_KEY}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: JSON.stringify({ mode: filterMode, band: filterBand, program: filterProgram }) }),
+        body: JSON.stringify({ value: JSON.stringify({ mode: filterMode, band: filterBand, program: filterProgram, distance: filterDistance }) }),
       });
     } catch {}
   }
 
   // Save filters whenever they change (after initial load)
-  // Reference all three variables so Svelte tracks them as dependencies
   $: if (filtersLoaded) {
-    const _filters = { m: filterMode, b: filterBand, p: filterProgram };
+    const _filters = { m: filterMode, b: filterBand, p: filterProgram, d: filterDistance };
     saveFilters();
   }
 
@@ -326,11 +339,17 @@
           <option value={p}>{p}</option>
         {/each}
       </select>
+      <select bind:value={filterDistance}>
+        <option value="">Any Distance</option>
+        <option value="100">Within 100mi</option>
+        <option value="500">Within 500mi</option>
+        <option value="1000">Within 1000mi</option>
+      </select>
       <button class="btn-refresh" on:click={() => { loading = true; fetchSpots(); }}>Refresh</button>
     </div>
   </div>
 
-  <SkccSkimmer filterMode={filterMode} filterBand={filterBand} />
+  <SkccSkimmer filterMode={filterMode} filterBand={filterBand} filterDistance={filterDistance ? parseInt(filterDistance) : 0} />
 
   <h2>POTA Spots ({filteredSpots.length})</h2>
 

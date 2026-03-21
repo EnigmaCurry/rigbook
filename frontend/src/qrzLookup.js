@@ -115,6 +115,34 @@ export function locationStr(spot) {
 }
 
 /**
+ * Calculate great-circle distance in miles between two Maidenhead grid squares.
+ * Returns null if either grid is invalid.
+ */
+export function gridDistanceMi(grid1, grid2) {
+  const toLatLon = (g) => {
+    if (!g || g.length < 4) return null;
+    g = g.toUpperCase();
+    let lon = (g.charCodeAt(0) - 65) * 20 - 180 + (g.charCodeAt(2) - 48) * 2;
+    let lat = (g.charCodeAt(1) - 65) * 10 - 90 + (g.charCodeAt(3) - 48);
+    if (g.length >= 6) {
+      lon += (g.charCodeAt(4) - 65) * (2 / 24) + (1 / 24);
+      lat += (g.charCodeAt(5) - 65) * (1 / 24) + (0.5 / 24);
+    } else {
+      lon += 1;
+      lat += 0.5;
+    }
+    return [lat, lon];
+  };
+  const c1 = toLatLon(grid1), c2 = toLatLon(grid2);
+  if (!c1 || !c2) return null;
+  const R = Math.PI / 180;
+  const lat1 = c1[0] * R, lon1 = c1[1] * R, lat2 = c2[0] * R, lon2 = c2[1] * R;
+  const dlat = lat2 - lat1, dlon = lon2 - lon1;
+  const a = Math.sin(dlat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dlon / 2) ** 2;
+  return Math.round(2 * 6371 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 0.621371);
+}
+
+/**
  * Format a timestamp as "Xm ago" / "Xh Ym ago".
  * Accepts an ISO string (e.g. "2026-03-21T18:30:00") or a Unix timestamp (seconds).
  */
