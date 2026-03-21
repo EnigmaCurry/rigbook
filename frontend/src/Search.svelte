@@ -12,6 +12,7 @@
   }
   let logbookResults = [];
   let potaResults = [];
+  let parkResults = [];
   let skccResults = [];
   let qrzResult = null;
   let qrzLoading = false;
@@ -22,6 +23,7 @@
   $: allResults = [
     ...logbookResults.map(r => ({ type: "logbook", data: r })),
     ...potaResults.map(r => ({ type: "pota", data: r })),
+    ...parkResults.map(r => ({ type: "park", data: r })),
     ...skccResults.map(r => ({ type: "skcc", data: r })),
     ...(qrzResult ? [{ type: "qrz", data: qrzResult }] : []),
   ];
@@ -55,6 +57,15 @@
     } catch { logbookResults = []; }
   }
 
+  async function searchParks(q) {
+    if (!q || q.length < 2) { parkResults = []; return; }
+    try {
+      const res = await fetch(`/api/pota/parks/search?q=${encodeURIComponent(q)}`);
+      if (res.ok) parkResults = (await res.json()).slice(0, 5);
+      else parkResults = [];
+    } catch { parkResults = []; }
+  }
+
   async function searchSkcc(q) {
     if (!q || q.length < 2) { skccResults = []; return; }
     try {
@@ -83,7 +94,7 @@
     qrzResult = null;
     clearTimeout(debounceTimer);
     potaResults = filterPota(query);
-    debounceTimer = setTimeout(() => { searchLogbook(query); searchSkcc(query); }, 300);
+    debounceTimer = setTimeout(() => { searchLogbook(query); searchParks(query); searchSkcc(query); }, 300);
   }
 
   function onKeydown(e) {
@@ -115,6 +126,7 @@
     query = "";
     logbookResults = [];
     potaResults = [];
+    parkResults = [];
     skccResults = [];
     qrzResult = null;
     dispatch("action", item);
@@ -193,10 +205,25 @@
         {/each}
       {/if}
 
+      {#if parkResults.length > 0}
+        <div class="group-header">POTA Parks</div>
+        {#each parkResults as p, i}
+          {@const idx = logbookResults.length + potaResults.length + i}
+          <div
+            class="result-item"
+            class:highlighted={highlightIndex === idx}
+            on:mousedown|preventDefault={() => pick({ type: "park", data: p })}
+          >
+            <span class="result-call">{p.reference}</span>
+            <span class="result-detail">{p.name}{p.location_name ? " — " + p.location_name : ""}{p.grid ? " " + p.grid : ""}</span>
+          </div>
+        {/each}
+      {/if}
+
       {#if skccResults.length > 0}
         <div class="group-header">SKCC</div>
         {#each skccResults as s, i}
-          {@const idx = logbookResults.length + potaResults.length + i}
+          {@const idx = logbookResults.length + potaResults.length + parkResults.length + i}
           <div
             class="result-item"
             class:highlighted={highlightIndex === idx}
@@ -210,7 +237,7 @@
 
       {#if qrzResult}
         <div class="group-header">QRZ</div>
-        {@const idx = logbookResults.length + potaResults.length + skccResults.length}
+        {@const idx = logbookResults.length + potaResults.length + parkResults.length + skccResults.length}
         <div
           class="result-item"
           class:highlighted={highlightIndex === idx}

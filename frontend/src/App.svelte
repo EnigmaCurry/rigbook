@@ -367,6 +367,9 @@
       editId = data.id;
       window.location.hash = `/log/${data.id}`;
       fetchCallsign();
+    } else if (type === "park") {
+      navigate("parks");
+      window.location.hash = `/parks/park/${encodeURIComponent(data.reference)}`;
     } else if (type === "pota") {
       tuneAndPrefill(data);
     } else if (type === "skcc") {
