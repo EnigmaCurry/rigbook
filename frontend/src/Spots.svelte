@@ -279,7 +279,7 @@
           <th class="sortable" on:click={() => toggleSort("spotters")}>Spotters{sortIndicator("spotters")}</th>
           <th class="sortable" on:click={() => toggleSort("snr")}>Best SNR{sortIndicator("snr")}</th>
           <th class="sortable" on:click={() => toggleSort("wpm")}>WPM{sortIndicator("wpm")}</th>
-          <th class="sortable" on:click={() => toggleSort("country")}>Location{sortIndicator("country")}</th>
+          <th class="sortable" on:click={() => toggleSort("country")}>Home Location{sortIndicator("country")}</th>
           <th class="sortable" on:click={() => toggleSort("source")}>Source{sortIndicator("source")}</th>
           <th class="sortable" on:click={() => toggleSort("distance")}>Closest Spot{sortIndicator("distance")}</th>
           <th>Info</th>
