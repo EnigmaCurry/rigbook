@@ -84,7 +84,7 @@ class AggregateSpot:
     mode: str
     band: str
     source: str  # source of most recent spot
-    spotters: set[str] = field(default_factory=set)
+    spotters: dict[str, float] = field(default_factory=dict)  # spotter -> timestamp
     best_snr: int | None = None
     wpm: int | None = None
     time: str = ""  # most recent spot time
@@ -93,8 +93,12 @@ class AggregateSpot:
     comment: str = ""
     wwff_ref: str = ""
 
+    def prune_spotters(self, cutoff: float) -> None:
+        """Remove spotters older than cutoff timestamp."""
+        self.spotters = {k: v for k, v in self.spotters.items() if v > cutoff}
+
     def to_dict(self) -> dict:
-        spotters_sorted = sorted(self.spotters)
+        spotters_sorted = sorted(self.spotters.keys())
         return {
             "callsign": self.callsign,
             "frequency": self.frequency,
@@ -135,7 +139,7 @@ class SpotCache:
             if entry:
                 # Update existing aggregate
                 if spot.spotter:
-                    entry.spotters.add(spot.spotter)
+                    entry.spotters[spot.spotter] = now
                 if spot.snr is not None and (
                     entry.best_snr is None or spot.snr > entry.best_snr
                 ):
@@ -155,7 +159,7 @@ class SpotCache:
                     mode=spot.mode,
                     band=spot.band,
                     source=spot.source,
-                    spotters={spot.spotter} if spot.spotter else set(),
+                    spotters={spot.spotter: now} if spot.spotter else {},
                     best_snr=spot.snr,
                     wpm=spot.wpm,
                     time=spot.time,
@@ -168,9 +172,26 @@ class SpotCache:
     async def prune(self) -> None:
         cutoff = _time.time() - SPOT_TTL
         async with self._lock:
-            self._entries = {
-                k: v for k, v in self._entries.items() if v.received_at > cutoff
-            }
+            # Prune stale spotters from each entry, then remove empty entries
+            to_remove = []
+            for key, entry in self._entries.items():
+                entry.prune_spotters(cutoff)
+                if not entry.spotters:
+                    to_remove.append(key)
+            for key in to_remove:
+                del self._entries[key]
+
+    def _live_entries(self, cutoff: float) -> list[AggregateSpot]:
+        """Return entries that have at least one non-expired spotter.
+
+        Must be called with self._lock held.
+        """
+        results = []
+        for entry in self._entries.values():
+            live_count = sum(1 for t in entry.spotters.values() if t > cutoff)
+            if live_count > 0:
+                results.append(entry)
+        return results
 
     async def query(
         self,
@@ -185,7 +206,7 @@ class SpotCache:
     ) -> list[dict]:
         cutoff = _time.time() - SPOT_TTL
         async with self._lock:
-            live = [e for e in self._entries.values() if e.received_at > cutoff]
+            live = self._live_entries(cutoff)
 
         if source:
             live = [e for e in live if e.source == source]
@@ -202,20 +223,31 @@ class SpotCache:
             live = [e for e in live if e.frequency <= max_freq]
 
         live.sort(key=lambda e: e.received_at, reverse=True)
-        return [e.to_dict() for e in live[:limit]]
+
+        # Build dicts with only live spotter counts
+        results = []
+        for e in live[:limit]:
+            d = e.to_dict()
+            # Override spotters/count with only non-expired ones
+            live_spotters = sorted(k for k, t in e.spotters.items() if t > cutoff)
+            d["spotters"] = live_spotters
+            d["spotter_count"] = len(live_spotters)
+            results.append(d)
+        return results
 
     async def band_summary(self) -> dict[str, int]:
         cutoff = _time.time() - SPOT_TTL
         async with self._lock:
             counts: dict[str, int] = {}
-            for e in self._entries.values():
-                if e.received_at > cutoff and e.band:
+            for e in self._live_entries(cutoff):
+                if e.band:
                     counts[e.band] = counts.get(e.band, 0) + 1
             return counts
 
     async def count(self) -> int:
+        cutoff = _time.time() - SPOT_TTL
         async with self._lock:
-            return len(self._entries)
+            return len(self._live_entries(cutoff))
 
     async def last_spot_time(self) -> float | None:
         async with self._lock:
