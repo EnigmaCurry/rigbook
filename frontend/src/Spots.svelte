@@ -12,7 +12,7 @@
   let filterCallsign = "";
   let filterSkcc = "";
   let restarting = false;
-  let sortCol = "callsign";
+  let sortCol = "distance";
   let sortDir = 1; // 1 = ascending, -1 = descending
 
   function toggleSort(col) {
