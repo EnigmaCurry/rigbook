@@ -5,7 +5,7 @@
   import { parkAward, parkAwardTitle } from "./parkAward.js";
   import ParkDetail from "./ParkDetail.svelte";
   import SkccSkimmer from "./SkccSkimmer.svelte";
-  import { timeAgo, gridDistanceMi } from "./qrzLookup.js";
+  import { timeAgo } from "./qrzLookup.js";
 
   const dispatch = createEventDispatcher();
 
@@ -16,8 +16,6 @@
   let filterMode = "";
   let filterBand = "";
   let filterProgram = "";
-  let filterDistance = ""; // "", "100", "500", "1000"
-  let myGrid = "";
   let skccSkimmerEnabled = false;
   let filtersLoaded = false;
   let seenSpotKeys = new Set();
@@ -145,10 +143,6 @@
     if (filterMode && s.mode !== filterMode) return false;
     if (filterBand && freqToBand(s.frequency) !== filterBand) return false;
     if (filterProgram && spotProgram(s) !== filterProgram) return false;
-    if (filterDistance && myGrid && s.grid4) {
-      const dist = gridDistanceMi(myGrid, s.grid4);
-      if (dist === null || dist > parseInt(filterDistance)) return false;
-    }
     return true;
   });
 
@@ -165,15 +159,7 @@
           filterMode = saved.mode || "";
           filterBand = saved.band || "";
           filterProgram = saved.program || "";
-          filterDistance = saved.distance || "";
         }
-      }
-    } catch {}
-    try {
-      const res = await fetch("/api/settings/my_grid");
-      if (res.ok) {
-        const data = await res.json();
-        myGrid = (data.value || "").trim();
       }
     } catch {}
     try {
@@ -192,14 +178,14 @@
       await fetch(`/api/settings/${FILTER_SETTINGS_KEY}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: JSON.stringify({ mode: filterMode, band: filterBand, program: filterProgram, distance: filterDistance }) }),
+        body: JSON.stringify({ value: JSON.stringify({ mode: filterMode, band: filterBand, program: filterProgram }) }),
       });
     } catch {}
   }
 
   // Save filters whenever they change (after initial load)
   $: if (filtersLoaded) {
-    const _filters = { m: filterMode, b: filterBand, p: filterProgram, d: filterDistance };
+    const _filters = { m: filterMode, b: filterBand, p: filterProgram };
     saveFilters();
   }
 
@@ -366,18 +352,12 @@
           <option value={p}>{p}</option>
         {/each}
       </select>
-      <select bind:value={filterDistance}>
-        <option value="">Any Distance</option>
-        <option value="100">Within 100mi</option>
-        <option value="500">Within 500mi</option>
-        <option value="1000">Within 1000mi</option>
-      </select>
       <button class="btn-refresh" on:click={() => { loading = true; fetchSpots(); }}>Refresh</button>
     </div>
   </div>
 
   {#if skccSkimmerEnabled}
-    <SkccSkimmer filterMode={filterMode} filterBand={filterBand} filterDistance={filterDistance ? parseInt(filterDistance) : 0} workedTodayKeys={workedTodayCwKeys} on:tune on:addqso />
+    <SkccSkimmer filterMode={filterMode} filterBand={filterBand} workedTodayKeys={workedTodayCwKeys} on:tune on:addqso />
   {/if}
 
   <h2>POTA Spots ({filteredSpots.length})</h2>

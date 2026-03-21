@@ -7,8 +7,9 @@
 
   export let filterMode = "";
   export let filterBand = "";
-  export let filterDistance = 0; // 0 = unlimited
   export let workedTodayKeys = new Set();
+
+  let skccDistance = 500;
 
   let spots = [];
   let loading = true;
@@ -35,7 +36,7 @@
       const params = new URLSearchParams();
       params.set("mode", "CW");
       params.set("skcc", "required");
-      if (filterDistance > 0) params.set("max_distance", String(filterDistance));
+      if (skccDistance > 0) params.set("max_distance", String(skccDistance));
       if (filterBand) params.set("band", filterBand);
       params.set("limit", "50");
       const res = await fetch(`/api/spots/?${params}`);
@@ -71,16 +72,25 @@
   // Re-fetch when filters actually change
   let prevFilterMode = filterMode;
   let prevFilterBand = filterBand;
-  let prevFilterDistance = filterDistance;
-  $: if (filterMode !== prevFilterMode || filterBand !== prevFilterBand || filterDistance !== prevFilterDistance) {
+  $: if (filterMode !== prevFilterMode || filterBand !== prevFilterBand) {
     prevFilterMode = filterMode;
     prevFilterBand = filterBand;
-    prevFilterDistance = filterDistance;
     spotMap = {};
     fetchSkccSpots();
   }
 
-  onMount(() => {
+  async function loadDistance() {
+    try {
+      const res = await fetch("/api/settings/skcc_skimmer_distance");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.value) skccDistance = parseInt(data.value) || 500;
+      }
+    } catch {}
+  }
+
+  onMount(async () => {
+    await loadDistance();
     fetchSkccSpots();
     pollInterval = setInterval(fetchSkccSpots, 10000);
   });
