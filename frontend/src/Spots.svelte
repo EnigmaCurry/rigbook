@@ -12,6 +12,7 @@
   let filterCallsign = "";
   let filterSkcc = "";
   let restarting = false;
+  let qrzSkipped = false;
   let sortCol = "distance";
   let sortDir = 1; // 1 = ascending, -1 = descending
 
@@ -68,6 +69,7 @@
         // Do full QRZ lookups for up to 20 callsigns missing location data
         {
           const needLookup = [...new Set(spots.filter(s => !s.country).map(s => s.callsign))];
+          qrzSkipped = needLookup.length > 20;
           if (needLookup.length > 0 && needLookup.length <= 20) {
             const lookups = needLookup.map(async (call) => {
               try {
@@ -258,7 +260,7 @@
             <td class="mono" title={spot.spotters ? spot.spotters.join(", ") : ""}>{spot.spotter_count}</td>
             <td class="mono">{spot.best_snr ?? ""}</td>
             <td class="mono">{spot.wpm ?? ""}</td>
-            <td class="location">{spot.qrz_state && spot.country ? `${spot.qrz_state}, ${spot.country}` : spot.country || spot.qrz_state || ""}</td>
+            <td class="location">{#if spot.country || spot.qrz_state}{spot.qrz_state && spot.country ? `${spot.qrz_state}, ${spot.country}` : spot.country || spot.qrz_state}{:else if qrzSkipped}<span class="fetch-hint">(filter more to fetch)</span>{/if}</td>
             <td class="source-tag {spot.source}">{spot.source}</td>
             <td class="mono">{spot.distance_mi != null ? `${spot.distance_mi}mi` : ""}{spot.closest_snr != null ? ` ${spot.closest_snr}dB` : ""}</td>
             <td class="info">{spot.state}{spot.wwff_ref ? ` ${spot.wwff_ref}` : ""}{spot.comment ? ` ${spot.comment}` : ""}</td>
@@ -443,6 +445,12 @@
     max-width: 150px;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .fetch-hint {
+    color: var(--text-dim);
+    font-size: 0.65rem;
+    font-style: italic;
   }
 
   .info {
