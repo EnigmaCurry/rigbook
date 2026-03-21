@@ -1,6 +1,6 @@
 <script>
   import { onMount, onDestroy } from "svelte";
-  import { bandColor } from "./bandColors.js";
+  import { bandColor, bandTextColor } from "./bandColors.js";
 
   let spots = [];
   let status = { rbn: { connected: false, enabled: false }, hamalert: { connected: false, enabled: false }, callsigns: 0, entries: 0, total_spots: 0, avg_spots_per_callsign: 0 };
@@ -253,10 +253,10 @@
       <option value="rbn">RBN</option>
       <option value="hamalert">HamAlert</option>
     </select>
-    <select bind:value={filterBand} on:change={onFilterChange}>
+    <select bind:value={filterBand} on:change={onFilterChange} style={filterBand ? `background: ${bandColor(filterBand)}; color: ${bandTextColor(filterBand)}` : ""}>
       <option value="">All Bands</option>
       {#each bandList as b}
-        <option value={b}>{b} ({bands[b]})</option>
+        <option value={b} style="background: {bandColor(b)}; color: {bandTextColor(b)}">{b} ({bands[b]})</option>
       {/each}
     </select>
     <select bind:value={filterMode} on:change={() => { if (filterMode !== "CW") filterSkcc = ""; onFilterChange(); }}>
@@ -280,7 +280,7 @@
         <span
           class="band-badge"
           class:active={filterBand === b}
-          style="background: {bandColor(b)}; opacity: {filterBand && filterBand !== b ? 0.3 : 1}"
+          style="background: {bandColor(b)}; color: {bandTextColor(b)}; opacity: {filterBand && filterBand !== b ? 0.3 : 1}"
           on:click={() => { filterBand = filterBand === b ? "" : b; onFilterChange(); }}
           on:keydown={(e) => { if (e.key === 'Enter') { filterBand = filterBand === b ? "" : b; onFilterChange(); } }}
           role="button"
@@ -318,7 +318,7 @@
             <td class="mono call">{spot.callsign}</td>
             {#if filterMode === "CW"}<td class="mono skcc">{spot.skcc ?? ""}</td>{/if}
             <td class="mono">{formatFreq(spot.frequency)}</td>
-            <td><span class="band-tag" style="background: {bandColor(spot.band)}">{spot.band}</span></td>
+            <td><span class="band-tag" style="background: {bandColor(spot.band)}; color: {bandTextColor(spot.band)}">{spot.band}</span></td>
             <td>{spot.mode}</td>
             <td class="mono" title={spot.spotters ? spot.spotters.join(", ") : ""}>{spot.spotter_count}</td>
             <td class="mono">{spot.best_snr ?? ""}</td>
@@ -426,7 +426,6 @@
     padding: 0.15rem 0.5rem;
     border-radius: 3px;
     font-size: 0.75rem;
-    color: #fff;
     cursor: pointer;
     user-select: none;
     transition: opacity 0.15s;
@@ -483,7 +482,6 @@
   .band-tag {
     padding: 0.1rem 0.4rem;
     border-radius: 2px;
-    color: #fff;
     font-size: 0.75rem;
   }
 
