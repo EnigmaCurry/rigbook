@@ -1,5 +1,6 @@
 """API routes for querying RBN and HamAlert spot data."""
 
+import json
 import time
 
 from fastapi import APIRouter, Depends
@@ -18,15 +19,15 @@ from rigbook.spots import (
 router = APIRouter(prefix="/api/spots", tags=["spots"])
 
 
-async def _batch_skcc_lookup(
-    callsigns: list[str], session: AsyncSession
+async def _batch_cache_lookup(
+    namespace: str, callsigns: list[str], session: AsyncSession
 ) -> dict[str, str]:
-    """Look up SKCC numbers for a batch of callsigns. Returns {call: skcc_nr}."""
+    """Look up cached values for a batch of callsigns. Returns {call: value}."""
     if not callsigns:
         return {}
     result = await session.execute(
         select(Cache.key, Cache.value).where(
-            Cache.namespace == "skcc",
+            Cache.namespace == namespace,
             Cache.key.in_(callsigns),
             Cache.expires_at > time.time(),
         )
@@ -56,9 +57,15 @@ async def query_spots(
         limit=limit,
     )
 
+    all_calls = list({s["callsign"].upper() for s in spots})
+
     # Enrich with SKCC numbers for CW spots
-    cw_calls = list({s["callsign"].upper() for s in spots if s["mode"] == "CW"})
-    skcc_map = await _batch_skcc_lookup(cw_calls, session) if cw_calls else {}
+    cw_calls = [
+        c
+        for c in all_calls
+        if any(s["callsign"].upper() == c and s["mode"] == "CW" for s in spots)
+    ]
+    skcc_map = await _batch_cache_lookup("skcc", cw_calls, session) if cw_calls else {}
 
     for s in spots:
         s["skcc"] = skcc_map.get(s["callsign"].upper())
@@ -66,6 +73,22 @@ async def query_spots(
     # Filter by SKCC if requested
     if skcc == "required":
         spots = [s for s in spots if s.get("skcc")]
+
+    # Enrich with country/state from QRZ cache
+    qrz_map = await _batch_cache_lookup("qrz", all_calls, session)
+    for s in spots:
+        qrz_json = qrz_map.get(s["callsign"].upper())
+        if qrz_json:
+            try:
+                qrz_data = json.loads(qrz_json)
+                s["country"] = qrz_data.get("country") or ""
+                s["qrz_state"] = qrz_data.get("state") or ""
+            except (json.JSONDecodeError, TypeError):
+                s["country"] = ""
+                s["qrz_state"] = ""
+        else:
+            s["country"] = ""
+            s["qrz_state"] = ""
 
     # Enrich with closest spotter distance
     result = await session.execute(

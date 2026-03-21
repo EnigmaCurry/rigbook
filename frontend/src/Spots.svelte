@@ -125,6 +125,7 @@
       case "spotters":    va = a.spotter_count || 0; vb = b.spotter_count || 0; break;
       case "snr":         va = a.best_snr ?? -999; vb = b.best_snr ?? -999; break;
       case "wpm":         va = a.wpm ?? 0; vb = b.wpm ?? 0; break;
+      case "country":     va = (a.country || "") + (a.qrz_state || ""); vb = (b.country || "") + (b.qrz_state || ""); break;
       case "source":      va = a.source || ""; vb = b.source || ""; break;
       case "distance":    va = a.distance_mi ?? 99999; vb = b.distance_mi ?? 99999; break;
       default:            va = a.callsign || ""; vb = b.callsign || "";
@@ -214,6 +215,7 @@
           <th class="sortable" on:click={() => toggleSort("spotters")}>Spotters{sortIndicator("spotters")}</th>
           <th class="sortable" on:click={() => toggleSort("snr")}>Best SNR{sortIndicator("snr")}</th>
           <th class="sortable" on:click={() => toggleSort("wpm")}>WPM{sortIndicator("wpm")}</th>
+          <th class="sortable" on:click={() => toggleSort("country")}>Location{sortIndicator("country")}</th>
           <th class="sortable" on:click={() => toggleSort("source")}>Source{sortIndicator("source")}</th>
           <th class="sortable" on:click={() => toggleSort("distance")}>Closest Spot{sortIndicator("distance")}</th>
           <th>Info</th>
@@ -231,13 +233,14 @@
             <td class="mono" title={spot.spotters ? spot.spotters.join(", ") : ""}>{spot.spotter_count}</td>
             <td class="mono">{spot.best_snr ?? ""}</td>
             <td class="mono">{spot.wpm ?? ""}</td>
+            <td class="location">{spot.qrz_state && spot.country ? `${spot.qrz_state}, ${spot.country}` : spot.country || spot.qrz_state || ""}</td>
             <td class="source-tag {spot.source}">{spot.source}</td>
             <td class="mono">{spot.distance_mi != null ? `${spot.distance_mi}mi` : ""}{spot.closest_snr != null ? ` ${spot.closest_snr}dB` : ""}</td>
             <td class="info">{spot.state}{spot.wwff_ref ? ` ${spot.wwff_ref}` : ""}{spot.comment ? ` ${spot.comment}` : ""}</td>
           </tr>
         {/each}
         {#if spots.length === 0}
-          <tr><td colspan={filterMode === "CW" ? 12 : 11} class="empty">No spots{filterSource || filterBand || filterMode || filterCallsign ? " matching filters" : ""}. {status.rbn.enabled || status.hamalert.enabled ? "Waiting for data..." : "Enable RBN or HamAlert in Settings."}</td></tr>
+          <tr><td colspan={filterMode === "CW" ? 13 : 12} class="empty">No spots{filterSource || filterBand || filterMode || filterCallsign ? " matching filters" : ""}. {status.rbn.enabled || status.hamalert.enabled ? "Waiting for data..." : "Enable RBN or HamAlert in Settings."}</td></tr>
         {/if}
       </tbody>
     </table>
@@ -407,6 +410,14 @@
   .source-tag.hamalert {
     background: #ff9800;
     color: #fff;
+  }
+
+  .location {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .info {
