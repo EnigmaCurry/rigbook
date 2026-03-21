@@ -402,7 +402,7 @@ class RBNFeed(BaseFeed):
             m.groups()
         )
 
-        if mode != "CW" or spot_type == "BEACON":
+        if spot_type == "BEACON":
             return None
 
         frequency = float(freq_str)
@@ -411,7 +411,7 @@ class RBNFeed(BaseFeed):
         return ParsedSpot(
             callsign=callsign,
             frequency=frequency,
-            mode="CW",
+            mode=mode,
             source="rbn",
             spotter=spotter,
             snr=int(snr_str),
