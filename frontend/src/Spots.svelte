@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from "svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
+  import { QrzLookup, formatFreq, locationStr } from "./qrzLookup.js";
 
   let spots = [];
   let status = { rbn: { connected: false, enabled: false }, hamalert: { connected: false, enabled: false }, callsigns: 0, entries: 0, total_spots: 0, avg_spots_per_callsign: 0 };
@@ -33,12 +34,7 @@
   let filterCallsign = initFilters.callsign || "";
   let filterSkcc = initFilters.skcc || "";
   let restarting = false;
-  let qrzPending = 0;
-  let qrzSkipped = false;
-  let qrzQueue = [];
-  let qrzLookedUp = new Set();
-  let qrzDripTimer = null;
-  let qrzBurstUsed = 0;
+  const qrz = new QrzLookup(() => { spots = spots; });
   let sortCol = "distance";
   let sortDir = 1; // 1 = ascending, -1 = descending
 
@@ -85,21 +81,6 @@
     fetchSpots();
   }
 
-  async function qrzLookupOne(call) {
-    try {
-      const qres = await fetch(`/api/qrz/lookup/${call}`);
-      if (qres.ok) {
-        const data = await qres.json();
-        for (const s of spots) {
-          if (s.callsign === call && data.country) {
-            s.country = data.country || "";
-            s.qrz_state = data.state || "";
-          }
-        }
-      }
-    } catch {}
-  }
-
   async function fetchSpots() {
     try {
       const params = new URLSearchParams();
@@ -112,57 +93,7 @@
       const res = await fetch(`/api/spots/?${params}`);
       if (res.ok) {
         spots = await res.json();
-        // QRZ lookups: only if fewer than 100 missing, burst 20 then drip 1/s
-        // Reset queue to only contain callsigns in current results
-        {
-          if (qrzDripTimer) { clearInterval(qrzDripTimer); qrzDripTimer = null; }
-
-          const visibleCalls = new Set(spots.map(s => s.callsign));
-          const allMissing = [...new Set(
-            spots.filter(s => !s.country).map(s => s.callsign)
-          )];
-          qrzSkipped = allMissing.length >= 100;
-
-          if (!qrzSkipped) {
-            const newCalls = allMissing.filter(c => !qrzLookedUp.has(c));
-            for (const c of newCalls) qrzLookedUp.add(c);
-
-            const burstAvail = Math.max(0, 20 - qrzBurstUsed);
-            const burstCalls = newCalls.slice(0, burstAvail);
-            const dripCalls = newCalls.slice(burstAvail);
-            qrzBurstUsed += burstCalls.length;
-
-            if (burstCalls.length > 0) {
-              await Promise.all(burstCalls.map(call => qrzLookupOne(call)));
-              spots = spots;
-            }
-
-            // Rebuild queue: new drip calls + remaining old queue entries still visible
-            qrzQueue = [
-              ...dripCalls,
-              ...qrzQueue.filter(c => visibleCalls.has(c) && !qrzLookedUp.has(c))
-            ];
-            qrzPending = qrzQueue.length;
-
-            if (qrzQueue.length > 0) {
-              qrzDripTimer = setInterval(async () => {
-                if (qrzQueue.length === 0) {
-                  clearInterval(qrzDripTimer);
-                  qrzDripTimer = null;
-                  qrzPending = 0;
-                  return;
-                }
-                const call = qrzQueue.shift();
-                qrzPending = qrzQueue.length;
-                await qrzLookupOne(call);
-                spots = spots;
-              }, 1000);
-            }
-          } else {
-            qrzQueue = [];
-            qrzPending = 0;
-          }
-        }
+        await qrz.enqueue(spots);
       }
     } catch {}
   }
@@ -174,11 +105,6 @@
     } catch {}
     restarting = false;
     setTimeout(fetchStatus, 2000);
-  }
-
-  function formatFreq(khz) {
-    if (!khz) return "";
-    return (khz / 1000).toFixed(3);
   }
 
   function formatTime(spot) {
@@ -203,7 +129,7 @@
   onDestroy(() => {
     clearInterval(statusInterval);
     clearInterval(spotsInterval);
-    if (qrzDripTimer) clearInterval(qrzDripTimer);
+    qrz.destroy();
   });
 
   $: bandList = Object.keys(bands).sort((a, b) => {
@@ -334,7 +260,7 @@
             <td class="mono" title={spot.spotters ? spot.spotters.join(", ") : ""}>{spot.spotter_count}</td>
             <td class="mono">{spot.best_snr ?? ""}</td>
             <td class="mono">{spot.wpm ?? ""}</td>
-            <td class="location">{#if spot.country || spot.qrz_state}{spot.qrz_state && spot.country ? `${spot.qrz_state}, ${spot.country}` : spot.country || spot.qrz_state}{:else if qrzSkipped}<span class="fetch-hint">(filter more to fetch)</span>{:else if qrzPending > 0}<span class="fetch-hint">(fetching... {qrzPending} left)</span>{/if}</td>
+            <td class="location">{#if spot.country || spot.qrz_state}{locationStr(spot)}{:else if qrz.skipped}<span class="fetch-hint">(filter more to fetch)</span>{:else if qrz.pending > 0}<span class="fetch-hint">(fetching... {qrz.pending} left)</span>{/if}</td>
             <td class="source-tag {spot.source}">{spot.source}</td>
             <td class="mono">{spot.distance_mi != null ? `${spot.distance_mi}mi` : ""}{spot.closest_snr != null ? ` ${spot.closest_snr}dB` : ""}</td>
             <td class="info">{spot.state}{spot.wwff_ref ? ` ${spot.wwff_ref}` : ""}{spot.comment ? ` ${spot.comment}` : ""}</td>

@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from "svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
   import { countryFlag } from "./countryFlag.js";
+  import { QrzLookup, formatFreq, locationStr } from "./qrzLookup.js";
 
   export let filterMode = "";
   export let filterBand = "";
@@ -9,30 +10,9 @@
   let spots = [];
   let loading = true;
   let pollInterval;
-
-  // QRZ lookup state (same pattern as Spots page)
-  let qrzQueue = [];
-  let qrzLookedUp = new Set();
-  let qrzDripTimer = null;
-  let qrzBurstUsed = 0;
-  let qrzPending = 0;
+  const qrz = new QrzLookup(() => { spots = spots; });
 
   $: visible = !filterMode || filterMode === "CW";
-
-  async function qrzLookupOne(call) {
-    try {
-      const qres = await fetch(`/api/qrz/lookup/${call}`);
-      if (qres.ok) {
-        const data = await qres.json();
-        for (const s of spots) {
-          if (s.callsign === call && data.country) {
-            s.country = data.country || "";
-            s.qrz_state = data.state || "";
-          }
-        }
-      }
-    } catch {}
-  }
 
   async function fetchSkccSpots() {
     if (!visible) { spots = []; loading = false; return; }
@@ -46,62 +26,10 @@
       const res = await fetch(`/api/spots/?${params}`);
       if (res.ok) {
         spots = await res.json();
-
-        // QRZ lookups for missing locations
-        if (qrzDripTimer) { clearInterval(qrzDripTimer); qrzDripTimer = null; }
-        const allMissing = [...new Set(
-          spots.filter(s => !s.country).map(s => s.callsign)
-        )];
-
-        if (allMissing.length < 100) {
-          const newCalls = allMissing.filter(c => !qrzLookedUp.has(c));
-          for (const c of newCalls) qrzLookedUp.add(c);
-
-          const burstAvail = Math.max(0, 20 - qrzBurstUsed);
-          const burstCalls = newCalls.slice(0, burstAvail);
-          const dripCalls = newCalls.slice(burstAvail);
-          qrzBurstUsed += burstCalls.length;
-
-          if (burstCalls.length > 0) {
-            await Promise.all(burstCalls.map(call => qrzLookupOne(call)));
-            spots = spots;
-          }
-
-          const visibleCalls = new Set(spots.map(s => s.callsign));
-          qrzQueue = [
-            ...dripCalls,
-            ...qrzQueue.filter(c => visibleCalls.has(c) && !qrzLookedUp.has(c))
-          ];
-          qrzPending = qrzQueue.length;
-
-          if (qrzQueue.length > 0 && !qrzDripTimer) {
-            qrzDripTimer = setInterval(async () => {
-              if (qrzQueue.length === 0) {
-                clearInterval(qrzDripTimer);
-                qrzDripTimer = null;
-                qrzPending = 0;
-                return;
-              }
-              const call = qrzQueue.shift();
-              qrzPending = qrzQueue.length;
-              await qrzLookupOne(call);
-              spots = spots;
-            }, 1000);
-          }
-        }
+        await qrz.enqueue(spots);
       }
     } catch {}
     loading = false;
-  }
-
-  function formatFreq(khz) {
-    if (!khz) return "";
-    return (khz / 1000).toFixed(1);
-  }
-
-  function locationStr(spot) {
-    if (spot.qrz_state && spot.country) return `${spot.qrz_state}, ${spot.country}`;
-    return spot.country || spot.qrz_state || "";
   }
 
   // Re-fetch when filters change
@@ -116,7 +44,7 @@
 
   onDestroy(() => {
     clearInterval(pollInterval);
-    if (qrzDripTimer) clearInterval(qrzDripTimer);
+    qrz.destroy();
   });
 </script>
 
@@ -136,7 +64,7 @@
               <span class="badge band" style="background: {bandColor(spot.band)}; color: {bandTextColor(spot.band)}">{spot.band}</span>
             </div>
             <div class="card-body">
-              <span class="freq">{formatFreq(spot.frequency)} KHz</span>
+              <span class="freq">{formatFreq(spot.frequency, 1)} KHz</span>
               <span class="skcc-nr">SKCC #{spot.skcc}</span>
             </div>
             <div class="card-body">
