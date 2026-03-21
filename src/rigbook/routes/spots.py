@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from rigbook.db import Cache, Setting, get_session
+from rigbook.routes.qrz import qrz_lookup
 from rigbook.routes.skcc import _ensure_cache as ensure_skcc_cache
 from rigbook.spots import (
     hamalert_feed,
@@ -172,7 +173,7 @@ async def skcc_skimmer(
     dist_str = result.scalar_one_or_none()
     max_dist = int(dist_str) if dist_str and dist_str.isdigit() else 500
 
-    return await query_spots(
+    spots = await query_spots(
         source=None,
         callsign=None,
         mode="CW",
@@ -184,6 +185,18 @@ async def skcc_skimmer(
         limit=limit,
         session=session,
     )
+
+    # Prefetch QRZ data for spots missing location (small set, safe to fetch live)
+    missing = [s for s in spots if not s.get("country")]
+    for s in missing:
+        data = await qrz_lookup(s["callsign"], session)
+        if isinstance(data, dict) and not data.get("error"):
+            country_name = data.get("country") or ""
+            s["country"] = country_name
+            s["country_code"] = _COUNTRY_NAME_TO_CODE.get(country_name.lower(), "")
+            s["qrz_state"] = data.get("state") or ""
+
+    return spots
 
 
 @router.get("/status")
