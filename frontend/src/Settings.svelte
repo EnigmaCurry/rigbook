@@ -20,7 +20,7 @@
   let rbn_enabled = false;
   let rbn_host = "telnet.reversebeacon.net";
   let rbn_feed_cw = true;
-  let rbn_feed_digital = true;
+  let rbn_feed_digital = false;
 
   // HamAlert settings
   let hamalert_enabled = false;
@@ -77,7 +77,7 @@
           if (s.key === "rbn_enabled") rbn_enabled = s.value === "true";
           if (s.key === "rbn_host") rbn_host = s.value || "telnet.reversebeacon.net";
           if (s.key === "rbn_feeds") {
-            const feeds = (s.value || "cw,digital").split(",").map(f => f.trim().toLowerCase());
+            const feeds = (s.value || "cw").split(",").map(f => f.trim().toLowerCase());
             rbn_feed_cw = feeds.includes("cw");
             rbn_feed_digital = feeds.includes("digital");
           }
@@ -158,7 +158,7 @@
       await fetch("/api/settings/rbn_feeds", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: rbnFeeds || "cw,digital" }),
+        body: JSON.stringify({ value: rbnFeeds || "cw" }),
       });
       // HamAlert settings
       await fetch("/api/settings/hamalert_enabled", {

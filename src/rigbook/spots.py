@@ -355,8 +355,8 @@ class RBNFeed:
         self._should_run = True
         host = str(kwargs.get("host", "telnet.reversebeacon.net"))
         callsign = str(kwargs.get("callsign", ""))
-        # feeds is a comma-separated string like "cw,digital"
-        feeds_str = str(kwargs.get("feeds", "cw,digital"))
+        # feeds is a comma-separated string like "cw"
+        feeds_str = str(kwargs.get("feeds", "cw"))
         enabled_feeds = {f.strip().lower() for f in feeds_str.split(",") if f.strip()}
 
         for name, port in self.AVAILABLE_FEEDS.items():
@@ -697,7 +697,7 @@ async def _apply_settings(settings: dict[str, str]) -> None:
         if callsign:
             await rbn_feed.start(
                 host=settings.get("rbn_host", "telnet.reversebeacon.net"),
-                feeds=settings.get("rbn_feeds", "cw,digital"),
+                feeds=settings.get("rbn_feeds", "cw"),
                 callsign=callsign,
             )
         else:
