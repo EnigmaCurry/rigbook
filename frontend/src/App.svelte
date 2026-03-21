@@ -10,6 +10,7 @@
   import About from "./About.svelte";
   import Parks from "./Parks.svelte";
   import Links from "./Links.svelte";
+  import Spots from "./Spots.svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
 
   const BANDS = [
@@ -91,6 +92,7 @@
     if (hash === "/parks" || hash.startsWith("/parks/")) return { page: "parks", editId: null };
     if (hash === "/about") return { page: "about", editId: null };
     if (hash === "/links") return { page: "links", editId: null };
+    if (hash === "/spots") return { page: "spots", editId: null };
     if (hash === "/settings") return { page: "settings", editId: null };
     if (hash === "/logbook") return { page: isWide() ? "dual" : "log", editId: null };
     if (hash === "/export") return { page: "export", editId: null };
@@ -562,6 +564,7 @@
           <button class="menu-item" class:active={page === "hunting"} on:click={() => navigate("hunting")}>Hunting</button>
           <button class="menu-item" class:active={page === "grid"} on:click={() => navigate("grid")}>Grid Map</button>
           <button class="menu-item" class:active={page === "parks"} on:click={() => navigate("parks")}>Parks</button>
+          <button class="menu-item" class:active={page === "spots"} on:click={() => navigate("spots")}>Spots</button>
           <button class="menu-item" class:active={page === "export"} on:click={() => navigate("export")}>Export / Import</button>
           <button class="menu-item" class:active={page === "settings"} on:click={() => navigate("settings")}>Settings</button>
           <button class="menu-item" class:active={page === "links"} on:click={() => navigate("links")}>Links</button>
@@ -592,6 +595,8 @@
     <GridMap bind:value={gridMapValue} on:select={e => { gridMapValue = e.detail; }} />
   {:else if page === "export"}
     <ExportImport />
+  {:else if page === "spots"}
+    <Spots />
   {:else if page === "settings"}
     <Settings />
   {:else if page === "links"}

@@ -11,6 +11,8 @@ from fastapi.staticfiles import StaticFiles
 
 from rigbook.db import init_db
 from rigbook.flrig import router as flrig_router
+from rigbook.routes.spots import router as spots_router
+from rigbook.spots import start_feeds, stop_feeds
 from rigbook.routes.adif import router as adif_router
 from rigbook.routes.pota import router as pota_router
 from rigbook.routes.qrz import router as qrz_router
@@ -36,7 +38,9 @@ def _resource_path(relative: str) -> Path:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    await start_feeds()
     yield
+    await stop_feeds()
 
 
 app = FastAPI(title="Rigbook", lifespan=lifespan)
@@ -71,6 +75,7 @@ app.include_router(qrz_router)
 app.include_router(search_router)
 app.include_router(skcc_router)
 app.include_router(tiles_router)
+app.include_router(spots_router)
 
 static_dir = _resource_path("static")
 if static_dir.is_dir():
