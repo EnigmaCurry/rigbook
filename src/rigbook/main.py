@@ -92,7 +92,7 @@ def run() -> None:
     args = parser.parse_args()
 
     log_level = "DEBUG" if args.verbose else "INFO"
-    logging.basicConfig(level=log_level, format="%(levelname)s: %(name)s: %(message)s")
+    logging.basicConfig(level=log_level, format="%(asctime)s %(levelname)s: %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
     logging.getLogger("aiosqlite").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
