@@ -63,7 +63,32 @@
       if (filterSkcc) params.set("skcc", filterSkcc);
       params.set("limit", "200");
       const res = await fetch(`/api/spots/?${params}`);
-      if (res.ok) spots = await res.json();
+      if (res.ok) {
+        spots = await res.json();
+        // For small result sets, do full QRZ lookups for uncached callsigns
+        if (spots.length > 0 && spots.length <= 20) {
+          const needLookup = spots.filter(s => !s.country).map(s => s.callsign);
+          if (needLookup.length > 0) {
+            const lookups = needLookup.map(async (call) => {
+              try {
+                const qres = await fetch(`/api/qrz/lookup/${call}`);
+                if (qres.ok) {
+                  const data = await qres.json();
+                  // Update spots in place
+                  for (const s of spots) {
+                    if (s.callsign === call && data.country) {
+                      s.country = data.country || "";
+                      s.qrz_state = data.state || "";
+                    }
+                  }
+                }
+              } catch {}
+            });
+            await Promise.all(lookups);
+            spots = spots; // trigger reactivity
+          }
+        }
+      }
     } catch {}
   }
 
