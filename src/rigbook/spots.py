@@ -195,16 +195,30 @@ class SpotterGrids:
     def get(self, spotter: str) -> str | None:
         return self._grids.get(spotter)
 
-    def closest_distance(self, my_grid: str, spotters: list[str]) -> int | None:
-        """Return the distance in miles to the closest spotter with a known grid."""
-        best: int | None = None
-        for spotter in spotters:
+    def closest_spotter(
+        self,
+        my_grid: str,
+        spotter_snrs: dict[str, int | None],
+    ) -> tuple[int | None, int | None]:
+        """Find closest spotter and return (distance_mi, snr_db).
+
+        Args:
+            my_grid: User's Maidenhead grid square.
+            spotter_snrs: Mapping of spotter callsign -> SNR (or None).
+
+        Returns:
+            (distance in miles, SNR dB) for the closest spotter, or (None, None).
+        """
+        best_dist: int | None = None
+        best_snr: int | None = None
+        for spotter, snr in spotter_snrs.items():
             grid = self._grids.get(spotter)
             if grid:
                 dist = grid_distance_mi(my_grid, grid)
-                if dist is not None and (best is None or dist < best):
-                    best = dist
-        return best
+                if dist is not None and (best_dist is None or dist < best_dist):
+                    best_dist = dist
+                    best_snr = snr
+        return best_dist, best_snr
 
 
 spotter_grids = SpotterGrids()
@@ -243,7 +257,9 @@ class AggregateSpot:
     mode: str
     band: str
     source: str  # source of most recent spot
-    spotters: dict[str, float] = field(default_factory=dict)  # spotter -> timestamp
+    spotters: dict[str, tuple[float, int | None]] = field(
+        default_factory=dict
+    )  # spotter -> (timestamp, snr)
     best_snr: int | None = None
     wpm: int | None = None
     time: str = ""  # most recent spot time
@@ -254,10 +270,14 @@ class AggregateSpot:
 
     def prune_spotters(self, cutoff: float) -> None:
         """Remove spotters older than cutoff timestamp."""
-        self.spotters = {k: v for k, v in self.spotters.items() if v > cutoff}
+        self.spotters = {k: v for k, v in self.spotters.items() if v[0] > cutoff}
 
     def to_dict(self) -> dict:
         spotters_sorted = sorted(self.spotters.keys())
+        best_snr = max(
+            (snr for _, snr in self.spotters.values() if snr is not None),
+            default=self.best_snr,
+        )
         return {
             "callsign": self.callsign,
             "frequency": self.frequency,
@@ -265,7 +285,7 @@ class AggregateSpot:
             "band": self.band,
             "spotter_count": len(self.spotters),
             "spotters": spotters_sorted,
-            "best_snr": self.best_snr,
+            "best_snr": best_snr,
             "wpm": self.wpm,
             "time": self.time,
             "received_at": self.received_at,
@@ -301,11 +321,7 @@ class SpotCache:
                 entry.frequency = freq
                 entry.band = spot.band or entry.band
                 if spot.spotter:
-                    entry.spotters[spot.spotter] = now
-                if spot.snr is not None and (
-                    entry.best_snr is None or spot.snr > entry.best_snr
-                ):
-                    entry.best_snr = spot.snr
+                    entry.spotters[spot.spotter] = (now, spot.snr)
                 entry.received_at = now
                 entry.time = spot.time or entry.time
                 entry.wpm = spot.wpm or entry.wpm
@@ -321,8 +337,7 @@ class SpotCache:
                     mode=spot.mode,
                     band=spot.band,
                     source=spot.source,
-                    spotters={spot.spotter: now} if spot.spotter else {},
-                    best_snr=spot.snr,
+                    spotters={spot.spotter: (now, spot.snr)} if spot.spotter else {},
                     wpm=spot.wpm,
                     time=spot.time,
                     received_at=now,
@@ -350,7 +365,7 @@ class SpotCache:
         """
         results = []
         for entry in self._entries.values():
-            live_count = sum(1 for t in entry.spotters.values() if t > cutoff)
+            live_count = sum(1 for ts, _ in entry.spotters.values() if ts > cutoff)
             if live_count > 0:
                 results.append(entry)
         return results
@@ -391,9 +406,12 @@ class SpotCache:
         for e in live[:limit]:
             d = e.to_dict()
             # Override spotters/count with only non-expired ones
-            live_spotters = sorted(k for k, t in e.spotters.items() if t > cutoff)
-            d["spotters"] = live_spotters
-            d["spotter_count"] = len(live_spotters)
+            live_spotter_snrs = {
+                k: snr for k, (ts, snr) in e.spotters.items() if ts > cutoff
+            }
+            d["spotters"] = sorted(live_spotter_snrs.keys())
+            d["spotter_count"] = len(live_spotter_snrs)
+            d["spotter_snrs"] = live_spotter_snrs
             results.append(d)
         return results
 
@@ -428,7 +446,7 @@ class SpotCache:
             live = self._live_entries(cutoff)
             total_entries = len(live)
             total_spots = sum(
-                sum(1 for t in e.spotters.values() if t > cutoff) for e in live
+                sum(1 for ts, _ in e.spotters.values() if ts > cutoff) for e in live
             )
             callsigns = len({e.callsign for e in live})
             avg_spots = round(total_spots / callsigns, 1) if callsigns else 0

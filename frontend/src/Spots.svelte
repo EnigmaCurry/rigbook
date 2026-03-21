@@ -232,7 +232,7 @@
             <td class="mono">{spot.best_snr ?? ""}</td>
             <td class="mono">{spot.wpm ?? ""}</td>
             <td class="source-tag {spot.source}">{spot.source}</td>
-            <td class="mono">{spot.distance_mi != null ? `${spot.distance_mi}mi` : ""}</td>
+            <td class="mono">{spot.distance_mi != null ? `${spot.distance_mi}mi` : ""}{spot.closest_snr != null ? ` ${spot.closest_snr}dB` : ""}</td>
             <td class="info">{spot.state}{spot.wwff_ref ? ` ${spot.wwff_ref}` : ""}{spot.comment ? ` ${spot.comment}` : ""}</td>
           </tr>
         {/each}
