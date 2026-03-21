@@ -4,6 +4,7 @@
   import { bandColor, bandTextColor } from "./bandColors.js";
   import { parkAward, parkAwardTitle } from "./parkAward.js";
   import ParkDetail from "./ParkDetail.svelte";
+  import SkccSkimmer from "./SkccSkimmer.svelte";
 
   const dispatch = createEventDispatcher();
 
@@ -313,7 +314,7 @@
 
 <div class="hunting">
   <div class="controls">
-    <h2>POTA Spots ({filteredSpots.length})</h2>
+    <h2>Hunting</h2>
     <div class="filters">
       <select bind:value={filterMode}>
         <option value="">All Modes</option>
@@ -336,6 +337,10 @@
       <button class="btn-refresh" on:click={() => { loading = true; fetchSpots(); }}>Refresh</button>
     </div>
   </div>
+
+  <SkccSkimmer filterMode={filterMode} filterBand={filterBand} />
+
+  <h2>POTA Spots ({filteredSpots.length})</h2>
 
   {#if loading}
     <p class="status">Loading spots...</p>
