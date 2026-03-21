@@ -12,6 +12,8 @@
   let spots = [];
   let loading = true;
   let pollInterval;
+  let seenCalls = new Set();
+  let newCalls = new Set();
   const qrz = new QrzLookup(() => { spots = spots; });
 
   $: visible = !filterMode || filterMode === "CW";
@@ -31,7 +33,19 @@
       if (filterBand) params.set("band", filterBand);
       const res = await fetch(`/api/spots/skcc?${params}`);
       if (res.ok) {
-        spots = await res.json();
+        const fresh = await res.json();
+        if (seenCalls.size > 0) {
+          const justNew = new Set();
+          for (const s of fresh) {
+            if (!seenCalls.has(s.callsign)) justNew.add(s.callsign);
+          }
+          newCalls = justNew;
+          if (justNew.size > 0) {
+            setTimeout(() => { newCalls = new Set(); }, 15000);
+          }
+        }
+        for (const s of fresh) seenCalls.add(s.callsign);
+        spots = fresh;
         await qrz.enqueue(spots);
       }
     } catch {}
@@ -63,7 +77,7 @@
     <h2>SKCC Skimmer ({spots.length})</h2>
       <div class="grid">
         {#each spots as spot (spot.callsign)}
-          <div class="card" class:worked={isWorked(spot)}>
+          <div class="card" class:new-spot={newCalls.has(spot.callsign)} class:worked={isWorked(spot)}>
             <div class="card-header">
               {#if isWorked(spot)}
                 <span class="callsign worked-call" title="Already worked today">{spot.callsign}</span>
@@ -118,6 +132,16 @@
     border-radius: 4px;
     padding: 0.5rem 0.65rem;
     font-size: 0.8rem;
+  }
+
+  .card.new-spot {
+    animation: flash 1.5s ease-in-out 5;
+    border-color: var(--accent);
+  }
+
+  @keyframes flash {
+    0%, 100% { background: var(--bg-card); }
+    50% { background: var(--row-editing); }
   }
 
   .card.worked {
