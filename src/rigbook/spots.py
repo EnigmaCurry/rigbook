@@ -120,6 +120,7 @@ class SpotterGrids:
 
     def __init__(self) -> None:
         self._grids: dict[str, str] = {}  # spotter -> grid
+        self._no_grid: set[str] = set()  # spotters confirmed to have no grid
         self._fetched_at: float = 0
         self._ttl: float = 3600  # full refresh hourly
         self._lock = asyncio.Lock()
@@ -130,17 +131,21 @@ class SpotterGrids:
         async with self._lock:
             if _time.time() - self._fetched_at < self._ttl:
                 return
+            self._no_grid.clear()
             await self._fetch("TTL expired")
+
+    def _is_known(self, spotter: str) -> bool:
+        return spotter in self._grids or spotter in self._no_grid
 
     async def ensure_spotters(self, spotters: list[str]) -> None:
         """Refetch if any spotter is unknown, respecting a cooldown."""
-        unknown = sorted({s for s in spotters if s not in self._grids})
+        unknown = sorted({s for s in spotters if not self._is_known(s)})
         if not unknown:
             return
         if _time.time() - self._fetched_at < self.REFETCH_COOLDOWN:
             return
         async with self._lock:
-            unknown = sorted({s for s in spotters if s not in self._grids})
+            unknown = sorted({s for s in spotters if not self._is_known(s)})
             if not unknown:
                 return
             if _time.time() - self._fetched_at < self.REFETCH_COOLDOWN:
@@ -149,6 +154,10 @@ class SpotterGrids:
             suffix = f" and {len(unknown) - 3} more" if len(unknown) > 3 else ""
             reason = f"{len(unknown)} unknown spotter(s): {sample}{suffix}"
             await self._fetch(reason)
+            # Mark still-unknown spotters so we don't refetch for them again
+            for s in unknown:
+                if s not in self._grids:
+                    self._no_grid.add(s)
 
     async def _fetch(self, reason: str = "") -> None:
         logger.info("Fetching spotter grids (%s)...", reason)
