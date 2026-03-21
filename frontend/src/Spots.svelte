@@ -212,10 +212,10 @@
           <th class="sortable" on:click={() => toggleSort("band")}>Band{sortIndicator("band")}</th>
           <th class="sortable" on:click={() => toggleSort("mode")}>Mode{sortIndicator("mode")}</th>
           <th class="sortable" on:click={() => toggleSort("spotters")}>Spotters{sortIndicator("spotters")}</th>
-          <th class="sortable" on:click={() => toggleSort("snr")}>SNR{sortIndicator("snr")}</th>
+          <th class="sortable" on:click={() => toggleSort("snr")}>Best SNR{sortIndicator("snr")}</th>
           <th class="sortable" on:click={() => toggleSort("wpm")}>WPM{sortIndicator("wpm")}</th>
           <th class="sortable" on:click={() => toggleSort("source")}>Source{sortIndicator("source")}</th>
-          <th class="sortable" on:click={() => toggleSort("distance")}>Dist{sortIndicator("distance")}</th>
+          <th class="sortable" on:click={() => toggleSort("distance")}>Closest Spot{sortIndicator("distance")}</th>
           <th>Info</th>
         </tr>
       </thead>
