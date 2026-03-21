@@ -2,6 +2,10 @@
 
 Manages persistent telnet connections to the Reverse Beacon Network and
 HamAlert, caching received spots in memory with a configurable TTL.
+
+RBN line parsing based on skcc_skimmer.py by Mark J Glenn (mark@k7mjg.com),
+licensed under the MIT License. Original source:
+https://github.com/k7mjg/skcc_skimmer
 """
 
 from __future__ import annotations
