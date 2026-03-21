@@ -12,10 +12,14 @@
   let pollInterval;
   const qrz = new QrzLookup(() => { spots = spots; });
 
+  // Track spots with their first-seen time so they persist for at least TTL
+  let spotMap = {}; // callsign -> { spot, firstSeen }
+  const SPOT_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
   $: visible = !filterMode || filterMode === "CW";
 
   async function fetchSkccSpots() {
-    if (!visible) { spots = []; loading = false; return; }
+    if (!visible) { spots = []; spotMap = {}; loading = false; return; }
     try {
       const params = new URLSearchParams();
       params.set("mode", "CW");
@@ -25,15 +29,41 @@
       params.set("limit", "50");
       const res = await fetch(`/api/spots/?${params}`);
       if (res.ok) {
-        spots = await res.json();
+        const fresh = await res.json();
+        const now = Date.now();
+
+        // Merge: update existing, add new
+        const freshKeys = new Set();
+        for (const s of fresh) {
+          freshKeys.add(s.callsign);
+          if (spotMap[s.callsign]) {
+            spotMap[s.callsign].spot = s;
+          } else {
+            spotMap[s.callsign] = { spot: s, firstSeen: now };
+          }
+        }
+
+        // Keep old spots that haven't expired yet (even if not in latest results)
+        for (const key of Object.keys(spotMap)) {
+          if (!freshKeys.has(key) && now - spotMap[key].firstSeen > SPOT_TTL_MS) {
+            delete spotMap[key];
+          }
+        }
+
+        spots = Object.values(spotMap).map(e => e.spot);
         await qrz.enqueue(spots);
       }
     } catch {}
     loading = false;
   }
 
-  // Re-fetch when filters change
-  $: if (typeof filterMode === "string" && typeof filterBand === "string") {
+  // Re-fetch when filters actually change
+  let prevFilterMode = filterMode;
+  let prevFilterBand = filterBand;
+  $: if (filterMode !== prevFilterMode || filterBand !== prevFilterBand) {
+    prevFilterMode = filterMode;
+    prevFilterBand = filterBand;
+    spotMap = {};
     fetchSkccSpots();
   }
 
