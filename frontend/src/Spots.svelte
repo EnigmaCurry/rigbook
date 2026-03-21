@@ -12,7 +12,9 @@
   let filterCallsign = "";
   let filterSkcc = "";
   let restarting = false;
-  let qrzSkipped = false;
+  let qrzPending = 0; // how many callsigns still need QRZ lookup
+  let qrzQueue = [];  // callsigns waiting for lookup
+  let qrzDripTimer = null;
   let sortCol = "distance";
   let sortDir = 1; // 1 = ascending, -1 = descending
 
@@ -54,6 +56,21 @@
     } catch {}
   }
 
+  async function qrzLookupOne(call) {
+    try {
+      const qres = await fetch(`/api/qrz/lookup/${call}`);
+      if (qres.ok) {
+        const data = await qres.json();
+        for (const s of spots) {
+          if (s.callsign === call && data.country) {
+            s.country = data.country || "";
+            s.qrz_state = data.state || "";
+          }
+        }
+      }
+    } catch {}
+  }
+
   async function fetchSpots() {
     try {
       const params = new URLSearchParams();
@@ -66,28 +83,39 @@
       const res = await fetch(`/api/spots/?${params}`);
       if (res.ok) {
         spots = await res.json();
-        // Do full QRZ lookups for up to 20 callsigns missing location data
+        // Queue QRZ lookups for callsigns missing location data
+        // Burst up to 20 immediately, then drip 1 per second
         {
           const needLookup = [...new Set(spots.filter(s => !s.country).map(s => s.callsign))];
-          qrzSkipped = needLookup.length > 20;
-          if (needLookup.length > 0 && needLookup.length <= 20) {
-            const lookups = needLookup.map(async (call) => {
-              try {
-                const qres = await fetch(`/api/qrz/lookup/${call}`);
-                if (qres.ok) {
-                  const data = await qres.json();
-                  // Update spots in place
-                  for (const s of spots) {
-                    if (s.callsign === call && data.country) {
-                      s.country = data.country || "";
-                      s.qrz_state = data.state || "";
-                    }
-                  }
+          // Stop any existing drip timer
+          if (qrzDripTimer) { clearInterval(qrzDripTimer); qrzDripTimer = null; }
+
+          if (needLookup.length > 0) {
+            const burst = needLookup.slice(0, 20);
+            qrzQueue = needLookup.slice(20);
+            qrzPending = qrzQueue.length;
+
+            // Burst: fetch first 20 in parallel
+            await Promise.all(burst.map(call => qrzLookupOne(call)));
+            spots = spots;
+
+            // Drip: fetch remaining one at a time
+            if (qrzQueue.length > 0) {
+              qrzDripTimer = setInterval(async () => {
+                if (qrzQueue.length === 0) {
+                  clearInterval(qrzDripTimer);
+                  qrzDripTimer = null;
+                  qrzPending = 0;
+                  return;
                 }
-              } catch {}
-            });
-            await Promise.all(lookups);
-            spots = spots; // trigger reactivity
+                const call = qrzQueue.shift();
+                qrzPending = qrzQueue.length;
+                await qrzLookupOne(call);
+                spots = spots;
+              }, 2000);
+            }
+          } else {
+            qrzPending = 0;
           }
         }
       }
@@ -130,6 +158,7 @@
   onDestroy(() => {
     clearInterval(statusInterval);
     clearInterval(spotsInterval);
+    if (qrzDripTimer) clearInterval(qrzDripTimer);
   });
 
   $: bandList = Object.keys(bands).sort((a, b) => {
@@ -260,7 +289,7 @@
             <td class="mono" title={spot.spotters ? spot.spotters.join(", ") : ""}>{spot.spotter_count}</td>
             <td class="mono">{spot.best_snr ?? ""}</td>
             <td class="mono">{spot.wpm ?? ""}</td>
-            <td class="location">{#if spot.country || spot.qrz_state}{spot.qrz_state && spot.country ? `${spot.qrz_state}, ${spot.country}` : spot.country || spot.qrz_state}{:else if qrzSkipped}<span class="fetch-hint">(filter more to fetch)</span>{/if}</td>
+            <td class="location">{#if spot.country || spot.qrz_state}{spot.qrz_state && spot.country ? `${spot.qrz_state}, ${spot.country}` : spot.country || spot.qrz_state}{:else if qrzPending > 0}<span class="fetch-hint">(fetching... {qrzPending} left)</span>{/if}</td>
             <td class="source-tag {spot.source}">{spot.source}</td>
             <td class="mono">{spot.distance_mi != null ? `${spot.distance_mi}mi` : ""}{spot.closest_snr != null ? ` ${spot.closest_snr}dB` : ""}</td>
             <td class="info">{spot.state}{spot.wwff_ref ? ` ${spot.wwff_ref}` : ""}{spot.comment ? ` ${spot.comment}` : ""}</td>
