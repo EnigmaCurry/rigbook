@@ -65,9 +65,9 @@
       const res = await fetch(`/api/spots/?${params}`);
       if (res.ok) {
         spots = await res.json();
-        // For small result sets, do full QRZ lookups for uncached callsigns
-        if (spots.length > 0 && spots.length <= 20) {
-          const needLookup = spots.filter(s => !s.country).map(s => s.callsign);
+        // Do full QRZ lookups for up to 20 callsigns missing location data
+        {
+          const needLookup = [...new Set(spots.filter(s => !s.country).map(s => s.callsign))].slice(0, 20);
           if (needLookup.length > 0) {
             const lookups = needLookup.map(async (call) => {
               try {
