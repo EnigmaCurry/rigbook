@@ -130,25 +130,28 @@ class SpotterGrids:
         async with self._lock:
             if _time.time() - self._fetched_at < self._ttl:
                 return
-            await self._fetch()
+            await self._fetch("TTL expired")
 
     async def ensure_spotters(self, spotters: list[str]) -> None:
         """Refetch if any spotter is unknown, respecting a cooldown."""
-        if all(s in self._grids for s in spotters):
+        unknown = [s for s in spotters if s not in self._grids]
+        if not unknown:
             return
-        # Unknown spotter — refetch if cooldown has passed
         if _time.time() - self._fetched_at < self.REFETCH_COOLDOWN:
             return
         async with self._lock:
-            # Double-check after acquiring lock
-            if all(s in self._grids for s in spotters):
+            unknown = [s for s in spotters if s not in self._grids]
+            if not unknown:
                 return
             if _time.time() - self._fetched_at < self.REFETCH_COOLDOWN:
                 return
-            await self._fetch()
+            sample = ", ".join(unknown[:3])
+            suffix = f" and {len(unknown) - 3} more" if len(unknown) > 3 else ""
+            reason = f"{len(unknown)} unknown spotter(s): {sample}{suffix}"
+            await self._fetch(reason)
 
-    async def _fetch(self) -> None:
-        logger.info("Fetching spotter grids from RBN status page...")
+    async def _fetch(self, reason: str = "") -> None:
+        logger.info("Fetching spotter grids (%s)...", reason)
         try:
             async with httpx.AsyncClient(timeout=15) as client:
                 response = await client.get(RBN_STATUS_URL)
