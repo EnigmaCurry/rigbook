@@ -74,6 +74,12 @@ async def query_spots(
     my_grid = (result.scalar_one_or_none() or "").strip()
     if my_grid:
         await spotter_grids.ensure_loaded()
+        # Collect all spotters and refetch if any are unknown
+        all_spotters = []
+        for s in spots:
+            all_spotters.extend(s.get("spotters", []))
+        if all_spotters:
+            await spotter_grids.ensure_spotters(all_spotters)
         for s in spots:
             s["distance_mi"] = spotter_grids.closest_distance(
                 my_grid, s.get("spotters", [])

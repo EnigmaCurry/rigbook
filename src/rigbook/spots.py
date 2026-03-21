@@ -116,10 +116,12 @@ RBN_STATUS_URL = "https://reversebeacon.net/cont_includes/status.php?t=skt"
 class SpotterGrids:
     """Cache of spotter callsign -> grid square, fetched from RBN status page."""
 
+    REFETCH_COOLDOWN = 60  # minimum seconds between refetches on miss
+
     def __init__(self) -> None:
         self._grids: dict[str, str] = {}  # spotter -> grid
         self._fetched_at: float = 0
-        self._ttl: float = 3600  # refresh hourly
+        self._ttl: float = 3600  # full refresh hourly
         self._lock = asyncio.Lock()
 
     async def ensure_loaded(self) -> None:
@@ -127,6 +129,21 @@ class SpotterGrids:
             return
         async with self._lock:
             if _time.time() - self._fetched_at < self._ttl:
+                return
+            await self._fetch()
+
+    async def ensure_spotters(self, spotters: list[str]) -> None:
+        """Refetch if any spotter is unknown, respecting a cooldown."""
+        if all(s in self._grids for s in spotters):
+            return
+        # Unknown spotter — refetch if cooldown has passed
+        if _time.time() - self._fetched_at < self.REFETCH_COOLDOWN:
+            return
+        async with self._lock:
+            # Double-check after acquiring lock
+            if all(s in self._grids for s in spotters):
+                return
+            if _time.time() - self._fetched_at < self.REFETCH_COOLDOWN:
                 return
             await self._fetch()
 
