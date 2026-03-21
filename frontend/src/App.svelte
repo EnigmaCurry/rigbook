@@ -326,12 +326,12 @@
     // SKCC/RBN spot (has callsign field, no activator)
     if (spot.callsign && !spot.activator) {
       prefill = {
-        call: spot.callsign || "",
-        freq: spot.frequency || "",
-        mode: spot.mode || "",
-        skcc: spot.skcc || "",
-        country: spot.country || "",
-        state: spot.qrz_state || "",
+        call: String(spot.callsign || ""),
+        freq: String(spot.frequency || ""),
+        mode: String(spot.mode || ""),
+        skcc: String(spot.skcc || ""),
+        country: String(spot.country || ""),
+        state: String(spot.qrz_state || ""),
       };
       if (page === "dual") dualShowForm = true;
       else navigate("add");
