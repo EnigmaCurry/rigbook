@@ -134,13 +134,13 @@ class SpotterGrids:
 
     async def ensure_spotters(self, spotters: list[str]) -> None:
         """Refetch if any spotter is unknown, respecting a cooldown."""
-        unknown = [s for s in spotters if s not in self._grids]
+        unknown = sorted({s for s in spotters if s not in self._grids})
         if not unknown:
             return
         if _time.time() - self._fetched_at < self.REFETCH_COOLDOWN:
             return
         async with self._lock:
-            unknown = [s for s in spotters if s not in self._grids]
+            unknown = sorted({s for s in spotters if s not in self._grids})
             if not unknown:
                 return
             if _time.time() - self._fetched_at < self.REFETCH_COOLDOWN:
