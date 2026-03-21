@@ -5,7 +5,7 @@
   let spots = [];
   let status = { rbn: { connected: false, enabled: false }, hamalert: { connected: false, enabled: false }, callsigns: 0, entries: 0, total_spots: 0, avg_spots_per_callsign: 0 };
   let bands = {};
-  let modes = [];
+  let modes = {};
   let filterSource = "";
   let filterBand = "";
   let filterMode = "";
@@ -92,6 +92,8 @@
     const numB = parseInt(b);
     return numB - numA;
   });
+
+  $: modeList = Object.keys(modes).sort((a, b) => (modes[b] || 0) - (modes[a] || 0));
 </script>
 
 <div class="spots-page">
@@ -130,8 +132,8 @@
     </select>
     <select bind:value={filterMode} on:change={fetchSpots}>
       <option value="">All Modes</option>
-      {#each modes as m}
-        <option value={m}>{m}</option>
+      {#each modeList as m}
+        <option value={m}>{m} ({modes[m]})</option>
       {/each}
     </select>
     <input type="text" placeholder="Callsign" bind:value={filterCallsign} on:input={fetchSpots} style="text-transform: uppercase" />
