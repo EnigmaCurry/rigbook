@@ -12,9 +12,11 @@
   let filterCallsign = "";
   let filterSkcc = "";
   let restarting = false;
-  let qrzPending = 0; // how many callsigns still need QRZ lookup
-  let qrzQueue = [];  // callsigns waiting for lookup
+  let qrzPending = 0;
+  let qrzQueue = [];
+  let qrzLookedUp = new Set(); // callsigns already looked up or queued
   let qrzDripTimer = null;
+  let qrzBurstUsed = 0; // how many of the initial burst of 20 have been used
   let sortCol = "distance";
   let sortDir = 1; // 1 = ascending, -1 = descending
 
@@ -83,39 +85,44 @@
       const res = await fetch(`/api/spots/?${params}`);
       if (res.ok) {
         spots = await res.json();
-        // Queue QRZ lookups for callsigns missing location data
-        // Burst up to 20 immediately, then drip 1 per second
+        // Queue QRZ lookups for callsigns not yet looked up
+        // Burst: up to 20 in parallel (lifetime budget), then drip 1 per 2s
         {
-          const needLookup = [...new Set(spots.filter(s => !s.country).map(s => s.callsign))];
-          // Stop any existing drip timer
-          if (qrzDripTimer) { clearInterval(qrzDripTimer); qrzDripTimer = null; }
+          const newCalls = [...new Set(
+            spots.filter(s => !s.country).map(s => s.callsign)
+          )].filter(c => !qrzLookedUp.has(c) && !qrzQueue.includes(c));
 
-          if (needLookup.length > 0) {
-            const burst = needLookup.slice(0, 20);
-            qrzQueue = needLookup.slice(20);
-            qrzPending = qrzQueue.length;
+          for (const c of newCalls) qrzLookedUp.add(c);
 
-            // Burst: fetch first 20 in parallel
-            await Promise.all(burst.map(call => qrzLookupOne(call)));
+          const burstAvail = Math.max(0, 20 - qrzBurstUsed);
+          const burstCalls = newCalls.slice(0, burstAvail);
+          const dripCalls = newCalls.slice(burstAvail);
+          qrzBurstUsed += burstCalls.length;
+
+          // Burst
+          if (burstCalls.length > 0) {
+            await Promise.all(burstCalls.map(call => qrzLookupOne(call)));
             spots = spots;
+          }
 
-            // Drip: fetch remaining one at a time
-            if (qrzQueue.length > 0) {
-              qrzDripTimer = setInterval(async () => {
-                if (qrzQueue.length === 0) {
-                  clearInterval(qrzDripTimer);
-                  qrzDripTimer = null;
-                  qrzPending = 0;
-                  return;
-                }
-                const call = qrzQueue.shift();
-                qrzPending = qrzQueue.length;
-                await qrzLookupOne(call);
-                spots = spots;
-              }, 2000);
-            }
-          } else {
-            qrzPending = 0;
+          // Add remaining to drip queue
+          qrzQueue.push(...dripCalls);
+          qrzPending = qrzQueue.length;
+
+          // Start drip timer if needed and not already running
+          if (qrzQueue.length > 0 && !qrzDripTimer) {
+            qrzDripTimer = setInterval(async () => {
+              if (qrzQueue.length === 0) {
+                clearInterval(qrzDripTimer);
+                qrzDripTimer = null;
+                qrzPending = 0;
+                return;
+              }
+              const call = qrzQueue.shift();
+              qrzPending = qrzQueue.length;
+              await qrzLookupOne(call);
+              spots = spots;
+            }, 2000);
           }
         }
       }
