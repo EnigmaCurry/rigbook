@@ -21,6 +21,7 @@
   let rbn_host = "telnet.reversebeacon.net";
   let rbn_feed_cw = true;
   let rbn_feed_digital = false;
+  let skcc_skimmer_enabled = false;
 
   // HamAlert settings
   let hamalert_enabled = false;
@@ -81,6 +82,7 @@
             rbn_feed_cw = feeds.includes("cw");
             rbn_feed_digital = feeds.includes("digital");
           }
+          if (s.key === "skcc_skimmer_enabled") skcc_skimmer_enabled = s.value === "true";
           if (s.key === "hamalert_enabled") hamalert_enabled = s.value === "true";
           if (s.key === "hamalert_host") hamalert_host = s.value || "hamalert.org";
           if (s.key === "hamalert_port") hamalert_port = s.value || "7300";
@@ -159,6 +161,11 @@
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value: rbnFeeds || "cw" }),
+      });
+      await fetch("/api/settings/skcc_skimmer_enabled", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: skcc_skimmer_enabled ? "true" : "false" }),
       });
       // HamAlert settings
       await fetch("/api/settings/hamalert_enabled", {
@@ -316,6 +323,9 @@
     <div class="setting-row">
       <label for="rbn_host">RBN Host</label>
       <input id="rbn_host" type="text" bind:value={rbn_host} autocomplete="off" disabled={!rbn_enabled} />
+    </div>
+    <div class="setting-row toggle-row">
+      <label><input type="checkbox" bind:checked={skcc_skimmer_enabled} disabled={!rbn_enabled} /> Show SKCC Skimmer on Hunting page</label>
     </div>
     <p class="hint">Uses your My Callsign to authenticate.</p>
   </section>

@@ -18,6 +18,7 @@
   let filterProgram = "";
   let filterDistance = ""; // "", "100", "500", "1000"
   let myGrid = "";
+  let skccSkimmerEnabled = false;
   let filtersLoaded = false;
   let seenSpotKeys = new Set();
   let newSpotKeys = new Set();
@@ -172,6 +173,13 @@
       if (res.ok) {
         const data = await res.json();
         myGrid = (data.value || "").trim();
+      }
+    } catch {}
+    try {
+      const res = await fetch("/api/settings/skcc_skimmer_enabled");
+      if (res.ok) {
+        const data = await res.json();
+        skccSkimmerEnabled = data.value === "true";
       }
     } catch {}
     filtersLoaded = true;
@@ -349,7 +357,9 @@
     </div>
   </div>
 
-  <SkccSkimmer filterMode={filterMode} filterBand={filterBand} filterDistance={filterDistance ? parseInt(filterDistance) : 0} />
+  {#if skccSkimmerEnabled}
+    <SkccSkimmer filterMode={filterMode} filterBand={filterBand} filterDistance={filterDistance ? parseInt(filterDistance) : 0} />
+  {/if}
 
   <h2>POTA Spots ({filteredSpots.length})</h2>
 
