@@ -1,6 +1,6 @@
 [project]
 name = "rigbook"
-version = "0.1.3"
+version = "0.1.4"
 description = "Ham radio logbook web application"
 requires-python = ">=3.12"
 dependencies = [
