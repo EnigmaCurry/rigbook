@@ -15,7 +15,6 @@ import json
 import logging
 import re
 import time as _time
-import uuid
 from dataclasses import dataclass, field
 
 from sqlalchemy import select
@@ -53,13 +52,12 @@ def freq_to_band(freq_khz: float) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Spot data model
+# Parsed spot (transient — used only to pass data from parser to cache)
 # ---------------------------------------------------------------------------
 
 
 @dataclass
-class Spot:
-    id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
+class ParsedSpot:
     callsign: str = ""
     frequency: float = 0.0  # kHz
     mode: str = ""
@@ -68,25 +66,47 @@ class Spot:
     snr: int | None = None
     wpm: int | None = None
     time: str = ""  # UTC time string from spot data
-    received_at: float = field(default_factory=_time.time)
     band: str = ""
     state: str = ""
     comment: str = ""
     wwff_ref: str = ""
 
+
+# ---------------------------------------------------------------------------
+# Aggregate spot entry (what the cache actually stores)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class AggregateSpot:
+    callsign: str
+    frequency: float  # kHz
+    mode: str
+    band: str
+    source: str  # source of most recent spot
+    spotters: set[str] = field(default_factory=set)
+    best_snr: int | None = None
+    wpm: int | None = None
+    time: str = ""  # most recent spot time
+    received_at: float = field(default_factory=_time.time)
+    state: str = ""
+    comment: str = ""
+    wwff_ref: str = ""
+
     def to_dict(self) -> dict:
+        spotters_sorted = sorted(self.spotters)
         return {
-            "id": self.id,
             "callsign": self.callsign,
             "frequency": self.frequency,
             "mode": self.mode,
-            "source": self.source,
-            "spotter": self.spotter,
-            "snr": self.snr,
+            "band": self.band,
+            "spotter_count": len(self.spotters),
+            "spotters": spotters_sorted,
+            "best_snr": self.best_snr,
             "wpm": self.wpm,
             "time": self.time,
             "received_at": self.received_at,
-            "band": self.band,
+            "source": self.source,
             "state": self.state,
             "comment": self.comment,
             "wwff_ref": self.wwff_ref,
@@ -94,26 +114,62 @@ class Spot:
 
 
 # ---------------------------------------------------------------------------
-# In-memory spot cache
+# In-memory spot cache (aggregate only)
 # ---------------------------------------------------------------------------
 
 SPOT_TTL = 600  # 10 minutes
 
 
 class SpotCache:
+    """Stores one AggregateSpot per (callsign, frequency, mode) key."""
+
     def __init__(self) -> None:
-        self._spots: dict[str, Spot] = {}
+        self._entries: dict[tuple[str, float, str], AggregateSpot] = {}
         self._lock = asyncio.Lock()
 
-    async def add(self, spot: Spot) -> None:
+    async def add(self, spot: ParsedSpot) -> None:
+        key = (spot.callsign, spot.frequency, spot.mode)
+        now = _time.time()
         async with self._lock:
-            self._spots[spot.id] = spot
+            entry = self._entries.get(key)
+            if entry:
+                # Update existing aggregate
+                if spot.spotter:
+                    entry.spotters.add(spot.spotter)
+                if spot.snr is not None and (
+                    entry.best_snr is None or spot.snr > entry.best_snr
+                ):
+                    entry.best_snr = spot.snr
+                entry.received_at = now
+                entry.time = spot.time or entry.time
+                entry.wpm = spot.wpm or entry.wpm
+                entry.source = spot.source
+                entry.state = spot.state or entry.state
+                entry.comment = spot.comment or entry.comment
+                entry.wwff_ref = spot.wwff_ref or entry.wwff_ref
+            else:
+                # Create new aggregate
+                self._entries[key] = AggregateSpot(
+                    callsign=spot.callsign,
+                    frequency=spot.frequency,
+                    mode=spot.mode,
+                    band=spot.band,
+                    source=spot.source,
+                    spotters={spot.spotter} if spot.spotter else set(),
+                    best_snr=spot.snr,
+                    wpm=spot.wpm,
+                    time=spot.time,
+                    received_at=now,
+                    state=spot.state,
+                    comment=spot.comment,
+                    wwff_ref=spot.wwff_ref,
+                )
 
     async def prune(self) -> None:
         cutoff = _time.time() - SPOT_TTL
         async with self._lock:
-            self._spots = {
-                k: v for k, v in self._spots.items() if v.received_at > cutoff
+            self._entries = {
+                k: v for k, v in self._entries.items() if v.received_at > cutoff
             }
 
     async def query(
@@ -125,122 +181,47 @@ class SpotCache:
         band: str | None = None,
         min_freq: float | None = None,
         max_freq: float | None = None,
-        spotter: str | None = None,
-        min_snr: int | None = None,
-        limit: int = 100,
-    ) -> list[Spot]:
+        limit: int = 200,
+    ) -> list[dict]:
+        cutoff = _time.time() - SPOT_TTL
         async with self._lock:
-            results = list(self._spots.values())
+            live = [e for e in self._entries.values() if e.received_at > cutoff]
 
-        # Filter outside lock
         if source:
-            results = [s for s in results if s.source == source]
+            live = [e for e in live if e.source == source]
         if callsign:
             q = callsign.upper()
-            results = [s for s in results if q in s.callsign.upper()]
+            live = [e for e in live if q in e.callsign.upper()]
         if mode:
-            results = [s for s in results if s.mode.upper() == mode.upper()]
+            live = [e for e in live if e.mode.upper() == mode.upper()]
         if band:
-            results = [s for s in results if s.band == band.lower()]
+            live = [e for e in live if e.band == band.lower()]
         if min_freq is not None:
-            results = [s for s in results if s.frequency >= min_freq]
+            live = [e for e in live if e.frequency >= min_freq]
         if max_freq is not None:
-            results = [s for s in results if s.frequency <= max_freq]
-        if spotter:
-            q = spotter.upper()
-            results = [s for s in results if q in s.spotter.upper()]
-        if min_snr is not None:
-            results = [s for s in results if s.snr is not None and s.snr >= min_snr]
+            live = [e for e in live if e.frequency <= max_freq]
 
-        # Prune expired while we're at it
-        cutoff = _time.time() - SPOT_TTL
-        results = [s for s in results if s.received_at > cutoff]
-
-        results.sort(key=lambda s: s.received_at, reverse=True)
-        return results[:limit]
+        live.sort(key=lambda e: e.received_at, reverse=True)
+        return [e.to_dict() for e in live[:limit]]
 
     async def band_summary(self) -> dict[str, int]:
         cutoff = _time.time() - SPOT_TTL
         async with self._lock:
             counts: dict[str, int] = {}
-            for s in self._spots.values():
-                if s.received_at > cutoff and s.band:
-                    counts[s.band] = counts.get(s.band, 0) + 1
+            for e in self._entries.values():
+                if e.received_at > cutoff and e.band:
+                    counts[e.band] = counts.get(e.band, 0) + 1
             return counts
-
-    async def aggregate(
-        self,
-        *,
-        source: str | None = None,
-        callsign: str | None = None,
-        mode: str | None = None,
-        band: str | None = None,
-        min_freq: float | None = None,
-        max_freq: float | None = None,
-        limit: int = 200,
-    ) -> list[dict]:
-        """Group spots by callsign/frequency/mode, counting spotters."""
-        cutoff = _time.time() - SPOT_TTL
-        async with self._lock:
-            live = [s for s in self._spots.values() if s.received_at > cutoff]
-
-        # Apply filters
-        if source:
-            live = [s for s in live if s.source == source]
-        if callsign:
-            q = callsign.upper()
-            live = [s for s in live if q in s.callsign.upper()]
-        if mode:
-            live = [s for s in live if s.mode.upper() == mode.upper()]
-        if band:
-            live = [s for s in live if s.band == band.lower()]
-        if min_freq is not None:
-            live = [s for s in live if s.frequency >= min_freq]
-        if max_freq is not None:
-            live = [s for s in live if s.frequency <= max_freq]
-
-        # Group by (callsign, frequency, mode)
-        groups: dict[tuple[str, float, str], list[Spot]] = {}
-        for s in live:
-            key = (s.callsign, s.frequency, s.mode)
-            groups.setdefault(key, []).append(s)
-
-        results = []
-        for (call, freq, m), spots in groups.items():
-            spotters = sorted({s.spotter for s in spots if s.spotter})
-            best_snr = max((s.snr for s in spots if s.snr is not None), default=None)
-            latest = max(spots, key=lambda s: s.received_at)
-            results.append(
-                {
-                    "callsign": call,
-                    "frequency": freq,
-                    "mode": m,
-                    "band": latest.band,
-                    "spotter_count": len(spotters),
-                    "spotters": spotters,
-                    "best_snr": best_snr,
-                    "wpm": latest.wpm,
-                    "time": latest.time,
-                    "received_at": latest.received_at,
-                    "source": latest.source,
-                    "state": latest.state,
-                    "comment": latest.comment,
-                    "wwff_ref": latest.wwff_ref,
-                }
-            )
-
-        results.sort(key=lambda r: r["received_at"], reverse=True)
-        return results[:limit]
 
     async def count(self) -> int:
         async with self._lock:
-            return len(self._spots)
+            return len(self._entries)
 
     async def last_spot_time(self) -> float | None:
         async with self._lock:
-            if not self._spots:
+            if not self._entries:
                 return None
-            return max(s.received_at for s in self._spots.values())
+            return max(e.received_at for e in self._entries.values())
 
 
 # ---------------------------------------------------------------------------
@@ -331,9 +312,9 @@ class RBNFeed(BaseFeed):
                     break
 
                 line = line_bytes.rstrip().decode("ascii", errors="replace")
-                spot = self._parse_line(line)
-                if spot:
-                    await self.cache.add(spot)
+                parsed = self._parse_line(line)
+                if parsed:
+                    await self.cache.add(parsed)
         finally:
             self._connected = False
             writer.close()
@@ -356,7 +337,7 @@ class RBNFeed(BaseFeed):
     )
 
     @staticmethod
-    def _parse_line(line: str) -> Spot | None:
+    def _parse_line(line: str) -> ParsedSpot | None:
         """Parse an RBN spot line into a Spot object."""
         if not line.startswith("DX de "):
             return None
@@ -375,7 +356,7 @@ class RBNFeed(BaseFeed):
         frequency = float(freq_str)
         band = freq_to_band(frequency)
 
-        return Spot(
+        return ParsedSpot(
             callsign=callsign,
             frequency=frequency,
             mode="CW",
@@ -465,9 +446,9 @@ class HamAlertFeed(BaseFeed):
                     if not line:
                         continue
 
-                    spot = self._parse_json(line)
-                    if spot:
-                        await self.cache.add(spot)
+                    parsed = self._parse_json(line)
+                    if parsed:
+                        await self.cache.add(parsed)
         finally:
             self._connected = False
             writer.close()
@@ -477,7 +458,7 @@ class HamAlertFeed(BaseFeed):
                 pass
 
     @staticmethod
-    def _parse_json(line: str) -> Spot | None:
+    def _parse_json(line: str) -> ParsedSpot | None:
         """Parse a HamAlert JSON line into a Spot object."""
         try:
             data = json.loads(line)
@@ -513,7 +494,7 @@ class HamAlertFeed(BaseFeed):
 
         band = freq_to_band(frequency) if frequency else ""
 
-        return Spot(
+        return ParsedSpot(
             callsign=callsign,
             frequency=frequency,
             mode=mode,

@@ -18,35 +18,9 @@ async def query_spots(
     band: str | None = None,
     min_freq: float | None = None,
     max_freq: float | None = None,
-    spotter: str | None = None,
-    min_snr: int | None = None,
-    limit: int = 100,
-):
-    spots = await spot_cache.query(
-        source=source,
-        callsign=callsign,
-        mode=mode,
-        band=band,
-        min_freq=min_freq,
-        max_freq=max_freq,
-        spotter=spotter,
-        min_snr=min_snr,
-        limit=limit,
-    )
-    return [s.to_dict() for s in spots]
-
-
-@router.get("/aggregate")
-async def aggregate_spots(
-    source: str | None = None,
-    callsign: str | None = None,
-    mode: str | None = None,
-    band: str | None = None,
-    min_freq: float | None = None,
-    max_freq: float | None = None,
     limit: int = 200,
 ):
-    return await spot_cache.aggregate(
+    return await spot_cache.query(
         source=source,
         callsign=callsign,
         mode=mode,
@@ -59,7 +33,6 @@ async def aggregate_spots(
 
 @router.get("/status")
 async def feed_status(session: AsyncSession = Depends(get_session)):
-    # Read enabled settings from DB
     result = await session.execute(
         select(Setting).where(Setting.key.in_(["rbn_enabled", "hamalert_enabled"]))
     )

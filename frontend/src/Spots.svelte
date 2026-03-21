@@ -36,7 +36,7 @@
       if (filterMode) params.set("mode", filterMode);
       if (filterCallsign) params.set("callsign", filterCallsign);
       params.set("limit", "200");
-      const res = await fetch(`/api/spots/aggregate?${params}`);
+      const res = await fetch(`/api/spots/?${params}`);
       if (res.ok) spots = await res.json();
     } catch {}
   }
