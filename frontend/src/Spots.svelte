@@ -3,7 +3,7 @@
   import { bandColor } from "./bandColors.js";
 
   let spots = [];
-  let status = { rbn: { connected: false, enabled: false }, hamalert: { connected: false, enabled: false }, total_spots: 0 };
+  let status = { rbn: { connected: false, enabled: false }, hamalert: { connected: false, enabled: false }, callsigns: 0, entries: 0, total_spots: 0, avg_spots_per_callsign: 0 };
   let bands = {};
   let filterSource = "";
   let filterBand = "";
@@ -97,8 +97,10 @@
       <span class="dot" class:green={status.hamalert.connected} class:red={status.hamalert.enabled && !status.hamalert.connected} class:off={!status.hamalert.enabled}></span>
       HamAlert {#if !status.hamalert.enabled}(disabled){:else if status.hamalert.connected}(connected){:else}(connecting...){/if}
     </div>
-    <div class="status-item">
-      {status.total_spots} spot{status.total_spots !== 1 ? "s" : ""} cached
+    <div class="status-item cache-stats">
+      {status.callsigns} callsign{status.callsigns !== 1 ? "s" : ""} &middot;
+      {status.total_spots} spot{status.total_spots !== 1 ? "s" : ""} &middot;
+      {status.avg_spots_per_callsign} avg/call
     </div>
     <button class="restart-btn" on:click={restart} disabled={restarting}>
       {restarting ? "Restarting..." : "Restart Feeds"}

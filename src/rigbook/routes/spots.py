@@ -40,6 +40,8 @@ async def feed_status(session: AsyncSession = Depends(get_session)):
     rbn_enabled = settings.get("rbn_enabled", "false").lower() == "true"
     ha_enabled = settings.get("hamalert_enabled", "false").lower() == "true"
 
+    cache_stats = await spot_cache.stats()
+
     return {
         "rbn": {
             "connected": rbn_feed.connected,
@@ -49,8 +51,7 @@ async def feed_status(session: AsyncSession = Depends(get_session)):
             "connected": hamalert_feed.connected,
             "enabled": ha_enabled,
         },
-        "total_spots": await spot_cache.count(),
-        "last_spot_time": await spot_cache.last_spot_time(),
+        **cache_stats,
     }
 
 

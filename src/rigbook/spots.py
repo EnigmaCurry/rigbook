@@ -249,11 +249,25 @@ class SpotCache:
         async with self._lock:
             return len(self._live_entries(cutoff))
 
-    async def last_spot_time(self) -> float | None:
+    async def stats(self) -> dict:
+        """Cache statistics: callsigns, total spots, average spots per callsign."""
+        cutoff = _time.time() - SPOT_TTL
         async with self._lock:
-            if not self._entries:
-                return None
-            return max(e.received_at for e in self._entries.values())
+            live = self._live_entries(cutoff)
+            total_entries = len(live)
+            total_spots = sum(
+                sum(1 for t in e.spotters.values() if t > cutoff) for e in live
+            )
+            callsigns = len({e.callsign for e in live})
+            avg_spots = round(total_spots / callsigns, 1) if callsigns else 0
+            last_time = max((e.received_at for e in live), default=None)
+            return {
+                "callsigns": callsigns,
+                "entries": total_entries,
+                "total_spots": total_spots,
+                "avg_spots_per_callsign": avg_spots,
+                "last_spot_time": last_time,
+            }
 
 
 # ---------------------------------------------------------------------------
