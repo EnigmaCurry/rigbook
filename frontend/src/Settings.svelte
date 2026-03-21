@@ -19,6 +19,8 @@
   // RBN settings
   let rbn_enabled = false;
   let rbn_host = "telnet.reversebeacon.net";
+  let rbn_feed_cw = true;
+  let rbn_feed_digital = true;
 
   // HamAlert settings
   let hamalert_enabled = false;
@@ -74,6 +76,11 @@
           if (s.key === "flrig_port") flrig_port = s.value || "12345";
           if (s.key === "rbn_enabled") rbn_enabled = s.value === "true";
           if (s.key === "rbn_host") rbn_host = s.value || "telnet.reversebeacon.net";
+          if (s.key === "rbn_feeds") {
+            const feeds = (s.value || "cw,digital").split(",").map(f => f.trim().toLowerCase());
+            rbn_feed_cw = feeds.includes("cw");
+            rbn_feed_digital = feeds.includes("digital");
+          }
           if (s.key === "hamalert_enabled") hamalert_enabled = s.value === "true";
           if (s.key === "hamalert_host") hamalert_host = s.value || "hamalert.org";
           if (s.key === "hamalert_port") hamalert_port = s.value || "7300";
@@ -146,6 +153,12 @@
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value: rbn_host.trim() }),
+      });
+      const rbnFeeds = [rbn_feed_cw ? "cw" : "", rbn_feed_digital ? "digital" : ""].filter(Boolean).join(",");
+      await fetch("/api/settings/rbn_feeds", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: rbnFeeds || "cw,digital" }),
       });
       // HamAlert settings
       await fetch("/api/settings/hamalert_enabled", {
@@ -296,11 +309,15 @@
         {#if !spotStatus.rbn.enabled}Disabled{:else if spotStatus.rbn.connected}Connected{:else}Connecting...{/if}
       </span>
     </div>
+    <div class="setting-row toggle-row">
+      <label><input type="checkbox" bind:checked={rbn_feed_cw} /> CW (port 7000)</label>
+      <label><input type="checkbox" bind:checked={rbn_feed_digital} /> Digital (port 7001)</label>
+    </div>
     <div class="setting-row">
       <label for="rbn_host">RBN Host</label>
       <input id="rbn_host" type="text" bind:value={rbn_host} autocomplete="off" />
     </div>
-    <p class="hint">Connects to CW (port 7000) and digital (port 7001) feeds. Uses your My Callsign to authenticate.</p>
+    <p class="hint">Uses your My Callsign to authenticate.</p>
   </section>
 
   <section class="settings-section">

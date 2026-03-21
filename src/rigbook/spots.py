@@ -335,10 +335,10 @@ class BaseFeed:
 
 
 class RBNFeed:
-    """Connects to both RBN CW (port 7000) and digital (port 7001) feeds."""
+    """Connects to RBN feeds. CW and digital are on separate ports."""
 
     # RBN serves different modes on different ports
-    RBN_PORTS = {"cw": 7000, "digital": 7001}
+    AVAILABLE_FEEDS: dict[str, int] = {"cw": 7000, "digital": 7001}
 
     def __init__(self, cache: SpotCache) -> None:
         self.cache = cache
@@ -355,11 +355,16 @@ class RBNFeed:
         self._should_run = True
         host = str(kwargs.get("host", "telnet.reversebeacon.net"))
         callsign = str(kwargs.get("callsign", ""))
-        for name, port in self.RBN_PORTS.items():
-            self._connected[name] = False
-            self._tasks[name] = asyncio.create_task(
-                self._run_loop(name=name, host=host, port=port, callsign=callsign)
-            )
+        # feeds is a comma-separated string like "cw,digital"
+        feeds_str = str(kwargs.get("feeds", "cw,digital"))
+        enabled_feeds = {f.strip().lower() for f in feeds_str.split(",") if f.strip()}
+
+        for name, port in self.AVAILABLE_FEEDS.items():
+            if name in enabled_feeds:
+                self._connected[name] = False
+                self._tasks[name] = asyncio.create_task(
+                    self._run_loop(name=name, host=host, port=port, callsign=callsign)
+                )
 
     async def stop(self) -> None:
         self._should_run = False
@@ -660,6 +665,7 @@ async def _read_feed_settings() -> dict[str, str]:
     keys = [
         "rbn_enabled",
         "rbn_host",
+        "rbn_feeds",
         "hamalert_enabled",
         "hamalert_host",
         "hamalert_port",
@@ -691,6 +697,7 @@ async def _apply_settings(settings: dict[str, str]) -> None:
         if callsign:
             await rbn_feed.start(
                 host=settings.get("rbn_host", "telnet.reversebeacon.net"),
+                feeds=settings.get("rbn_feeds", "cw,digital"),
                 callsign=callsign,
             )
         else:
