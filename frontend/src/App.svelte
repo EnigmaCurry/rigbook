@@ -297,7 +297,7 @@
     page = p;
     editId = null;
     menuOpen = false;
-    const paths = { hunting: "/hunting", log: "/logbook", dual: "/dual", add: "/add", grid: "/grid", parks: "/parks", export: "/export", settings: "/settings", links: "/links", about: "/about" };
+    const paths = { hunting: "/hunting", log: "/logbook", dual: "/dual", add: "/add", grid: "/grid", parks: "/parks", spots: "/spots", export: "/export", settings: "/settings", links: "/links", about: "/about" };
     window.location.hash = paths[p] || "/";
     fetchCallsign();
   }
