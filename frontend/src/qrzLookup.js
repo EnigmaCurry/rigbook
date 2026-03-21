@@ -113,3 +113,18 @@ export function locationStr(spot) {
   if (spot.qrz_state && spot.country) return `${spot.qrz_state}, ${spot.country}`;
   return spot.country || spot.qrz_state || "";
 }
+
+/**
+ * Format a timestamp as "Xm ago" / "Xh Ym ago".
+ * Accepts an ISO string (e.g. "2026-03-21T18:30:00") or a Unix timestamp (seconds).
+ */
+export function timeAgo(value) {
+  if (!value) return "";
+  const then = typeof value === "number" ? new Date(value * 1000) : new Date(value + (String(value).endsWith("Z") ? "" : "Z"));
+  const mins = Math.floor((Date.now() - then) / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m > 0 ? `${h}h ${m}m ago` : `${h}h ago`;
+}

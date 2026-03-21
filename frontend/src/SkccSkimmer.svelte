@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from "svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
   import { countryFlag } from "./countryFlag.js";
-  import { QrzLookup, formatFreq, locationStr } from "./qrzLookup.js";
+  import { QrzLookup, formatFreq, locationStr, timeAgo } from "./qrzLookup.js";
 
   export let filterMode = "";
   export let filterBand = "";
@@ -102,7 +102,7 @@
             </div>
             <div class="card-footer">
               <span class="distance">{spot.distance_mi != null ? `${spot.distance_mi}mi` : ""}{spot.closest_snr != null ? ` ${spot.closest_snr}dB` : ""}</span>
-              <span class="spotters">{spot.spotter_count} spotter{spot.spotter_count !== 1 ? "s" : ""}</span>
+              <span class="time">{timeAgo(spot.received_at)}</span>
             </div>
           </div>
         {/each}

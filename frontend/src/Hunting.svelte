@@ -5,6 +5,7 @@
   import { parkAward, parkAwardTitle } from "./parkAward.js";
   import ParkDetail from "./ParkDetail.svelte";
   import SkccSkimmer from "./SkccSkimmer.svelte";
+  import { timeAgo } from "./qrzLookup.js";
 
   const dispatch = createEventDispatcher();
 
@@ -122,15 +123,6 @@
     return parseFloat(n.toFixed(1)).toString();
   }
 
-  function timeAgo(spotTime) {
-    if (!spotTime) return "";
-    const now = new Date();
-    const then = new Date(spotTime + "Z");
-    const mins = Math.floor((now - then) / 60000);
-    if (mins < 1) return "just now";
-    if (mins < 60) return `${mins}m ago`;
-    return `${Math.floor(mins / 60)}h ${mins % 60}m ago`;
-  }
 
   function spotProgram(spot) {
     const ref = spot.reference || "";
