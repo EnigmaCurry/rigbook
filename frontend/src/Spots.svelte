@@ -12,6 +12,22 @@
   let filterCallsign = "";
   let filterSkcc = "";
   let restarting = false;
+  let sortCol = "callsign";
+  let sortDir = 1; // 1 = ascending, -1 = descending
+
+  function toggleSort(col) {
+    if (sortCol === col) {
+      sortDir = -sortDir;
+    } else {
+      sortCol = col;
+      sortDir = 1;
+    }
+  }
+
+  function sortIndicator(col) {
+    if (sortCol !== col) return "";
+    return sortDir === 1 ? " \u25B2" : " \u25BC";
+  }
 
   let statusInterval;
   let spotsInterval;
@@ -96,6 +112,25 @@
   });
 
   $: modeList = Object.keys(modes).sort((a, b) => (modes[b] || 0) - (modes[a] || 0));
+
+  $: sortedSpots = [...spots].sort((a, b) => {
+    let va, vb;
+    switch (sortCol) {
+      case "time":        va = a.received_at || 0; vb = b.received_at || 0; break;
+      case "callsign":    va = a.callsign || ""; vb = b.callsign || ""; break;
+      case "skcc":        va = a.skcc || ""; vb = b.skcc || ""; break;
+      case "frequency":   va = a.frequency || 0; vb = b.frequency || 0; break;
+      case "band":        va = parseInt(a.band) || 0; vb = parseInt(b.band) || 0; break;
+      case "mode":        va = a.mode || ""; vb = b.mode || ""; break;
+      case "spotters":    va = a.spotter_count || 0; vb = b.spotter_count || 0; break;
+      case "snr":         va = a.best_snr ?? -999; vb = b.best_snr ?? -999; break;
+      case "wpm":         va = a.wpm ?? 0; vb = b.wpm ?? 0; break;
+      case "source":      va = a.source || ""; vb = b.source || ""; break;
+      default:            va = a.callsign || ""; vb = b.callsign || "";
+    }
+    if (typeof va === "string") return sortDir * va.localeCompare(vb);
+    return sortDir * (va - vb);
+  });
 </script>
 
 <div class="spots-page">
@@ -169,21 +204,21 @@
     <table class="spots-table">
       <thead>
         <tr>
-          <th>Time</th>
-          <th>Callsign</th>
-          {#if filterMode === "CW"}<th>SKCC</th>{/if}
-          <th>Freq (MHz)</th>
-          <th>Band</th>
-          <th>Mode</th>
-          <th>Spotters</th>
-          <th>SNR</th>
-          <th>WPM</th>
-          <th>Source</th>
+          <th class="sortable" on:click={() => toggleSort("time")}>Time{sortIndicator("time")}</th>
+          <th class="sortable" on:click={() => toggleSort("callsign")}>Callsign{sortIndicator("callsign")}</th>
+          {#if filterMode === "CW"}<th class="sortable" on:click={() => toggleSort("skcc")}>SKCC{sortIndicator("skcc")}</th>{/if}
+          <th class="sortable" on:click={() => toggleSort("frequency")}>Freq (MHz){sortIndicator("frequency")}</th>
+          <th class="sortable" on:click={() => toggleSort("band")}>Band{sortIndicator("band")}</th>
+          <th class="sortable" on:click={() => toggleSort("mode")}>Mode{sortIndicator("mode")}</th>
+          <th class="sortable" on:click={() => toggleSort("spotters")}>Spotters{sortIndicator("spotters")}</th>
+          <th class="sortable" on:click={() => toggleSort("snr")}>SNR{sortIndicator("snr")}</th>
+          <th class="sortable" on:click={() => toggleSort("wpm")}>WPM{sortIndicator("wpm")}</th>
+          <th class="sortable" on:click={() => toggleSort("source")}>Source{sortIndicator("source")}</th>
           <th>Info</th>
         </tr>
       </thead>
       <tbody>
-        {#each spots as spot (spot.callsign + spot.frequency + spot.mode)}
+        {#each sortedSpots as spot (spot.callsign + spot.frequency + spot.mode)}
           <tr>
             <td class="mono">{formatTime(spot)}</td>
             <td class="mono call">{spot.callsign}</td>
@@ -324,6 +359,14 @@
     text-transform: uppercase;
     letter-spacing: 0.03em;
     white-space: nowrap;
+  }
+
+  .spots-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+  }
+  .spots-table th.sortable:hover {
+    color: var(--accent);
   }
 
   .spots-table td {
