@@ -337,7 +337,7 @@ class BaseFeed:
 class RBNFeed(BaseFeed):
     async def _connect_and_read(self, **kwargs: object) -> None:
         host = str(kwargs.get("host", "telnet.reversebeacon.net"))
-        port = int(kwargs.get("port", 7000))  # type: ignore[arg-type]
+        port = int(kwargs.get("port", 7001))  # type: ignore[arg-type]
         callsign = str(kwargs.get("callsign", ""))
 
         if not callsign:
@@ -380,15 +380,16 @@ class RBNFeed(BaseFeed):
                 pass
 
     # Regex to parse RBN spot lines:
-    # DX de SPOTTER-#:  FREQ  CALLSIGN  MODE  dB  WPM  TYPE  HHMMZ
+    # DX de SPOTTER-#:  FREQ  CALLSIGN  MODE  dB  SPEED  TYPE  HHMMZ
+    # Speed unit is WPM for CW, BPS for digital modes
     _RBN_LINE_RE = re.compile(
         r"^DX de\s+(\S+)-#:\s+"  # spotter
         r"(\d+\.\d+)\s+"  # frequency kHz
         r"(\S+)\s+"  # callsign
-        r"(\w+)\s+"  # mode (CW, RTTY, etc.)
+        r"(\S+)\s+"  # mode (CW, RTTY, FT8, FT4, PSK31, etc.)
         r"(\d+)\s+dB\s+"  # snr
-        r"(\d+)\s+WPM\s+"  # wpm
-        r"(\S+)\s+"  # type (CQ, BEACON, etc.)
+        r"(\d+)\s+(?:WPM|BPS|bps)\s+"  # speed (WPM for CW, BPS for digital)
+        r"(\S+)\s+"  # type (CQ, BEACON, NCDXF, etc.)
         r"(\d{4}Z)\s*$"  # time
     )
 
@@ -612,7 +613,7 @@ async def _apply_settings(settings: dict[str, str]) -> None:
         if callsign:
             await rbn_feed.start(
                 host=settings.get("rbn_host", "telnet.reversebeacon.net"),
-                port=int(settings.get("rbn_port", "7000")),
+                port=int(settings.get("rbn_port", "7001")),
                 callsign=callsign,
             )
         else:

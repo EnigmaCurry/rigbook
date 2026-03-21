@@ -19,7 +19,7 @@
   // RBN settings
   let rbn_enabled = false;
   let rbn_host = "telnet.reversebeacon.net";
-  let rbn_port = "7000";
+  let rbn_port = "7001";
 
   // HamAlert settings
   let hamalert_enabled = false;
