@@ -1,7 +1,9 @@
 <script>
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, createEventDispatcher } from "svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
   import { QrzLookup, formatFreq, locationStr, timeAgo } from "./qrzLookup.js";
+
+  const dispatch = createEventDispatcher();
 
   export let filterMode = "";
   export let filterBand = "";
@@ -87,11 +89,15 @@
         {#each spots as spot (spot.callsign)}
           <div class="card">
             <div class="card-header">
-              <span class="callsign">{spot.callsign}</span>
+              <!-- svelte-ignore a11y-click-events-have-key-events -->
+              <!-- svelte-ignore a11y-no-static-element-interactions -->
+              <span class="callsign clickable" on:click={() => dispatch("addqso", spot)} title="Add QSO">{spot.callsign}</span>
               <span class="badge band" style="background: {bandColor(spot.band)}; color: {bandTextColor(spot.band)}">{spot.band}</span>
             </div>
             <div class="card-body">
-              <span class="freq">{formatFreq(spot.frequency, 1)} KHz</span>
+              <!-- svelte-ignore a11y-click-events-have-key-events -->
+              <!-- svelte-ignore a11y-no-static-element-interactions -->
+              <span class="freq clickable" on:click={() => dispatch("tune", spot)} title="Tune radio">{formatFreq(spot.frequency, 1)} KHz</span>
               <span class="skcc-nr">SKCC #{spot.skcc}</span>
             </div>
             <div class="card-body">
@@ -184,6 +190,13 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .clickable {
+    cursor: pointer;
+  }
+  .clickable:hover {
+    text-decoration: underline;
   }
 
   .card-footer {

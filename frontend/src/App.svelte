@@ -302,33 +302,49 @@
     fetchCallsign();
   }
 
+  function spotFreqHz(spot) {
+    // POTA spots: frequency in MHz (e.g. 14.074)
+    // SKCC/RBN spots: frequency in KHz (e.g. 14074)
+    const f = parseFloat(spot.frequency);
+    return String(f >= 1000 ? f * 1000 : f * 1000000);
+  }
+
   async function tuneOnly(spot) {
     try {
       await fetch("/api/flrig/vfo", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ freq: String(parseFloat(spot.frequency) * 1000), mode: spot.mode }),
+        body: JSON.stringify({ freq: spotFreqHz(spot), mode: spot.mode }),
       });
       pollFlrig();
     } catch {}
   }
 
   async function tuneAndPrefill(spot) {
-    try {
-      await fetch("/api/flrig/vfo", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ freq: String(parseFloat(spot.frequency) * 1000), mode: spot.mode }),
-      });
-      pollFlrig();
-    } catch {}
+    await tuneOnly(spot);
+
+    // SKCC/RBN spot (has callsign field, no activator)
+    if (spot.callsign && !spot.activator) {
+      prefill = {
+        call: spot.callsign || "",
+        freq: spot.frequency || "",
+        mode: spot.mode || "",
+        skcc: spot.skcc || "",
+        country: spot.country || "",
+        state: spot.qrz_state || "",
+      };
+      if (page === "dual") dualShowForm = true;
+      else navigate("add");
+      return;
+    }
+
+    // POTA spot
     const loc = spot.locationDesc || "";
     let spotCountry = "";
     let spotState = "";
     if (loc.startsWith("US-")) {
       spotCountry = "United States";
     }
-    // Resolve state from local park cache
     if (spot.reference) {
       try {
         const res = await fetch(`/api/pota/park/${encodeURIComponent(spot.reference)}`);

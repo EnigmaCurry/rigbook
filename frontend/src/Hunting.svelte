@@ -358,7 +358,7 @@
   </div>
 
   {#if skccSkimmerEnabled}
-    <SkccSkimmer filterMode={filterMode} filterBand={filterBand} filterDistance={filterDistance ? parseInt(filterDistance) : 0} />
+    <SkccSkimmer filterMode={filterMode} filterBand={filterBand} filterDistance={filterDistance ? parseInt(filterDistance) : 0} on:tune on:addqso />
   {/if}
 
   <h2>POTA Spots ({filteredSpots.length})</h2>
