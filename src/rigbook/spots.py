@@ -132,7 +132,10 @@ class SpotCache:
         self._lock = asyncio.Lock()
 
     async def add(self, spot: ParsedSpot) -> None:
-        key = (spot.callsign, spot.frequency, spot.mode)
+        # Round frequency to 1 decimal to merge near-duplicate spots
+        # (different RBN nodes report slightly different frequencies)
+        freq = round(spot.frequency, 1)
+        key = (spot.callsign, freq, spot.mode)
         now = _time.time()
         async with self._lock:
             entry = self._entries.get(key)
@@ -155,7 +158,7 @@ class SpotCache:
                 # Create new aggregate
                 self._entries[key] = AggregateSpot(
                     callsign=spot.callsign,
-                    frequency=spot.frequency,
+                    frequency=freq,
                     mode=spot.mode,
                     band=spot.band,
                     source=spot.source,
