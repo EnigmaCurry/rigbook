@@ -22,6 +22,7 @@
   let rbn_feed_cw = true;
   let rbn_feed_digital = false;
   let skcc_skimmer_enabled = false;
+  let skcc_skimmer_distance = "500";
 
   // HamAlert settings
   let hamalert_enabled = false;
@@ -83,6 +84,7 @@
             rbn_feed_digital = feeds.includes("digital");
           }
           if (s.key === "skcc_skimmer_enabled") skcc_skimmer_enabled = s.value === "true";
+          if (s.key === "skcc_skimmer_distance") skcc_skimmer_distance = s.value || "500";
           if (s.key === "hamalert_enabled") hamalert_enabled = s.value === "true";
           if (s.key === "hamalert_host") hamalert_host = s.value || "hamalert.org";
           if (s.key === "hamalert_port") hamalert_port = s.value || "7300";
@@ -166,6 +168,11 @@
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value: skcc_skimmer_enabled ? "true" : "false" }),
+      });
+      await fetch("/api/settings/skcc_skimmer_distance", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: skcc_skimmer_distance.trim() || "500" }),
       });
       // HamAlert settings
       await fetch("/api/settings/hamalert_enabled", {
@@ -326,6 +333,10 @@
     </div>
     <div class="setting-row toggle-row">
       <label><input type="checkbox" bind:checked={skcc_skimmer_enabled} disabled={!rbn_enabled} /> Show SKCC Skimmer on Hunting page</label>
+    </div>
+    <div class="setting-row">
+      <label for="skcc_distance">SKCC Skimmer max distance (miles)</label>
+      <input id="skcc_distance" type="text" bind:value={skcc_skimmer_distance} autocomplete="off" inputmode="numeric" disabled={!rbn_enabled || !skcc_skimmer_enabled} />
     </div>
     <p class="hint">Uses your My Callsign to authenticate.</p>
   </section>

@@ -1,6 +1,7 @@
 """API routes for querying RBN and HamAlert spot data."""
 
 import json
+import logging
 import time
 
 import pycountry
@@ -9,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from rigbook.db import Cache, Setting, get_session
+from rigbook.routes.qrz import qrz_lookup
 from rigbook.routes.skcc import _ensure_cache as ensure_skcc_cache
 from rigbook.spots import (
     hamalert_feed,
@@ -156,6 +158,97 @@ async def query_spots(
             s["qrz_state"] = ""
 
     return spots
+
+
+# Server-side SKCC skimmer snapshot cache
+# Spots that qualify are kept for the full TTL even if distance fluctuates
+_skcc_cache: dict[str, tuple[dict, float]] = {}  # callsign -> (spot_dict, first_seen)
+_SKCC_TTL = 600  # 10 minutes
+
+
+@router.get("/skcc")
+async def skcc_skimmer(
+    band: str | None = None,
+    limit: int = 50,
+    session: AsyncSession = Depends(get_session),
+):
+    """Pre-filtered SKCC skimmer view with stable TTL.
+
+    Once a spot qualifies, it stays in the snapshot for the full 10-minute
+    TTL regardless of distance fluctuations between polls.
+    """
+    # Read distance setting
+    result = await session.execute(
+        select(Setting.value).where(Setting.key == "skcc_skimmer_distance")
+    )
+    dist_str = result.scalar_one_or_none()
+    max_dist = int(dist_str) if dist_str and dist_str.isdigit() else 500
+
+    # Get current qualifying spots from the live cache
+    fresh = await query_spots(
+        source=None,
+        callsign=None,
+        mode="CW",
+        band=None,  # don't filter by band here — filter the snapshot below
+        min_freq=None,
+        max_freq=None,
+        skcc="required",
+        max_distance=max_dist if max_dist > 0 else None,
+        limit=200,
+        session=session,
+    )
+
+    now = time.time()
+    logger = logging.getLogger("rigbook.spots")
+    logger.debug(
+        "SKCC skimmer: %d fresh from query, %d in snapshot cache",
+        len(fresh),
+        len(_skcc_cache),
+    )
+
+    # Merge fresh spots into snapshot cache
+    for s in fresh:
+        call = s["callsign"]
+        if call in _skcc_cache:
+            # Spot already in snapshot — update data but keep first_seen
+            # This refreshes distance/snr/spotter data while preserving TTL
+            _skcc_cache[call] = (s, _skcc_cache[call][1])
+        else:
+            # New spot — add to snapshot
+            _skcc_cache[call] = (s, now)
+
+    # Expire entries past TTL (based on first_seen, not last update)
+    expired = [
+        k for k, (_, first_seen) in _skcc_cache.items() if now - first_seen > _SKCC_TTL
+    ]
+    if expired:
+        logger.debug("SKCC skimmer: expiring %d entries: %s", len(expired), expired)
+    for k in expired:
+        del _skcc_cache[k]
+
+    logger.debug("SKCC skimmer: returning %d from snapshot", len(_skcc_cache))
+
+    # Build result from snapshot, applying band filter
+    results = []
+    for call, (s, _) in _skcc_cache.items():
+        if band and s.get("band") != band.lower():
+            continue
+        results.append(s)
+
+    results.sort(key=lambda s: s.get("received_at", 0), reverse=True)
+    results = results[:limit]
+
+    # Prefetch QRZ data for spots missing location
+    for s in results:
+        if not s.get("country"):
+            data = await qrz_lookup(s["callsign"], session)
+            if isinstance(data, dict) and not data.get("error"):
+                country_name = data.get("country") or ""
+                s["country"] = country_name
+                s["country_code"] = _COUNTRY_NAME_TO_CODE.get(country_name.lower(), "")
+                s["qrz_state"] = data.get("state") or ""
+
+    return results
 
 
 @router.get("/status")

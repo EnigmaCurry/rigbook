@@ -1,58 +1,51 @@
 <script>
   import { onMount, onDestroy, createEventDispatcher } from "svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
-  import { QrzLookup, formatFreq, locationStr, timeAgo } from "./qrzLookup.js";
+  import { QrzLookup, locationStr, timeAgo } from "./qrzLookup.js";
 
   const dispatch = createEventDispatcher();
 
   export let filterMode = "";
   export let filterBand = "";
-  export let filterDistance = 0; // 0 = unlimited
+  export let workedTodayKeys = new Set();
 
   let spots = [];
   let loading = true;
   let pollInterval;
+  let seenCalls = new Set();
+  let newCalls = new Set();
   const qrz = new QrzLookup(() => { spots = spots; });
-
-  // Track spots with their first-seen time so they persist for at least TTL
-  let spotMap = {}; // callsign -> { spot, firstSeen }
-  const SPOT_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
   $: visible = !filterMode || filterMode === "CW";
 
+  // Force spots re-render when workedTodayKeys changes
+  $: if (workedTodayKeys) { spots = [...spots]; }
+
+  function isWorked(spot) {
+    const key = `${spot.callsign.toUpperCase()}|${spot.band}|CW`;
+    return workedTodayKeys.has(key);
+  }
+
   async function fetchSkccSpots() {
-    if (!visible) { spots = []; spotMap = {}; loading = false; return; }
+    if (!visible) { spots = []; loading = false; return; }
     try {
       const params = new URLSearchParams();
-      params.set("mode", "CW");
-      params.set("skcc", "required");
-      if (filterDistance > 0) params.set("max_distance", String(filterDistance));
       if (filterBand) params.set("band", filterBand);
-      params.set("limit", "50");
-      const res = await fetch(`/api/spots/?${params}`);
+      const res = await fetch(`/api/spots/skcc?${params}`);
       if (res.ok) {
         const fresh = await res.json();
-        const now = Date.now();
-
-        // Merge: update existing, add new
-        const freshKeys = new Set();
-        for (const s of fresh) {
-          freshKeys.add(s.callsign);
-          if (spotMap[s.callsign]) {
-            spotMap[s.callsign].spot = s;
-          } else {
-            spotMap[s.callsign] = { spot: s, firstSeen: now };
+        if (seenCalls.size > 0) {
+          const justNew = new Set();
+          for (const s of fresh) {
+            if (!seenCalls.has(s.callsign)) justNew.add(s.callsign);
+          }
+          newCalls = justNew;
+          if (justNew.size > 0) {
+            setTimeout(() => { newCalls = new Set(); }, 15000);
           }
         }
-
-        // Keep old spots that haven't expired yet (even if not in latest results)
-        for (const key of Object.keys(spotMap)) {
-          if (!freshKeys.has(key) && now - spotMap[key].firstSeen > SPOT_TTL_MS) {
-            delete spotMap[key];
-          }
-        }
-
-        spots = Object.values(spotMap).map(e => e.spot);
+        for (const s of fresh) seenCalls.add(s.callsign);
+        spots = fresh;
         await qrz.enqueue(spots);
       }
     } catch {}
@@ -62,12 +55,9 @@
   // Re-fetch when filters actually change
   let prevFilterMode = filterMode;
   let prevFilterBand = filterBand;
-  let prevFilterDistance = filterDistance;
-  $: if (filterMode !== prevFilterMode || filterBand !== prevFilterBand || filterDistance !== prevFilterDistance) {
+  $: if (filterMode !== prevFilterMode || filterBand !== prevFilterBand) {
     prevFilterMode = filterMode;
     prevFilterBand = filterBand;
-    prevFilterDistance = filterDistance;
-    spotMap = {};
     fetchSkccSpots();
   }
 
@@ -87,11 +77,15 @@
     <h2>SKCC Skimmer ({spots.length})</h2>
       <div class="grid">
         {#each spots as spot (spot.callsign)}
-          <div class="card">
+          <div class="card" class:new-spot={newCalls.has(spot.callsign)} class:worked={isWorked(spot)}>
             <div class="card-header">
-              <!-- svelte-ignore a11y-click-events-have-key-events -->
-              <!-- svelte-ignore a11y-no-static-element-interactions -->
-              <span class="callsign clickable" on:click={() => dispatch("addqso", spot)} title="Add QSO">{spot.callsign}</span>
+              {#if isWorked(spot)}
+                <span class="callsign worked-call" title="Already worked today">{spot.callsign}</span>
+              {:else}
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <span class="callsign clickable" on:click={() => dispatch("addqso", spot)} title="Add QSO">{spot.callsign}</span>
+              {/if}
               <span class="skcc-nr">#{spot.skcc}</span>
               <span class="badge band" style="background: {bandColor(spot.band)}; color: {bandTextColor(spot.band)}">{spot.band}</span>
             </div>
@@ -126,11 +120,6 @@
     margin: 0 0 0.75rem 0;
   }
 
-  .status {
-    color: var(--text-muted);
-    font-size: 0.85rem;
-  }
-
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -143,6 +132,24 @@
     border-radius: 4px;
     padding: 0.5rem 0.65rem;
     font-size: 0.8rem;
+  }
+
+  .card.new-spot {
+    animation: flash 1.5s ease-in-out 5;
+    border-color: var(--accent);
+  }
+
+  @keyframes flash {
+    0%, 100% { background: var(--bg-card); }
+    50% { background: var(--row-editing); }
+  }
+
+  .card.worked {
+    opacity: 0.5;
+  }
+
+  .worked-call {
+    color: var(--text-dim);
   }
 
   .card-header {
