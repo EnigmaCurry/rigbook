@@ -310,12 +310,12 @@
       </span>
     </div>
     <div class="setting-row toggle-row">
-      <label><input type="checkbox" bind:checked={rbn_feed_cw} /> CW (port 7000)</label>
-      <label><input type="checkbox" bind:checked={rbn_feed_digital} /> Digital (port 7001)</label>
+      <label><input type="checkbox" bind:checked={rbn_feed_cw} disabled={!rbn_enabled} /> CW (port 7000)</label>
+      <label><input type="checkbox" bind:checked={rbn_feed_digital} disabled={!rbn_enabled} /> Digital (port 7001)</label>
     </div>
     <div class="setting-row">
       <label for="rbn_host">RBN Host</label>
-      <input id="rbn_host" type="text" bind:value={rbn_host} autocomplete="off" />
+      <input id="rbn_host" type="text" bind:value={rbn_host} autocomplete="off" disabled={!rbn_enabled} />
     </div>
     <p class="hint">Uses your My Callsign to authenticate.</p>
   </section>
@@ -334,19 +334,19 @@
     </div>
     <div class="setting-row">
       <label for="hamalert_host">Host</label>
-      <input id="hamalert_host" type="text" bind:value={hamalert_host} autocomplete="off" />
+      <input id="hamalert_host" type="text" bind:value={hamalert_host} autocomplete="off" disabled={!hamalert_enabled} />
     </div>
     <div class="setting-row">
       <label for="hamalert_port">Port</label>
-      <input id="hamalert_port" type="text" bind:value={hamalert_port} autocomplete="off" inputmode="numeric" />
+      <input id="hamalert_port" type="text" bind:value={hamalert_port} autocomplete="off" inputmode="numeric" disabled={!hamalert_enabled} />
     </div>
     <div class="setting-row">
       <label for="hamalert_username">Username</label>
-      <input id="hamalert_username" type="text" bind:value={hamalert_username} autocomplete="off" />
+      <input id="hamalert_username" type="text" bind:value={hamalert_username} autocomplete="off" disabled={!hamalert_enabled} />
     </div>
     <div class="setting-row">
       <label for="hamalert_password">{hasHamalertPassword ? "Change Password" : "Password"}</label>
-      <input id="hamalert_password" type="password" bind:value={hamalert_password} autocomplete="off" placeholder={hasHamalertPassword ? "Leave blank to keep current" : ""} />
+      <input id="hamalert_password" type="password" bind:value={hamalert_password} autocomplete="off" disabled={!hamalert_enabled} placeholder={hasHamalertPassword ? "Leave blank to keep current" : ""} />
     </div>
   </section>
 
