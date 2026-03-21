@@ -352,6 +352,7 @@
 
   <section class="settings-section">
     <h3>Cache</h3>
+    <p class="hint">Cached data: QRZ callsign lookups, SKCC member list. Clearing forces fresh lookups on next use.</p>
     <div class="setting-row toggle-row">
       <button class="theme-toggle" on:click={clearCache}>Clear Cache</button>
     </div>
