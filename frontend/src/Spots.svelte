@@ -6,11 +6,32 @@
   let status = { rbn: { connected: false, enabled: false }, hamalert: { connected: false, enabled: false }, callsigns: 0, entries: 0, total_spots: 0, avg_spots_per_callsign: 0 };
   let bands = {};
   let modes = {};
-  let filterSource = "";
-  let filterBand = "";
-  let filterMode = "";
-  let filterCallsign = "";
-  let filterSkcc = "";
+  // Parse initial filter state from URL hash query params
+  function parseFiltersFromHash() {
+    const hash = window.location.hash.slice(1) || "";
+    const qIdx = hash.indexOf("?");
+    if (qIdx < 0) return {};
+    const params = new URLSearchParams(hash.slice(qIdx + 1));
+    return Object.fromEntries(params.entries());
+  }
+
+  function updateHash() {
+    const params = new URLSearchParams();
+    if (filterSource) params.set("source", filterSource);
+    if (filterBand) params.set("band", filterBand);
+    if (filterMode) params.set("mode", filterMode);
+    if (filterCallsign) params.set("callsign", filterCallsign);
+    if (filterSkcc) params.set("skcc", filterSkcc);
+    const qs = params.toString();
+    window.location.hash = qs ? `/spots?${qs}` : "/spots";
+  }
+
+  const initFilters = parseFiltersFromHash();
+  let filterSource = initFilters.source || "";
+  let filterBand = initFilters.band || "";
+  let filterMode = initFilters.mode || "";
+  let filterCallsign = initFilters.callsign || "";
+  let filterSkcc = initFilters.skcc || "";
   let restarting = false;
   let qrzPending = 0;
   let qrzSkipped = false;
@@ -57,6 +78,11 @@
       const res = await fetch("/api/spots/modes");
       if (res.ok) modes = await res.json();
     } catch {}
+  }
+
+  function onFilterChange() {
+    updateHash();
+    fetchSpots();
   }
 
   async function qrzLookupOne(call) {
@@ -222,26 +248,26 @@
   </div>
 
   <div class="filters">
-    <select bind:value={filterSource} on:change={fetchSpots}>
+    <select bind:value={filterSource} on:change={onFilterChange}>
       <option value="">All Sources</option>
       <option value="rbn">RBN</option>
       <option value="hamalert">HamAlert</option>
     </select>
-    <select bind:value={filterBand} on:change={fetchSpots}>
+    <select bind:value={filterBand} on:change={onFilterChange}>
       <option value="">All Bands</option>
       {#each bandList as b}
         <option value={b}>{b} ({bands[b]})</option>
       {/each}
     </select>
-    <select bind:value={filterMode} on:change={() => { if (filterMode !== "CW") filterSkcc = ""; fetchSpots(); }}>
+    <select bind:value={filterMode} on:change={() => { if (filterMode !== "CW") filterSkcc = ""; onFilterChange(); }}>
       <option value="">All Modes</option>
       {#each modeList as m}
         <option value={m}>{m} ({modes[m]})</option>
       {/each}
     </select>
-    <input type="text" placeholder="Callsign" bind:value={filterCallsign} on:input={fetchSpots} style="text-transform: uppercase" />
+    <input type="text" placeholder="Callsign" bind:value={filterCallsign} on:input={onFilterChange} style="text-transform: uppercase" />
     {#if filterMode === "CW"}
-      <select bind:value={filterSkcc} on:change={fetchSpots}>
+      <select bind:value={filterSkcc} on:change={onFilterChange}>
         <option value="">SKCC: Any</option>
         <option value="required">SKCC: Required</option>
       </select>
@@ -255,8 +281,8 @@
           class="band-badge"
           class:active={filterBand === b}
           style="background: {bandColor(b)}; opacity: {filterBand && filterBand !== b ? 0.3 : 1}"
-          on:click={() => { filterBand = filterBand === b ? "" : b; fetchSpots(); }}
-          on:keydown={(e) => { if (e.key === 'Enter') { filterBand = filterBand === b ? "" : b; fetchSpots(); } }}
+          on:click={() => { filterBand = filterBand === b ? "" : b; onFilterChange(); }}
+          on:keydown={(e) => { if (e.key === 'Enter') { filterBand = filterBand === b ? "" : b; onFilterChange(); } }}
           role="button"
           tabindex="0"
         >

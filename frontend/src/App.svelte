@@ -92,7 +92,7 @@
     if (hash === "/parks" || hash.startsWith("/parks/")) return { page: "parks", editId: null };
     if (hash === "/about") return { page: "about", editId: null };
     if (hash === "/links") return { page: "links", editId: null };
-    if (hash === "/spots") return { page: "spots", editId: null };
+    if (hash === "/spots" || hash.startsWith("/spots?")) return { page: "spots", editId: null };
     if (hash === "/settings") return { page: "settings", editId: null };
     if (hash === "/logbook") return { page: isWide() ? "dual" : "log", editId: null };
     if (hash === "/export") return { page: "export", editId: null };
