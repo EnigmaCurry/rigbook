@@ -67,8 +67,8 @@
         spots = await res.json();
         // Do full QRZ lookups for up to 20 callsigns missing location data
         {
-          const needLookup = [...new Set(spots.filter(s => !s.country).map(s => s.callsign))].slice(0, 20);
-          if (needLookup.length > 0) {
+          const needLookup = [...new Set(spots.filter(s => !s.country).map(s => s.callsign))];
+          if (needLookup.length > 0 && needLookup.length <= 20) {
             const lookups = needLookup.map(async (call) => {
               try {
                 const qres = await fetch(`/api/qrz/lookup/${call}`);
