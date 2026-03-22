@@ -101,13 +101,13 @@ def run() -> None:
         "--open", metavar="DB_PATH", help="Open a specific database file"
     )
     parser.add_argument(
-        "--pick-db",
+        "--pick",
         action="store_true",
         help="Enable database picker mode",
     )
     args = parser.parse_args()
 
-    db_manager.configure(db_path=args.open, picker=args.pick_db)
+    db_manager.configure(db_path=args.open, picker=args.pick)
 
     log_level = "DEBUG" if args.verbose else "INFO"
     logging.basicConfig(
