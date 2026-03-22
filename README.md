@@ -37,8 +37,13 @@ engaged in POTA and/or SKCC activities.
 - Reverse Beacon Network (RBN) and HamAlert spot feeds with real-time
   aggregation, per-spotter TTL, and distance calculation
 - Spots page — filterable, sortable table of all RBN/HamAlert spots
-  with SKCC cross-reference, QRZ location lookup, and deep-linkable
-  filter URLs
+  with SKCC cross-reference, QRZ location lookup, deep-linkable
+  filter URLs, and clickable callsigns/frequencies to log QSOs or
+  tune your radio
+- Notification system — HamAlert spots create persistent in-app
+  notifications with clickable callsigns and frequencies; optional
+  desktop browser notifications and popup modal alerts; SSE push
+  for real-time updates
 - QRZ callsign lookup with connection test button in Settings
 - SKCC member number auto-lookup
 - All timestamps in UTC with 24-hour format
@@ -311,6 +316,66 @@ cached spots from RBN and HamAlert.
   spots per callsign
 - Spots aggregate by callsign/mode with per-spotter TTL — spotter
   count decays as individual observations expire
+
+## Notifications
+
+Rigbook has a built-in notification system that alerts you when
+HamAlert spots arrive. Notifications are stored in the database and
+persist across sessions.
+
+### Notification inbox
+
+Go to **Notifications** in the hamburger menu, or click the envelope
+icon (✉) next to the hamburger. The icon shows the unread count when
+there are unread notifications.
+
+- **Inbox** tab shows unread and read notifications, newest first
+- Unread notifications are highlighted with a green left border
+- **Click a callsign** to tune your radio and open the Add QSO form
+- **Click a frequency** to tune your radio
+- Mark individual notifications as **Read** or **Done**
+- **Done** moves a notification out of the inbox to the Done tab
+- **Mark All Read** clears all unread highlights at once
+
+### Desktop notifications
+
+Enable desktop notifications in **Settings → Notifications** to
+receive browser popups when new alerts arrive. Desktop notifications
+are dismissed automatically when you read the corresponding in-app
+notification.
+
+In-app notifications are always enabled regardless of this setting.
+
+### Popup notifications
+
+Enable **Popup notifications** in Settings to show a modal dialog
+immediately when new notifications arrive. This is more intrusive but
+harder to miss.
+
+- **OK** dismisses the popup and marks notifications as read
+- **Keep Unread** dismisses the popup but leaves notifications unread
+- **View All** marks as read and navigates to the Notifications page
+- Callsigns and frequencies are clickable in the popup
+
+### HamAlert integration
+
+When HamAlert is enabled and connected (configured in **Settings →
+HamAlert**), every HamAlert spot automatically creates a notification
+with the callsign, frequency, mode, and any trigger comments. These
+appear in the notification inbox and trigger desktop/popup
+notifications if enabled.
+
+### Real-time updates
+
+Notifications use Server-Sent Events (SSE) for real-time push — the
+notification badge, inbox, and popup all update instantly without
+polling. The SSE endpoint is at `/api/events/stream`.
+
+### Test notification
+
+Click **Send Test Notification** in Settings to create a test
+notification after a 5-second delay. Use this to verify desktop and
+popup notifications are working.
 
 ## ADIF Export / Import
 
