@@ -1,5 +1,5 @@
 <script>
-  import { onMount, createEventDispatcher } from "svelte";
+  import { onMount, onDestroy, createEventDispatcher } from "svelte";
 
   const dispatch = createEventDispatcher();
 
@@ -50,6 +50,7 @@
   function switchView(v) {
     view = v;
     if (v === "done") fetchDone();
+    else fetchInbox();
   }
 
   function formatTime(ts) {
@@ -71,8 +72,21 @@
     dispatch("addqso", meta);
   }
 
+  let eventSource;
+
   onMount(() => {
     fetchInbox();
+    eventSource = new EventSource("/api/events/stream");
+    eventSource.addEventListener("notification", () => {
+      if (view === "inbox") fetchInbox();
+    });
+    eventSource.addEventListener("unread", () => {
+      if (view === "inbox") fetchInbox();
+    });
+  });
+
+  onDestroy(() => {
+    if (eventSource) eventSource.close();
   });
 </script>
 
