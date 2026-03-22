@@ -126,6 +126,7 @@ class DatabaseManager:
         self.db_path: Path | None = None
         self.picker_mode: bool = False
         self._db_override: str | None = None
+        self.pending_name: str | None = None
 
     def configure(self, db_name: str | None = None, picker: bool = False) -> None:
         cli_name = db_name
@@ -202,7 +203,11 @@ async def init_db() -> None:
     DB_DIR.mkdir(parents=True, exist_ok=True)
     if db_manager.picker_mode:
         return
-    await db_manager.open(db_manager.default_db_path)
+    db_path = db_manager.default_db_path
+    if not db_path.exists():
+        db_manager.pending_name = db_path.stem
+        return
+    await db_manager.open(db_path)
 
 
 def _add_missing_columns(conn):

@@ -1,4 +1,6 @@
+import os
 import re
+import signal
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -42,7 +44,32 @@ async def list_logbooks():
 
 @router.get("/current")
 async def get_current():
-    return {"name": db_manager.db_name, "is_open": db_manager.is_open}
+    return {
+        "name": db_manager.db_name,
+        "is_open": db_manager.is_open,
+        "pending": db_manager.pending_name,
+    }
+
+
+@router.post("/confirm")
+async def confirm_create():
+    if not db_manager.pending_name:
+        raise HTTPException(status_code=400, detail="No pending logbook to confirm")
+    name = db_manager.pending_name
+    db_manager.pending_name = None
+    db_path = DB_DIR / f"{name}.db"
+    await db_manager.open(db_path)
+    await start_feeds()
+    return {"name": name, "is_open": True}
+
+
+@router.post("/decline")
+async def decline_create():
+    if not db_manager.pending_name:
+        raise HTTPException(status_code=400, detail="No pending logbook to decline")
+    db_manager.pending_name = None
+    os.kill(os.getpid(), signal.SIGTERM)
+    return {"status": "shutting down"}
 
 
 @router.post("/open")

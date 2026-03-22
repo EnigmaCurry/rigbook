@@ -139,6 +139,7 @@
   let pickerMode = false;
   let logbookOpen = false;
   let currentLogbook = "";
+  let pendingLogbook = "";
 
   async function checkLogbookMode() {
     try {
@@ -154,9 +155,10 @@
         const data = await cur.json();
         logbookOpen = data.is_open;
         currentLogbook = data.name || "";
+        pendingLogbook = data.pending || "";
       }
     } catch {}
-    if (!pickerMode && !logbookOpen) {
+    if (!pickerMode && !logbookOpen && !pendingLogbook) {
       logbookOpen = true;
     }
   }
@@ -181,6 +183,30 @@
     page = isWide() ? "dual" : "log";
     window.location.hash = "/";
     startAppServices();
+  }
+
+  let serverShutdown = false;
+
+  async function confirmPendingLogbook() {
+    try {
+      const res = await fetch("/api/logbooks/confirm", { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        currentLogbook = data.name;
+        pendingLogbook = "";
+        logbookOpen = true;
+        page = isWide() ? "dual" : "log";
+        window.location.hash = "/";
+        startAppServices();
+      }
+    } catch {}
+  }
+
+  async function declinePendingLogbook() {
+    try {
+      await fetch("/api/logbooks/decline", { method: "POST" });
+    } catch {}
+    serverShutdown = true;
   }
 
   async function closeLogbook() {
@@ -667,7 +693,35 @@
 </script>
 
 <main class:dual-mode={page === "dual"} class:wide-mode={page === "grid"}>
-  {#if pickerMode && !logbookOpen}
+  {#if serverShutdown}
+    <header>
+      <div class="header-left">
+        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>
+      </div>
+    </header>
+    <div class="welcome-container">
+      <div class="welcome-card">
+        <p>Server is shutting down.</p>
+      </div>
+    </div>
+  {:else if pendingLogbook}
+    <header>
+      <div class="header-left">
+        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>
+      </div>
+      <span class="utc-clock">{utcNow}</span>
+    </header>
+    <div class="welcome-container">
+      <div class="welcome-card">
+        <h2>Create New Logbook</h2>
+        <p>The logbook <strong>{pendingLogbook}</strong> does not exist yet. Would you like to create it?</p>
+        <div class="welcome-buttons">
+          <button class="welcome-btn confirm" on:click={confirmPendingLogbook}>Yes, create it</button>
+          <button class="welcome-btn decline" on:click={declinePendingLogbook}>No, shut down</button>
+        </div>
+      </div>
+    </div>
+  {:else if pickerMode && !logbookOpen}
     <header>
       <div class="header-left">
         <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if currentLogbook}<span class="logbook-name">{currentLogbook}</span>{/if}</h1>
@@ -1238,6 +1292,70 @@
 
   .menu-item.close-logbook {
     color: var(--text-muted);
+  }
+
+  .welcome-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 60px);
+    padding: 1rem;
+  }
+
+  .welcome-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 480px;
+    text-align: center;
+  }
+
+  .welcome-card h2 {
+    margin: 0 0 1rem;
+    color: var(--accent);
+    font-size: 1.4rem;
+  }
+
+  .welcome-card p {
+    color: var(--text);
+    margin: 0 0 1.5rem;
+    line-height: 1.5;
+  }
+
+  .welcome-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+  }
+
+  .welcome-btn {
+    padding: 0.6rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .welcome-btn.confirm {
+    background: var(--accent);
+    color: #111;
+  }
+
+  .welcome-btn.confirm:hover {
+    background: var(--accent-hover);
+  }
+
+  .welcome-btn.decline {
+    background: var(--bg-input);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .welcome-btn.decline:hover {
+    background: var(--border);
   }
 
   .title-short {
