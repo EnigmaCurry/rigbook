@@ -53,6 +53,9 @@
       deleteError = "Name does not match";
       return;
     }
+    if (!confirm(`Are you sure you want to permanently delete "${logbookName}"? This cannot be undone.`)) {
+      return;
+    }
     deleteError = "";
     deleting = true;
     try {
