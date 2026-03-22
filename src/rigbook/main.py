@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import os
 import sys
@@ -39,16 +38,26 @@ def _resource_path(relative: str) -> Path:
     return base / relative
 
 
+def _handle_sigint(sig, frame):
+    import signal
+
+    from rigbook.sse import notify_shutdown
+
+    notify_shutdown()
+    # Restore default handler so uvicorn's shutdown proceeds
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    signal.raise_signal(signal.SIGINT)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    import signal
+
+    signal.signal(signal.SIGINT, _handle_sigint)
     await init_db()
     if db_manager.is_open:
         await start_feeds()
     yield
-    from rigbook.sse import notify_shutdown
-
-    notify_shutdown()
-    await asyncio.sleep(0.2)
     await stop_feeds()
     await db_manager.close()
 

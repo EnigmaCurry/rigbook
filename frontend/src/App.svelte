@@ -275,6 +275,7 @@
       serverShutdown = true;
     });
     eventSource.onerror = () => {
+      if (serverShutdown) return;
       // EventSource auto-reconnects; nothing to do
     };
   }
