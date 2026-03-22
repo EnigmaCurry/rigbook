@@ -724,7 +724,7 @@
   {:else if pickerMode && !logbookOpen}
     <header>
       <div class="header-left">
-        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if currentLogbook}<span class="logbook-name">{currentLogbook}</span>{/if}</h1>
+        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if currentLogbook && currentLogbook !== "rigbook"}<span class="logbook-name">{currentLogbook}</span>{/if}</h1>
       </div>
       <span class="utc-clock">{utcNow}</span>
     </header>
@@ -736,7 +736,7 @@
       <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-      <h1 class="app-title" on:click={goHome} style="cursor: pointer"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if currentLogbook}<span class="logbook-name">{currentLogbook}</span>{/if}</h1>
+      <h1 class="app-title" on:click={goHome} style="cursor: pointer"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if currentLogbook && currentLogbook !== "rigbook"}<span class="logbook-name">{currentLogbook}</span>{/if}</h1>
       {#if myCallsign}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
