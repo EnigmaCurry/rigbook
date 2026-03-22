@@ -98,7 +98,7 @@ def run() -> None:
         "-v", "--verbose", action="store_true", help="Enable verbose/debug logging"
     )
     parser.add_argument(
-        "--open", metavar="DB_PATH", help="Open a specific database file"
+        "--open", metavar="NAME", help="Open a logbook by name (e.g. --open field-day)"
     )
     parser.add_argument(
         "--pick",
@@ -107,7 +107,7 @@ def run() -> None:
     )
     args = parser.parse_args()
 
-    db_manager.configure(db_path=args.open, picker=args.pick)
+    db_manager.configure(db_name=args.open, picker=args.pick)
 
     log_level = "DEBUG" if args.verbose else "INFO"
     logging.basicConfig(

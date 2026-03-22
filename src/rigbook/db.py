@@ -127,19 +127,19 @@ class DatabaseManager:
         self.picker_mode: bool = False
         self._db_override: str | None = None
 
-    def configure(self, db_path: str | None = None, picker: bool = False) -> None:
-        cli_db = db_path
-        env_db = os.environ.get("RIGBOOK_DB")
+    def configure(self, db_name: str | None = None, picker: bool = False) -> None:
+        cli_name = db_name
+        env_name = os.environ.get("RIGBOOK_DB")
         env_picker = os.environ.get("RIGBOOK_PICKER", "").lower() in (
             "1",
             "true",
             "yes",
         )
-        if cli_db:
-            self._db_override = cli_db
+        if cli_name:
+            self._db_override = cli_name
             self.picker_mode = False
-        elif env_db:
-            self._db_override = env_db
+        elif env_name:
+            self._db_override = env_name
             self.picker_mode = False
         elif picker or env_picker:
             self._db_override = None
@@ -161,7 +161,7 @@ class DatabaseManager:
     @property
     def default_db_path(self) -> Path:
         if self._db_override:
-            return Path(self._db_override)
+            return DB_DIR / f"{self._db_override}.db"
         return DB_DIR / "rigbook.db"
 
     async def open(self, db_path: str | Path) -> None:
