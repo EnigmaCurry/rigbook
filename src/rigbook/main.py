@@ -38,8 +38,18 @@ def _resource_path(relative: str) -> Path:
     return base / relative
 
 
+def _handle_sigint(sig, frame):
+    from rigbook.sse import broadcast
+
+    broadcast("shutdown", {})
+    raise KeyboardInterrupt
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    import signal
+
+    signal.signal(signal.SIGINT, _handle_sigint)
     await init_db()
     if db_manager.is_open:
         await start_feeds()
@@ -98,7 +108,10 @@ def run() -> None:
         "-v", "--verbose", action="store_true", help="Enable verbose/debug logging"
     )
     parser.add_argument(
-        "name", nargs="?", default=None, help="Logbook name to open (e.g. field-day, default: rigbook)"
+        "name",
+        nargs="?",
+        default=None,
+        help="Logbook name to open (e.g. field-day, default: rigbook)",
     )
     parser.add_argument(
         "--pick",
