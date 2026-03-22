@@ -94,6 +94,24 @@ async def close_logbook():
     return {"is_open": False}
 
 
+@router.delete("/delete")
+async def delete_logbook(body: LogbookName):
+    _validate_name(body.name)
+    if not db_manager.is_open or db_manager.db_name != body.name:
+        raise HTTPException(
+            status_code=400, detail="Can only delete the currently open logbook"
+        )
+    db_path = DB_DIR / f"{body.name}.db"
+    await stop_feeds()
+    await db_manager.close()
+    if db_path.exists():
+        db_path.unlink()
+    if db_manager.picker_mode:
+        return {"deleted": True, "shutdown": False}
+    os.kill(os.getpid(), signal.SIGTERM)
+    return {"deleted": True, "shutdown": True}
+
+
 @router.post("/create")
 async def create_logbook(body: LogbookName):
     _validate_name(body.name)

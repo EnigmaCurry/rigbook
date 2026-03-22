@@ -858,7 +858,7 @@
   {:else if page === "spots"}
     <Spots on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
   {:else if page === "settings"}
-    <Settings />
+    <Settings logbookName={currentLogbook} pickerMode={pickerMode} on:deleted={e => { if (e.detail.shutdown) { serverShutdown = true; } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} />
   {:else if page === "links"}
     <Links />
   {:else if page === "about"}
