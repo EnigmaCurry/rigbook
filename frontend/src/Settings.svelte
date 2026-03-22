@@ -80,6 +80,7 @@
 
   async function shutdownServer() {
     if (!confirm("Are you sure you want to shut down the Rigbook server?")) return;
+    dispatch("shutdown");
     try {
       await fetch("/api/logbooks/shutdown", { method: "POST" });
     } catch {}

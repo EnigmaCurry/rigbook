@@ -882,7 +882,7 @@
   {:else if page === "spots"}
     <Spots on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
   {:else if page === "settings"}
-    <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} on:deleted={e => { if (e.detail.shutdown) { serverShutdown = true; } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={() => { needsSetup = false; fetchCallsign(); navigate(isWide() ? "dual" : "log"); }} />
+    <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} on:deleted={e => { if (e.detail.shutdown) { serverShutdown = true; } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={() => { needsSetup = false; fetchCallsign(); navigate(isWide() ? "dual" : "log"); }} on:shutdown={() => { stopAppServices(); }} />
   {:else if page === "links"}
     <Links />
   {:else if page === "about"}
