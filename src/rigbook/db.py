@@ -204,7 +204,7 @@ async def init_db() -> None:
     if db_manager.picker_mode:
         return
     db_path = db_manager.default_db_path
-    if not db_path.exists():
+    if not db_path.exists() and db_manager._db_override:
         db_manager.pending_name = db_path.stem
         return
     await db_manager.open(db_path)
