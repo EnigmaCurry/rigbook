@@ -67,7 +67,7 @@
     try {
       await fetch("/api/notifications/test", { method: "POST" });
     } catch {}
-    testPending = false;
+    setTimeout(() => { testPending = false; }, 5000);
   }
 
   // Feed connection status
@@ -362,7 +362,7 @@
     <p class="hint">Show a modal dialog immediately when new notifications arrive. Harder to miss, but more intrusive.</p>
     <div class="setting-row toggle-row" style="margin-top: 0.5rem;">
       <button class="theme-toggle" on:click={sendTestNotification} disabled={testPending}>
-        {testPending ? "Sending..." : "Send Test Notification"}
+        {testPending ? "Sending in 5s..." : "Send Test Notification"}
       </button>
     </div>
   </section>
