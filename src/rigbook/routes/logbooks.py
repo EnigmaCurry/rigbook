@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from rigbook.db import DB_DIR, db_manager
 from rigbook.spots import start_feeds, stop_feeds
+from rigbook.sse import broadcast
 
 router = APIRouter(prefix="/api/logbooks", tags=["logbooks"])
 
@@ -68,12 +69,14 @@ async def decline_create():
     if not db_manager.pending_name:
         raise HTTPException(status_code=400, detail="No pending logbook to decline")
     db_manager.pending_name = None
+    broadcast("shutdown", {})
     os.kill(os.getpid(), signal.SIGTERM)
     return {"status": "shutting down"}
 
 
 @router.post("/shutdown")
 async def shutdown_server():
+    broadcast("shutdown", {})
     os.kill(os.getpid(), signal.SIGTERM)
     return {"status": "shutting down"}
 

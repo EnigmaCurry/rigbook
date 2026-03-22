@@ -270,6 +270,10 @@
     eventSource.addEventListener("notification", (e) => {
       // Individual notification pushed — could be used later
     });
+    eventSource.addEventListener("shutdown", () => {
+      stopAppServices();
+      serverShutdown = true;
+    });
     eventSource.onerror = () => {
       // EventSource auto-reconnects; nothing to do
     };
