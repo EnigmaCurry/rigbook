@@ -163,6 +163,26 @@
     }
   }
 
+  let needsSetup = false;
+
+  async function checkNeedsSetup() {
+    try {
+      const [csRes, gridRes] = await Promise.all([
+        fetch("/api/settings/my_callsign"),
+        fetch("/api/settings/my_grid"),
+      ]);
+      const cs = csRes.ok ? (await csRes.json()).value || "" : "";
+      const grid = gridRes.ok ? (await gridRes.json()).value || "" : "";
+      needsSetup = !cs || !grid;
+    } catch {
+      needsSetup = false;
+    }
+    if (needsSetup) {
+      page = "settings";
+      window.location.hash = "/settings";
+    }
+  }
+
   function startAppServices() {
     fetchCallsign();
     fetchRadioModes();
@@ -183,6 +203,7 @@
     page = isWide() ? "dual" : "log";
     window.location.hash = "/";
     startAppServices();
+    await checkNeedsSetup();
   }
 
   let serverShutdown = false;
@@ -198,6 +219,7 @@
         page = isWide() ? "dual" : "log";
         window.location.hash = "/";
         startAppServices();
+        await checkNeedsSetup();
       }
     } catch {}
   }
@@ -667,6 +689,7 @@
     await checkLogbookMode();
     if (logbookOpen) {
       startAppServices();
+      await checkNeedsSetup();
     } else if (pickerMode) {
       page = "picker";
     }
@@ -858,7 +881,7 @@
   {:else if page === "spots"}
     <Spots on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
   {:else if page === "settings"}
-    <Settings logbookName={currentLogbook} pickerMode={pickerMode} on:deleted={e => { if (e.detail.shutdown) { serverShutdown = true; } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} />
+    <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} on:deleted={e => { if (e.detail.shutdown) { serverShutdown = true; } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={() => { needsSetup = false; fetchCallsign(); navigate(isWide() ? "dual" : "log"); }} />
   {:else if page === "links"}
     <Links />
   {:else if page === "about"}

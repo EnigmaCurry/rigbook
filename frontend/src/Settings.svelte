@@ -3,6 +3,7 @@
 
   export let logbookName = "";
   export let pickerMode = false;
+  export let needsSetup = false;
 
   const dispatch = createEventDispatcher();
 
@@ -285,6 +286,9 @@
       await fetch("/api/spots/restart", { method: "POST" });
       setTimeout(fetchSpotStatus, 2000);
       message = "Settings saved.";
+      if (my_callsign.trim() && my_grid.trim()) {
+        dispatch("setupcomplete");
+      }
     } catch (e) {
       message = `Error: ${e.message}`;
     }
@@ -317,15 +321,19 @@
 <div class="settings">
   <h2>Settings</h2>
 
+  {#if needsSetup}
+    <p class="setup-hint">Enter your callsign and grid square to get started.</p>
+  {/if}
+
   <section class="settings-section">
     <h3>Station</h3>
     <div class="setting-row">
-      <label for="my_callsign">My Callsign</label>
-      <input id="my_callsign" type="text" bind:value={my_callsign} on:input={stripCallsign} maxlength="10" autocomplete="off" style="text-transform: uppercase" />
+      <label for="my_callsign">My Callsign{#if needsSetup && !my_callsign.trim()} <span class="required">*</span>{/if}</label>
+      <input id="my_callsign" type="text" bind:value={my_callsign} on:input={stripCallsign} maxlength="10" autocomplete="off" style="text-transform: uppercase" class:input-required={needsSetup && !my_callsign.trim()} />
     </div>
     <div class="setting-row">
-      <label for="my_grid">My Grid Square</label>
-      <input id="my_grid" type="text" bind:value={my_grid} on:input={stripGrid} autocomplete="off" style="text-transform: uppercase" />
+      <label for="my_grid">My Grid Square{#if needsSetup && !my_grid.trim()} <span class="required">*</span>{/if}</label>
+      <input id="my_grid" type="text" bind:value={my_grid} on:input={stripGrid} autocomplete="off" style="text-transform: uppercase" class:input-required={needsSetup && !my_grid.trim()} />
     </div>
     <div class="setting-row">
       <label for="default_rst">Default RST</label>
@@ -677,6 +685,22 @@
     font-size: 0.7rem;
     color: var(--text-dim);
     margin: 0;
+  }
+
+  .setup-hint {
+    color: var(--accent);
+    font-size: 0.95rem;
+    margin: 0 0 1rem;
+    font-weight: 600;
+  }
+
+  .required {
+    color: #ff4444;
+    font-weight: bold;
+  }
+
+  :global(.input-required) {
+    border-color: #ff4444 !important;
   }
 
   .danger-zone {
