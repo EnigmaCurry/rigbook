@@ -67,6 +67,9 @@ After downloading, remove the quarantine attribute:
 xattr -d com.apple.quarantine rigbook-macos-arm64
 ```
 
+Rigbook automatically opens your browser when the server starts. Use
+`--no-browser` or set `RIGBOOK_NO_BROWSER=true` to disable this.
+
 The server binds to localhost only because Rigbook has no built-in
 authentication. Set `RIGBOOK_HOST` and `RIGBOOK_PORT` environment
 variables to change the bind address.

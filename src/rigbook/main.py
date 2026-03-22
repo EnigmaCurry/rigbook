@@ -127,25 +127,20 @@ def run() -> None:
     host = os.environ.get("RIGBOOK_HOST", "127.0.0.1")
     port = int(os.environ.get("RIGBOOK_PORT", "8073"))
 
-    import shutil
-    import subprocess
     import threading
+    import webbrowser
 
     no_browser = args.no_browser or os.environ.get(
         "RIGBOOK_NO_BROWSER", ""
     ).lower() in ("1", "true", "yes")
-    if not no_browser and shutil.which("xdg-open"):
+    if not no_browser:
         url = f"http://{host}:{port}"
 
         def open_browser():
             import time
 
             time.sleep(1)
-            subprocess.Popen(
-                ["xdg-open", url],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
+            webbrowser.open(url)
 
         threading.Thread(target=open_browser, daemon=True).start()
 
