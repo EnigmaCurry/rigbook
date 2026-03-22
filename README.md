@@ -455,6 +455,21 @@ logbooks without restarting.
 rigbook --pick
 ```
 
+### Deleting a logbook
+
+Go to **Settings** and scroll to the **Danger Zone** at the bottom.
+To delete the current logbook, type the logbook name to confirm and
+click **Delete Logbook**. A browser confirmation dialog provides a
+final safety check. In picker mode, you are returned to the picker
+after deletion. Otherwise, the server shuts down.
+
+### Shutting down
+
+The **Danger Zone** in Settings also has a **Shutdown Server** button
+that gracefully stops Rigbook. All connected browser tabs will show a
+shutdown notice via real-time SSE. Pressing Ctrl-C in the terminal
+also notifies connected clients before shutting down.
+
 ### Container / environment variable usage
 
 For containers or environments where CLI arguments aren't convenient,
@@ -464,6 +479,7 @@ use environment variables instead:
 |---|---|
 | `RIGBOOK_DB` | Logbook name to open (e.g. `field-day` → `~/.local/rigbook/field-day.db`) |
 | `RIGBOOK_PICKER` | Set to `1`, `true`, or `yes` to enable picker mode |
+| `RIGBOOK_NO_BROWSER` | Set to `1`, `true`, or `yes` to disable automatic browser opening |
 
 CLI arguments take precedence over environment variables.
 
