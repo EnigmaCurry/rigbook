@@ -37,7 +37,6 @@
   let desktopNotifEnabled = localStorage.getItem("desktop_notifications_enabled") === "true";
   let popupNotifEnabled = localStorage.getItem("popup_notifications_enabled") === "true";
   let testPending = false;
-  let testTimer = null;
 
   async function enableDesktopNotifications() {
     if (typeof Notification === "undefined") return;
@@ -65,12 +64,10 @@
       }
     }
     testPending = true;
-    testTimer = setTimeout(async () => {
-      try {
-        await fetch("/api/notifications/test", { method: "POST" });
-      } catch {}
-      testPending = false;
-    }, 5000);
+    try {
+      await fetch("/api/notifications/test", { method: "POST" });
+    } catch {}
+    testPending = false;
   }
 
   // Feed connection status
@@ -275,7 +272,6 @@
 
   onDestroy(() => {
     clearInterval(spotStatusInterval);
-    if (testTimer) clearTimeout(testTimer);
   });
 </script>
 
@@ -366,7 +362,7 @@
     <p class="hint">Show a modal dialog immediately when new notifications arrive. Harder to miss, but more intrusive.</p>
     <div class="setting-row toggle-row" style="margin-top: 0.5rem;">
       <button class="theme-toggle" on:click={sendTestNotification} disabled={testPending}>
-        {testPending ? "Sending in 5s..." : "Send Test Notification"}
+        {testPending ? "Sending..." : "Send Test Notification"}
       </button>
     </div>
   </section>

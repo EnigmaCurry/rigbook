@@ -1,6 +1,7 @@
+import asyncio
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, field_serializer
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -95,16 +96,18 @@ async def delete_notification(
     await session.commit()
 
 
-@router.post("/test", status_code=201)
-async def send_test_notification(session: AsyncSession = Depends(get_session)):
+async def _delayed_test_notification() -> None:
+    await asyncio.sleep(5)
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    notif = Notification(
-        title="Test Notification", text=f"This is a test notification sent at {now}."
+    await create_notification(
+        "Test Notification", f"This is a test notification sent at {now}."
     )
-    session.add(notif)
-    await session.commit()
-    await session.refresh(notif)
-    return NotificationResponse.model_validate(notif)
+
+
+@router.post("/test", status_code=202)
+async def send_test_notification(background_tasks: BackgroundTasks):
+    background_tasks.add_task(_delayed_test_notification)
+    return {"status": "scheduled"}
 
 
 async def create_notification(title: str, text: str) -> None:
