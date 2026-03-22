@@ -40,13 +40,21 @@ def _resource_path(relative: str) -> Path:
 
 def _handle_sigint(sig, frame):
     import signal
+    import threading
+    import time
 
     from rigbook.sse import notify_shutdown
 
     notify_shutdown()
-    # Restore default handler so uvicorn's shutdown proceeds
+    # Restore default handler so a second Ctrl-C force-quits
     signal.signal(signal.SIGINT, signal.SIG_DFL)
-    signal.raise_signal(signal.SIGINT)
+
+    # Delay the actual shutdown so the event loop can flush SSE to clients
+    def deferred_shutdown():
+        time.sleep(0.5)
+        os.kill(os.getpid(), signal.SIGINT)
+
+    threading.Thread(target=deferred_shutdown, daemon=True).start()
 
 
 @asynccontextmanager
