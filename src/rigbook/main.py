@@ -98,7 +98,7 @@ def run() -> None:
         "-v", "--verbose", action="store_true", help="Enable verbose/debug logging"
     )
     parser.add_argument(
-        "name", nargs="?", default=None, help="Logbook name to open (e.g. field-day)"
+        "name", nargs="?", default=None, help="Logbook name to open (e.g. field-day, default: rigbook)"
     )
     parser.add_argument(
         "--pick",
