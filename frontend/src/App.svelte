@@ -148,16 +148,15 @@
         pickerMode = data.picker;
       }
     } catch {}
-    if (pickerMode) {
-      try {
-        const cur = await fetch("/api/logbooks/current");
-        if (cur.ok) {
-          const data = await cur.json();
-          logbookOpen = data.is_open;
-          currentLogbook = data.name || "";
-        }
-      } catch {}
-    } else {
+    try {
+      const cur = await fetch("/api/logbooks/current");
+      if (cur.ok) {
+        const data = await cur.json();
+        logbookOpen = data.is_open;
+        currentLogbook = data.name || "";
+      }
+    } catch {}
+    if (!pickerMode && !logbookOpen) {
       logbookOpen = true;
     }
   }
@@ -671,7 +670,7 @@
   {#if pickerMode && !logbookOpen}
     <header>
       <div class="header-left">
-        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>
+        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if currentLogbook}<span class="logbook-name">{currentLogbook}</span>{/if}</h1>
       </div>
       <span class="utc-clock">{utcNow}</span>
     </header>
@@ -681,14 +680,13 @@
     <div class="header-left">
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-      <h1 class="app-title" on:click={goHome} style="cursor: pointer"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+      <h1 class="app-title" on:click={goHome} style="cursor: pointer"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if currentLogbook}<span class="logbook-name">{currentLogbook}</span>{/if}</h1>
       {#if myCallsign}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <span class="callsign" on:click={goHome} style="cursor: pointer">{myCallsign}</span>
-      {/if}
-      {#if pickerMode && currentLogbook}
-        <span class="logbook-name">[{currentLogbook}]</span>
       {/if}
       {#if vfoEditing}
         <span class="vfo-edit">
@@ -968,9 +966,12 @@
   }
 
   .logbook-name {
+    display: block;
     color: var(--text-muted);
-    font-size: 0.85rem;
-    margin-left: 0.25rem;
+    font-size: 0.55rem;
+    font-weight: normal;
+    line-height: 1;
+    margin-top: -0.15rem;
   }
 
   .vfo-bezel {
