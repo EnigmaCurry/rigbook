@@ -729,7 +729,7 @@
     </header>
     <div class="welcome-container">
       <div class="welcome-card">
-        <p>Server is shutting down.</p>
+        <p>Server has shut down.</p>
       </div>
     </div>
   {:else if pendingLogbook}
