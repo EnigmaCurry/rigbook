@@ -42,13 +42,16 @@ class NotificationResponse(BaseModel):
 
 
 async def _broadcast_unread() -> None:
-    async with async_session() as session:
-        result = await session.execute(
-            select(func.count())
-            .select_from(Notification)
-            .where(Notification.read == 0, Notification.done == 0)
-        )
-        count = result.scalar_one()
+    try:
+        async with async_session() as session:
+            result = await session.execute(
+                select(func.count())
+                .select_from(Notification)
+                .where(Notification.read == 0, Notification.done == 0)
+            )
+            count = result.scalar_one()
+    except RuntimeError:
+        return
     broadcast("unread", {"count": count})
 
 
@@ -142,7 +145,11 @@ async def send_test_notification(background_tasks: BackgroundTasks):
 
 async def create_notification(title: str, text: str, meta: dict | None = None) -> None:
     """Create a notification from non-request context (e.g. background feeds)."""
-    async with async_session() as session:
+    try:
+        session_ctx = async_session()
+    except RuntimeError:
+        return
+    async with session_ctx as session:
         notif = Notification(
             title=title,
             text=text,

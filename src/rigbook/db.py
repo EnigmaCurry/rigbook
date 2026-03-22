@@ -1,14 +1,18 @@
+import logging
+import os
 import uuid as _uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import AsyncGenerator
 
+from fastapi import HTTPException
 from sqlalchemy import Float, String, DateTime, Integer, inspect, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
+logger = logging.getLogger("rigbook")
+
 DB_DIR = Path.home() / ".local" / "rigbook"
-DB_PATH = DB_DIR / "rigbook.db"
 
 
 class Base(DeclarativeBase):
@@ -115,22 +119,90 @@ class PotaPark(Base):
     fetched_at: Mapped[float] = mapped_column(Float, nullable=False)
 
 
-engine = create_async_engine(f"sqlite+aiosqlite:///{DB_PATH}")
-async_session = async_sessionmaker(engine, expire_on_commit=False)
+class DatabaseManager:
+    def __init__(self):
+        self.engine = None
+        self._session_factory = None
+        self.db_path: Path | None = None
+        self.picker_mode: bool = False
+        self._db_override: str | None = None
+
+    def configure(self, db_path: str | None = None, picker: bool = False) -> None:
+        cli_db = db_path
+        env_db = os.environ.get("RIGBOOK_DB")
+        env_picker = os.environ.get("RIGBOOK_PICKER", "").lower() in (
+            "1",
+            "true",
+            "yes",
+        )
+        if cli_db:
+            self._db_override = cli_db
+            self.picker_mode = False
+        elif env_db:
+            self._db_override = env_db
+            self.picker_mode = False
+        elif picker or env_picker:
+            self._db_override = None
+            self.picker_mode = True
+        else:
+            self._db_override = None
+            self.picker_mode = False
+
+    @property
+    def db_name(self) -> str | None:
+        if self.db_path:
+            return self.db_path.stem
+        return None
+
+    @property
+    def is_open(self) -> bool:
+        return self.engine is not None
+
+    @property
+    def default_db_path(self) -> Path:
+        if self._db_override:
+            return Path(self._db_override)
+        return DB_DIR / "rigbook.db"
+
+    async def open(self, db_path: str | Path) -> None:
+        await self.close()
+        db_path = Path(db_path)
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.db_path = db_path
+        self.engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}")
+        self._session_factory = async_sessionmaker(self.engine, expire_on_commit=False)
+        async with self.engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+            await conn.run_sync(_add_missing_columns)
+            await conn.execute(
+                text(
+                    "UPDATE contacts SET uuid = lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)),2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6))) WHERE uuid IS NULL"
+                )
+            )
+        logger.info("Opened logbook: %s", db_path)
+
+    async def close(self) -> None:
+        if self.engine:
+            await self.engine.dispose()
+        self.engine = None
+        self._session_factory = None
+        self.db_path = None
+
+
+db_manager = DatabaseManager()
+
+
+def async_session():
+    if db_manager._session_factory is None:
+        raise RuntimeError("No logbook is currently open")
+    return db_manager._session_factory()
 
 
 async def init_db() -> None:
     DB_DIR.mkdir(parents=True, exist_ok=True)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-        # Auto-migrate: add missing columns to existing tables
-        await conn.run_sync(_add_missing_columns)
-        # Backfill UUIDs for existing contacts that don't have one
-        await conn.execute(
-            text(
-                "UPDATE contacts SET uuid = lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)),2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6))) WHERE uuid IS NULL"
-            )
-        )
+    if db_manager.picker_mode:
+        return
+    await db_manager.open(db_manager.default_db_path)
 
 
 def _add_missing_columns(conn):
@@ -148,5 +220,7 @@ def _add_missing_columns(conn):
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
-    async with async_session() as session:
+    if db_manager._session_factory is None:
+        raise HTTPException(status_code=503, detail="No logbook is currently open")
+    async with db_manager._session_factory() as session:
         yield session

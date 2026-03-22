@@ -9,8 +9,9 @@ import uvicorn
 from fastapi import FastAPI, Request, Response
 from fastapi.staticfiles import StaticFiles
 
-from rigbook.db import init_db
+from rigbook.db import db_manager, init_db
 from rigbook.flrig import router as flrig_router
+from rigbook.routes.logbooks import router as logbooks_router
 from rigbook.routes.spots import router as spots_router
 from rigbook.spots import start_feeds, stop_feeds
 from rigbook.routes.adif import router as adif_router
@@ -40,9 +41,11 @@ def _resource_path(relative: str) -> Path:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
-    await start_feeds()
+    if db_manager.is_open:
+        await start_feeds()
     yield
     await stop_feeds()
+    await db_manager.close()
 
 
 app = FastAPI(title="Rigbook", lifespan=lifespan)
@@ -67,6 +70,7 @@ async def get_version():
     return {"version": version("rigbook")}
 
 
+app.include_router(logbooks_router)
 app.include_router(contacts_router)
 app.include_router(settings_router)
 app.include_router(flrig_router)
@@ -93,7 +97,17 @@ def run() -> None:
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="Enable verbose/debug logging"
     )
+    parser.add_argument(
+        "--open", metavar="DB_PATH", help="Open a specific database file"
+    )
+    parser.add_argument(
+        "--pick-db",
+        action="store_true",
+        help="Enable database picker mode",
+    )
     args = parser.parse_args()
+
+    db_manager.configure(db_path=args.open, picker=args.pick_db)
 
     log_level = "DEBUG" if args.verbose else "INFO"
     logging.basicConfig(

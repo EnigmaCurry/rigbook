@@ -12,6 +12,7 @@
   import Links from "./Links.svelte";
   import Notifications from "./Notifications.svelte";
   import Spots from "./Spots.svelte";
+  import LogbookPicker from "./LogbookPicker.svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
 
   const BANDS = [
@@ -89,6 +90,7 @@
 
   function parseHash() {
     const hash = window.location.hash.slice(1) || "/";
+    if (hash === "/picker") return { page: "picker", editId: null };
     if (hash === "/grid") return { page: "grid", editId: null };
     if (hash === "/parks" || hash.startsWith("/parks/")) return { page: "parks", editId: null };
     if (hash === "/about") return { page: "about", editId: null };
@@ -134,6 +136,64 @@
   let popupNotifications = [];
   let showPopup = false;
   let activeDesktopNotif = null;
+  let pickerMode = false;
+  let logbookOpen = false;
+  let currentLogbook = "";
+
+  async function checkLogbookMode() {
+    try {
+      const res = await fetch("/api/logbooks/mode");
+      if (res.ok) {
+        const data = await res.json();
+        pickerMode = data.picker;
+      }
+    } catch {}
+    if (pickerMode) {
+      try {
+        const cur = await fetch("/api/logbooks/current");
+        if (cur.ok) {
+          const data = await cur.json();
+          logbookOpen = data.is_open;
+          currentLogbook = data.name || "";
+        }
+      } catch {}
+    } else {
+      logbookOpen = true;
+    }
+  }
+
+  function startAppServices() {
+    fetchCallsign();
+    fetchRadioModes();
+    pollFlrig();
+    flrigInterval = setInterval(pollFlrig, 2000);
+    fetchUnreadCount();
+    connectSSE();
+  }
+
+  function stopAppServices() {
+    clearInterval(flrigInterval);
+    if (eventSource) { eventSource.close(); eventSource = null; }
+  }
+
+  async function handleLogbookOpened(e) {
+    currentLogbook = e.detail;
+    logbookOpen = true;
+    page = isWide() ? "dual" : "log";
+    window.location.hash = "/";
+    startAppServices();
+  }
+
+  async function closeLogbook() {
+    menuOpen = false;
+    try {
+      await fetch("/api/logbooks/close", { method: "POST" });
+    } catch {}
+    stopAppServices();
+    logbookOpen = false;
+    currentLogbook = "";
+    page = "picker";
+  }
 
   function connectSSE() {
     if (eventSource) eventSource.close();
@@ -400,7 +460,7 @@
     page = p;
     editId = null;
     menuOpen = false;
-    const paths = { hunting: "/hunting", log: "/logbook", dual: "/dual", add: "/add", grid: "/grid", parks: "/parks", spots: "/spots", export: "/export", notifications: "/notifications", settings: "/settings", links: "/links", about: "/about" };
+    const paths = { hunting: "/hunting", log: "/logbook", dual: "/dual", add: "/add", grid: "/grid", parks: "/parks", spots: "/spots", export: "/export", notifications: "/notifications", settings: "/settings", links: "/links", about: "/about", picker: "/picker" };
     window.location.hash = paths[p] || "/";
     fetchCallsign();
   }
@@ -571,20 +631,20 @@
     }
   }
 
-  onMount(() => {
+  onMount(async () => {
     applyTheme();
     window.addEventListener("storage", applyTheme);
     window.addEventListener("keydown", onGlobalKeydown);
-    fetchCallsign();
     fetchWideBreakpoint();
-    fetchRadioModes();
-    pollFlrig();
-    flrigInterval = setInterval(pollFlrig, 2000);
     clockInterval = setInterval(() => { utcNow = new Date().toISOString().slice(0, 19).replace("T", " ") + "z"; }, 1000);
-    fetchUnreadCount();
-    connectSSE();
     window.addEventListener("hashchange", onHashChange);
     window.addEventListener("resize", onResize);
+    await checkLogbookMode();
+    if (logbookOpen) {
+      startAppServices();
+    } else if (pickerMode) {
+      page = "picker";
+    }
   });
 
   function onResize() {
@@ -608,6 +668,15 @@
 </script>
 
 <main class:dual-mode={page === "dual"} class:wide-mode={page === "grid"}>
+  {#if pickerMode && !logbookOpen}
+    <header>
+      <div class="header-left">
+        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>
+      </div>
+      <span class="utc-clock">{utcNow}</span>
+    </header>
+    <LogbookPicker on:logbookopened={handleLogbookOpened} />
+  {:else}
   <header>
     <div class="header-left">
       <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -617,6 +686,9 @@
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <span class="callsign" on:click={goHome} style="cursor: pointer">{myCallsign}</span>
+      {/if}
+      {#if pickerMode && currentLogbook}
+        <span class="logbook-name">[{currentLogbook}]</span>
       {/if}
       {#if vfoEditing}
         <span class="vfo-edit">
@@ -699,6 +771,10 @@
           <button class="menu-item" class:active={page === "settings"} on:click={() => navigate("settings")}>Settings</button>
           <button class="menu-item" class:active={page === "links"} on:click={() => navigate("links")}>Links</button>
           <button class="menu-item" class:active={page === "about"} on:click={() => navigate("about")}>About</button>
+          {#if pickerMode}
+            <div class="menu-separator"></div>
+            <button class="menu-item close-logbook" on:click={closeLogbook}>Close Logbook</button>
+          {/if}
         </nav>
       {/if}
     </div>
@@ -735,6 +811,7 @@
     <Links />
   {:else if page === "about"}
     <About />
+  {/if}
   {/if}
 </main>
 
@@ -888,6 +965,12 @@
     color: var(--accent-callsign);
     font-size: 1.2rem;
     font-weight: bold;
+  }
+
+  .logbook-name {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-left: 0.25rem;
   }
 
   .vfo-bezel {
@@ -1145,6 +1228,15 @@
   .menu-item.active {
     color: var(--accent);
     font-weight: bold;
+  }
+
+  .menu-separator {
+    border-top: 1px solid var(--border);
+    margin: 0.25rem 0;
+  }
+
+  .menu-item.close-logbook {
+    color: var(--text-muted);
   }
 
   .title-short {
