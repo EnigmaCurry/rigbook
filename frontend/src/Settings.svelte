@@ -53,12 +53,25 @@
     localStorage.setItem("desktop_notifications_enabled", "false");
   }
 
-  function sendTestNotification() {
+  async function sendTestNotification() {
+    // Ensure permission is granted before testing
+    if (typeof Notification !== "undefined" && Notification.permission === "default") {
+      const perm = await Notification.requestPermission();
+      desktopNotifPermission = perm;
+      if (perm === "granted") {
+        desktopNotifEnabled = true;
+        localStorage.setItem("desktop_notifications_enabled", "true");
+      }
+    }
     testPending = true;
     testTimer = setTimeout(async () => {
       try {
         await fetch("/api/notifications/test", { method: "POST" });
       } catch {}
+      // Also fire a desktop notification directly to test the browser path
+      if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+        new Notification("Rigbook", { body: "Test notification — desktop notifications are working." });
+      }
       testPending = false;
     }, 5000);
   }
