@@ -74,6 +74,10 @@ async def decline_create():
 
 @router.post("/shutdown")
 async def shutdown_server():
+    if db_manager.picker_mode:
+        raise HTTPException(
+            status_code=400, detail="Shutdown is not available in picker mode"
+        )
     os.kill(os.getpid(), signal.SIGTERM)
     return {"status": "shutting down"}
 
