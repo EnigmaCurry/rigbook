@@ -142,15 +142,14 @@ localhost only because Rigbook has no built-in authentication.
 5. Type a POTA park reference or name to autocomplete from cached parks
 6. Current timestamp will be used as QSO date/time if left blank
 7. Supply a timestamp if current time is not desired
-8. Click **Log QSO** to save — returns to Hunting (if from a spot) or
-   Logbook (if manual)
+8. Click **Log QSO** to save — returns to the previous view
 9. Click **Cancel** to return to the previous view
 
 ### Editing contacts
 
 Click any row in the log table to load it into the form for editing.
-The URL updates to a deep link (`/#/log/123`) that you can bookmark or
-share. Click **Save Edit** to save changes, **Delete** to remove, or
+The URL updates to a deep link (`/#/log/123`) that you can bookmark.
+Click **Save Edit** to save changes, **Delete** to remove, or
 **Cancel** to discard.
 
 ### Sorting
@@ -182,10 +181,7 @@ mode manually.
 The **Hunting** page combines POTA spots and SKCC skimmer data into a
 single view with shared filters.
 
-- Filter by **mode**, **band**, **program**, and **distance** (100mi,
-  500mi, 1000mi, or unlimited)
-- Distance filtering uses your grid square to calculate great-circle
-  distance to activators (POTA) and closest RBN spotter (SKCC)
+- Filter by **mode**, **band**, and **program**
 
 ### POTA Spots
 
