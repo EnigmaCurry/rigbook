@@ -72,6 +72,12 @@ async def decline_create():
     return {"status": "shutting down"}
 
 
+@router.post("/shutdown")
+async def shutdown_server():
+    os.kill(os.getpid(), signal.SIGTERM)
+    return {"status": "shutting down"}
+
+
 @router.post("/open")
 async def open_logbook(body: LogbookName):
     _validate_name(body.name)

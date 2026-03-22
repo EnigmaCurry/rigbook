@@ -78,6 +78,14 @@
     deleting = false;
   }
 
+  async function shutdownServer() {
+    if (!confirm("Are you sure you want to shut down the Rigbook server?")) return;
+    try {
+      await fetch("/api/logbooks/shutdown", { method: "POST" });
+    } catch {}
+    dispatch("deleted", { shutdown: true });
+  }
+
   async function enableDesktopNotifications() {
     if (typeof Notification === "undefined") return;
     const perm = await Notification.requestPermission();
@@ -519,6 +527,12 @@
           {deleting ? "Deleting..." : "Delete Logbook"}
         </button>
       </div>
+      {#if !pickerMode}
+        <div class="danger-separator"></div>
+        <div class="setting-row">
+          <button class="danger-btn" on:click={shutdownServer}>Shutdown Server</button>
+        </div>
+      {/if}
     </section>
   {/if}
 </div>
@@ -723,6 +737,11 @@
     color: #ff6666;
     font-size: 0.8rem;
     margin: 0 0 0.5rem;
+  }
+
+  .danger-separator {
+    border-top: 1px solid #ff444444;
+    margin: 0.75rem 0;
   }
 
   .danger-btn {
