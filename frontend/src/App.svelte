@@ -817,12 +817,13 @@
         <button class="add-btn" on:click={() => navigate("hunting")} title="Hunting">🧭</button>
       {/if}
       <button class="add-btn parks-btn" on:click={() => navigate("parks")} title="My Parks">🌲</button>
+      <button class="add-btn" on:click={() => navigate("spots")} title="Spots">🗺️</button>
       <button class="add-btn" on:click={() => { dualShowForm = true; prefill = null; editId = null; if (page === "dual") { /* already on dual */ } else navigate("add"); }} title="Add QSO">+</button>
       <button class="add-btn notification-btn" class:has-unread={unreadCount > 0} on:click={handleNotificationClick} title="Notifications">
         {#if unreadCount > 0}
           <span class="notif-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>
         {:else}
-          ✉
+          ✉️
         {/if}
       </button>
       <button class="hamburger" on:click={() => menuOpen = !menuOpen} aria-label="Menu">
