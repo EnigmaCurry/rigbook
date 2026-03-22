@@ -713,7 +713,7 @@
     </header>
     <div class="welcome-container">
       <div class="welcome-card">
-        <h2>Create New Logbook</h2>
+        <h2>Create New Logbook?</h2>
         <p>The logbook <strong>{pendingLogbook}</strong> does not exist yet. Would you like to create it?</p>
         <div class="welcome-buttons">
           <button class="welcome-btn confirm" on:click={confirmPendingLogbook}>Yes, create it</button>
