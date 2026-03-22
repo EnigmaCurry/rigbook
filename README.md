@@ -405,9 +405,11 @@ in separate logs.
 
 ### Open a specific logbook
 
-Use `--open` to start Rigbook with a named logbook instead of the
-default. The name maps to `~/.local/rigbook/<name>.db` and is created
-automatically if it doesn't exist.
+By default (no arguments), Rigbook opens the logbook named `rigbook`
+(`~/.local/rigbook/rigbook.db`). Use `--open` to start with a
+different named logbook instead. The name maps to
+`~/.local/rigbook/<name>.db` and is created automatically if it
+doesn't exist.
 
 ```bash
 # Open (or create) a logbook called "field-day"
