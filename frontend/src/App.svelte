@@ -714,7 +714,7 @@
   {:else if page === "notifications"}
     <Notifications on:countchange={() => fetchUnreadCount()} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
   {:else if page === "spots"}
-    <Spots />
+    <Spots on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
   {:else if page === "settings"}
     <Settings />
   {:else if page === "links"}
