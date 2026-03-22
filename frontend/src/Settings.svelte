@@ -527,12 +527,10 @@
           {deleting ? "Deleting..." : "Delete Logbook"}
         </button>
       </div>
-      {#if !pickerMode}
-        <div class="danger-separator"></div>
-        <div class="setting-row">
-          <button class="danger-btn" on:click={shutdownServer}>Shutdown Server</button>
-        </div>
-      {/if}
+      <div class="danger-separator"></div>
+      <div class="setting-row">
+        <button class="danger-btn" on:click={shutdownServer}>Shutdown Server</button>
+      </div>
     </section>
   {/if}
 </div>
