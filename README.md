@@ -435,7 +435,9 @@ rigbook --open field-day
 ```
 
 This avoids re-entering QRZ credentials and other settings for each
-new logbook.
+new logbook. Note that the copied logbook will also contain all the
+same log entries as the original — delete any unwanted contacts after
+opening the copy.
 
 ### Database picker mode
 
