@@ -708,7 +708,40 @@ def _strip_iac(data: bytes) -> bytes:
     return bytes(result)
 
 
+_NOTIFY_DEDUP_SECONDS = 600  # 10 minutes
+
+
 class HamAlertFeed(BaseFeed):
+    def __init__(self, cache: SpotCache) -> None:
+        super().__init__(cache)
+        self._notified: dict[tuple[str, str], float] = {}
+
+    async def _maybe_notify(self, spot: ParsedSpot) -> None:
+        """Create a notification for a HamAlert spot, with 10-minute dedup."""
+        key = (spot.callsign, spot.mode)
+        now = _time.time()
+        last = self._notified.get(key, 0.0)
+        if now - last < _NOTIFY_DEDUP_SECONDS:
+            return
+        self._notified[key] = now
+        # Prune old entries
+        cutoff = now - _NOTIFY_DEDUP_SECONDS
+        self._notified = {k: v for k, v in self._notified.items() if v > cutoff}
+
+        from rigbook.routes.notifications import create_notification
+
+        freq_mhz = f"{spot.frequency / 1000:.3f}" if spot.frequency else "?"
+        title = f"HamAlert: {spot.callsign}"
+        parts = [f"{spot.callsign} on {freq_mhz} MHz {spot.mode}"]
+        if spot.comment:
+            parts.append(spot.comment)
+        if spot.wwff_ref:
+            parts.append(f"WWFF: {spot.wwff_ref}")
+        try:
+            await create_notification(title, " — ".join(parts))
+        except Exception:
+            logger.exception("Failed to create notification for HamAlert spot")
+
     async def _connect_and_read(self, **kwargs: object) -> None:
         host = str(kwargs.get("host", "hamalert.org"))
         port = int(kwargs.get("port", 7300))  # type: ignore[arg-type]
@@ -770,6 +803,7 @@ class HamAlertFeed(BaseFeed):
                     parsed = self._parse_json(line)
                     if parsed:
                         await self.cache.add(parsed)
+                        await self._maybe_notify(parsed)
         finally:
             self._connected = False
             writer.close()

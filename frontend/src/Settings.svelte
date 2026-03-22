@@ -32,6 +32,25 @@
   let hamalert_password = "";
   let hasHamalertPassword = false;
 
+  // Desktop notifications
+  let desktopNotifPermission = typeof Notification !== "undefined" ? Notification.permission : "denied";
+  let desktopNotifEnabled = localStorage.getItem("desktop_notifications_enabled") === "true";
+
+  async function enableDesktopNotifications() {
+    if (typeof Notification === "undefined") return;
+    const perm = await Notification.requestPermission();
+    desktopNotifPermission = perm;
+    if (perm === "granted") {
+      desktopNotifEnabled = true;
+      localStorage.setItem("desktop_notifications_enabled", "true");
+    }
+  }
+
+  function disableDesktopNotifications() {
+    desktopNotifEnabled = false;
+    localStorage.setItem("desktop_notifications_enabled", "false");
+  }
+
   // Feed connection status
   let spotStatus = { rbn: { connected: false, enabled: false }, hamalert: { connected: false, enabled: false } };
   let spotStatusInterval;
@@ -297,6 +316,24 @@
       <label for="wide_breakpoint">Breakpoint: {wide_breakpoint}px</label>
       <input id="wide_breakpoint" type="range" min="1200" max="2500" step="50" bind:value={wide_breakpoint} disabled={!wide_mode_enabled} />
     </div>
+  </section>
+
+  <section class="settings-section">
+    <h3>Desktop Notifications</h3>
+    <div class="setting-row toggle-row">
+      {#if desktopNotifPermission === "denied"}
+        <span class="hint">Blocked by browser. Allow notifications for this site in your browser settings.</span>
+      {:else if desktopNotifPermission === "granted" && desktopNotifEnabled}
+        <span style="font-size:0.85rem; color:var(--accent);">Enabled</span>
+        <button class="theme-toggle" on:click={disableDesktopNotifications}>Disable</button>
+      {:else if desktopNotifPermission === "granted" && !desktopNotifEnabled}
+        <span style="font-size:0.85rem; color:var(--text-muted);">Disabled</span>
+        <button class="theme-toggle" on:click={() => { desktopNotifEnabled = true; localStorage.setItem("desktop_notifications_enabled", "true"); }}>Enable</button>
+      {:else}
+        <button class="theme-toggle" on:click={enableDesktopNotifications}>Enable Desktop Notifications</button>
+      {/if}
+    </div>
+    <p class="hint">When enabled, new HamAlert notifications will show browser desktop notifications.</p>
   </section>
 
   <section class="settings-section">

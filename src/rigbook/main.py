@@ -21,6 +21,7 @@ from rigbook.routes.tiles import router as tiles_router
 from rigbook.routes.skcc import router as skcc_router
 from rigbook.routes.contacts import router as contacts_router
 from rigbook.routes.geo import router as geo_router
+from rigbook.routes.notifications import router as notifications_router
 from rigbook.routes.settings import router as settings_router
 
 logger = logging.getLogger("rigbook")
@@ -76,6 +77,7 @@ app.include_router(search_router)
 app.include_router(skcc_router)
 app.include_router(tiles_router)
 app.include_router(spots_router)
+app.include_router(notifications_router)
 
 static_dir = _resource_path("static")
 if static_dir.is_dir():
@@ -92,7 +94,11 @@ def run() -> None:
     args = parser.parse_args()
 
     log_level = "DEBUG" if args.verbose else "INFO"
-    logging.basicConfig(level=log_level, format="%(asctime)s %(levelname)s: %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s %(levelname)s: %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
     logging.getLogger("aiosqlite").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)

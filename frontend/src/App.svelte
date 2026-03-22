@@ -10,6 +10,7 @@
   import About from "./About.svelte";
   import Parks from "./Parks.svelte";
   import Links from "./Links.svelte";
+  import Notifications from "./Notifications.svelte";
   import Spots from "./Spots.svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
 
@@ -93,6 +94,7 @@
     if (hash === "/about") return { page: "about", editId: null };
     if (hash === "/links") return { page: "links", editId: null };
     if (hash === "/spots" || hash.startsWith("/spots?")) return { page: "spots", editId: null };
+    if (hash === "/notifications") return { page: "notifications", editId: null };
     if (hash === "/settings") return { page: "settings", editId: null };
     if (hash === "/logbook") return { page: isWide() ? "dual" : "log", editId: null };
     if (hash === "/export") return { page: "export", editId: null };
@@ -126,6 +128,40 @@
   let utcNow = new Date().toISOString().slice(0, 19).replace("T", " ") + "z";
   let clockInterval;
   let clockCopied = false;
+  let unreadCount = 0;
+  let prevUnreadCount = 0;
+  let notifInterval;
+
+  async function fetchUnreadCount() {
+    try {
+      const res = await fetch("/api/notifications/unread-count");
+      if (res.ok) {
+        const data = await res.json();
+        const newCount = data.count;
+        if (newCount > prevUnreadCount && prevUnreadCount >= 0
+            && typeof Notification !== "undefined"
+            && Notification.permission === "granted"
+            && localStorage.getItem("desktop_notifications_enabled") === "true") {
+          new Notification("Rigbook", {
+            body: `You have ${newCount} unread notification${newCount > 1 ? "s" : ""}`,
+          });
+        }
+        prevUnreadCount = unreadCount;
+        unreadCount = newCount;
+      }
+    } catch {}
+  }
+
+  function handleNotificationClick() {
+    if (typeof Notification !== "undefined" && Notification.permission === "default") {
+      Notification.requestPermission().then(perm => {
+        if (perm === "granted") {
+          localStorage.setItem("desktop_notifications_enabled", "true");
+        }
+      });
+    }
+    navigate("notifications");
+  }
 
   async function copyUtcTimestamp() {
     try {
@@ -297,7 +333,7 @@
     page = p;
     editId = null;
     menuOpen = false;
-    const paths = { hunting: "/hunting", log: "/logbook", dual: "/dual", add: "/add", grid: "/grid", parks: "/parks", spots: "/spots", export: "/export", settings: "/settings", links: "/links", about: "/about" };
+    const paths = { hunting: "/hunting", log: "/logbook", dual: "/dual", add: "/add", grid: "/grid", parks: "/parks", spots: "/spots", export: "/export", notifications: "/notifications", settings: "/settings", links: "/links", about: "/about" };
     window.location.hash = paths[p] || "/";
     fetchCallsign();
   }
@@ -478,6 +514,8 @@
     pollFlrig();
     flrigInterval = setInterval(pollFlrig, 2000);
     clockInterval = setInterval(() => { utcNow = new Date().toISOString().slice(0, 19).replace("T", " ") + "z"; }, 1000);
+    fetchUnreadCount();
+    notifInterval = setInterval(fetchUnreadCount, 15000);
     window.addEventListener("hashchange", onHashChange);
     window.addEventListener("resize", onResize);
   });
@@ -494,6 +532,7 @@
   onDestroy(() => {
     clearInterval(flrigInterval);
     clearInterval(clockInterval);
+    clearInterval(notifInterval);
     window.removeEventListener("hashchange", onHashChange);
     window.removeEventListener("resize", onResize);
     window.removeEventListener("storage", applyTheme);
@@ -565,6 +604,13 @@
       {/if}
       <button class="add-btn parks-btn" on:click={() => navigate("parks")} title="My Parks">🌲</button>
       <button class="add-btn" on:click={() => { dualShowForm = true; prefill = null; editId = null; if (page === "dual") { /* already on dual */ } else navigate("add"); }} title="Add QSO">+</button>
+      <button class="add-btn notification-btn" class:has-unread={unreadCount > 0} on:click={handleNotificationClick} title="Notifications">
+        {#if unreadCount > 0}
+          <span class="notif-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>
+        {:else}
+          ✉
+        {/if}
+      </button>
       <button class="hamburger" on:click={() => menuOpen = !menuOpen} aria-label="Menu">
         <span class="bar"></span>
         <span class="bar"></span>
@@ -581,6 +627,7 @@
           <button class="menu-item" class:active={page === "grid"} on:click={() => navigate("grid")}>Grid Map</button>
           <button class="menu-item" class:active={page === "parks"} on:click={() => navigate("parks")}>Parks</button>
           <button class="menu-item" class:active={page === "spots"} on:click={() => navigate("spots")}>Spots</button>
+          <button class="menu-item" class:active={page === "notifications"} on:click={() => navigate("notifications")}>Notifications{#if unreadCount > 0} ({unreadCount}){/if}</button>
           <button class="menu-item" class:active={page === "export"} on:click={() => navigate("export")}>Export / Import</button>
           <button class="menu-item" class:active={page === "settings"} on:click={() => navigate("settings")}>Settings</button>
           <button class="menu-item" class:active={page === "links"} on:click={() => navigate("links")}>Links</button>
@@ -611,6 +658,8 @@
     <GridMap bind:value={gridMapValue} on:select={e => { gridMapValue = e.detail; }} />
   {:else if page === "export"}
     <ExportImport />
+  {:else if page === "notifications"}
+    <Notifications on:countchange={() => fetchUnreadCount()} />
   {:else if page === "spots"}
     <Spots />
   {:else if page === "settings"}
@@ -899,6 +948,27 @@
 
   .add-btn:hover {
     background: #4a6e5e;
+  }
+
+  .notification-btn {
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .notification-btn.has-unread {
+    background: #cc8800;
+    border: 2px solid #ffcc00;
+  }
+
+  .notification-btn.has-unread:hover {
+    background: #b07700;
+  }
+
+  .notif-badge {
+    font-size: 0.75rem;
+    font-weight: bold;
   }
 
   .hamburger {
