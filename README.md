@@ -422,6 +422,21 @@ rigbook --open winter-contest
 rigbook
 ```
 
+### Copying logbooks as templates
+
+Each logbook is a self-contained SQLite file with its own settings,
+including callsign, grid, QRZ credentials, and feed configuration. You
+can set up one logbook as a template and copy it to create new
+logbooks that share the same configuration:
+
+```bash
+cp ~/.local/rigbook/rigbook.db ~/.local/rigbook/field-day.db
+rigbook --open field-day
+```
+
+This avoids re-entering QRZ credentials and other settings for each
+new logbook.
+
 ### Database picker mode
 
 Use `--pick` to start Rigbook without loading any logbook. Instead, a
