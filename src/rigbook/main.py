@@ -105,6 +105,11 @@ def run() -> None:
         action="store_true",
         help="Enable database picker mode",
     )
+    parser.add_argument(
+        "--no-browser",
+        action="store_true",
+        help="Do not open the browser automatically",
+    )
     args = parser.parse_args()
 
     db_manager.configure(db_name=args.open, picker=args.pick)
@@ -119,9 +124,29 @@ def run() -> None:
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
-    uvicorn.run(
-        app,
-        host=os.environ.get("RIGBOOK_HOST", "127.0.0.1"),
-        port=int(os.environ.get("RIGBOOK_PORT", "8073")),
-        access_log=False,
-    )
+    host = os.environ.get("RIGBOOK_HOST", "127.0.0.1")
+    port = int(os.environ.get("RIGBOOK_PORT", "8073"))
+
+    import shutil
+    import subprocess
+    import threading
+
+    no_browser = args.no_browser or os.environ.get(
+        "RIGBOOK_NO_BROWSER", ""
+    ).lower() in ("1", "true", "yes")
+    if not no_browser and shutil.which("xdg-open"):
+        url = f"http://{host}:{port}"
+
+        def open_browser():
+            import time
+
+            time.sleep(1)
+            subprocess.Popen(
+                ["xdg-open", url],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+
+        threading.Thread(target=open_browser, daemon=True).start()
+
+    uvicorn.run(app, host=host, port=port, access_log=False)
