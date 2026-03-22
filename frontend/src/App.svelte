@@ -146,7 +146,7 @@
             body: `You have ${newCount} unread notification${newCount > 1 ? "s" : ""}`,
           });
         }
-        prevUnreadCount = unreadCount;
+        prevUnreadCount = newCount;
         unreadCount = newCount;
       }
     } catch {}
