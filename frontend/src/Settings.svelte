@@ -35,6 +35,8 @@
   // Desktop notifications
   let desktopNotifPermission = typeof Notification !== "undefined" ? Notification.permission : "denied";
   let desktopNotifEnabled = localStorage.getItem("desktop_notifications_enabled") === "true";
+  let testPending = false;
+  let testTimer = null;
 
   async function enableDesktopNotifications() {
     if (typeof Notification === "undefined") return;
@@ -49,6 +51,16 @@
   function disableDesktopNotifications() {
     desktopNotifEnabled = false;
     localStorage.setItem("desktop_notifications_enabled", "false");
+  }
+
+  function sendTestNotification() {
+    testPending = true;
+    testTimer = setTimeout(async () => {
+      try {
+        await fetch("/api/notifications/test", { method: "POST" });
+      } catch {}
+      testPending = false;
+    }, 5000);
   }
 
   // Feed connection status
@@ -253,6 +265,7 @@
 
   onDestroy(() => {
     clearInterval(spotStatusInterval);
+    if (testTimer) clearTimeout(testTimer);
   });
 </script>
 
@@ -319,21 +332,26 @@
   </section>
 
   <section class="settings-section">
-    <h3>Desktop Notifications</h3>
+    <h3>Notifications</h3>
     <div class="setting-row toggle-row">
       {#if desktopNotifPermission === "denied"}
-        <span class="hint">Blocked by browser. Allow notifications for this site in your browser settings.</span>
+        <span class="hint">Desktop notifications blocked by browser. Allow notifications for this site in your browser settings.</span>
       {:else if desktopNotifPermission === "granted" && desktopNotifEnabled}
-        <span style="font-size:0.85rem; color:var(--accent);">Enabled</span>
+        <span style="font-size:0.85rem; color:var(--accent);">Desktop notifications enabled</span>
         <button class="theme-toggle" on:click={disableDesktopNotifications}>Disable</button>
       {:else if desktopNotifPermission === "granted" && !desktopNotifEnabled}
-        <span style="font-size:0.85rem; color:var(--text-muted);">Disabled</span>
+        <span style="font-size:0.85rem; color:var(--text-muted);">Desktop notifications disabled</span>
         <button class="theme-toggle" on:click={() => { desktopNotifEnabled = true; localStorage.setItem("desktop_notifications_enabled", "true"); }}>Enable</button>
       {:else}
         <button class="theme-toggle" on:click={enableDesktopNotifications}>Enable Desktop Notifications</button>
       {/if}
     </div>
-    <p class="hint">When enabled, new HamAlert notifications will show browser desktop notifications.</p>
+    <p class="hint">In-app notifications are always enabled. Desktop notifications show browser popups when new alerts arrive.</p>
+    <div class="setting-row toggle-row" style="margin-top: 0.5rem;">
+      <button class="theme-toggle" on:click={sendTestNotification} disabled={testPending}>
+        {testPending ? "Sending in 5s..." : "Send Test Notification"}
+      </button>
+    </div>
   </section>
 
   <section class="settings-section">

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, field_serializer
@@ -93,6 +93,18 @@ async def delete_notification(
         raise HTTPException(status_code=404, detail="Notification not found")
     await session.delete(notif)
     await session.commit()
+
+
+@router.post("/test", status_code=201)
+async def send_test_notification(session: AsyncSession = Depends(get_session)):
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    notif = Notification(
+        title="Test Notification", text=f"This is a test notification sent at {now}."
+    )
+    session.add(notif)
+    await session.commit()
+    await session.refresh(notif)
+    return NotificationResponse.model_validate(notif)
 
 
 async def create_notification(title: str, text: str) -> None:
