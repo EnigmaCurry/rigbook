@@ -67,6 +67,7 @@ class Notification(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     title: Mapped[str] = mapped_column(String, nullable=False)
     text: Mapped[str] = mapped_column(String, nullable=False)
+    metadata: Mapped[str | None] = mapped_column(String, nullable=True)
     read: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     done: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     timestamp: Mapped[datetime] = mapped_column(

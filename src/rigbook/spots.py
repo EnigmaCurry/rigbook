@@ -720,8 +720,13 @@ class HamAlertFeed(BaseFeed):
             parts.append(spot.comment)
         if spot.wwff_ref:
             parts.append(f"WWFF: {spot.wwff_ref}")
+        meta = {
+            "callsign": spot.callsign,
+            "frequency": str(spot.frequency),
+            "mode": spot.mode,
+        }
         try:
-            await create_notification(title, " — ".join(parts))
+            await create_notification(title, " — ".join(parts), metadata=meta)
         except Exception:
             logger.exception("Failed to create notification for HamAlert spot")
 

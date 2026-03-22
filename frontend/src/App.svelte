@@ -712,7 +712,7 @@
   {:else if page === "export"}
     <ExportImport />
   {:else if page === "notifications"}
-    <Notifications on:countchange={() => fetchUnreadCount()} />
+    <Notifications on:countchange={() => fetchUnreadCount()} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
   {:else if page === "spots"}
     <Spots />
   {:else if page === "settings"}
@@ -739,7 +739,20 @@
         {#each popupNotifications as notif (notif.id)}
           <div class="popup-notif">
             <div class="popup-notif-title">{notif.title}</div>
-            <div class="popup-notif-text">{notif.text}</div>
+            <div class="popup-notif-text">
+              {#if notif.metadata?.callsign}
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <span class="popup-clickable popup-callsign" on:click={() => { dismissPopup(); tuneAndPrefill(notif.metadata); }} title="Log QSO">{notif.metadata.callsign}</span>
+                {" on "}
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <span class="popup-clickable popup-freq" on:click={() => { dismissPopup(); tuneOnly(notif.metadata); }} title="Tune radio">{(parseFloat(notif.metadata.frequency) / 1000).toFixed(3)} MHz</span>
+                {" "}{notif.metadata.mode}{#if notif.text.includes(" — ")} — {notif.text.split(" — ").slice(1).join(" — ")}{/if}
+              {:else}
+                {notif.text}
+              {/if}
+            </div>
             <div class="popup-notif-time">{notif.timestamp.replace("T", " ").replace("Z", "z")}</div>
           </div>
         {/each}
@@ -1234,6 +1247,23 @@
     font-size: 0.7rem;
     color: var(--text-dim);
     margin-top: 0.1rem;
+  }
+
+  .popup-clickable {
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+  }
+
+  .popup-clickable:hover { text-decoration-style: solid; }
+
+  .popup-callsign {
+    color: var(--accent-callsign, #ffcc00);
+    font-weight: bold;
+  }
+
+  .popup-freq {
+    color: var(--accent);
   }
 
   .popup-footer {

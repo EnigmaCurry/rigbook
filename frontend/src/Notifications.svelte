@@ -57,6 +57,20 @@
     return ts.replace("T", " ").replace("Z", "z");
   }
 
+  function formatFreq(freqKhz) {
+    const mhz = parseFloat(freqKhz) / 1000;
+    if (isNaN(mhz)) return freqKhz;
+    return mhz.toFixed(3);
+  }
+
+  function tuneToSpot(meta) {
+    dispatch("tune", meta);
+  }
+
+  function addQsoFromSpot(meta) {
+    dispatch("addqso", meta);
+  }
+
   onMount(() => {
     fetchInbox();
   });
@@ -85,7 +99,20 @@
             <span class="notif-title">{notif.title}</span>
             <span class="notif-time">{formatTime(notif.timestamp)}</span>
           </div>
-          <div class="notif-text">{notif.text}</div>
+          <div class="notif-text">
+            {#if notif.metadata?.callsign}
+              <!-- svelte-ignore a11y-click-events-have-key-events -->
+              <!-- svelte-ignore a11y-no-static-element-interactions -->
+              <span class="clickable callsign" on:click={() => addQsoFromSpot(notif.metadata)} title="Log QSO with {notif.metadata.callsign}">{notif.metadata.callsign}</span>
+              {" on "}
+              <!-- svelte-ignore a11y-click-events-have-key-events -->
+              <!-- svelte-ignore a11y-no-static-element-interactions -->
+              <span class="clickable freq" on:click={() => tuneToSpot(notif.metadata)} title="Tune radio to {formatFreq(notif.metadata.frequency)} MHz">{formatFreq(notif.metadata.frequency)} MHz</span>
+              {" "}{notif.metadata.mode}{#if notif.text.includes(" — ")} — {notif.text.split(" — ").slice(1).join(" — ")}{/if}
+            {:else}
+              {notif.text}
+            {/if}
+          </div>
           <div class="notif-actions">
             {#if !notif.read}
               <button class="action-btn" on:click={() => markRead(notif.id)}>Mark Read</button>
@@ -105,7 +132,20 @@
             <span class="notif-title">{notif.title}</span>
             <span class="notif-time">{formatTime(notif.timestamp)}</span>
           </div>
-          <div class="notif-text">{notif.text}</div>
+          <div class="notif-text">
+            {#if notif.metadata?.callsign}
+              <!-- svelte-ignore a11y-click-events-have-key-events -->
+              <!-- svelte-ignore a11y-no-static-element-interactions -->
+              <span class="clickable callsign" on:click={() => addQsoFromSpot(notif.metadata)} title="Log QSO with {notif.metadata.callsign}">{notif.metadata.callsign}</span>
+              {" on "}
+              <!-- svelte-ignore a11y-click-events-have-key-events -->
+              <!-- svelte-ignore a11y-no-static-element-interactions -->
+              <span class="clickable freq" on:click={() => tuneToSpot(notif.metadata)} title="Tune radio to {formatFreq(notif.metadata.frequency)} MHz">{formatFreq(notif.metadata.frequency)} MHz</span>
+              {" "}{notif.metadata.mode}{#if notif.text.includes(" — ")} — {notif.text.split(" — ").slice(1).join(" — ")}{/if}
+            {:else}
+              {notif.text}
+            {/if}
+          </div>
           <div class="notif-actions">
             <button class="action-btn delete-btn" on:click={() => deleteNotification(notif.id)}>Delete</button>
           </div>
@@ -217,6 +257,25 @@
     font-size: 0.8rem;
     color: var(--text-muted);
     margin-bottom: 0.4rem;
+  }
+
+  .clickable {
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+  }
+
+  .clickable:hover {
+    text-decoration-style: solid;
+  }
+
+  .clickable.callsign {
+    color: var(--accent-callsign, #ffcc00);
+    font-weight: bold;
+  }
+
+  .clickable.freq {
+    color: var(--accent);
   }
 
   .notif-actions {

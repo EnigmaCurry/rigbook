@@ -1,8 +1,9 @@
 import asyncio
+import json
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from pydantic import BaseModel, field_serializer
+from pydantic import BaseModel, field_serializer, field_validator
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,9 +17,22 @@ class NotificationResponse(BaseModel):
     id: int
     title: str
     text: str
+    metadata: dict | None = None
     read: bool
     done: bool
     timestamp: datetime
+
+    @field_validator("metadata", mode="before")
+    @classmethod
+    def parse_metadata(cls, v: str | dict | None) -> dict | None:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except (json.JSONDecodeError, TypeError):
+                return None
+        return v
 
     @field_serializer("timestamp")
     def serialize_timestamp(self, v: datetime) -> str:
@@ -126,10 +140,16 @@ async def send_test_notification(background_tasks: BackgroundTasks):
     return {"status": "scheduled"}
 
 
-async def create_notification(title: str, text: str) -> None:
+async def create_notification(
+    title: str, text: str, metadata: dict | None = None
+) -> None:
     """Create a notification from non-request context (e.g. background feeds)."""
     async with async_session() as session:
-        notif = Notification(title=title, text=text)
+        notif = Notification(
+            title=title,
+            text=text,
+            metadata=json.dumps(metadata) if metadata else None,
+        )
         session.add(notif)
         await session.commit()
         await session.refresh(notif)
