@@ -10,6 +10,7 @@
   import About from "./About.svelte";
   import Parks from "./Parks.svelte";
   import Links from "./Links.svelte";
+  import Notifications from "./Notifications.svelte";
   import Spots from "./Spots.svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
 
@@ -93,6 +94,7 @@
     if (hash === "/about") return { page: "about", editId: null };
     if (hash === "/links") return { page: "links", editId: null };
     if (hash === "/spots" || hash.startsWith("/spots?")) return { page: "spots", editId: null };
+    if (hash === "/notifications") return { page: "notifications", editId: null };
     if (hash === "/settings") return { page: "settings", editId: null };
     if (hash === "/logbook") return { page: isWide() ? "dual" : "log", editId: null };
     if (hash === "/export") return { page: "export", editId: null };
@@ -126,6 +128,93 @@
   let utcNow = new Date().toISOString().slice(0, 19).replace("T", " ") + "z";
   let clockInterval;
   let clockCopied = false;
+  let unreadCount = 0;
+  let prevUnreadCount = -1;
+  let eventSource = null;
+  let popupNotifications = [];
+  let showPopup = false;
+  let activeDesktopNotif = null;
+
+  function connectSSE() {
+    if (eventSource) eventSource.close();
+    eventSource = new EventSource("/api/events/stream");
+    eventSource.addEventListener("unread", (e) => {
+      const data = JSON.parse(e.data);
+      const newCount = data.count;
+      if (newCount > unreadCount && prevUnreadCount >= 0) {
+        if (typeof Notification !== "undefined"
+            && Notification.permission === "granted"
+            && localStorage.getItem("desktop_notifications_enabled") === "true") {
+          if (activeDesktopNotif) activeDesktopNotif.close();
+          activeDesktopNotif = new Notification("Rigbook", {
+            body: `You have ${newCount} unread notification${newCount > 1 ? "s" : ""}`,
+          });
+        }
+        if (localStorage.getItem("popup_notifications_enabled") === "true") {
+          showPopupNotifications();
+        }
+      } else if (newCount < unreadCount && activeDesktopNotif) {
+        activeDesktopNotif.close();
+        activeDesktopNotif = null;
+      }
+      prevUnreadCount = unreadCount;
+      unreadCount = newCount;
+    });
+    eventSource.addEventListener("notification", (e) => {
+      // Individual notification pushed — could be used later
+    });
+    eventSource.onerror = () => {
+      // EventSource auto-reconnects; nothing to do
+    };
+  }
+
+  async function fetchUnreadCount() {
+    try {
+      const res = await fetch("/api/notifications/unread-count");
+      if (res.ok) {
+        const data = await res.json();
+        unreadCount = data.count;
+        prevUnreadCount = data.count;
+      }
+    } catch {}
+  }
+
+  async function showPopupNotifications() {
+    try {
+      const res = await fetch("/api/notifications/");
+      if (res.ok) {
+        const all = await res.json();
+        popupNotifications = all.filter(n => !n.read);
+        if (popupNotifications.length > 0) showPopup = true;
+      }
+    } catch {}
+  }
+
+  async function dismissPopup() {
+    // Mark all shown as read
+    for (const n of popupNotifications) {
+      try { await fetch(`/api/notifications/${n.id}/read`, { method: "PUT" }); } catch {}
+    }
+    showPopup = false;
+    popupNotifications = [];
+    fetchUnreadCount();
+  }
+
+  function dismissPopupKeepUnread() {
+    showPopup = false;
+    popupNotifications = [];
+  }
+
+  function handleNotificationClick() {
+    if (typeof Notification !== "undefined" && Notification.permission === "default") {
+      Notification.requestPermission().then(perm => {
+        if (perm === "granted") {
+          localStorage.setItem("desktop_notifications_enabled", "true");
+        }
+      });
+    }
+    navigate("notifications");
+  }
 
   async function copyUtcTimestamp() {
     try {
@@ -288,16 +377,30 @@
     wide = isWide();
   }
 
+  let previousHash = "";
+
   function navigate(p) {
     if (p === "back") {
+      if (previousHash) {
+        window.location.hash = previousHash;
+        previousHash = "";
+        page = parseHash().page;
+        editId = null;
+        menuOpen = false;
+        fetchCallsign();
+        return;
+      }
       p = previousPage;
     }
     if ((p === "add" || p === "hunting" || p === "log") && isWide()) p = "dual";
-    if (page !== p) previousPage = page;
+    if (page !== p) {
+      previousPage = page;
+      previousHash = window.location.hash.slice(1) || "/";
+    }
     page = p;
     editId = null;
     menuOpen = false;
-    const paths = { hunting: "/hunting", log: "/logbook", dual: "/dual", add: "/add", grid: "/grid", parks: "/parks", spots: "/spots", export: "/export", settings: "/settings", links: "/links", about: "/about" };
+    const paths = { hunting: "/hunting", log: "/logbook", dual: "/dual", add: "/add", grid: "/grid", parks: "/parks", spots: "/spots", export: "/export", notifications: "/notifications", settings: "/settings", links: "/links", about: "/about" };
     window.location.hash = paths[p] || "/";
     fetchCallsign();
   }
@@ -478,6 +581,8 @@
     pollFlrig();
     flrigInterval = setInterval(pollFlrig, 2000);
     clockInterval = setInterval(() => { utcNow = new Date().toISOString().slice(0, 19).replace("T", " ") + "z"; }, 1000);
+    fetchUnreadCount();
+    connectSSE();
     window.addEventListener("hashchange", onHashChange);
     window.addEventListener("resize", onResize);
   });
@@ -494,6 +599,7 @@
   onDestroy(() => {
     clearInterval(flrigInterval);
     clearInterval(clockInterval);
+    if (eventSource) eventSource.close();
     window.removeEventListener("hashchange", onHashChange);
     window.removeEventListener("resize", onResize);
     window.removeEventListener("storage", applyTheme);
@@ -565,6 +671,13 @@
       {/if}
       <button class="add-btn parks-btn" on:click={() => navigate("parks")} title="My Parks">🌲</button>
       <button class="add-btn" on:click={() => { dualShowForm = true; prefill = null; editId = null; if (page === "dual") { /* already on dual */ } else navigate("add"); }} title="Add QSO">+</button>
+      <button class="add-btn notification-btn" class:has-unread={unreadCount > 0} on:click={handleNotificationClick} title="Notifications">
+        {#if unreadCount > 0}
+          <span class="notif-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>
+        {:else}
+          ✉
+        {/if}
+      </button>
       <button class="hamburger" on:click={() => menuOpen = !menuOpen} aria-label="Menu">
         <span class="bar"></span>
         <span class="bar"></span>
@@ -581,6 +694,7 @@
           <button class="menu-item" class:active={page === "grid"} on:click={() => navigate("grid")}>Grid Map</button>
           <button class="menu-item" class:active={page === "parks"} on:click={() => navigate("parks")}>Parks</button>
           <button class="menu-item" class:active={page === "spots"} on:click={() => navigate("spots")}>Spots</button>
+          <button class="menu-item" class:active={page === "notifications"} on:click={() => navigate("notifications")}>Notifications{#if unreadCount > 0} ({unreadCount}){/if}</button>
           <button class="menu-item" class:active={page === "export"} on:click={() => navigate("export")}>Export / Import</button>
           <button class="menu-item" class:active={page === "settings"} on:click={() => navigate("settings")}>Settings</button>
           <button class="menu-item" class:active={page === "links"} on:click={() => navigate("links")}>Links</button>
@@ -611,8 +725,10 @@
     <GridMap bind:value={gridMapValue} on:select={e => { gridMapValue = e.detail; }} />
   {:else if page === "export"}
     <ExportImport />
+  {:else if page === "notifications"}
+    <Notifications on:countchange={() => fetchUnreadCount()} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
   {:else if page === "spots"}
-    <Spots />
+    <Spots on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
   {:else if page === "settings"}
     <Settings />
   {:else if page === "links"}
@@ -621,6 +737,48 @@
     <About />
   {/if}
 </main>
+
+{#if showPopup}
+  <!-- svelte-ignore a11y-click-events-have-key-events -->
+  <!-- svelte-ignore a11y-no-static-element-interactions -->
+  <div class="popup-backdrop" on:click={dismissPopup}>
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <div class="popup-modal" on:click|stopPropagation>
+      <div class="popup-header">
+        <span class="popup-title">New Notifications</span>
+        <button class="popup-close" on:click={dismissPopup}>✕</button>
+      </div>
+      <div class="popup-body">
+        {#each popupNotifications as notif (notif.id)}
+          <div class="popup-notif">
+            <div class="popup-notif-title">{notif.title}</div>
+            <div class="popup-notif-text">
+              {#if notif.meta?.callsign}
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <span class="popup-clickable popup-callsign" on:click={() => { dismissPopup(); tuneAndPrefill(notif.meta); }} title="Log QSO">{notif.meta.callsign}</span>
+                {" on "}
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <span class="popup-clickable popup-freq" on:click={() => { dismissPopup(); tuneOnly(notif.meta); }} title="Tune radio">{(parseFloat(notif.meta.frequency) / 1000).toFixed(3)} MHz</span>
+                {" "}{notif.meta.mode}{#if notif.text.includes(" — ")} — {notif.text.split(" — ").slice(1).join(" — ")}{/if}
+              {:else}
+                {notif.text}
+              {/if}
+            </div>
+            <div class="popup-notif-time">{notif.timestamp.replace("T", " ").replace("Z", "z")}</div>
+          </div>
+        {/each}
+      </div>
+      <div class="popup-footer">
+        <button class="popup-btn" on:click={dismissPopupKeepUnread}>Keep Unread</button>
+        <button class="popup-btn" on:click={dismissPopup}>OK</button>
+        <button class="popup-btn popup-btn-go" on:click={() => { dismissPopup(); navigate("notifications"); }}>View All</button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   :global(:root) {
@@ -901,6 +1059,27 @@
     background: #4a6e5e;
   }
 
+  .notification-btn {
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .notification-btn.has-unread {
+    background: #cc8800;
+    border: 2px solid #ffcc00;
+  }
+
+  .notification-btn.has-unread:hover {
+    background: #b07700;
+  }
+
+  .notif-badge {
+    font-size: 0.75rem;
+    font-weight: bold;
+  }
+
   .hamburger {
     background: none;
     border: none;
@@ -1006,4 +1185,127 @@
       display: inline;
     }
   }
+
+  .popup-backdrop {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 20000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .popup-modal {
+    background: var(--bg-card);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    width: 90%;
+    max-width: 480px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0.8rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .popup-title {
+    font-weight: bold;
+    font-size: 0.95rem;
+    color: var(--accent);
+  }
+
+  .popup-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0.2rem;
+  }
+
+  .popup-close:hover { color: var(--text); }
+
+  .popup-body {
+    padding: 0.6rem 0.8rem;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .popup-notif {
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .popup-notif:last-child { border-bottom: none; }
+
+  .popup-notif-title {
+    font-weight: bold;
+    font-size: 0.85rem;
+    color: var(--text);
+  }
+
+  .popup-notif-text {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 0.15rem;
+  }
+
+  .popup-notif-time {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    margin-top: 0.1rem;
+  }
+
+  .popup-clickable {
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+  }
+
+  .popup-clickable:hover { text-decoration-style: solid; }
+
+  .popup-callsign {
+    color: var(--accent-callsign, #ffcc00);
+    font-weight: bold;
+  }
+
+  .popup-freq {
+    color: var(--accent);
+  }
+
+  .popup-footer {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    padding: 0.6rem 0.8rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .popup-btn {
+    background: var(--btn-secondary, #3e404a);
+    color: var(--text);
+    border: none;
+    padding: 0.35rem 0.8rem;
+    font-family: inherit;
+    font-size: 0.8rem;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .popup-btn:hover { background: var(--btn-secondary-hover, #4e505a); }
+
+  .popup-btn-go {
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: bold;
+  }
+
+  .popup-btn-go:hover { background: var(--accent-hover); }
 </style>

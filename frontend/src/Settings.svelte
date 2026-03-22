@@ -32,6 +32,44 @@
   let hamalert_password = "";
   let hasHamalertPassword = false;
 
+  // Desktop notifications
+  let desktopNotifPermission = typeof Notification !== "undefined" ? Notification.permission : "denied";
+  let desktopNotifEnabled = localStorage.getItem("desktop_notifications_enabled") === "true";
+  let popupNotifEnabled = localStorage.getItem("popup_notifications_enabled") === "true";
+  let testPending = false;
+
+  async function enableDesktopNotifications() {
+    if (typeof Notification === "undefined") return;
+    const perm = await Notification.requestPermission();
+    desktopNotifPermission = perm;
+    if (perm === "granted") {
+      desktopNotifEnabled = true;
+      localStorage.setItem("desktop_notifications_enabled", "true");
+    }
+  }
+
+  function disableDesktopNotifications() {
+    desktopNotifEnabled = false;
+    localStorage.setItem("desktop_notifications_enabled", "false");
+  }
+
+  async function sendTestNotification() {
+    // Ensure permission is granted before testing
+    if (typeof Notification !== "undefined" && Notification.permission === "default") {
+      const perm = await Notification.requestPermission();
+      desktopNotifPermission = perm;
+      if (perm === "granted") {
+        desktopNotifEnabled = true;
+        localStorage.setItem("desktop_notifications_enabled", "true");
+      }
+    }
+    testPending = true;
+    try {
+      await fetch("/api/notifications/test", { method: "POST" });
+    } catch {}
+    setTimeout(() => { testPending = false; }, 5000);
+  }
+
   // Feed connection status
   let spotStatus = { rbn: { connected: false, enabled: false }, hamalert: { connected: false, enabled: false } };
   let spotStatusInterval;
@@ -296,6 +334,36 @@
     <div class="setting-row">
       <label for="wide_breakpoint">Breakpoint: {wide_breakpoint}px</label>
       <input id="wide_breakpoint" type="range" min="1200" max="2500" step="50" bind:value={wide_breakpoint} disabled={!wide_mode_enabled} />
+    </div>
+  </section>
+
+  <section class="settings-section">
+    <h3>Notifications</h3>
+    <div class="setting-row toggle-row">
+      {#if desktopNotifPermission === "denied"}
+        <span class="hint">Desktop notifications blocked by browser. Allow notifications for this site in your browser settings.</span>
+      {:else if desktopNotifPermission === "granted" && desktopNotifEnabled}
+        <span style="font-size:0.85rem; color:var(--accent);">Desktop notifications enabled</span>
+        <button class="theme-toggle" on:click={disableDesktopNotifications}>Disable</button>
+      {:else if desktopNotifPermission === "granted" && !desktopNotifEnabled}
+        <span style="font-size:0.85rem; color:var(--text-muted);">Desktop notifications disabled</span>
+        <button class="theme-toggle" on:click={() => { desktopNotifEnabled = true; localStorage.setItem("desktop_notifications_enabled", "true"); }}>Enable</button>
+      {:else}
+        <button class="theme-toggle" on:click={enableDesktopNotifications}>Enable Desktop Notifications</button>
+      {/if}
+    </div>
+    <p class="hint">In-app notifications are always enabled. Desktop notifications show browser popups when new alerts arrive.</p>
+    <div class="setting-row toggle-row" style="margin-top: 0.5rem;">
+      <label>
+        <input type="checkbox" bind:checked={popupNotifEnabled} on:change={() => localStorage.setItem("popup_notifications_enabled", popupNotifEnabled ? "true" : "false")} />
+        Popup notifications
+      </label>
+    </div>
+    <p class="hint">Show a modal dialog immediately when new notifications arrive. Harder to miss, but more intrusive.</p>
+    <div class="setting-row toggle-row" style="margin-top: 0.5rem;">
+      <button class="theme-toggle" on:click={sendTestNotification} disabled={testPending}>
+        {testPending ? "Sending in 5s..." : "Send Test Notification"}
+      </button>
     </div>
   </section>
 

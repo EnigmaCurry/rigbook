@@ -1,7 +1,9 @@
 <script>
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, createEventDispatcher } from "svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
   import { QrzLookup, formatFreq, locationStr } from "./qrzLookup.js";
+
+  const dispatch = createEventDispatcher();
 
   let spots = [];
   let status = { rbn: { connected: false, enabled: false }, hamalert: { connected: false, enabled: false }, callsigns: 0, entries: 0, total_spots: 0, avg_spots_per_callsign: 0 };
@@ -252,9 +254,13 @@
         {#each sortedSpots as spot (spot.callsign + spot.frequency + spot.mode)}
           <tr>
             <td class="mono">{formatTime(spot)}</td>
-            <td class="mono call">{spot.callsign}</td>
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <td class="mono call clickable" on:click={() => dispatch("addqso", spot)} title="Log QSO with {spot.callsign}">{spot.callsign}</td>
             {#if filterMode === "CW"}<td class="mono skcc">{spot.skcc ?? ""}</td>{/if}
-            <td class="mono">{formatFreq(spot.frequency)}</td>
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <td class="mono freq clickable" on:click={() => dispatch("tune", spot)} title="Tune radio">{formatFreq(spot.frequency)}</td>
             <td><span class="band-tag" style="background: {bandColor(spot.band)}; color: {bandTextColor(spot.band)}">{spot.band}</span></td>
             <td>{spot.mode}</td>
             <td class="mono" title={spot.spotters ? spot.spotters.join(", ") : ""}>{spot.spotter_count}</td>
@@ -413,7 +419,19 @@
 
   .call {
     font-weight: bold;
+    color: var(--accent-callsign, #ffcc00);
+  }
+
+  .freq {
     color: var(--accent);
+  }
+
+  .clickable {
+    cursor: pointer;
+  }
+
+  .clickable:hover {
+    text-decoration: underline;
   }
 
   .band-tag {

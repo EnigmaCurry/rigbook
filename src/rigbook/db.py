@@ -61,6 +61,20 @@ class Setting(Base):
     value: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    text: Mapped[str] = mapped_column(String, nullable=False)
+    meta: Mapped[str | None] = mapped_column(String, nullable=True)
+    read: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    done: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc)
+    )
+
+
 class PotaProgram(Base):
     __tablename__ = "pota_programs"
 
