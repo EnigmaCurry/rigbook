@@ -740,15 +740,15 @@
           <div class="popup-notif">
             <div class="popup-notif-title">{notif.title}</div>
             <div class="popup-notif-text">
-              {#if notif.metadata?.callsign}
+              {#if notif.meta?.callsign}
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <span class="popup-clickable popup-callsign" on:click={() => { dismissPopup(); tuneAndPrefill(notif.metadata); }} title="Log QSO">{notif.metadata.callsign}</span>
+                <span class="popup-clickable popup-callsign" on:click={() => { dismissPopup(); tuneAndPrefill(notif.meta); }} title="Log QSO">{notif.meta.callsign}</span>
                 {" on "}
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <span class="popup-clickable popup-freq" on:click={() => { dismissPopup(); tuneOnly(notif.metadata); }} title="Tune radio">{(parseFloat(notif.metadata.frequency) / 1000).toFixed(3)} MHz</span>
-                {" "}{notif.metadata.mode}{#if notif.text.includes(" — ")} — {notif.text.split(" — ").slice(1).join(" — ")}{/if}
+                <span class="popup-clickable popup-freq" on:click={() => { dismissPopup(); tuneOnly(notif.meta); }} title="Tune radio">{(parseFloat(notif.meta.frequency) / 1000).toFixed(3)} MHz</span>
+                {" "}{notif.meta.mode}{#if notif.text.includes(" — ")} — {notif.text.split(" — ").slice(1).join(" — ")}{/if}
               {:else}
                 {notif.text}
               {/if}

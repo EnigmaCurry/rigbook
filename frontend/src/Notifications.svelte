@@ -100,15 +100,15 @@
             <span class="notif-time">{formatTime(notif.timestamp)}</span>
           </div>
           <div class="notif-text">
-            {#if notif.metadata?.callsign}
+            {#if notif.meta?.callsign}
               <!-- svelte-ignore a11y-click-events-have-key-events -->
               <!-- svelte-ignore a11y-no-static-element-interactions -->
-              <span class="clickable callsign" on:click={() => addQsoFromSpot(notif.metadata)} title="Log QSO with {notif.metadata.callsign}">{notif.metadata.callsign}</span>
+              <span class="clickable callsign" on:click={() => addQsoFromSpot(notif.meta)} title="Log QSO with {notif.meta.callsign}">{notif.meta.callsign}</span>
               {" on "}
               <!-- svelte-ignore a11y-click-events-have-key-events -->
               <!-- svelte-ignore a11y-no-static-element-interactions -->
-              <span class="clickable freq" on:click={() => tuneToSpot(notif.metadata)} title="Tune radio to {formatFreq(notif.metadata.frequency)} MHz">{formatFreq(notif.metadata.frequency)} MHz</span>
-              {" "}{notif.metadata.mode}{#if notif.text.includes(" — ")} — {notif.text.split(" — ").slice(1).join(" — ")}{/if}
+              <span class="clickable freq" on:click={() => tuneToSpot(notif.meta)} title="Tune radio to {formatFreq(notif.meta.frequency)} MHz">{formatFreq(notif.meta.frequency)} MHz</span>
+              {" "}{notif.meta.mode}{#if notif.text.includes(" — ")} — {notif.text.split(" — ").slice(1).join(" — ")}{/if}
             {:else}
               {notif.text}
             {/if}
@@ -133,15 +133,15 @@
             <span class="notif-time">{formatTime(notif.timestamp)}</span>
           </div>
           <div class="notif-text">
-            {#if notif.metadata?.callsign}
+            {#if notif.meta?.callsign}
               <!-- svelte-ignore a11y-click-events-have-key-events -->
               <!-- svelte-ignore a11y-no-static-element-interactions -->
-              <span class="clickable callsign" on:click={() => addQsoFromSpot(notif.metadata)} title="Log QSO with {notif.metadata.callsign}">{notif.metadata.callsign}</span>
+              <span class="clickable callsign" on:click={() => addQsoFromSpot(notif.meta)} title="Log QSO with {notif.meta.callsign}">{notif.meta.callsign}</span>
               {" on "}
               <!-- svelte-ignore a11y-click-events-have-key-events -->
               <!-- svelte-ignore a11y-no-static-element-interactions -->
-              <span class="clickable freq" on:click={() => tuneToSpot(notif.metadata)} title="Tune radio to {formatFreq(notif.metadata.frequency)} MHz">{formatFreq(notif.metadata.frequency)} MHz</span>
-              {" "}{notif.metadata.mode}{#if notif.text.includes(" — ")} — {notif.text.split(" — ").slice(1).join(" — ")}{/if}
+              <span class="clickable freq" on:click={() => tuneToSpot(notif.meta)} title="Tune radio to {formatFreq(notif.meta.frequency)} MHz">{formatFreq(notif.meta.frequency)} MHz</span>
+              {" "}{notif.meta.mode}{#if notif.text.includes(" — ")} — {notif.text.split(" — ").slice(1).join(" — ")}{/if}
             {:else}
               {notif.text}
             {/if}

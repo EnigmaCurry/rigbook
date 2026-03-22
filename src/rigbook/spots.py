@@ -726,7 +726,7 @@ class HamAlertFeed(BaseFeed):
             "mode": spot.mode,
         }
         try:
-            await create_notification(title, " — ".join(parts), metadata=meta)
+            await create_notification(title, " — ".join(parts), meta=meta)
         except Exception:
             logger.exception("Failed to create notification for HamAlert spot")
 

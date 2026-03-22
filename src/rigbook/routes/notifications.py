@@ -17,14 +17,14 @@ class NotificationResponse(BaseModel):
     id: int
     title: str
     text: str
-    metadata: dict | None = None
+    meta: dict | None = None
     read: bool
     done: bool
     timestamp: datetime
 
-    @field_validator("metadata", mode="before")
+    @field_validator("meta", mode="before")
     @classmethod
-    def parse_metadata(cls, v: str | dict | None) -> dict | None:
+    def parse_meta(cls, v: str | dict | None) -> dict | None:
         if v is None:
             return None
         if isinstance(v, str):
@@ -140,15 +140,13 @@ async def send_test_notification(background_tasks: BackgroundTasks):
     return {"status": "scheduled"}
 
 
-async def create_notification(
-    title: str, text: str, metadata: dict | None = None
-) -> None:
+async def create_notification(title: str, text: str, meta: dict | None = None) -> None:
     """Create a notification from non-request context (e.g. background feeds)."""
     async with async_session() as session:
         notif = Notification(
             title=title,
             text=text,
-            metadata=json.dumps(metadata) if metadata else None,
+            meta=json.dumps(meta) if meta else None,
         )
         session.add(notif)
         await session.commit()
