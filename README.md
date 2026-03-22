@@ -408,12 +408,15 @@ in separate logs.
 By default (no arguments), Rigbook opens the logbook named `rigbook`
 (`~/.local/rigbook/rigbook.db`). Use `--open` to start with a
 different named logbook instead. The name maps to
-`~/.local/rigbook/<name>.db` and is created automatically if it
-doesn't exist.
+`~/.local/rigbook/<name>.db`. If the logbook doesn't exist yet, a
+welcome screen asks you to confirm creating it (or shut down).
 
 ```bash
-# Open (or create) a logbook called "field-day"
+# Open an existing logbook
 rigbook --open field-day
+
+# Open a new logbook (prompts to confirm creation)
+rigbook --open winter-contest
 
 # Open the default logbook (rigbook.db)
 rigbook
