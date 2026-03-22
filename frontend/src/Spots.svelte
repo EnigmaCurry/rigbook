@@ -36,6 +36,7 @@
   let filterCallsign = initFilters.callsign || "";
   let filterSkcc = initFilters.skcc || "";
   let restarting = false;
+  let qrzConfigured = true;
   const qrz = new QrzLookup(() => { spots = spots; });
   let sortCol = "distance";
   let sortDir = 1; // 1 = ascending, -1 = descending
@@ -119,7 +120,22 @@
     return "";
   }
 
+  async function checkQrzConfigured() {
+    try {
+      const res = await fetch("/api/settings/qrz_password");
+      if (res.ok) {
+        const data = await res.json();
+        qrzConfigured = !!data.value && data.value !== "";
+      } else {
+        qrzConfigured = false;
+      }
+    } catch {
+      qrzConfigured = false;
+    }
+  }
+
   onMount(() => {
+    checkQrzConfigured();
     fetchStatus();
     fetchBands();
     fetchModes();
@@ -266,7 +282,7 @@
             <td class="mono" title={spot.spotters ? spot.spotters.join(", ") : ""}>{spot.spotter_count}</td>
             <td class="mono">{spot.best_snr ?? ""}</td>
             <td class="mono">{spot.wpm ?? ""}</td>
-            <td class="location">{#if spot.country || spot.qrz_state}{locationStr(spot)}{:else if qrz.skipped}<span class="fetch-hint">(filter more to fetch)</span>{:else if qrz.pending > 0}<span class="fetch-hint">(fetching... {qrz.pending} left)</span>{/if}</td>
+            <td class="location">{#if spot.country || spot.qrz_state}{locationStr(spot)}{:else if !qrzConfigured}<span class="fetch-hint">(Configure QRZ account)</span>{:else if qrz.skipped}<span class="fetch-hint">(filter more to fetch)</span>{:else if qrz.pending > 0}<span class="fetch-hint">(fetching... {qrz.pending} left)</span>{/if}</td>
             <td class="source-tag {spot.source}">{spot.source}</td>
             <td class="mono">{spot.distance_mi != null ? `${spot.distance_mi}mi` : ""}{spot.closest_snr != null ? ` ${spot.closest_snr}dB` : ""}</td>
             <td class="info">{spot.state}{spot.wwff_ref ? ` ${spot.wwff_ref}` : ""}{spot.comment ? ` ${spot.comment}` : ""}</td>

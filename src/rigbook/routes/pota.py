@@ -287,7 +287,11 @@ async def fetch_parks_for_selected(session: AsyncSession = Depends(get_session))
                     res.raise_for_status()
                     parks_data = res.json()
 
-                async with async_session() as s:
+                try:
+                    session_ctx = async_session()
+                except RuntimeError:
+                    continue
+                async with session_ctx as s:
                     await s.execute(
                         delete(PotaPark).where(PotaPark.location_desc == loc.descriptor)
                     )

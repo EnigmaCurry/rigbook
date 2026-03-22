@@ -876,10 +876,13 @@ async def _read_feed_settings() -> dict[str, str]:
         "my_callsign",
     ]
     settings: dict[str, str] = {}
-    async with async_session() as session:
-        result = await session.execute(select(Setting).where(Setting.key.in_(keys)))
-        for s in result.scalars().all():
-            settings[s.key] = s.value or ""
+    try:
+        async with async_session() as session:
+            result = await session.execute(select(Setting).where(Setting.key.in_(keys)))
+            for s in result.scalars().all():
+                settings[s.key] = s.value or ""
+    except RuntimeError:
+        pass
     return settings
 
 

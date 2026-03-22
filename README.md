@@ -67,6 +67,9 @@ After downloading, remove the quarantine attribute:
 xattr -d com.apple.quarantine rigbook-macos-arm64
 ```
 
+Rigbook automatically opens your browser when the server starts. Use
+`--no-browser` or set `RIGBOOK_NO_BROWSER=true` to disable this.
+
 The server binds to localhost only because Rigbook has no built-in
 authentication. Set `RIGBOOK_HOST` and `RIGBOOK_PORT` environment
 variables to change the bind address.
@@ -396,6 +399,105 @@ standard).
 The database is stored at `~/.local/rigbook/rigbook.db` (SQLite). It is
 created automatically on first run.
 
+## Multiple Logbooks
+
+Rigbook can manage multiple separate logbooks stored as individual
+database files in `~/.local/rigbook/`. This is useful for keeping
+contacts from different events (Field Day, POTA activations, contests)
+in separate logs.
+
+### Open a specific logbook
+
+By default (no arguments), Rigbook opens the logbook named `rigbook`
+(`~/.local/rigbook/rigbook.db`). Pass a name as a positional argument
+to start with a different logbook instead. Names may contain only
+letters, digits, hyphens, and underscores. The name maps to
+`~/.local/rigbook/<name>.db`. If the logbook doesn't exist yet, a
+welcome screen asks you to confirm creating it (or shut down).
+
+```bash
+# Open an existing logbook
+rigbook field-day
+
+# Open a new logbook (prompts to confirm creation)
+rigbook winter-contest
+
+# Open the default logbook (rigbook.db)
+rigbook
+```
+
+### Copying logbooks as templates
+
+Each logbook is a self-contained SQLite file with its own settings,
+including callsign, grid, QRZ credentials, and feed configuration. You
+can set up one logbook as a template and copy it to create new
+logbooks that share the same configuration:
+
+```bash
+cp ~/.local/rigbook/rigbook.db ~/.local/rigbook/field-day.db
+rigbook field-day
+```
+
+This avoids re-entering QRZ credentials and other settings for each
+new logbook. Note that the copied logbook will also contain all the
+same log entries as the original — delete any unwanted contacts after
+opening the copy.
+
+### Database picker mode
+
+Use `--pick` to start Rigbook without loading any logbook. Instead, a
+picker screen lists all `.db` files in `~/.local/rigbook/` and lets
+you choose which one to open or create a new one. The hamburger menu
+gains a **Close Logbook** option to return to the picker and switch
+logbooks without restarting.
+
+```bash
+rigbook --pick
+```
+
+### Deleting a logbook
+
+Go to **Settings** and scroll to the **Danger Zone** at the bottom.
+To delete the current logbook, type the logbook name to confirm and
+click **Delete Logbook**. A browser confirmation dialog provides a
+final safety check. In picker mode, you are returned to the picker
+after deletion. Otherwise, the server shuts down.
+
+### Shutting down
+
+The **Danger Zone** in Settings also has a **Shutdown Server** button
+that gracefully stops Rigbook. All connected browser tabs will show a
+shutdown notice via real-time SSE. Pressing Ctrl-C in the terminal
+also notifies connected clients before shutting down.
+
+### Container / environment variable usage
+
+For containers or environments where CLI arguments aren't convenient,
+use environment variables instead:
+
+| Variable | Description |
+|---|---|
+| `RIGBOOK_DB` | Logbook name to open (e.g. `field-day` → `~/.local/rigbook/field-day.db`) |
+| `RIGBOOK_PICKER` | Set to `1`, `true`, or `yes` to enable picker mode |
+| `RIGBOOK_NO_BROWSER` | Set to `1`, `true`, or `yes` to disable automatic browser opening |
+
+CLI arguments take precedence over environment variables.
+
+```bash
+# Container with a specific logbook
+podman run --rm -it --name rigbook \
+  --network=host \
+  -e RIGBOOK_DB=field-day \
+  -v ${HOME}/.local/rigbook:/root/.local/rigbook:Z \
+  ghcr.io/enigmacurry/rigbook:latest
+
+# Container with picker mode
+podman run --rm -it --name rigbook \
+  --network=host \
+  -e RIGBOOK_PICKER=1 \
+  -v ${HOME}/.local/rigbook:/root/.local/rigbook:Z \
+  ghcr.io/enigmacurry/rigbook:latest
+```
 
 ### Available just recipes
 

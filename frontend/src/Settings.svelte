@@ -1,5 +1,11 @@
 <script>
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, createEventDispatcher } from "svelte";
+
+  export let logbookName = "";
+  export let pickerMode = false;
+  export let needsSetup = false;
+
+  const dispatch = createEventDispatcher();
 
   let my_callsign = "";
   let my_grid = "";
@@ -37,6 +43,49 @@
   let desktopNotifEnabled = localStorage.getItem("desktop_notifications_enabled") === "true";
   let popupNotifEnabled = localStorage.getItem("popup_notifications_enabled") === "true";
   let testPending = false;
+
+  // Danger zone
+  let deleteConfirmName = "";
+  let deleteError = "";
+  let deleting = false;
+
+  async function deleteLogbook() {
+    if (deleteConfirmName !== logbookName) {
+      deleteError = "Name does not match";
+      return;
+    }
+    if (!confirm(`Are you sure you want to permanently delete "${logbookName}"? This cannot be undone.`)) {
+      return;
+    }
+    deleteError = "";
+    deleting = true;
+    try {
+      const res = await fetch("/api/logbooks/delete", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: logbookName }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        dispatch("deleted", { shutdown: data.shutdown });
+      } else {
+        const data = await res.json();
+        deleteError = data.detail || "Failed to delete logbook";
+      }
+    } catch {
+      deleteError = "Failed to delete logbook";
+    }
+    deleting = false;
+  }
+
+  async function shutdownServer() {
+    if (!confirm("Are you sure you want to shut down the Rigbook server?")) return;
+    dispatch("shutdown");
+    try {
+      await fetch("/api/logbooks/shutdown", { method: "POST" });
+    } catch {}
+    dispatch("deleted", { shutdown: true });
+  }
 
   async function enableDesktopNotifications() {
     if (typeof Notification === "undefined") return;
@@ -246,6 +295,9 @@
       await fetch("/api/spots/restart", { method: "POST" });
       setTimeout(fetchSpotStatus, 2000);
       message = "Settings saved.";
+      if (my_callsign.trim() && my_grid.trim()) {
+        dispatch("setupcomplete");
+      }
     } catch (e) {
       message = `Error: ${e.message}`;
     }
@@ -278,15 +330,19 @@
 <div class="settings">
   <h2>Settings</h2>
 
+  {#if needsSetup}
+    <p class="setup-hint">Enter your callsign and grid square to get started.</p>
+  {/if}
+
   <section class="settings-section">
     <h3>Station</h3>
     <div class="setting-row">
-      <label for="my_callsign">My Callsign</label>
-      <input id="my_callsign" type="text" bind:value={my_callsign} on:input={stripCallsign} maxlength="10" autocomplete="off" style="text-transform: uppercase" />
+      <label for="my_callsign">My Callsign{#if needsSetup && !my_callsign.trim()} <span class="required">*</span>{/if}</label>
+      <input id="my_callsign" type="text" bind:value={my_callsign} on:input={stripCallsign} maxlength="10" autocomplete="off" style="text-transform: uppercase" class:input-required={needsSetup && !my_callsign.trim()} />
     </div>
     <div class="setting-row">
-      <label for="my_grid">My Grid Square</label>
-      <input id="my_grid" type="text" bind:value={my_grid} on:input={stripGrid} autocomplete="off" style="text-transform: uppercase" />
+      <label for="my_grid">My Grid Square{#if needsSetup && !my_grid.trim()} <span class="required">*</span>{/if}</label>
+      <input id="my_grid" type="text" bind:value={my_grid} on:input={stripGrid} autocomplete="off" style="text-transform: uppercase" class:input-required={needsSetup && !my_grid.trim()} />
     </div>
     <div class="setting-row">
       <label for="default_rst">Default RST</label>
@@ -455,6 +511,29 @@
       <span class="message">{message}</span>
     {/if}
   </div>
+
+  {#if logbookName}
+    <section class="settings-section danger-zone">
+      <h3>Danger Zone</h3>
+      <p class="danger-text">Permanently delete the logbook <strong>{logbookName}</strong> and all its data. This cannot be undone.</p>
+      <div class="setting-row">
+        <label for="delete-confirm">Type <strong>{logbookName}</strong> to confirm</label>
+        <input id="delete-confirm" type="text" bind:value={deleteConfirmName} placeholder={logbookName} autocomplete="off" />
+      </div>
+      {#if deleteError}
+        <p class="danger-error">{deleteError}</p>
+      {/if}
+      <div class="setting-row">
+        <button class="danger-btn" on:click={deleteLogbook} disabled={deleting || deleteConfirmName !== logbookName}>
+          {deleting ? "Deleting..." : "Delete Logbook"}
+        </button>
+      </div>
+      <div class="danger-separator"></div>
+      <div class="setting-row">
+        <button class="danger-btn" on:click={shutdownServer}>Shutdown Server</button>
+      </div>
+    </section>
+  {/if}
 </div>
 
 <style>
@@ -619,5 +698,62 @@
     font-size: 0.7rem;
     color: var(--text-dim);
     margin: 0;
+  }
+
+  .setup-hint {
+    color: var(--accent);
+    font-size: 0.95rem;
+    margin: 0 0 1rem;
+    font-weight: 600;
+  }
+
+  .required {
+    color: #ff4444;
+    font-weight: bold;
+  }
+
+  :global(.input-required) {
+    border-color: #ff4444 !important;
+  }
+
+  .danger-zone {
+    border-color: #ff4444;
+    margin-top: 2rem;
+  }
+
+  .danger-zone h3 {
+    color: #ff4444;
+  }
+
+  .danger-text {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin: 0 0 0.75rem;
+    line-height: 1.4;
+  }
+
+  .danger-error {
+    color: #ff6666;
+    font-size: 0.8rem;
+    margin: 0 0 0.5rem;
+  }
+
+  .danger-separator {
+    border-top: 1px solid #ff444444;
+    margin: 0.75rem 0;
+  }
+
+  .danger-btn {
+    background: #ff4444;
+    color: #fff;
+  }
+
+  .danger-btn:hover:not(:disabled) {
+    background: #cc3333;
+  }
+
+  .danger-btn:disabled {
+    background: #ff4444;
+    opacity: 0.4;
   }
 </style>

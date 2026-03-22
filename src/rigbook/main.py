@@ -9,8 +9,9 @@ import uvicorn
 from fastapi import FastAPI, Request, Response
 from fastapi.staticfiles import StaticFiles
 
-from rigbook.db import init_db
+from rigbook.db import db_manager, init_db
 from rigbook.flrig import router as flrig_router
+from rigbook.routes.logbooks import router as logbooks_router
 from rigbook.routes.spots import router as spots_router
 from rigbook.spots import start_feeds, stop_feeds
 from rigbook.routes.adif import router as adif_router
@@ -37,12 +38,36 @@ def _resource_path(relative: str) -> Path:
     return base / relative
 
 
+def _handle_sigint(sig, frame):
+    import signal
+    import threading
+    import time
+
+    from rigbook.sse import notify_shutdown
+
+    notify_shutdown()
+    # Restore default handler so a second Ctrl-C force-quits
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+    # Delay the actual shutdown so the event loop can flush SSE to clients
+    def deferred_shutdown():
+        time.sleep(0.5)
+        os.kill(os.getpid(), signal.SIGINT)
+
+    threading.Thread(target=deferred_shutdown, daemon=True).start()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    import signal
+
+    signal.signal(signal.SIGINT, _handle_sigint)
     await init_db()
-    await start_feeds()
+    if db_manager.is_open:
+        await start_feeds()
     yield
     await stop_feeds()
+    await db_manager.close()
 
 
 app = FastAPI(title="Rigbook", lifespan=lifespan)
@@ -67,6 +92,7 @@ async def get_version():
     return {"version": version("rigbook")}
 
 
+app.include_router(logbooks_router)
 app.include_router(contacts_router)
 app.include_router(settings_router)
 app.include_router(flrig_router)
@@ -93,7 +119,25 @@ def run() -> None:
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="Enable verbose/debug logging"
     )
+    parser.add_argument(
+        "name",
+        nargs="?",
+        default=None,
+        help="Logbook name to open (e.g. field-day, default: rigbook)",
+    )
+    parser.add_argument(
+        "--pick",
+        action="store_true",
+        help="Enable database picker mode",
+    )
+    parser.add_argument(
+        "--no-browser",
+        action="store_true",
+        help="Do not open the browser automatically",
+    )
     args = parser.parse_args()
+
+    db_manager.configure(db_name=args.name, picker=args.pick)
 
     log_level = "DEBUG" if args.verbose else "INFO"
     logging.basicConfig(
@@ -105,9 +149,24 @@ def run() -> None:
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
-    uvicorn.run(
-        app,
-        host=os.environ.get("RIGBOOK_HOST", "127.0.0.1"),
-        port=int(os.environ.get("RIGBOOK_PORT", "8073")),
-        access_log=False,
-    )
+    host = os.environ.get("RIGBOOK_HOST", "127.0.0.1")
+    port = int(os.environ.get("RIGBOOK_PORT", "8073"))
+
+    import threading
+    import webbrowser
+
+    no_browser = args.no_browser or os.environ.get(
+        "RIGBOOK_NO_BROWSER", ""
+    ).lower() in ("1", "true", "yes")
+    if not no_browser:
+        url = f"http://{host}:{port}"
+
+        def open_browser():
+            import time
+
+            time.sleep(1)
+            webbrowser.open(url)
+
+        threading.Thread(target=open_browser, daemon=True).start()
+
+    uvicorn.run(app, host=host, port=port, access_log=False)

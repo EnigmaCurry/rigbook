@@ -12,6 +12,7 @@
   import Links from "./Links.svelte";
   import Notifications from "./Notifications.svelte";
   import Spots from "./Spots.svelte";
+  import LogbookPicker from "./LogbookPicker.svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
 
   const BANDS = [
@@ -89,6 +90,7 @@
 
   function parseHash() {
     const hash = window.location.hash.slice(1) || "/";
+    if (hash === "/picker") return { page: "picker", editId: null };
     if (hash === "/grid") return { page: "grid", editId: null };
     if (hash === "/parks" || hash.startsWith("/parks/")) return { page: "parks", editId: null };
     if (hash === "/about") return { page: "about", editId: null };
@@ -134,6 +136,111 @@
   let popupNotifications = [];
   let showPopup = false;
   let activeDesktopNotif = null;
+  let pickerMode = false;
+  let logbookOpen = false;
+  let currentLogbook = "";
+  let pendingLogbook = "";
+
+  async function checkLogbookMode() {
+    try {
+      const res = await fetch("/api/logbooks/mode");
+      if (res.ok) {
+        const data = await res.json();
+        pickerMode = data.picker;
+      }
+    } catch {}
+    try {
+      const cur = await fetch("/api/logbooks/current");
+      if (cur.ok) {
+        const data = await cur.json();
+        logbookOpen = data.is_open;
+        currentLogbook = data.name || "";
+        pendingLogbook = data.pending || "";
+      }
+    } catch {}
+    if (!pickerMode && !logbookOpen && !pendingLogbook) {
+      logbookOpen = true;
+    }
+  }
+
+  let needsSetup = false;
+
+  async function checkNeedsSetup() {
+    try {
+      const [csRes, gridRes] = await Promise.all([
+        fetch("/api/settings/my_callsign"),
+        fetch("/api/settings/my_grid"),
+      ]);
+      const cs = csRes.ok ? (await csRes.json()).value || "" : "";
+      const grid = gridRes.ok ? (await gridRes.json()).value || "" : "";
+      needsSetup = !cs || !grid;
+    } catch {
+      needsSetup = false;
+    }
+    if (needsSetup) {
+      page = "settings";
+      window.location.hash = "/settings";
+    }
+  }
+
+  function startAppServices() {
+    fetchCallsign();
+    fetchRadioModes();
+    pollFlrig();
+    flrigInterval = setInterval(pollFlrig, 2000);
+    fetchUnreadCount();
+    connectSSE();
+  }
+
+  function stopAppServices() {
+    clearInterval(flrigInterval);
+    if (eventSource) { eventSource.close(); eventSource = null; }
+  }
+
+  async function handleLogbookOpened(e) {
+    currentLogbook = e.detail;
+    logbookOpen = true;
+    page = isWide() ? "dual" : "log";
+    window.location.hash = "/";
+    startAppServices();
+    await checkNeedsSetup();
+  }
+
+  let serverShutdown = false;
+
+  async function confirmPendingLogbook() {
+    try {
+      const res = await fetch("/api/logbooks/confirm", { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        currentLogbook = data.name;
+        pendingLogbook = "";
+        logbookOpen = true;
+        page = isWide() ? "dual" : "log";
+        window.location.hash = "/";
+        startAppServices();
+        await checkNeedsSetup();
+      }
+    } catch {}
+  }
+
+  async function declinePendingLogbook() {
+    try {
+      await fetch("/api/logbooks/decline", { method: "POST" });
+    } catch {}
+    serverShutdown = true;
+  }
+
+  async function closeLogbook() {
+    menuOpen = false;
+    try {
+      await fetch("/api/logbooks/close", { method: "POST" });
+    } catch {}
+    stopAppServices();
+    logbookOpen = false;
+    currentLogbook = "";
+    page = "picker";
+  }
 
   function connectSSE() {
     if (eventSource) eventSource.close();
@@ -163,7 +270,12 @@
     eventSource.addEventListener("notification", (e) => {
       // Individual notification pushed — could be used later
     });
+    eventSource.addEventListener("shutdown", () => {
+      stopAppServices();
+      serverShutdown = true;
+    });
     eventSource.onerror = () => {
+      if (serverShutdown) return;
       // EventSource auto-reconnects; nothing to do
     };
   }
@@ -400,7 +512,7 @@
     page = p;
     editId = null;
     menuOpen = false;
-    const paths = { hunting: "/hunting", log: "/logbook", dual: "/dual", add: "/add", grid: "/grid", parks: "/parks", spots: "/spots", export: "/export", notifications: "/notifications", settings: "/settings", links: "/links", about: "/about" };
+    const paths = { hunting: "/hunting", log: "/logbook", dual: "/dual", add: "/add", grid: "/grid", parks: "/parks", spots: "/spots", export: "/export", notifications: "/notifications", settings: "/settings", links: "/links", about: "/about", picker: "/picker" };
     window.location.hash = paths[p] || "/";
     fetchCallsign();
   }
@@ -571,20 +683,21 @@
     }
   }
 
-  onMount(() => {
+  onMount(async () => {
     applyTheme();
     window.addEventListener("storage", applyTheme);
     window.addEventListener("keydown", onGlobalKeydown);
-    fetchCallsign();
     fetchWideBreakpoint();
-    fetchRadioModes();
-    pollFlrig();
-    flrigInterval = setInterval(pollFlrig, 2000);
     clockInterval = setInterval(() => { utcNow = new Date().toISOString().slice(0, 19).replace("T", " ") + "z"; }, 1000);
-    fetchUnreadCount();
-    connectSSE();
     window.addEventListener("hashchange", onHashChange);
     window.addEventListener("resize", onResize);
+    await checkLogbookMode();
+    if (logbookOpen) {
+      startAppServices();
+      await checkNeedsSetup();
+    } else if (pickerMode) {
+      page = "picker";
+    }
   });
 
   function onResize() {
@@ -608,11 +721,50 @@
 </script>
 
 <main class:dual-mode={page === "dual"} class:wide-mode={page === "grid"}>
+  {#if serverShutdown}
+    <header>
+      <div class="header-left">
+        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>
+      </div>
+    </header>
+    <div class="welcome-container">
+      <div class="welcome-card">
+        <p>Server has shut down.</p>
+      </div>
+    </div>
+  {:else if pendingLogbook}
+    <header>
+      <div class="header-left">
+        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>
+      </div>
+      <span class="utc-clock">{utcNow}</span>
+    </header>
+    <div class="welcome-container">
+      <div class="welcome-card">
+        <h2>Create New Logbook?</h2>
+        <p>The logbook <strong>{pendingLogbook}</strong> does not exist yet. Would you like to create it?</p>
+        <div class="welcome-buttons">
+          <button class="welcome-btn confirm" on:click={confirmPendingLogbook}>Yes, create it</button>
+          <button class="welcome-btn decline" on:click={declinePendingLogbook}>No, shut down</button>
+        </div>
+      </div>
+    </div>
+  {:else if pickerMode && !logbookOpen}
+    <header>
+      <div class="header-left">
+        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if currentLogbook && currentLogbook !== "rigbook"}<span class="logbook-name">{currentLogbook}</span>{/if}</h1>
+      </div>
+      <span class="utc-clock">{utcNow}</span>
+    </header>
+    <LogbookPicker on:logbookopened={handleLogbookOpened} />
+  {:else}
   <header>
     <div class="header-left">
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-      <h1 class="app-title" on:click={goHome} style="cursor: pointer"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+      <h1 class="app-title" on:click={goHome} style="cursor: pointer"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if currentLogbook && currentLogbook !== "rigbook"}<span class="logbook-name">{currentLogbook}</span>{/if}</h1>
       {#if myCallsign}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -670,12 +822,13 @@
         <button class="add-btn" on:click={() => navigate("hunting")} title="Hunting">🧭</button>
       {/if}
       <button class="add-btn parks-btn" on:click={() => navigate("parks")} title="My Parks">🌲</button>
+      <button class="add-btn" on:click={() => navigate("spots")} title="Spots">🗺️</button>
       <button class="add-btn" on:click={() => { dualShowForm = true; prefill = null; editId = null; if (page === "dual") { /* already on dual */ } else navigate("add"); }} title="Add QSO">+</button>
       <button class="add-btn notification-btn" class:has-unread={unreadCount > 0} on:click={handleNotificationClick} title="Notifications">
         {#if unreadCount > 0}
           <span class="notif-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>
         {:else}
-          ✉
+          ✉️
         {/if}
       </button>
       <button class="hamburger" on:click={() => menuOpen = !menuOpen} aria-label="Menu">
@@ -699,6 +852,10 @@
           <button class="menu-item" class:active={page === "settings"} on:click={() => navigate("settings")}>Settings</button>
           <button class="menu-item" class:active={page === "links"} on:click={() => navigate("links")}>Links</button>
           <button class="menu-item" class:active={page === "about"} on:click={() => navigate("about")}>About</button>
+          {#if pickerMode}
+            <div class="menu-separator"></div>
+            <button class="menu-item close-logbook" on:click={closeLogbook}>Close Logbook</button>
+          {/if}
         </nav>
       {/if}
     </div>
@@ -730,11 +887,12 @@
   {:else if page === "spots"}
     <Spots on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
   {:else if page === "settings"}
-    <Settings />
+    <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} on:deleted={e => { if (e.detail.shutdown) { serverShutdown = true; } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={() => { needsSetup = false; fetchCallsign(); navigate(isWide() ? "dual" : "log"); }} on:shutdown={() => { stopAppServices(); }} />
   {:else if page === "links"}
     <Links />
   {:else if page === "about"}
     <About />
+  {/if}
   {/if}
 </main>
 
@@ -890,6 +1048,15 @@
     font-weight: bold;
   }
 
+  .logbook-name {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.55rem;
+    font-weight: normal;
+    line-height: 1;
+    margin-top: -0.15rem;
+  }
+
   .vfo-bezel {
     display: inline-flex;
     align-items: center;
@@ -1033,7 +1200,7 @@
   }
 
   .add-btn {
-    background: #638676;
+    background: #394942;
     color: #fff;
     border: none;
     font-size: 1.2rem;
@@ -1056,7 +1223,7 @@
   }
 
   .add-btn:hover {
-    background: #4a6e5e;
+    background: #4a5f55;
   }
 
   .notification-btn {
@@ -1145,6 +1312,79 @@
   .menu-item.active {
     color: var(--accent);
     font-weight: bold;
+  }
+
+  .menu-separator {
+    border-top: 1px solid var(--border);
+    margin: 0.25rem 0;
+  }
+
+  .menu-item.close-logbook {
+    color: var(--text-muted);
+  }
+
+  .welcome-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 60px);
+    padding: 1rem;
+  }
+
+  .welcome-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 480px;
+    text-align: center;
+  }
+
+  .welcome-card h2 {
+    margin: 0 0 1rem;
+    color: var(--accent);
+    font-size: 1.4rem;
+  }
+
+  .welcome-card p {
+    color: var(--text);
+    margin: 0 0 1.5rem;
+    line-height: 1.5;
+  }
+
+  .welcome-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+  }
+
+  .welcome-btn {
+    padding: 0.6rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .welcome-btn.confirm {
+    background: var(--accent);
+    color: #111;
+  }
+
+  .welcome-btn.confirm:hover {
+    background: var(--accent-hover);
+  }
+
+  .welcome-btn.decline {
+    background: var(--bg-input);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .welcome-btn.decline:hover {
+    background: var(--border);
   }
 
   .title-short {
