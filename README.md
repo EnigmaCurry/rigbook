@@ -396,6 +396,66 @@ standard).
 The database is stored at `~/.local/rigbook/rigbook.db` (SQLite). It is
 created automatically on first run.
 
+## Multiple Logbooks
+
+Rigbook can manage multiple separate logbooks stored as individual
+database files in `~/.local/rigbook/`. This is useful for keeping
+contacts from different events (Field Day, POTA activations, contests)
+in separate logs.
+
+### Open a specific logbook
+
+Use `--open` to start Rigbook with a named logbook instead of the
+default. The name maps to `~/.local/rigbook/<name>.db` and is created
+automatically if it doesn't exist.
+
+```bash
+# Open (or create) a logbook called "field-day"
+rigbook --open field-day
+
+# Open the default logbook (rigbook.db)
+rigbook
+```
+
+### Database picker mode
+
+Use `--pick` to start Rigbook without loading any logbook. Instead, a
+picker screen lists all `.db` files in `~/.local/rigbook/` and lets
+you choose which one to open or create a new one. The hamburger menu
+gains a **Close Logbook** option to return to the picker and switch
+logbooks without restarting.
+
+```bash
+rigbook --pick
+```
+
+### Container / environment variable usage
+
+For containers or environments where CLI arguments aren't convenient,
+use environment variables instead:
+
+| Variable | Description |
+|---|---|
+| `RIGBOOK_DB` | Logbook name to open (e.g. `field-day` → `~/.local/rigbook/field-day.db`) |
+| `RIGBOOK_PICKER` | Set to `1`, `true`, or `yes` to enable picker mode |
+
+CLI arguments take precedence over environment variables.
+
+```bash
+# Container with a specific logbook
+podman run --rm -it --name rigbook \
+  --network=host \
+  -e RIGBOOK_DB=field-day \
+  -v ${HOME}/.local/rigbook:/root/.local/rigbook:Z \
+  ghcr.io/enigmacurry/rigbook:latest
+
+# Container with picker mode
+podman run --rm -it --name rigbook \
+  --network=host \
+  -e RIGBOOK_PICKER=1 \
+  -v ${HOME}/.local/rigbook:/root/.local/rigbook:Z \
+  ghcr.io/enigmacurry/rigbook:latest
+```
 
 ### Available just recipes
 
