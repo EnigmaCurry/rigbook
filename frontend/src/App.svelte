@@ -133,6 +133,7 @@
   let eventSource = null;
   let popupNotifications = [];
   let showPopup = false;
+  let activeDesktopNotif = null;
 
   function connectSSE() {
     if (eventSource) eventSource.close();
@@ -144,13 +145,17 @@
         if (typeof Notification !== "undefined"
             && Notification.permission === "granted"
             && localStorage.getItem("desktop_notifications_enabled") === "true") {
-          new Notification("Rigbook", {
+          if (activeDesktopNotif) activeDesktopNotif.close();
+          activeDesktopNotif = new Notification("Rigbook", {
             body: `You have ${newCount} unread notification${newCount > 1 ? "s" : ""}`,
           });
         }
         if (localStorage.getItem("popup_notifications_enabled") === "true") {
           showPopupNotifications();
         }
+      } else if (newCount < unreadCount && activeDesktopNotif) {
+        activeDesktopNotif.close();
+        activeDesktopNotif = null;
       }
       prevUnreadCount = unreadCount;
       unreadCount = newCount;
