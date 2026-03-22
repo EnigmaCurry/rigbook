@@ -7,6 +7,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from rigbook.db import Notification, async_session, get_session
+from rigbook.sse import broadcast
 
 router = APIRouter(prefix="/api/notifications", tags=["notifications"])
 
@@ -24,6 +25,17 @@ class NotificationResponse(BaseModel):
         return v.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     model_config = {"from_attributes": True}
+
+
+async def _broadcast_unread() -> None:
+    async with async_session() as session:
+        result = await session.execute(
+            select(func.count())
+            .select_from(Notification)
+            .where(Notification.read == 0, Notification.done == 0)
+        )
+        count = result.scalar_one()
+    broadcast("unread", {"count": count})
 
 
 @router.get("/unread-count")
@@ -54,6 +66,7 @@ async def read_all(session: AsyncSession = Depends(get_session)):
         .values(read=1)
     )
     await session.commit()
+    await _broadcast_unread()
 
 
 @router.get("/", response_model=list[NotificationResponse])
@@ -73,6 +86,7 @@ async def mark_read(notification_id: int, session: AsyncSession = Depends(get_se
         raise HTTPException(status_code=404, detail="Notification not found")
     notif.read = 1
     await session.commit()
+    await _broadcast_unread()
 
 
 @router.put("/{notification_id}/done", status_code=204)
@@ -83,6 +97,7 @@ async def mark_done(notification_id: int, session: AsyncSession = Depends(get_se
     notif.read = 1
     notif.done = 1
     await session.commit()
+    await _broadcast_unread()
 
 
 @router.delete("/{notification_id}", status_code=204)
@@ -94,6 +109,7 @@ async def delete_notification(
         raise HTTPException(status_code=404, detail="Notification not found")
     await session.delete(notif)
     await session.commit()
+    await _broadcast_unread()
 
 
 async def _delayed_test_notification() -> None:
@@ -113,5 +129,10 @@ async def send_test_notification(background_tasks: BackgroundTasks):
 async def create_notification(title: str, text: str) -> None:
     """Create a notification from non-request context (e.g. background feeds)."""
     async with async_session() as session:
-        session.add(Notification(title=title, text=text))
+        notif = Notification(title=title, text=text)
+        session.add(notif)
         await session.commit()
+        await session.refresh(notif)
+    resp = NotificationResponse.model_validate(notif)
+    broadcast("notification", resp.model_dump())
+    await _broadcast_unread()

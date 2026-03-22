@@ -22,6 +22,7 @@ from rigbook.routes.skcc import router as skcc_router
 from rigbook.routes.contacts import router as contacts_router
 from rigbook.routes.geo import router as geo_router
 from rigbook.routes.notifications import router as notifications_router
+from rigbook.sse import router as sse_router
 from rigbook.routes.settings import router as settings_router
 
 logger = logging.getLogger("rigbook")
@@ -78,6 +79,7 @@ app.include_router(skcc_router)
 app.include_router(tiles_router)
 app.include_router(spots_router)
 app.include_router(notifications_router)
+app.include_router(sse_router)
 
 static_dir = _resource_path("static")
 if static_dir.is_dir():

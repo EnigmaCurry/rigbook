@@ -129,31 +129,47 @@
   let clockInterval;
   let clockCopied = false;
   let unreadCount = 0;
-  let prevUnreadCount = 0;
-  let notifInterval;
+  let prevUnreadCount = -1;
+  let eventSource = null;
   let popupNotifications = [];
   let showPopup = false;
+
+  function connectSSE() {
+    if (eventSource) eventSource.close();
+    eventSource = new EventSource("/api/events/stream");
+    eventSource.addEventListener("unread", (e) => {
+      const data = JSON.parse(e.data);
+      const newCount = data.count;
+      if (newCount > unreadCount && prevUnreadCount >= 0) {
+        if (typeof Notification !== "undefined"
+            && Notification.permission === "granted"
+            && localStorage.getItem("desktop_notifications_enabled") === "true") {
+          new Notification("Rigbook", {
+            body: `You have ${newCount} unread notification${newCount > 1 ? "s" : ""}`,
+          });
+        }
+        if (localStorage.getItem("popup_notifications_enabled") === "true") {
+          showPopupNotifications();
+        }
+      }
+      prevUnreadCount = unreadCount;
+      unreadCount = newCount;
+    });
+    eventSource.addEventListener("notification", (e) => {
+      // Individual notification pushed — could be used later
+    });
+    eventSource.onerror = () => {
+      // EventSource auto-reconnects; nothing to do
+    };
+  }
 
   async function fetchUnreadCount() {
     try {
       const res = await fetch("/api/notifications/unread-count");
       if (res.ok) {
         const data = await res.json();
-        const newCount = data.count;
-        if (newCount > prevUnreadCount && prevUnreadCount >= 0) {
-          if (typeof Notification !== "undefined"
-              && Notification.permission === "granted"
-              && localStorage.getItem("desktop_notifications_enabled") === "true") {
-            new Notification("Rigbook", {
-              body: `You have ${newCount} unread notification${newCount > 1 ? "s" : ""}`,
-            });
-          }
-          if (localStorage.getItem("popup_notifications_enabled") === "true") {
-            await showPopupNotifications();
-          }
-        }
-        prevUnreadCount = newCount;
-        unreadCount = newCount;
+        unreadCount = data.count;
+        prevUnreadCount = data.count;
       }
     } catch {}
   }
@@ -547,7 +563,7 @@
     flrigInterval = setInterval(pollFlrig, 2000);
     clockInterval = setInterval(() => { utcNow = new Date().toISOString().slice(0, 19).replace("T", " ") + "z"; }, 1000);
     fetchUnreadCount();
-    notifInterval = setInterval(fetchUnreadCount, 15000);
+    connectSSE();
     window.addEventListener("hashchange", onHashChange);
     window.addEventListener("resize", onResize);
   });
@@ -564,7 +580,7 @@
   onDestroy(() => {
     clearInterval(flrigInterval);
     clearInterval(clockInterval);
-    clearInterval(notifInterval);
+    if (eventSource) eventSource.close();
     window.removeEventListener("hashchange", onHashChange);
     window.removeEventListener("resize", onResize);
     window.removeEventListener("storage", applyTheme);
