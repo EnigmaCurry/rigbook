@@ -16,6 +16,14 @@ logger = logging.getLogger("rigbook.sse")
 router = APIRouter(prefix="/api/events", tags=["events"])
 
 _subscribers: list[asyncio.Queue[str]] = []
+_shutdown_event: asyncio.Event | None = None
+
+
+def _get_shutdown_event() -> asyncio.Event:
+    global _shutdown_event
+    if _shutdown_event is None:
+        _shutdown_event = asyncio.Event()
+    return _shutdown_event
 
 
 def broadcast(event: str, data: dict) -> None:
@@ -28,11 +36,31 @@ def broadcast(event: str, data: dict) -> None:
             pass
 
 
+def notify_shutdown() -> None:
+    """Broadcast shutdown event and signal all SSE generators to stop."""
+    broadcast("shutdown", {})
+    evt = _get_shutdown_event()
+    evt.set()
+
+
 async def _sse_generator(queue: asyncio.Queue[str]):
+    shutdown_evt = _get_shutdown_event()
     try:
-        while True:
-            msg = await queue.get()
-            yield msg
+        while not shutdown_evt.is_set():
+            get_task = asyncio.ensure_future(queue.get())
+            shutdown_task = asyncio.ensure_future(shutdown_evt.wait())
+            done, pending = await asyncio.wait(
+                [get_task, shutdown_task], return_when=asyncio.FIRST_COMPLETED
+            )
+            for t in pending:
+                t.cancel()
+            if get_task in done:
+                yield get_task.result()
+            if shutdown_evt.is_set():
+                # Drain any remaining messages (including shutdown broadcast)
+                while not queue.empty():
+                    yield queue.get_nowait()
+                return
     except asyncio.CancelledError:
         return
 
@@ -47,7 +75,8 @@ async def event_stream():
             async for msg in _sse_generator(queue):
                 yield msg
         finally:
-            _subscribers.remove(queue)
+            if queue in _subscribers:
+                _subscribers.remove(queue)
 
     return StreamingResponse(
         cleanup_generator(),

@@ -45,10 +45,10 @@ async def lifespan(app: FastAPI):
     if db_manager.is_open:
         await start_feeds()
     yield
-    from rigbook.sse import broadcast
+    from rigbook.sse import notify_shutdown
 
-    broadcast("shutdown", {})
-    await asyncio.sleep(0.1)
+    notify_shutdown()
+    await asyncio.sleep(0.2)
     await stop_feeds()
     await db_manager.close()
 
