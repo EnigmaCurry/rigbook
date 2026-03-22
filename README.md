@@ -409,17 +409,18 @@ in separate logs.
 ### Open a specific logbook
 
 By default (no arguments), Rigbook opens the logbook named `rigbook`
-(`~/.local/rigbook/rigbook.db`). Use `--open` to start with a
-different named logbook instead. The name maps to
+(`~/.local/rigbook/rigbook.db`). Pass a name as a positional argument
+to start with a different logbook instead. Names may contain only
+letters, digits, hyphens, and underscores. The name maps to
 `~/.local/rigbook/<name>.db`. If the logbook doesn't exist yet, a
 welcome screen asks you to confirm creating it (or shut down).
 
 ```bash
 # Open an existing logbook
-rigbook --open field-day
+rigbook field-day
 
 # Open a new logbook (prompts to confirm creation)
-rigbook --open winter-contest
+rigbook winter-contest
 
 # Open the default logbook (rigbook.db)
 rigbook
@@ -434,7 +435,7 @@ logbooks that share the same configuration:
 
 ```bash
 cp ~/.local/rigbook/rigbook.db ~/.local/rigbook/field-day.db
-rigbook --open field-day
+rigbook field-day
 ```
 
 This avoids re-entering QRZ credentials and other settings for each
