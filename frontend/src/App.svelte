@@ -1195,7 +1195,7 @@
   }
 
   .add-btn {
-    background: #638676;
+    background: #394942;
     color: #fff;
     border: none;
     font-size: 1.2rem;
@@ -1218,7 +1218,7 @@
   }
 
   .add-btn:hover {
-    background: #4a6e5e;
+    background: #4a5f55;
   }
 
   .notification-btn {
