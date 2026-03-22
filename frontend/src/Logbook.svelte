@@ -675,7 +675,7 @@
         datePart = "";
         timePart = "";
         await fetchContacts();
-        dispatch("navigate", wasHunting ? "hunting" : "log");
+        dispatch("navigate", "back");
       } else {
         const data = await res.json().catch(() => null);
         errorMsg = data?.detail || `Error: ${res.status} ${res.statusText}`;
