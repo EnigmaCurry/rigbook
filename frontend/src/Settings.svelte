@@ -35,6 +35,7 @@
   // Desktop notifications
   let desktopNotifPermission = typeof Notification !== "undefined" ? Notification.permission : "denied";
   let desktopNotifEnabled = localStorage.getItem("desktop_notifications_enabled") === "true";
+  let popupNotifEnabled = localStorage.getItem("popup_notifications_enabled") === "true";
   let testPending = false;
   let testTimer = null;
 
@@ -356,6 +357,13 @@
       {/if}
     </div>
     <p class="hint">In-app notifications are always enabled. Desktop notifications show browser popups when new alerts arrive.</p>
+    <div class="setting-row toggle-row" style="margin-top: 0.5rem;">
+      <label>
+        <input type="checkbox" bind:checked={popupNotifEnabled} on:change={() => localStorage.setItem("popup_notifications_enabled", popupNotifEnabled ? "true" : "false")} />
+        Popup notifications
+      </label>
+    </div>
+    <p class="hint">Show a modal dialog immediately when new notifications arrive. Harder to miss, but more intrusive.</p>
     <div class="setting-row toggle-row" style="margin-top: 0.5rem;">
       <button class="theme-toggle" on:click={sendTestNotification} disabled={testPending}>
         {testPending ? "Sending in 5s..." : "Send Test Notification"}

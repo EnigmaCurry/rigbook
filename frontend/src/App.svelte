@@ -131,6 +131,8 @@
   let unreadCount = 0;
   let prevUnreadCount = 0;
   let notifInterval;
+  let popupNotifications = [];
+  let showPopup = false;
 
   async function fetchUnreadCount() {
     try {
@@ -138,18 +140,48 @@
       if (res.ok) {
         const data = await res.json();
         const newCount = data.count;
-        if (newCount > prevUnreadCount && prevUnreadCount >= 0
-            && typeof Notification !== "undefined"
-            && Notification.permission === "granted"
-            && localStorage.getItem("desktop_notifications_enabled") === "true") {
-          new Notification("Rigbook", {
-            body: `You have ${newCount} unread notification${newCount > 1 ? "s" : ""}`,
-          });
+        if (newCount > prevUnreadCount && prevUnreadCount >= 0) {
+          if (typeof Notification !== "undefined"
+              && Notification.permission === "granted"
+              && localStorage.getItem("desktop_notifications_enabled") === "true") {
+            new Notification("Rigbook", {
+              body: `You have ${newCount} unread notification${newCount > 1 ? "s" : ""}`,
+            });
+          }
+          if (localStorage.getItem("popup_notifications_enabled") === "true") {
+            await showPopupNotifications();
+          }
         }
         prevUnreadCount = newCount;
         unreadCount = newCount;
       }
     } catch {}
+  }
+
+  async function showPopupNotifications() {
+    try {
+      const res = await fetch("/api/notifications/");
+      if (res.ok) {
+        const all = await res.json();
+        popupNotifications = all.filter(n => !n.read);
+        if (popupNotifications.length > 0) showPopup = true;
+      }
+    } catch {}
+  }
+
+  async function dismissPopup() {
+    // Mark all shown as read
+    for (const n of popupNotifications) {
+      try { await fetch(`/api/notifications/${n.id}/read`, { method: "PUT" }); } catch {}
+    }
+    showPopup = false;
+    popupNotifications = [];
+    fetchUnreadCount();
+  }
+
+  function dismissPopupKeepUnread() {
+    showPopup = false;
+    popupNotifications = [];
   }
 
   function handleNotificationClick() {
@@ -671,6 +703,35 @@
   {/if}
 </main>
 
+{#if showPopup}
+  <!-- svelte-ignore a11y-click-events-have-key-events -->
+  <!-- svelte-ignore a11y-no-static-element-interactions -->
+  <div class="popup-backdrop" on:click={dismissPopup}>
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <div class="popup-modal" on:click|stopPropagation>
+      <div class="popup-header">
+        <span class="popup-title">New Notifications</span>
+        <button class="popup-close" on:click={dismissPopup}>✕</button>
+      </div>
+      <div class="popup-body">
+        {#each popupNotifications as notif (notif.id)}
+          <div class="popup-notif">
+            <div class="popup-notif-title">{notif.title}</div>
+            <div class="popup-notif-text">{notif.text}</div>
+            <div class="popup-notif-time">{notif.timestamp.replace("T", " ").replace("Z", "z")}</div>
+          </div>
+        {/each}
+      </div>
+      <div class="popup-footer">
+        <button class="popup-btn" on:click={dismissPopupKeepUnread}>Keep Unread</button>
+        <button class="popup-btn" on:click={dismissPopup}>OK</button>
+        <button class="popup-btn popup-btn-go" on:click={() => { dismissPopup(); navigate("notifications"); }}>View All</button>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <style>
   :global(:root) {
     --bg: #24252b;
@@ -1076,4 +1137,110 @@
       display: inline;
     }
   }
+
+  .popup-backdrop {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 20000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .popup-modal {
+    background: var(--bg-card);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    width: 90%;
+    max-width: 480px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0.8rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .popup-title {
+    font-weight: bold;
+    font-size: 0.95rem;
+    color: var(--accent);
+  }
+
+  .popup-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0.2rem;
+  }
+
+  .popup-close:hover { color: var(--text); }
+
+  .popup-body {
+    padding: 0.6rem 0.8rem;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .popup-notif {
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .popup-notif:last-child { border-bottom: none; }
+
+  .popup-notif-title {
+    font-weight: bold;
+    font-size: 0.85rem;
+    color: var(--text);
+  }
+
+  .popup-notif-text {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 0.15rem;
+  }
+
+  .popup-notif-time {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    margin-top: 0.1rem;
+  }
+
+  .popup-footer {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    padding: 0.6rem 0.8rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .popup-btn {
+    background: var(--btn-secondary, #3e404a);
+    color: var(--text);
+    border: none;
+    padding: 0.35rem 0.8rem;
+    font-family: inherit;
+    font-size: 0.8rem;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .popup-btn:hover { background: var(--btn-secondary-hover, #4e505a); }
+
+  .popup-btn-go {
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: bold;
+  }
+
+  .popup-btn-go:hover { background: var(--accent-hover); }
 </style>
