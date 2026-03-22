@@ -377,12 +377,26 @@
     wide = isWide();
   }
 
+  let previousHash = "";
+
   function navigate(p) {
     if (p === "back") {
+      if (previousHash) {
+        window.location.hash = previousHash;
+        previousHash = "";
+        page = parseHash().page;
+        editId = null;
+        menuOpen = false;
+        fetchCallsign();
+        return;
+      }
       p = previousPage;
     }
     if ((p === "add" || p === "hunting" || p === "log") && isWide()) p = "dual";
-    if (page !== p) previousPage = page;
+    if (page !== p) {
+      previousPage = page;
+      previousHash = window.location.hash.slice(1) || "/";
+    }
     page = p;
     editId = null;
     menuOpen = false;
