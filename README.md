@@ -8,7 +8,9 @@ with a local web UI, optionally connected to your radio via
 [flrig](http://www.w1hkj.com/flrig-help/). 
 
 The current release of Rigbook is a feature-rich logbook for operators 
-engaged in POTA and/or SKCC activities. 
+engaged in POTA and/or SKCC activities.
+
+**[Windows installation guide](https://wa7pge.com/static/rigbook/rigbook-windows-install.html)** *(thanks WA7PGE!)*
 
 ## Features
 
