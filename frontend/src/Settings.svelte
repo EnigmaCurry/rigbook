@@ -486,11 +486,11 @@
       <input id="hamalert_port" type="text" bind:value={hamalert_port} autocomplete="off" inputmode="numeric" disabled={!hamalert_enabled} />
     </div>
     <div class="setting-row">
-      <label for="hamalert_username">Username</label>
+      <label for="hamalert_username">Telnet Username</label>
       <input id="hamalert_username" type="text" bind:value={hamalert_username} autocomplete="off" disabled={!hamalert_enabled} />
     </div>
     <div class="setting-row">
-      <label for="hamalert_password">{hasHamalertPassword ? "Change Password" : "Password"}</label>
+      <label for="hamalert_password">{hasHamalertPassword ? "Change Telnet Password" : "Telnet Password"}</label>
       <input id="hamalert_password" type="password" bind:value={hamalert_password} autocomplete="off" disabled={!hamalert_enabled} placeholder={hasHamalertPassword ? "Leave blank to keep current" : ""} />
     </div>
   </section>
