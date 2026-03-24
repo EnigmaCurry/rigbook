@@ -30,11 +30,14 @@
   }
 
   const initFilters = parseFiltersFromHash();
+  const hasHashFilters = Object.keys(initFilters).length > 0;
   let filterSource = initFilters.source || "";
   let filterBand = initFilters.band || "";
   let filterMode = initFilters.mode || "";
   let filterCallsign = initFilters.callsign || "";
   let filterSkcc = initFilters.skcc || "";
+  let savedFilters = null; // what's stored as the default
+  let filtersLoaded = false;
   let restarting = false;
   let qrzConfigured = true;
   const qrz = new QrzLookup(() => { spots = spots; });
@@ -134,11 +137,73 @@
     }
   }
 
-  onMount(() => {
+  function currentFilters() {
+    return {
+      source: filterSource,
+      band: filterBand,
+      mode: filterMode,
+      callsign: filterCallsign,
+      skcc: filterSkcc,
+    };
+  }
+
+  function filtersMatch(a, b) {
+    if (!a || !b) return false;
+    return a.source === b.source && a.band === b.band && a.mode === b.mode
+      && a.callsign === b.callsign && a.skcc === b.skcc;
+  }
+
+  $: isDefault = filtersLoaded && filtersMatch(currentFilters(), savedFilters);
+
+  async function loadDefaultFilters() {
+    try {
+      const res = await fetch("/api/settings/spot_filters");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.value) {
+          savedFilters = JSON.parse(data.value);
+          if (!hasHashFilters && savedFilters) {
+            filterSource = savedFilters.source || "";
+            filterBand = savedFilters.band || "";
+            filterMode = savedFilters.mode || "";
+            filterCallsign = savedFilters.callsign || "";
+            filterSkcc = savedFilters.skcc || "";
+            updateHash();
+          }
+        }
+      }
+    } catch {}
+    filtersLoaded = true;
+  }
+
+  async function saveDefaultFilters() {
+    savedFilters = currentFilters();
+    try {
+      await fetch("/api/settings/spot_filters", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: JSON.stringify(savedFilters) }),
+      });
+    } catch {}
+  }
+
+  async function clearDefaultFilters() {
+    savedFilters = null;
+    try {
+      await fetch("/api/settings/spot_filters", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: "" }),
+      });
+    } catch {}
+  }
+
+  onMount(async () => {
     checkQrzConfigured();
     fetchStatus();
     fetchBands();
     fetchModes();
+    await loadDefaultFilters();
     fetchSpots();
     statusInterval = setInterval(() => { fetchStatus(); fetchBands(); fetchModes(); }, 5000);
     spotsInterval = setInterval(fetchSpots, 3000);
@@ -226,6 +291,13 @@
         <option value="">SKCC: Any</option>
         <option value="required">SKCC: Required</option>
       </select>
+    {/if}
+    {#if filtersLoaded}
+      {#if !isDefault}
+        <button class="default-btn save" on:click={saveDefaultFilters} title="Save current filters as default">Save as default</button>
+      {:else if savedFilters}
+        <button class="default-btn clear" on:click={clearDefaultFilters} title="Clear saved default filters">Clear default</button>
+      {/if}
     {/if}
   </div>
 
@@ -373,6 +445,22 @@
     outline: none;
     border-color: var(--accent);
   }
+
+  .default-btn {
+    background: var(--btn-secondary);
+    color: var(--text);
+    border: none;
+    padding: 0.3rem 0.6rem;
+    font-family: inherit;
+    font-size: 0.8rem;
+    border-radius: 3px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .default-btn:hover { background: var(--btn-secondary-hover); }
+  .default-btn.save { background: var(--accent); color: var(--bg); }
+  .default-btn.save:hover { opacity: 0.85; }
+  .default-btn.clear { opacity: 0.7; font-size: 0.75rem; }
 
   .band-badges {
     display: flex;
