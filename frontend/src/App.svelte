@@ -126,6 +126,35 @@
   let formDirty = false;
   let activePark = "";
   let dualShowForm = !!editId || (page === "dual" && (window.location.hash.slice(1) === "/add"));
+  let dualSplit = parseFloat(localStorage.getItem("dualSplit")) || 50;
+  let draggingSplit = false;
+
+  function onDividerDown(e) {
+    e.preventDefault();
+    draggingSplit = true;
+    const onMove = (ev) => {
+      const clientX = ev.touches ? ev.touches[0].clientX : ev.clientX;
+      const layout = e.target.closest(".dual-layout");
+      if (!layout) return;
+      const rect = layout.getBoundingClientRect();
+      let pct = ((clientX - rect.left) / rect.width) * 100;
+      if (pct < 10) pct = 10;
+      if (pct > 90) pct = 90;
+      dualSplit = pct;
+    };
+    const onUp = () => {
+      draggingSplit = false;
+      localStorage.setItem("dualSplit", String(dualSplit));
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("touchmove", onMove);
+      window.removeEventListener("touchend", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    window.addEventListener("touchmove", onMove);
+    window.addEventListener("touchend", onUp);
+  }
   let dualHunting;
   let dualParks;
   let gridMapValue = "";
@@ -1015,11 +1044,13 @@
   {:else if page === "hunting"}
     <Hunting {potaEnabled} {spotsEnabled} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
   {:else if page === "dual"}
-    <div class="dual-layout" class:dual-narrow={!wide}>
-      <div class="dual-pane">
+    <div class="dual-layout" class:dual-narrow={!wide} class:dragging={draggingSplit}>
+      <div class="dual-pane" style="flex: 0 0 {dualSplit}%">
         <Logbook showForm={dualShowForm || !!prefill || !!editId} {prefill} {editId} {vfoFreq} {vfoMode} bind:formDirty bind:activePark on:editchange={e => { editId = e.detail; dualShowForm = !!e.detail; }} on:navigate={e => { if (e.detail === "hunting" || e.detail === "log" || e.detail === "back") { prefill = null; editId = null; dualShowForm = false; dualHunting?.refreshAwards(); if (!wide) navigate(dualRightPage); } else navigate(e.detail); }} on:prefillconsumed={() => prefill = null} on:parkschanged={() => dualParks?.refreshParks()} />
       </div>
-      <div class="dual-pane">
+      <!-- svelte-ignore a11y-no-static-element-interactions -->
+      <div class="dual-divider" on:mousedown={onDividerDown} on:touchstart={onDividerDown}></div>
+      <div class="dual-pane" style="flex: 1">
         {#if dualRightPage === "hunting"}
           <Hunting bind:this={dualHunting} {potaEnabled} {spotsEnabled} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
         {:else if dualRightPage === "spots"}
@@ -1575,8 +1606,22 @@
     overflow-y: auto;
     padding: 0 0.75rem;
   }
-  .dual-pane + .dual-pane {
-    border-left: 1px solid var(--border);
+  .dual-divider {
+    width: 5px;
+    cursor: col-resize;
+    background: var(--border);
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .dual-divider:hover, .dual-layout.dragging .dual-divider {
+    background: var(--accent);
+  }
+  .dual-layout.dragging {
+    user-select: none;
+    cursor: col-resize;
+  }
+  .dual-narrow .dual-divider {
+    display: none;
   }
   .dual-narrow .dual-pane:last-child {
     display: none;
