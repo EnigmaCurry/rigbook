@@ -209,6 +209,23 @@
     connectSSE();
   }
 
+  async function attemptReconnect() {
+    try {
+      const res = await fetch("/api/settings/my_callsign");
+      if (res.ok) {
+        serverShutdown = false;
+        document.title = "Rigbook";
+        const link = document.querySelector("link[rel~='icon']");
+        if (link) link.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📻</text></svg>";
+        startAppServices();
+      } else {
+        alert("Server is not available yet.");
+      }
+    } catch {
+      alert("Server is not available yet.");
+    }
+  }
+
   function stopAppServices() {
     clearInterval(flrigInterval);
     if (eventSource) { eventSource.close(); eventSource = null; }
@@ -808,6 +825,7 @@
     <div class="welcome-container">
       <div class="welcome-card">
         <p>Server has shut down.</p>
+        <button class="welcome-btn" on:click={attemptReconnect}>Reconnect</button>
       </div>
     </div>
   {:else if pendingLogbook}
