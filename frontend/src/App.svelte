@@ -534,7 +534,12 @@
   }
 
   function goHome() {
-    navigate(isWide() ? "dual" : "log");
+    if (isWide()) {
+      if (potaEnabled) dualRightPage = "hunting";
+      navigate("dual");
+    } else {
+      navigate("log");
+    }
   }
 
   async function fetchWideBreakpoint() {
@@ -876,7 +881,7 @@
       {#if myCallsign}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="callsign" on:click={goHome} style="cursor: pointer">{myCallsign}</span>
+        <span class="callsign" on:click={() => navigate("settings")} style="cursor: pointer">{myCallsign}</span>
       {/if}
       {#if vfoEditing}
         <span class="vfo-edit">
