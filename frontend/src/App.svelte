@@ -521,7 +521,10 @@
       if (rbnRes.ok) { const d = await rbnRes.json(); rbn = d.value === "true"; }
       if (haRes.ok) { const d = await haRes.json(); ha = d.value === "true"; }
       spotsEnabled = rbn || ha;
-    } catch {}
+      console.log("[debug] fetchSpotsEnabled: rbn=" + rbn + " ha=" + ha + " spotsEnabled=" + spotsEnabled);
+    } catch (e) {
+      console.log("[debug] fetchSpotsEnabled error:", e);
+    }
   }
 
   async function fetchPotaEnabled() {
@@ -827,7 +830,7 @@
     window.addEventListener("resize", onResize);
     await checkLogbookMode();
     if (logbookOpen) {
-      startAppServices();
+      await startAppServices();
       await checkNeedsSetup();
     } else if (pickerMode) {
       page = "picker";
