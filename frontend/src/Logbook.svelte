@@ -176,7 +176,17 @@
   $: prevContactCount = call.trim() ? contacts.filter(c => c.call?.toUpperCase() === call.trim().toUpperCase()).length : 0;
 
   let logFilter = "all";
-  $: if (prevContactCount === 0) logFilter = "all";
+  let lastFilterCall = "";
+  $: {
+    const trimmed = call.trim().toUpperCase();
+    if (prevContactCount === 0) {
+      logFilter = "all";
+      lastFilterCall = trimmed;
+    } else if (trimmed !== lastFilterCall) {
+      logFilter = "call";
+      lastFilterCall = trimmed;
+    }
+  }
 
   $: sortedContacts = [...contacts].sort((a, b) => {
     let va = a[sortCol] ?? "";
