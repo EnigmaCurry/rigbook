@@ -8,6 +8,7 @@
   import Search from "./Search.svelte";
   import Settings from "./Settings.svelte";
   import About from "./About.svelte";
+  import Conditions from "./Conditions.svelte";
   import Parks from "./Parks.svelte";
   import Links from "./Links.svelte";
   import Notifications from "./Notifications.svelte";
@@ -95,6 +96,7 @@
     if (hash === "/picker") return { page: "picker", editId: null, dualRight: null };
     if (hash === "/grid") return { page: "grid", editId: null, dualRight: null };
     if (hash === "/about") return { page: "about", editId: null, dualRight: null };
+    if (hash === "/conditions") return { page: "conditions", editId: null, dualRight: null };
     if (hash === "/links") return { page: "links", editId: null, dualRight: null };
     if (hash === "/settings") return { page: "settings", editId: null, dualRight: null };
     if (hash === "/export") return { page: "export", editId: null, dualRight: null };
@@ -173,6 +175,7 @@
   let vfoEditMode = "";
   let potaEnabled = true;
   let spotsEnabled = false;
+  let solarEnabled = false;
   let flrigEnabled = false;
   let flrigInterval;
   let utcNow = new Date().toISOString().slice(0, 19).replace("T", " ") + "z";
@@ -234,6 +237,7 @@
   async function startAppServices() {
     fetchCallsign();
     await fetchLogbookRight();
+    await fetchSolarEnabled();
     await fetchSpotsEnabled();
     await fetchPotaEnabled();
     await fetchFlrigEnabled();
@@ -544,6 +548,16 @@
     } catch {}
   }
 
+  async function fetchSolarEnabled() {
+    try {
+      const res = await fetch("/api/settings/solar_enabled");
+      if (res.ok) {
+        const data = await res.json();
+        solarEnabled = data.value === "true";
+      }
+    } catch {}
+  }
+
   async function fetchLogbookRight() {
     try {
       const res = await fetch("/api/settings/logbook_right");
@@ -636,6 +650,7 @@
     // Redirect disabled pages to home
     if (p === "spots" && !spotsEnabled) p = "log";
     if (p === "parks" && !potaEnabled) p = "log";
+    if (p === "conditions" && !solarEnabled) p = "log";
     if (isWide() && (p === "add" || p === "log" || DUAL_RIGHT_PAGES.has(p))) {
       if (DUAL_RIGHT_PAGES.has(p)) dualRightPage = p;
       p = "dual";
@@ -650,7 +665,7 @@
     if (p === "dual") {
       window.location.hash = `/dual/${dualRightPage}`;
     } else {
-      const paths = { hunting: "/hunting", log: "/logbook", add: "/add", grid: "/grid", parks: "/parks", spots: "/spots", export: "/export", notifications: "/notifications", settings: "/settings", links: "/links", about: "/about", picker: "/picker" };
+      const paths = { hunting: "/hunting", log: "/logbook", add: "/add", grid: "/grid", parks: "/parks", spots: "/spots", export: "/export", notifications: "/notifications", conditions: "/conditions", settings: "/settings", links: "/links", about: "/about", picker: "/picker" };
       window.location.hash = paths[p] || "/";
     }
     fetchCallsign();
@@ -1038,6 +1053,7 @@
           {#if potaEnabled}<button class="menu-item" class:active={page === "parks" || (page === "dual" && dualRightPage === "parks")} on:click={() => navigate("parks")}>Parks</button>{/if}
           {#if spotsEnabled}<button class="menu-item" class:active={page === "spots" || (page === "dual" && dualRightPage === "spots")} on:click={() => navigate("spots")}>Spots</button>{/if}
           <button class="menu-item" class:active={page === "notifications" || (page === "dual" && dualRightPage === "notifications")} on:click={() => navigate("notifications")}>Notifications{#if unreadCount > 0} ({unreadCount}){/if}</button>
+          {#if solarEnabled}<button class="menu-item" class:active={page === "conditions"} on:click={() => navigate("conditions")}>Conditions</button>{/if}
           <button class="menu-item" class:active={page === "export"} on:click={() => navigate("export")}>Export / Import</button>
           <button class="menu-item" class:active={page === "settings"} on:click={() => navigate("settings")}>Settings</button>
           <button class="menu-item" class:active={page === "links"} on:click={() => navigate("links")}>Links</button>
@@ -1087,9 +1103,11 @@
   {:else if page === "spots"}
     <Spots {potaEnabled} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
   {:else if page === "settings"}
-    <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} on:deleted={e => { if (e.detail.shutdown) { serverShutdown = true; } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { await fetchLogbookRight(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { stopAppServices(); }} />
+    <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} on:deleted={e => { if (e.detail.shutdown) { serverShutdown = true; } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { stopAppServices(); }} />
   {:else if page === "links"}
     <Links />
+  {:else if page === "conditions"}
+    <Conditions />
   {:else if page === "about"}
     <About />
   {/if}

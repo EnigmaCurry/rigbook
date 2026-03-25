@@ -13,6 +13,7 @@
   let qrz_password = "";
   let hasQrzPassword = false;
   let pota_enabled = true;
+  let solar_enabled = false;
   let flrig_enabled = false;
   let flrig_simulate = false;
   let flrig_host = "127.0.0.1";
@@ -166,6 +167,7 @@
           if (s.key === "default_rst") default_rst = s.value || "599";
           if (s.key === "qrz_password") hasQrzPassword = !!s.value && s.value !== "";
           if (s.key === "pota_enabled") pota_enabled = s.value !== "false";
+          if (s.key === "solar_enabled") solar_enabled = s.value === "true";
           if (s.key === "flrig_enabled") flrig_enabled = s.value === "true";
           if (s.key === "flrig_simulate") flrig_simulate = s.value === "true";
           if (s.key === "flrig_host") flrig_host = s.value || "127.0.0.1";
@@ -231,6 +233,11 @@
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value: pota_enabled ? "true" : "false" }),
+      });
+      await fetch("/api/settings/solar_enabled", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: solar_enabled ? "true" : "false" }),
       });
       await fetch("/api/settings/flrig_enabled", {
         method: "PUT",
@@ -464,6 +471,16 @@
       <label>
         <input type="checkbox" bind:checked={pota_enabled} />
         Enable POTA
+      </label>
+    </div>
+  </section>
+
+  <section class="settings-section">
+    <h3>Solar / Band Conditions</h3>
+    <div class="setting-row toggle-row">
+      <label>
+        <input type="checkbox" bind:checked={solar_enabled} />
+        Enable band conditions (N0NBH / hamqsl.com)
       </label>
     </div>
   </section>
