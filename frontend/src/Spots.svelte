@@ -144,7 +144,15 @@
   function addQsoWithPota(spot) {
     const pota = getPotaSpot(spot);
     if (pota) {
-      dispatch("addqso", { ...spot, activator: spot.callsign, reference: pota.reference, grid4: pota.grid4, locationDesc: pota.locationDesc });
+      dispatch("addqso", {
+        activator: String(spot.callsign || ""),
+        frequency: String(spot.frequency || ""),
+        mode: String(spot.mode || ""),
+        reference: String(pota.reference || ""),
+        grid4: String(pota.grid4 || ""),
+        locationDesc: String(pota.locationDesc || ""),
+        skcc: String(spot.skcc || ""),
+      });
     } else {
       dispatch("addqso", spot);
     }
