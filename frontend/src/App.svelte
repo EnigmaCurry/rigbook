@@ -575,8 +575,8 @@
         country: String(spot.country || ""),
         state: String(spot.qrz_state || ""),
       };
-      if (page === "dual") dualShowForm = true;
-      else navigate("add");
+      dualShowForm = true;
+      if (page !== "dual") navigate("add");
       return;
     }
 
@@ -611,8 +611,8 @@
       country: spotCountry,
       state: spotState,
     };
-    if (page === "dual") dualShowForm = true;
-    else navigate("add");
+    dualShowForm = true;
+    if (page !== "dual") navigate("add");
   }
 
   function handleSearchAction(e) {
