@@ -9,6 +9,7 @@
 
   const dispatch = createEventDispatcher();
   export let potaEnabled = true;
+  export let spotsEnabled = false;
 
   let spots = [];
   let loading = true;
@@ -334,7 +335,7 @@
 </script>
 
 <div class="hunting">
-  {#if !potaEnabled && !skccSkimmerEnabled}
+  {#if !potaEnabled && !(skccSkimmerEnabled && spotsEnabled)}
     <h2>Hunting</h2>
     <p class="status">No hunting activities enabled. Enable POTA or SKCC Skimmer in <a href="#/settings">Settings</a>.</p>
   {:else}
@@ -363,7 +364,7 @@
     </div>
   </div>
 
-  {#if skccSkimmerEnabled}
+  {#if skccSkimmerEnabled && spotsEnabled}
     <SkccSkimmer filterMode={filterMode} filterBand={filterBand} workedTodayKeys={workedTodayCwKeys} {potaEnabled} on:tune on:addqso />
   {/if}
 
