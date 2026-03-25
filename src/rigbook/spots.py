@@ -349,6 +349,12 @@ class SpotCache:
                     wwff_ref=spot.wwff_ref,
                 )
 
+    async def purge_source(self, source: str) -> None:
+        async with self._lock:
+            to_remove = [k for k, e in self._entries.items() if e.source == source]
+            for key in to_remove:
+                del self._entries[key]
+
     async def prune(self) -> None:
         cutoff = _time.time() - SPOT_TTL
         async with self._lock:
@@ -913,6 +919,7 @@ async def _apply_settings(settings: dict[str, str]) -> None:
             await rbn_feed.stop()
     else:
         await rbn_feed.stop()
+        await spot_cache.purge_source("rbn")
 
     # HamAlert
     ha_enabled = settings.get("hamalert_enabled", "false").lower() == "true"
@@ -931,6 +938,7 @@ async def _apply_settings(settings: dict[str, str]) -> None:
             await hamalert_feed.stop()
     else:
         await hamalert_feed.stop()
+        await spot_cache.purge_source("hamalert")
 
 
 async def start_feeds() -> None:

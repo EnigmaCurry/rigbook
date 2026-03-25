@@ -140,6 +140,7 @@
   let vfoEditFreq = "";
   let vfoEditMode = "";
   let potaEnabled = true;
+  let spotsEnabled = false;
   let flrigEnabled = false;
   let flrigInterval;
   let utcNow = new Date().toISOString().slice(0, 19).replace("T", " ") + "z";
@@ -200,6 +201,7 @@
 
   async function startAppServices() {
     fetchCallsign();
+    await fetchSpotsEnabled();
     await fetchPotaEnabled();
     await fetchFlrigEnabled();
     if (flrigEnabled) {
@@ -505,6 +507,16 @@
       if (res.ok) {
         const data = await res.json();
         myCallsign = data.value || "";
+      }
+    } catch {}
+  }
+
+  async function fetchSpotsEnabled() {
+    try {
+      const res = await fetch("/api/spots/status");
+      if (res.ok) {
+        const data = await res.json();
+        spotsEnabled = data.rbn?.enabled || data.hamalert?.enabled;
       }
     } catch {}
   }
@@ -930,14 +942,14 @@
     <div class="hamburger-wrap">
       {#if wide}
         {#if potaEnabled}<button class="add-btn dual-btn" class:active-nav={dualRightPage === "hunting"} on:click={() => navigate("hunting")} title="Logbook & Hunting">{#if dualRightPage === "hunting"}📖{/if}🧭</button>{/if}
-        <button class="add-btn dual-btn" class:active-nav={dualRightPage === "spots"} on:click={() => navigate("spots")} title="Logbook & Spots">{#if dualRightPage === "spots"}📖{/if}🗺️</button>
+        {#if spotsEnabled}<button class="add-btn dual-btn" class:active-nav={dualRightPage === "spots"} on:click={() => navigate("spots")} title="Logbook & Spots">{#if dualRightPage === "spots"}📖{/if}🗺️</button>{/if}
         {#if potaEnabled}<button class="add-btn dual-btn parks-btn" class:active-nav={dualRightPage === "parks"} on:click={() => navigate("parks")} title="Logbook & Parks">{#if dualRightPage === "parks"}📖{/if}🌲</button>{/if}
         <button class="add-btn dual-btn notification-btn" class:active-nav={dualRightPage === "notifications"} on:click={handleNotificationClick} title="Logbook & Notifications">{#if dualRightPage === "notifications"}📖{/if}{#if unreadCount > 0}<span class="notif-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>{:else}✉️{/if}</button>
       {:else}
         <button class="add-btn" on:click={() => navigate("log")} title="Logbook">📖</button>
         {#if potaEnabled}<button class="add-btn" on:click={() => navigate("hunting")} title="Hunting">🧭</button>{/if}
         {#if potaEnabled}<button class="add-btn parks-btn" on:click={() => navigate("parks")} title="My Parks">🌲</button>{/if}
-        <button class="add-btn" on:click={() => navigate("spots")} title="Spots">🗺️</button>
+        {#if spotsEnabled}<button class="add-btn" on:click={() => navigate("spots")} title="Spots">🗺️</button>{/if}
         <button class="add-btn notification-btn" class:has-unread={unreadCount > 0} on:click={handleNotificationClick} title="Notifications">
           {#if unreadCount > 0}
             <span class="notif-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>
@@ -962,7 +974,7 @@
           {#if potaEnabled}<button class="menu-item" class:active={page === "hunting" || (page === "dual" && dualRightPage === "hunting")} on:click={() => navigate("hunting")}>Hunting</button>{/if}
           <button class="menu-item" class:active={page === "grid"} on:click={() => navigate("grid")}>Grid Map</button>
           {#if potaEnabled}<button class="menu-item" class:active={page === "parks" || (page === "dual" && dualRightPage === "parks")} on:click={() => navigate("parks")}>Parks</button>{/if}
-          <button class="menu-item" class:active={page === "spots" || (page === "dual" && dualRightPage === "spots")} on:click={() => navigate("spots")}>Spots</button>
+          {#if spotsEnabled}<button class="menu-item" class:active={page === "spots" || (page === "dual" && dualRightPage === "spots")} on:click={() => navigate("spots")}>Spots</button>{/if}
           <button class="menu-item" class:active={page === "notifications" || (page === "dual" && dualRightPage === "notifications")} on:click={() => navigate("notifications")}>Notifications{#if unreadCount > 0} ({unreadCount}){/if}</button>
           <button class="menu-item" class:active={page === "export"} on:click={() => navigate("export")}>Export / Import</button>
           <button class="menu-item" class:active={page === "settings"} on:click={() => navigate("settings")}>Settings</button>
@@ -1011,7 +1023,7 @@
   {:else if page === "spots"}
     <Spots {potaEnabled} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
   {:else if page === "settings"}
-    <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} on:deleted={e => { if (e.detail.shutdown) { serverShutdown = true; } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:shutdown={() => { stopAppServices(); }} />
+    <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} on:deleted={e => { if (e.detail.shutdown) { serverShutdown = true; } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:shutdown={() => { stopAppServices(); }} />
   {:else if page === "links"}
     <Links />
   {:else if page === "about"}
