@@ -343,6 +343,7 @@
       if (res.ok) {
         const data = await res.json();
         if (!skcc.trim()) skcc = data.skcc || "";
+        if (!editingId && addOriginal) addOriginal = { ...addOriginal, skcc };
       }
     } catch {}
 
