@@ -93,11 +93,18 @@
   let errorMsg = "";
   let editingId = null;
   let editOriginal = null;
+  let addOriginal = null;
   let showGridPicker = false;
   $: if (typeof document !== "undefined") {
     document.body.style.overflow = showGridPicker ? "hidden" : "";
   }
   export let showForm = true;
+  export let formDirty = false;
+
+  function formSnapshot() {
+    return { call, freq, mode, rst_sent, rst_recv, pota_park, name, qth, state, country, grid, skcc, skcc_exch, comments, notes, datePart, timePart };
+  }
+
   $: editHasChanges = !editingId || !editOriginal || (
     call !== editOriginal.call ||
     freq !== editOriginal.freq ||
@@ -117,6 +124,28 @@
     datePart !== editOriginal.datePart ||
     timePart !== editOriginal.timePart
   );
+
+  $: addHasChanges = !addOriginal ? false : (
+    call !== addOriginal.call ||
+    freq !== addOriginal.freq ||
+    mode !== addOriginal.mode ||
+    rst_sent !== addOriginal.rst_sent ||
+    rst_recv !== addOriginal.rst_recv ||
+    pota_park !== addOriginal.pota_park ||
+    name !== addOriginal.name ||
+    qth !== addOriginal.qth ||
+    state !== addOriginal.state ||
+    country !== addOriginal.country ||
+    grid !== addOriginal.grid ||
+    skcc !== addOriginal.skcc ||
+    skcc_exch !== addOriginal.skcc_exch ||
+    comments !== addOriginal.comments ||
+    notes !== addOriginal.notes ||
+    datePart !== addOriginal.datePart ||
+    timePart !== addOriginal.timePart
+  );
+
+  $: formDirty = editingId ? editHasChanges : addHasChanges;
 
   let sortCol = "timestamp";
   let sortAsc = false;
@@ -270,6 +299,7 @@
     }
     if (prefill.state) state = prefill.state;
     if (prefill.skcc) skcc = prefill.skcc;
+    addOriginal = formSnapshot();
     dispatch("prefillconsumed");
     // Lookup name from QRZ
     if (prefill.call) lookupCallsign(prefill.call.toUpperCase());
@@ -278,9 +308,11 @@
   // Auto-fill freq/mode from VFO when not editing and no prefill
   $: if (!editingId && !prefill && vfoFreq) {
     freq = String(parseFloat(vfoFreq) / 1000);
+    if (addOriginal) addOriginal = { ...addOriginal, freq };
   }
   $: if (!editingId && !prefill && vfoMode) {
     mode = vfoMode;
+    if (addOriginal) addOriginal = { ...addOriginal, mode };
   }
 
   let lastQrzCall = "";
@@ -332,6 +364,10 @@
         }
         if (!state && data.state) { state = data.state; normalizeState(); }
         if (!grid && data.grid) grid = data.grid;
+      }
+      // Update addOriginal so auto-filled fields don't make form dirty
+      if (!editingId && addOriginal) {
+        addOriginal = { ...addOriginal, name, qth, state, country, grid, skcc, skcc_exch };
       }
     } catch {}
   }
@@ -484,6 +520,10 @@
   }
 
   function editContact(c) {
+    if (formDirty) {
+      alert("Save or cancel your current QSO before selecting a new contact.");
+      return;
+    }
     editingId = c.id;
     showForm = true;
     dispatch("editchange", c.id);
@@ -622,6 +662,7 @@
     datePart = "";
     timePart = "";
     subdivisions = [];
+    addOriginal = formSnapshot();
   }
 
   async function submitContact() {
@@ -706,6 +747,11 @@
     else loadEditFromId(editId);
   } else if (!editId) {
     handledEditId = null;
+    if (editingId) {
+      editingId = null;
+      editOriginal = null;
+      clearForm();
+    }
   }
 
   onMount(() => {

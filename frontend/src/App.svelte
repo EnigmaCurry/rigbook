@@ -1,5 +1,5 @@
 <script>
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, tick } from "svelte";
   import Logbook from "./Logbook.svelte";
   import ExportImport from "./ExportImport.svelte";
   import Hunting from "./Hunting.svelte";
@@ -113,6 +113,7 @@
   let { page, editId } = parseHash();
   let previousPage = "log";
   let prefill = null;
+  let formDirty = false;
   let dualShowForm = !!editId || (page === "dual" && (window.location.hash.slice(1) === "/add"));
   let dualHunting;
   let gridMapValue = "";
@@ -551,7 +552,18 @@
   }
 
   async function tuneAndPrefill(spot) {
+    if (formDirty) {
+      alert("Save or cancel your current QSO before selecting a new spot.");
+      return;
+    }
+
     await tuneOnly(spot);
+
+    // If in edit mode but clean, clear edit to accept new spot
+    if (editId) {
+      editId = null;
+      await tick();
+    }
 
     // SKCC/RBN spot (has callsign field, no activator)
     if (spot.callsign && !spot.activator) {
@@ -606,6 +618,7 @@
   function handleSearchAction(e) {
     const { type, data } = e.detail;
     if (type === "logbook") {
+      if (formDirty) { alert("Save or cancel your current QSO before selecting a new spot."); return; }
       const target = isWide() ? "dual" : "add";
       if ((target === "add" || target === "hunting" || target === "log") && isWide()) { /* already dual */ }
       if (page !== target) previousPage = page;
@@ -621,6 +634,7 @@
     } else if (type === "pota") {
       tuneAndPrefill(data);
     } else if (type === "skcc") {
+      if (formDirty) { alert("Save or cancel your current QSO before selecting a new spot."); return; }
       prefill = {
         call: data.call || "",
         freq: "",
@@ -891,20 +905,20 @@
   {#if page === "log"}
     <Logbook showForm={false} {vfoFreq} {vfoMode} on:editchange={e => { editId = e.detail; navigate("add"); window.location.hash = `/log/${e.detail}`; }} on:navigate={e => navigate(e.detail)} />
   {:else if page === "add"}
-    <Logbook showForm={true} {editId} {prefill} {vfoFreq} {vfoMode} on:editchange={e => { editId = e.detail; window.location.hash = e.detail ? `/log/${e.detail}` : "/add"; }} on:navigate={e => navigate(e.detail)} on:prefillconsumed={() => prefill = null} />
+    <Logbook showForm={true} {editId} {prefill} {vfoFreq} {vfoMode} bind:formDirty on:editchange={e => { editId = e.detail; window.location.hash = e.detail ? `/log/${e.detail}` : "/add"; }} on:navigate={e => navigate(e.detail)} on:prefillconsumed={() => prefill = null} />
   {:else if page === "hunting"}
     <Hunting on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
   {:else if page === "dual"}
     <div class="dual-layout">
       <div class="dual-pane">
-        <Logbook showForm={dualShowForm || !!prefill || !!editId} {prefill} {editId} {vfoFreq} {vfoMode} on:editchange={e => { editId = e.detail; dualShowForm = !!e.detail; }} on:navigate={e => { if (e.detail === "hunting" || e.detail === "log" || e.detail === "back") { prefill = null; editId = null; dualShowForm = false; dualHunting?.refreshAwards(); } else navigate(e.detail); }} on:prefillconsumed={() => prefill = null} />
+        <Logbook showForm={dualShowForm || !!prefill || !!editId} {prefill} {editId} {vfoFreq} {vfoMode} bind:formDirty on:editchange={e => { editId = e.detail; dualShowForm = !!e.detail; }} on:navigate={e => { if (e.detail === "hunting" || e.detail === "log" || e.detail === "back") { prefill = null; editId = null; dualShowForm = false; dualHunting?.refreshAwards(); } else navigate(e.detail); }} on:prefillconsumed={() => prefill = null} />
       </div>
       <div class="dual-pane">
         <Hunting bind:this={dualHunting} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
       </div>
     </div>
   {:else if page === "parks"}
-    <Parks on:addqso={e => { prefill = e.detail; dualShowForm = true; navigate(isWide() ? "dual" : "add"); }} />
+    <Parks on:addqso={e => { if (formDirty) { alert("Save or cancel your current QSO before selecting a new spot."); return; } prefill = e.detail; dualShowForm = true; navigate(isWide() ? "dual" : "add"); }} />
   {:else if page === "grid"}
     <GridMap bind:value={gridMapValue} on:select={e => { gridMapValue = e.detail; }} />
   {:else if page === "export"}
