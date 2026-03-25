@@ -290,6 +290,11 @@
     eventSource.addEventListener("shutdown", () => {
       stopAppServices();
       serverShutdown = true;
+      document.title = "Close this tab";
+      const link = document.querySelector("link[rel~='icon']") || document.createElement("link");
+      link.rel = "icon";
+      link.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💤</text></svg>";
+      document.head.appendChild(link);
     });
     eventSource.onerror = () => {
       if (serverShutdown) return;
