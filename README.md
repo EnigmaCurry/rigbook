@@ -17,10 +17,11 @@ engaged in POTA and/or SKCC activities.
 - Log QSO contacts with callsign, frequency, mode, signal reports, and
   more
 - Auto-fill frequency and mode from your radio via flrig XMLRPC
-- Everything in the header is clickable: **Rigbook** and **callsign** go
-  home, **VFO frequency** opens the VFO editor with band plan, **mode**
-  cycles radio modes, **UTC clock** copies the timestamp to clipboard,
-  **📖** logbook, **🧭** hunting, **🌲** My Parks, and **+** adds a new QSO
+- Everything in the header is clickable: **Rigbook** goes home,
+  **callsign** opens settings, **VFO frequency** opens the VFO editor
+  with band plan, **mode** cycles radio modes, **UTC clock** copies the
+  timestamp to clipboard, **🧭** hunting, **🗺️** spots, **🌲** parks,
+  **🌤️** conditions, **✉️** notifications, and **+** adds a new QSO
 - Keyboard shortcuts: `/` search, `N` new QSO, `H` hunting, `L` logbook,
   `P` parks, `T` tune radio, `M` cycle mode, `?` about, `Esc` close
 - Country and state autocomplete (all ISO countries and subdivisions),
@@ -31,7 +32,14 @@ engaged in POTA and/or SKCC activities.
 - Parks browser — download and cache park data by country, browse parks
   in a tree by country/location, view park details with OpenStreetMap
   embed, personal QSO count, and award emojis
-- Sortable log table with click-to-edit
+- Sortable log table with click-to-edit and draggable column reordering
+  (column order and sort preference persisted to localStorage)
+- Dual-pane layout on wide screens — logbook on one side with any
+  content page (Hunting, Spots, Parks, Notifications, Conditions) on
+  the other, with a draggable resizable divider
+- Optionally place the logbook on the right side (Settings → Appearance)
+- Form protection — unsaved QSO changes prevent accidental navigation,
+  with changed fields highlighted
 - ADIF export and import
 - Hunting page — browse active Parks on the Air activators and nearby
   SKCC members on CW, filter by mode/band/distance, click to tune your
@@ -39,9 +47,11 @@ engaged in POTA and/or SKCC activities.
 - Reverse Beacon Network (RBN) and HamAlert spot feeds with real-time
   aggregation, per-spotter TTL, and distance calculation
 - Spots page — filterable, sortable table of all RBN/HamAlert spots
-  with SKCC cross-reference, QRZ location lookup, deep-linkable
-  filter URLs, and clickable callsigns/frequencies to log QSOs or
-  tune your radio
+  with SKCC cross-reference, POTA activator cross-reference (🌲),
+  QRZ location lookup, closest spotter callsign/distance/SNR,
+  worked-today greying, deep-linkable filter URLs, saveable default
+  filters, and clickable callsigns/frequencies to log QSOs or tune
+  your radio
 - Notification system — HamAlert spots create persistent in-app
   notifications with clickable callsigns and frequencies; optional
   desktop browser notifications and popup modal alerts; SSE push
@@ -49,6 +59,16 @@ engaged in POTA and/or SKCC activities.
 - QRZ callsign lookup with connection test button in Settings
 - SKCC member number auto-lookup
 - All timestamps in UTC with 24-hour format
+- Band conditions page — solar flux, sunspot number, A/K indices,
+  X-ray flux, geomagnetic field, solar wind, HF band conditions
+  (day/night), and VHF conditions from N0NBH/hamqsl.com with
+  10-minute server-side caching
+- Simulated flrig mode for testing without a real radio (CW, USB,
+  LSB, RTTY, FT8)
+- Feature toggles in Settings — individually enable/disable POTA,
+  RBN, HamAlert, SKCC Skimmer, and band conditions
+- Server shutdown page with reconnect button, sleep favicon, and
+  "Close this tab" title
 - Light and dark themes (toggle in Settings)
 
 ## Binary Release
@@ -178,6 +198,13 @@ your radio via XMLRPC.
 If flrig is not running, everything still works — just enter frequency and
 mode manually.
 
+### Simulated radio
+
+Enable **Simulate flrig** in Settings to use a virtual radio without
+any hardware or flrig installation. The simulated radio supports CW,
+USB, LSB, RTTY, and FT8 modes, and responds to VFO tuning commands.
+This is useful for testing and demonstration.
+
 ## Hunting
 
 The **Hunting** page combines POTA spots and SKCC skimmer data into a
@@ -208,9 +235,11 @@ When enabled in Settings (requires RBN feed), shows nearby
 - **Click a callsign** to open the Add QSO form with SKCC number
   prefilled and QRZ lookup triggered
 - **Click a frequency** to tune your radio
+- POTA activator cross-reference — SKCC members who are also active
+  POTA activators show a 🌲 icon; clicking them prefills POTA park data
 - Spots persist for 10 minutes with per-spotter TTL
-- The skimmer is hidden when no matching spots are found or when mode
-  filter excludes CW
+- The skimmer is hidden when no matching spots are found, when mode
+  filter excludes CW, or when all spot sources are disabled
 
 ## POTA Parks
 
@@ -233,6 +262,11 @@ contacts, with a Leaflet world map showing markers for each park.
 - Click a park in the list to highlight it on the map and open its popup
 - Hover over parks to preview them on the map
 - Map popups link to park detail pages
+- When editing a QSO with a POTA park, the park is shown on the map
+  (even if not yet logged) with a green marker
+- Park list refreshes automatically after logging, editing, or
+  deleting a QSO
+- Park list fills remaining vertical space for better use of screen
 - Award emojis show your progress: ✅ 1, ✌️ 2, 📐 3, 🍀 4, ⭐ 5,
   🌟 10, 💎 15, 🏆 20+
 
@@ -309,15 +343,22 @@ cached spots from RBN and HamAlert.
   only SKCC members
 - **Home Location** column shows country/state from QRZ cache, with
   rate-limited automatic lookups (burst 20, then 1/second)
-- **Closest Spot** column shows distance and signal strength from the
-  nearest RBN spotter to your grid square
+- **Closest Spot** column shows the spotter callsign, distance, and
+  signal strength from the nearest RBN spotter to your grid square
+- Spots from active POTA activators show a 🌲 icon; clicking them
+  prefills the QSO form with POTA park data
+- Already-worked callsign/band/mode combinations are greyed out
 - Band badges use color-coded labels with luminance-based text contrast
 - Filter state is encoded in the URL for deep linking (e.g.
   `/#/spots?mode=CW&band=20m`)
+- Saveable default filters — click **Save as default** to persist
+  your preferred filter set; **Clear default** to reset
 - Cache stats show callsign count, total spots, and average
   spots per callsign
 - Spots aggregate by callsign/mode with per-spotter TTL — spotter
   count decays as individual observations expire
+- Disabling a spot source (RBN or HamAlert) immediately purges its
+  cached spots
 
 ## Notifications
 
@@ -378,6 +419,22 @@ polling. The SSE endpoint is at `/api/events/stream`.
 Click **Send Test Notification** in Settings to create a test
 notification after a 5-second delay. Use this to verify desktop and
 popup notifications are working.
+
+## Band Conditions
+
+The **Conditions** page (🌤️) shows current solar and HF/VHF
+propagation data from [N0NBH / hamqsl.com](https://www.hamqsl.com/solar.html).
+
+- Solar flux, sunspot number, A-index, K-index, X-ray class,
+  geomagnetic field status, solar wind speed, and signal noise level
+- HF band conditions for 80m–10m, rated Good/Fair/Poor for both
+  day and night
+- VHF conditions including aurora, E-skip for Europe and North America
+- Color-coded: green = good, yellow = fair, red = poor/closed
+- Data is cached server-side for 10 minutes; the page polls every
+  30 seconds
+- Enable in **Settings → Solar / Band Conditions**
+- Available as a dual-pane view alongside the logbook on wide screens
 
 ## ADIF Export / Import
 
@@ -466,8 +523,10 @@ after deletion. Otherwise, the server shuts down.
 
 The **Danger Zone** in Settings also has a **Shutdown Server** button
 that gracefully stops Rigbook. All connected browser tabs will show a
-shutdown notice via real-time SSE. Pressing Ctrl-C in the terminal
-also notifies connected clients before shutting down.
+shutdown notice via real-time SSE with a 💤 favicon and "Close this
+tab" title. A **Reconnect** button lets you reconnect if the server
+restarts. Pressing Ctrl-C in the terminal also notifies connected
+clients before shutting down.
 
 ### Container / environment variable usage
 
