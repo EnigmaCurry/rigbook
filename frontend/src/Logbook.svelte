@@ -151,21 +151,63 @@
   $: orig = editingId ? editOriginal : addOriginal;
   $: activePark = showForm ? pota_park.trim().toUpperCase() : "";
 
-  let sortCol = "timestamp";
-  let sortAsc = false;
+  let sortCol = localStorage.getItem("logSortCol") || "timestamp";
+  let sortAsc = localStorage.getItem("logSortAsc") === "true";
 
-  const columns = [
-    { key: "timestamp", label: "UTC" },
-    { key: "call", label: "Call" },
-    { key: "name", label: "Name" },
-    { key: "freq", label: "Freq" },
-    { key: "mode", label: "Mode" },
-    { key: "pota_park", label: "POTA" },
-    { key: "qth", label: "QTH" },
-    { key: "rst_sent", label: "RST S" },
-    { key: "rst_recv", label: "RST R" },
-    { key: "comments", label: "Comments" },
-  ];
+  const defaultColumnOrder = ["timestamp", "call", "name", "freq", "mode", "pota_park", "qth", "rst_sent", "rst_recv", "comments"];
+  const columnDefs = {
+    timestamp: { key: "timestamp", label: "UTC" },
+    call: { key: "call", label: "Call" },
+    name: { key: "name", label: "Name" },
+    freq: { key: "freq", label: "Freq" },
+    mode: { key: "mode", label: "Mode" },
+    pota_park: { key: "pota_park", label: "POTA" },
+    qth: { key: "qth", label: "QTH" },
+    rst_sent: { key: "rst_sent", label: "RST S" },
+    rst_recv: { key: "rst_recv", label: "RST R" },
+    comments: { key: "comments", label: "Comments" },
+  };
+
+  function loadColumnOrder() {
+    try {
+      const saved = JSON.parse(localStorage.getItem("logColumnOrder"));
+      if (Array.isArray(saved) && saved.length === defaultColumnOrder.length && saved.every(k => columnDefs[k])) return saved;
+    } catch {}
+    return [...defaultColumnOrder];
+  }
+
+  let columnOrder = loadColumnOrder();
+  $: columns = columnOrder.map(k => columnDefs[k]);
+
+  let dragCol = null;
+  let dragOverCol = null;
+
+  function onColDragStart(e, key) {
+    dragCol = key;
+    e.dataTransfer.effectAllowed = "move";
+  }
+  function onColDragOver(e, key) {
+    e.preventDefault();
+    dragOverCol = key;
+  }
+  function onColDrop(e, key) {
+    e.preventDefault();
+    if (dragCol && dragCol !== key) {
+      const from = columnOrder.indexOf(dragCol);
+      const to = columnOrder.indexOf(key);
+      const newOrder = [...columnOrder];
+      newOrder.splice(from, 1);
+      newOrder.splice(to, 0, dragCol);
+      columnOrder = newOrder;
+      localStorage.setItem("logColumnOrder", JSON.stringify(columnOrder));
+    }
+    dragCol = null;
+    dragOverCol = null;
+  }
+  function onColDragEnd() {
+    dragCol = null;
+    dragOverCol = null;
+  }
 
   function toggleSort(key) {
     if (sortCol === key) {
@@ -174,6 +216,8 @@
       sortCol = key;
       sortAsc = key === "timestamp" ? false : true;
     }
+    localStorage.setItem("logSortCol", sortCol);
+    localStorage.setItem("logSortAsc", String(sortAsc));
   }
 
   $: prevContactCount = call.trim() ? contacts.filter(c => c.call?.toUpperCase() === call.trim().toUpperCase()).length : 0;
@@ -1013,8 +1057,8 @@
       <table>
         <thead>
           <tr>
-            {#each columns as col}
-              <th class="sortable" on:click={() => toggleSort(col.key)}>
+            {#each columns as col (col.key)}
+              <th class="sortable" class:drag-over={dragOverCol === col.key && dragCol !== col.key} draggable="true" on:dragstart={e => onColDragStart(e, col.key)} on:dragover={e => onColDragOver(e, col.key)} on:drop={e => onColDrop(e, col.key)} on:dragend={onColDragEnd} on:click={() => toggleSort(col.key)}>
                 {col.label}{#if sortCol === col.key}{sortAsc ? " ▲" : " ▼"}{/if}
               </th>
             {/each}
@@ -1023,16 +1067,19 @@
         <tbody>
           {#each displayedContacts as c}
             <tr class="clickable" class:editing={editingId === c.id} title={relativeTime(c.timestamp)} on:click={() => editContact(c)}>
-              <td>{formatTimestamp(c.timestamp)}</td>
-              <td class="call">{c.call}</td>
-              <td class="truncate truncate-wide">{c.name || ""}</td>
-              <td>{formatFreq(c.freq)} {#if freqToBand(c.freq)}<span class="band-tag" style="background: {bandColor(freqToBand(c.freq))}; color: {bandTextColor(freqToBand(c.freq))}">{freqToBand(c.freq)}</span>{/if}</td>
-              <td>{c.mode || ""}</td>
-              <td class="truncate">{c.pota_park || ""}</td>
-              <td class="truncate">{c.qth || ""}</td>
-              <td>{c.rst_sent || ""}</td>
-              <td>{c.rst_recv || ""}</td>
-              <td class="truncate">{c.comments || ""}</td>
+              {#each columns as col (col.key)}
+                {#if col.key === "timestamp"}<td>{formatTimestamp(c.timestamp)}</td>
+                {:else if col.key === "call"}<td class="call">{c.call}</td>
+                {:else if col.key === "name"}<td class="truncate truncate-wide">{c.name || ""}</td>
+                {:else if col.key === "freq"}<td>{formatFreq(c.freq)} {#if freqToBand(c.freq)}<span class="band-tag" style="background: {bandColor(freqToBand(c.freq))}; color: {bandTextColor(freqToBand(c.freq))}">{freqToBand(c.freq)}</span>{/if}</td>
+                {:else if col.key === "mode"}<td>{c.mode || ""}</td>
+                {:else if col.key === "pota_park"}<td class="truncate">{c.pota_park || ""}</td>
+                {:else if col.key === "qth"}<td class="truncate">{c.qth || ""}</td>
+                {:else if col.key === "rst_sent"}<td>{c.rst_sent || ""}</td>
+                {:else if col.key === "rst_recv"}<td>{c.rst_recv || ""}</td>
+                {:else if col.key === "comments"}<td class="truncate">{c.comments || ""}</td>
+                {/if}
+              {/each}
             </tr>
           {/each}
         </tbody>
@@ -1423,6 +1470,9 @@
 
   th.sortable:hover {
     color: var(--accent);
+  }
+  th.drag-over {
+    border-left: 2px solid var(--accent);
   }
 
   td {
