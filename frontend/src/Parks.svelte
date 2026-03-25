@@ -430,6 +430,10 @@
     if (activePark) showActivePark(activePark);
   }
 
+  export async function refreshParks() {
+    await loadMyParks();
+  }
+
   async function loadMyParks() {
     myParksLoading = true;
     try {

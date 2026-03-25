@@ -596,6 +596,7 @@
         dispatch("navigate", "back");
         clearForm();
         await fetchContacts();
+        dispatch("parkschanged");
       } else {
         errorMsg = `Delete failed: ${res.status} ${res.statusText}`;
       }
@@ -639,6 +640,7 @@
         dispatch("editchange", null);
         clearForm();
         await fetchContacts();
+        dispatch("parkschanged");
         dispatch("navigate", "back");
       } else {
         const data = await res.json().catch(() => null);
@@ -731,6 +733,7 @@
         timePart = "";
         addOriginal = formSnapshot();
         await fetchContacts();
+        dispatch("parkschanged");
         dispatch("navigate", "back");
       } else {
         const data = await res.json().catch(() => null);
