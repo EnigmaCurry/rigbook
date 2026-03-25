@@ -64,6 +64,18 @@ async def confirm_create():
     return {"name": name, "is_open": True}
 
 
+def _deferred_kill(delay: float = 1.0):
+    """Send SIGTERM after a delay so SSE can flush the shutdown event."""
+    import threading
+    import time
+
+    def kill():
+        time.sleep(delay)
+        os.kill(os.getpid(), signal.SIGKILL)
+
+    threading.Thread(target=kill, daemon=True).start()
+
+
 @router.post("/decline")
 async def decline_create():
     if not db_manager.pending_name:
@@ -71,6 +83,7 @@ async def decline_create():
     db_manager.pending_name = None
     notify_shutdown()
     os.kill(os.getpid(), signal.SIGTERM)
+    _deferred_kill()
     return {"status": "shutting down"}
 
 
@@ -78,6 +91,7 @@ async def decline_create():
 async def shutdown_server():
     notify_shutdown()
     os.kill(os.getpid(), signal.SIGTERM)
+    _deferred_kill()
     return {"status": "shutting down"}
 
 
@@ -117,7 +131,9 @@ async def delete_logbook(body: LogbookName):
         db_path.unlink()
     if db_manager.picker_mode:
         return {"deleted": True, "shutdown": False}
+    notify_shutdown()
     os.kill(os.getpid(), signal.SIGTERM)
+    _deferred_kill()
     return {"deleted": True, "shutdown": True}
 
 
