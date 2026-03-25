@@ -318,12 +318,14 @@
 
   onMount(async () => {
     await loadFilters();
-    fetchSpots();
-    fetchMyParks();
+    if (potaEnabled) {
+      fetchSpots();
+      fetchMyParks();
+      fetchTodayPota();
+    }
     fetchCallCounts();
-    fetchTodayPota();
     fetchTodayCw();
-    pollInterval = setInterval(fetchSpots, 30000);
+    pollInterval = setInterval(() => { if (potaEnabled) fetchSpots(); }, 30000);
   });
 
   onDestroy(() => {
@@ -361,6 +363,7 @@
     <SkccSkimmer filterMode={filterMode} filterBand={filterBand} workedTodayKeys={workedTodayCwKeys} {potaEnabled} on:tune on:addqso />
   {/if}
 
+  {#if potaEnabled}
   <h2>POTA Spots ({filteredSpots.length})</h2>
 
   {#if loading}
@@ -408,6 +411,7 @@
         </div>
       {/each}
     </div>
+  {/if}
   {/if}
 </div>
 

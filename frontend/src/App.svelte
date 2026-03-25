@@ -586,7 +586,6 @@
     }
     // Redirect disabled pages to home
     if (p === "spots" && !spotsEnabled) p = "log";
-    if (p === "hunting" && !potaEnabled) p = "log";
     if (p === "parks" && !potaEnabled) p = "log";
     if (isWide() && (p === "add" || p === "log" || DUAL_RIGHT_PAGES.has(p))) {
       if (DUAL_RIGHT_PAGES.has(p)) dualRightPage = p;
@@ -747,12 +746,11 @@
     let p = parsed.page;
     // Redirect disabled pages
     if (p === "spots" && !spotsEnabled) p = isWide() ? "dual" : "log";
-    if (p === "hunting" && !potaEnabled) p = isWide() ? "dual" : "log";
     if (p === "parks" && !potaEnabled) p = isWide() ? "dual" : "log";
     page = p;
     editId = parsed.editId;
     if (parsed.dualRight) {
-      if ((parsed.dualRight === "spots" && !spotsEnabled) || (parsed.dualRight === "hunting" && !potaEnabled) || (parsed.dualRight === "parks" && !potaEnabled)) {
+      if ((parsed.dualRight === "spots" && !spotsEnabled) || (parsed.dualRight === "parks" && !potaEnabled)) {
         // Don't set disabled right page
       } else {
         dualRightPage = parsed.dualRight;
@@ -956,13 +954,13 @@
     <span class="utc-clock" on:click={copyUtcTimestamp} title="Click to copy">{clockCopied ? "Copied!" : utcNow}</span>
     <div class="hamburger-wrap">
       {#if wide}
-        {#if potaEnabled}<button class="add-btn dual-btn" class:active-nav={dualRightPage === "hunting"} on:click={() => navigate("hunting")} title="Logbook & Hunting">{#if dualRightPage === "hunting"}📖{/if}🧭</button>{/if}
+        <button class="add-btn dual-btn" class:active-nav={dualRightPage === "hunting"} on:click={() => navigate("hunting")} title="Logbook & Hunting">{#if dualRightPage === "hunting"}📖{/if}🧭</button>
         {#if spotsEnabled}<button class="add-btn dual-btn" class:active-nav={dualRightPage === "spots"} on:click={() => navigate("spots")} title="Logbook & Spots">{#if dualRightPage === "spots"}📖{/if}🗺️</button>{/if}
         {#if potaEnabled}<button class="add-btn dual-btn parks-btn" class:active-nav={dualRightPage === "parks"} on:click={() => navigate("parks")} title="Logbook & Parks">{#if dualRightPage === "parks"}📖{/if}🌲</button>{/if}
         <button class="add-btn dual-btn notification-btn" class:active-nav={dualRightPage === "notifications"} on:click={handleNotificationClick} title="Logbook & Notifications">{#if dualRightPage === "notifications"}📖{/if}{#if unreadCount > 0}<span class="notif-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>{:else}✉️{/if}</button>
       {:else}
         <button class="add-btn" on:click={() => navigate("log")} title="Logbook">📖</button>
-        {#if potaEnabled}<button class="add-btn" on:click={() => navigate("hunting")} title="Hunting">🧭</button>{/if}
+        <button class="add-btn" on:click={() => navigate("hunting")} title="Hunting">🧭</button>
         {#if potaEnabled}<button class="add-btn parks-btn" on:click={() => navigate("parks")} title="My Parks">🌲</button>{/if}
         {#if spotsEnabled}<button class="add-btn" on:click={() => navigate("spots")} title="Spots">🗺️</button>{/if}
         <button class="add-btn notification-btn" class:has-unread={unreadCount > 0} on:click={handleNotificationClick} title="Notifications">
@@ -986,7 +984,7 @@
         <nav class="menu">
           <button class="menu-item" class:active={page === "log" || page === "dual"} on:click={() => navigate("log")}>Logbook</button>
           <button class="menu-item" class:active={page === "add"} on:click={() => navigate("add")}>Add QSO</button>
-          {#if potaEnabled}<button class="menu-item" class:active={page === "hunting" || (page === "dual" && dualRightPage === "hunting")} on:click={() => navigate("hunting")}>Hunting</button>{/if}
+          <button class="menu-item" class:active={page === "hunting" || (page === "dual" && dualRightPage === "hunting")} on:click={() => navigate("hunting")}>Hunting</button>
           <button class="menu-item" class:active={page === "grid"} on:click={() => navigate("grid")}>Grid Map</button>
           {#if potaEnabled}<button class="menu-item" class:active={page === "parks" || (page === "dual" && dualRightPage === "parks")} on:click={() => navigate("parks")}>Parks</button>{/if}
           {#if spotsEnabled}<button class="menu-item" class:active={page === "spots" || (page === "dual" && dualRightPage === "spots")} on:click={() => navigate("spots")}>Spots</button>{/if}
