@@ -250,14 +250,28 @@
     connectSSE();
   }
 
+  function setShutdownState() {
+    serverShutdown = true;
+    stopAppServices();
+    document.title = "Close this tab";
+    const link = document.querySelector("link[rel~='icon']") || document.createElement("link");
+    link.rel = "icon";
+    link.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💤</text></svg>";
+    document.head.appendChild(link);
+  }
+
+  function clearShutdownState() {
+    serverShutdown = false;
+    document.title = "Rigbook";
+    const link = document.querySelector("link[rel~='icon']");
+    if (link) link.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📻</text></svg>";
+  }
+
   async function attemptReconnect() {
     try {
       const res = await fetch("/api/settings/my_callsign");
       if (res.ok) {
-        serverShutdown = false;
-        document.title = "Rigbook";
-        const link = document.querySelector("link[rel~='icon']");
-        if (link) link.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📻</text></svg>";
+        clearShutdownState();
         startAppServices();
       } else {
         alert("Server is not available yet.");
@@ -303,7 +317,7 @@
     try {
       await fetch("/api/logbooks/decline", { method: "POST" });
     } catch {}
-    serverShutdown = true;
+    setShutdownState();
   }
 
   async function closeLogbook() {
@@ -346,13 +360,7 @@
       // Individual notification pushed — could be used later
     });
     eventSource.addEventListener("shutdown", () => {
-      stopAppServices();
-      serverShutdown = true;
-      document.title = "Close this tab";
-      const link = document.querySelector("link[rel~='icon']") || document.createElement("link");
-      link.rel = "icon";
-      link.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💤</text></svg>";
-      document.head.appendChild(link);
+      setShutdownState();
     });
     eventSource.onerror = () => {
       if (serverShutdown) return;
@@ -1123,7 +1131,7 @@
   {:else if page === "spots"}
     <Spots {potaEnabled} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
   {:else if page === "settings"}
-    <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} on:deleted={e => { if (e.detail.shutdown) { serverShutdown = true; } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { stopAppServices(); }} />
+    <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { setShutdownState(); }} />
   {:else if page === "links"}
     <Links />
   {:else if page === "conditions"}
