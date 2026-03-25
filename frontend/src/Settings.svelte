@@ -315,6 +315,7 @@
       // Restart feeds to apply changes
       await fetch("/api/spots/restart", { method: "POST" });
       setTimeout(fetchSpotStatus, 2000);
+      dispatch("saved");
       message = "Settings saved.";
       if (my_callsign.trim() && my_grid.trim()) {
         dispatch("setupcomplete");

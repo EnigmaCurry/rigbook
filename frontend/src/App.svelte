@@ -584,6 +584,10 @@
       }
       p = previousPage;
     }
+    // Redirect disabled pages to home
+    if (p === "spots" && !spotsEnabled) p = "log";
+    if (p === "hunting" && !potaEnabled) p = "log";
+    if (p === "parks" && !potaEnabled) p = "log";
     if (isWide() && (p === "add" || p === "log" || DUAL_RIGHT_PAGES.has(p))) {
       if (DUAL_RIGHT_PAGES.has(p)) dualRightPage = p;
       p = "dual";
@@ -740,9 +744,20 @@
 
   async function onHashChange() {
     const parsed = parseHash();
-    page = parsed.page;
+    let p = parsed.page;
+    // Redirect disabled pages
+    if (p === "spots" && !spotsEnabled) p = isWide() ? "dual" : "log";
+    if (p === "hunting" && !potaEnabled) p = isWide() ? "dual" : "log";
+    if (p === "parks" && !potaEnabled) p = isWide() ? "dual" : "log";
+    page = p;
     editId = parsed.editId;
-    if (parsed.dualRight) dualRightPage = parsed.dualRight;
+    if (parsed.dualRight) {
+      if ((parsed.dualRight === "spots" && !spotsEnabled) || (parsed.dualRight === "hunting" && !potaEnabled) || (parsed.dualRight === "parks" && !potaEnabled)) {
+        // Don't set disabled right page
+      } else {
+        dualRightPage = parsed.dualRight;
+      }
+    }
     fetchCallsign();
     const wasEnabled = flrigEnabled;
     await fetchFlrigEnabled();
@@ -1023,7 +1038,7 @@
   {:else if page === "spots"}
     <Spots {potaEnabled} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
   {:else if page === "settings"}
-    <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} on:deleted={e => { if (e.detail.shutdown) { serverShutdown = true; } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:shutdown={() => { stopAppServices(); }} />
+    <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} on:deleted={e => { if (e.detail.shutdown) { serverShutdown = true; } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { stopAppServices(); }} />
   {:else if page === "links"}
     <Links />
   {:else if page === "about"}
