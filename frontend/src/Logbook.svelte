@@ -94,6 +94,7 @@
   let editingId = null;
   let editOriginal = null;
   let addOriginal = null;
+  let userTouched = false;
   let showGridPicker = false;
   $: if (typeof document !== "undefined") {
     document.body.style.overflow = showGridPicker ? "hidden" : "";
@@ -312,18 +313,19 @@
     }
     if (prefill.state) state = prefill.state;
     if (prefill.skcc) skcc = prefill.skcc;
+    userTouched = false;
     addOriginal = formSnapshot();
     dispatch("prefillconsumed");
     // Lookup name from QRZ
     if (prefill.call) lookupCallsign(prefill.call.toUpperCase());
   }
 
-  // Auto-fill freq/mode from VFO when not editing and no prefill
-  $: if (!editingId && !prefill && vfoFreq) {
+  // Auto-fill freq/mode from VFO when not editing, no prefill, and user hasn't typed
+  $: if (!editingId && !prefill && !userTouched && vfoFreq) {
     freq = String(parseFloat(vfoFreq) / 1000);
     if (addOriginal) addOriginal = { ...addOriginal, freq };
   }
-  $: if (!editingId && !prefill && vfoMode) {
+  $: if (!editingId && !prefill && !userTouched && vfoMode) {
     mode = vfoMode;
     if (addOriginal) addOriginal = { ...addOriginal, mode };
   }
@@ -678,6 +680,7 @@
     datePart = "";
     timePart = "";
     subdivisions = [];
+    userTouched = false;
     addOriginal = formSnapshot();
   }
 
@@ -847,7 +850,7 @@
 
 <div class="logbook-layout">
 {#if showForm}
-<form on:submit|preventDefault={editingId ? saveEdit : submitContact} on:keydown={e => { if (e.key === "Enter" && e.target.tagName !== "TEXTAREA") e.preventDefault(); if (e.key === "Escape") { e.target.blur(); if (editingId) cancelEdit(); else { dispatch("navigate", "back"); clearForm(); } } }}>
+<form on:submit|preventDefault={editingId ? saveEdit : submitContact} on:input={() => { if (!editingId) userTouched = true; }} on:keydown={e => { if (e.key === "Enter" && e.target.tagName !== "TEXTAREA") e.preventDefault(); if (e.key === "Escape") { e.target.blur(); if (editingId) cancelEdit(); else { dispatch("navigate", "back"); clearForm(); } } }}>
   <h3 class="form-heading">{editingId ? "Edit QSO" : "New QSO"}{#if call.trim()} <a class="form-callsign-text" href="https://www.qrz.com/db/{call.trim().toUpperCase()}" target="_blank" rel="noopener" title="View {call.trim().toUpperCase()} on QRZ.com">{call.trim().toUpperCase()}</a>{/if}{#if callCountryCode} <span class="form-callsign-flag">{countryFlag(callCountryCode)}</span>{/if}{#if editingId} <span class="prev-contact">({relativeTime(`${datePart}T${timePart || "00:00:00"}Z`)})</span>{:else if prevContactCount > 0} <span class="prev-contact">(contacted {prevContactCount} time{prevContactCount === 1 ? "" : "s"} before)</span>{/if}</h3>
   <div class="form-row">
     <div class="field" class:changed={orig && call !== orig.call}>
