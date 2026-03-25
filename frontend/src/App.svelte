@@ -124,8 +124,10 @@
   let previousPage = "log";
   let prefill = null;
   let formDirty = false;
+  let activePark = "";
   let dualShowForm = !!editId || (page === "dual" && (window.location.hash.slice(1) === "/add"));
   let dualHunting;
+  let dualParks;
   let gridMapValue = "";
   let menuOpen = false;
   let myCallsign = "";
@@ -205,6 +207,23 @@
     }
     fetchUnreadCount();
     connectSSE();
+  }
+
+  async function attemptReconnect() {
+    try {
+      const res = await fetch("/api/settings/my_callsign");
+      if (res.ok) {
+        serverShutdown = false;
+        document.title = "Rigbook";
+        const link = document.querySelector("link[rel~='icon']");
+        if (link) link.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📻</text></svg>";
+        startAppServices();
+      } else {
+        alert("Server is not available yet.");
+      }
+    } catch {
+      alert("Server is not available yet.");
+    }
   }
 
   function stopAppServices() {
@@ -288,6 +307,11 @@
     eventSource.addEventListener("shutdown", () => {
       stopAppServices();
       serverShutdown = true;
+      document.title = "Close this tab";
+      const link = document.querySelector("link[rel~='icon']") || document.createElement("link");
+      link.rel = "icon";
+      link.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💤</text></svg>";
+      document.head.appendChild(link);
     });
     eventSource.onerror = () => {
       if (serverShutdown) return;
@@ -559,6 +583,10 @@
   }
 
   async function tuneOnly(spot) {
+    if (formDirty) {
+      alert("Cannot tune radio while editing a QSO. Save or cancel first.");
+      return;
+    }
     if (!flrigEnabled) return;
     try {
       await fetch("/api/flrig/vfo", {
@@ -797,6 +825,7 @@
     <div class="welcome-container">
       <div class="welcome-card">
         <p>Server has shut down.</p>
+        <button class="welcome-btn" on:click={attemptReconnect}>Reconnect</button>
       </div>
     </div>
   {:else if pendingLogbook}
@@ -934,13 +963,13 @@
   {#if page === "log"}
     <Logbook showForm={false} {vfoFreq} {vfoMode} on:editchange={e => { editId = e.detail; navigate("add"); window.location.hash = `/log/${e.detail}`; }} on:navigate={e => navigate(e.detail)} />
   {:else if page === "add"}
-    <Logbook showForm={true} {editId} {prefill} {vfoFreq} {vfoMode} bind:formDirty on:editchange={e => { editId = e.detail; window.location.hash = e.detail ? `/log/${e.detail}` : "/add"; }} on:navigate={e => navigate(e.detail)} on:prefillconsumed={() => prefill = null} />
+    <Logbook showForm={true} {editId} {prefill} {vfoFreq} {vfoMode} bind:formDirty bind:activePark on:editchange={e => { editId = e.detail; window.location.hash = e.detail ? `/log/${e.detail}` : "/add"; }} on:navigate={e => navigate(e.detail)} on:prefillconsumed={() => prefill = null} on:parkschanged={() => dualParks?.refreshParks()} />
   {:else if page === "hunting"}
     <Hunting on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
   {:else if page === "dual"}
     <div class="dual-layout" class:dual-narrow={!wide}>
       <div class="dual-pane">
-        <Logbook showForm={dualShowForm || !!prefill || !!editId} {prefill} {editId} {vfoFreq} {vfoMode} bind:formDirty on:editchange={e => { editId = e.detail; dualShowForm = !!e.detail; }} on:navigate={e => { if (e.detail === "hunting" || e.detail === "log" || e.detail === "back") { prefill = null; editId = null; dualShowForm = false; dualHunting?.refreshAwards(); if (!wide) navigate(dualRightPage); } else navigate(e.detail); }} on:prefillconsumed={() => prefill = null} />
+        <Logbook showForm={dualShowForm || !!prefill || !!editId} {prefill} {editId} {vfoFreq} {vfoMode} bind:formDirty bind:activePark on:editchange={e => { editId = e.detail; dualShowForm = !!e.detail; }} on:navigate={e => { if (e.detail === "hunting" || e.detail === "log" || e.detail === "back") { prefill = null; editId = null; dualShowForm = false; dualHunting?.refreshAwards(); if (!wide) navigate(dualRightPage); } else navigate(e.detail); }} on:prefillconsumed={() => prefill = null} on:parkschanged={() => dualParks?.refreshParks()} />
       </div>
       <div class="dual-pane">
         {#if dualRightPage === "hunting"}
@@ -948,7 +977,7 @@
         {:else if dualRightPage === "spots"}
           <Spots on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
         {:else if dualRightPage === "parks"}
-          <Parks on:addqso={e => { if (formDirty) { alert("Save or cancel your current QSO before selecting a new spot."); return; } prefill = e.detail; dualShowForm = true; }} />
+          <Parks bind:this={dualParks} {activePark} on:addqso={e => { if (formDirty) { alert("Save or cancel your current QSO before selecting a new spot."); return; } prefill = e.detail; dualShowForm = true; }} />
         {:else if dualRightPage === "notifications"}
           <Notifications on:countchange={() => fetchUnreadCount()} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
         {/if}

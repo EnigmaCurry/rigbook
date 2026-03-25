@@ -39,6 +39,109 @@
   let savedFilters = null; // what's stored as the default
   let filtersLoaded = false;
   let restarting = false;
+  let workedTodayKeys = new Set();
+  let potaKeys = new Set();
+  let potaByKey = {};
+
+  const BAND_RANGES = {
+    "160m": [1800, 2000], "80m": [3500, 4000], "60m": [5330, 5410],
+    "40m": [7000, 7300], "30m": [10100, 10150], "20m": [14000, 14350],
+    "17m": [18068, 18168], "15m": [21000, 21450], "12m": [24890, 24990],
+    "10m": [28000, 29700], "6m": [50000, 54000], "2m": [144000, 148000],
+  };
+
+  const MODE_NORMALIZE = {
+    "USB": "SSB", "LSB": "SSB", "CW-R": "CW", "CWR": "CW", "RTTY-R": "RTTY",
+  };
+
+  function freqToBand(freqKhz) {
+    const f = parseFloat(freqKhz);
+    if (isNaN(f)) return "";
+    for (const [band, [lo, hi]] of Object.entries(BAND_RANGES)) {
+      if (f >= lo && f <= hi) return band;
+    }
+    return "";
+  }
+
+  function normalizeMode(m) {
+    const u = (m || "").toUpperCase();
+    return MODE_NORMALIZE[u] || u;
+  }
+
+  async function fetchWorkedToday() {
+    try {
+      const res = await fetch("/api/contacts/today");
+      if (res.ok) {
+        const contacts = await res.json();
+        const keys = new Set();
+        for (const c of contacts) {
+          const band = freqToBand(parseFloat(c.freq));
+          const key = `${(c.call || "").toUpperCase()}|${band}|${normalizeMode(c.mode)}`;
+          keys.add(key);
+        }
+        workedTodayKeys = keys;
+      }
+    } catch {}
+  }
+
+  async function fetchPotaSpots() {
+    try {
+      const res = await fetch("/api/pota/spots");
+      if (res.ok) {
+        const pota = await res.json();
+        const keys = new Set();
+        const byKey = {};
+        for (const s of pota) {
+          const call = (s.activator || "").toUpperCase();
+          const band = freqToBand(parseFloat(s.frequency) * 1000);
+          if (call && band) {
+            const key = `${call}|${band}`;
+            keys.add(key);
+            byKey[key] = s;
+          }
+        }
+        potaKeys = keys;
+        potaByKey = byKey;
+      }
+    } catch {}
+  }
+
+  function isPotaActivator(spot) {
+    if (potaKeys.size === 0) return false;
+    const call = (spot.callsign || "").toUpperCase();
+    const band = spot.band || freqToBand(parseFloat(spot.frequency));
+    return potaKeys.has(`${call}|${band}`);
+  }
+
+  function getPotaSpot(spot) {
+    const call = (spot.callsign || "").toUpperCase();
+    const band = spot.band || freqToBand(parseFloat(spot.frequency));
+    return potaByKey[`${call}|${band}`] || null;
+  }
+
+  function addQsoWithPota(spot) {
+    const pota = getPotaSpot(spot);
+    if (pota) {
+      dispatch("addqso", { ...spot, activator: spot.callsign, reference: pota.reference, grid4: pota.grid4, locationDesc: pota.locationDesc });
+    } else {
+      dispatch("addqso", spot);
+    }
+  }
+
+  function isWorkedToday(spot) {
+    if (workedTodayKeys.size === 0) return false;
+    const band = spot.band || freqToBand(parseFloat(spot.frequency));
+    const mode = normalizeMode(spot.mode);
+    if (!mode || mode === "?") {
+      const prefix = `${(spot.callsign || "").toUpperCase()}|${band}|`;
+      for (const k of workedTodayKeys) {
+        if (k.startsWith(prefix)) return true;
+      }
+      return false;
+    }
+    const key = `${(spot.callsign || "").toUpperCase()}|${band}|${mode}`;
+    return workedTodayKeys.has(key);
+  }
   let qrzConfigured = true;
   const qrz = new QrzLookup(() => { spots = spots; });
   let sortCol = "distance";
@@ -153,7 +256,11 @@
       && a.callsign === b.callsign && a.skcc === b.skcc;
   }
 
-  $: isDefault = filtersLoaded && filtersMatch(currentFilters(), savedFilters);
+  const factoryFilters = { source: "", band: "", mode: "", callsign: "", skcc: "" };
+  $: isDefault = filtersLoaded && filtersMatch(
+    { source: filterSource, band: filterBand, mode: filterMode, callsign: filterCallsign, skcc: filterSkcc },
+    savedFilters || factoryFilters
+  );
 
   async function loadDefaultFilters() {
     try {
@@ -203,9 +310,11 @@
     fetchStatus();
     fetchBands();
     fetchModes();
+    fetchWorkedToday();
+    fetchPotaSpots();
     await loadDefaultFilters();
     fetchSpots();
-    statusInterval = setInterval(() => { fetchStatus(); fetchBands(); fetchModes(); }, 5000);
+    statusInterval = setInterval(() => { fetchStatus(); fetchBands(); fetchModes(); fetchWorkedToday(); fetchPotaSpots(); }, 5000);
     spotsInterval = setInterval(fetchSpots, 3000);
   });
 
@@ -340,11 +449,15 @@
       </thead>
       <tbody>
         {#each sortedSpots as spot (spot.callsign + spot.frequency + spot.mode)}
-          <tr>
+          <tr class:worked={isWorkedToday(spot)}>
             <td class="mono">{formatTime(spot)}</td>
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <td class="mono call clickable" on:click={() => dispatch("addqso", spot)} title="Log QSO with {spot.callsign}">{spot.callsign}</td>
+            {#if isWorkedToday(spot)}
+              <td class="mono call worked-call" title="Already worked today">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</td>
+            {:else}
+              <td class="mono call clickable" on:click={() => addQsoWithPota(spot)} title="Log QSO with {spot.callsign}">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</td>
+            {/if}
             {#if filterMode === "CW"}<td class="mono skcc">{spot.skcc ?? ""}</td>{/if}
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -356,7 +469,7 @@
             <td class="mono">{spot.wpm ?? ""}</td>
             <td class="location">{#if spot.country || spot.qrz_state}{locationStr(spot)}{:else if !qrzConfigured}<span class="fetch-hint">(Configure QRZ account)</span>{:else if qrz.skipped}<span class="fetch-hint">(filter more to fetch)</span>{:else if qrz.pending > 0}<span class="fetch-hint">(fetching... {qrz.pending} left)</span>{/if}</td>
             <td class="source-tag {spot.source}">{spot.source}</td>
-            <td class="mono">{spot.distance_mi != null ? `${spot.distance_mi}mi` : ""}{spot.closest_snr != null ? ` ${spot.closest_snr}dB` : ""}</td>
+            <td class="mono">{spot.closest_call || ""}{spot.distance_mi != null ? ` ${spot.distance_mi}mi` : ""}{spot.closest_snr != null ? ` ${spot.closest_snr}dB` : ""}</td>
             <td class="info">{spot.state}{spot.wwff_ref ? ` ${spot.wwff_ref}` : ""}{spot.comment ? ` ${spot.comment}` : ""}</td>
           </tr>
         {/each}
@@ -524,6 +637,13 @@
   .call {
     font-weight: bold;
     color: var(--accent-callsign, #ffcc00);
+  }
+  .worked-call {
+    color: var(--fg, #ccc);
+    font-weight: normal;
+  }
+  tr.worked {
+    opacity: 0.5;
   }
 
   .freq {

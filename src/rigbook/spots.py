@@ -199,16 +199,18 @@ class SpotterGrids:
         self,
         my_grid: str,
         spotter_snrs: dict[str, int | None],
-    ) -> tuple[int | None, int | None]:
-        """Find closest spotter and return (distance_mi, snr_db).
+    ) -> tuple[str | None, int | None, int | None]:
+        """Find closest spotter and return (callsign, distance_mi, snr_db).
 
         Args:
             my_grid: User's Maidenhead grid square.
             spotter_snrs: Mapping of spotter callsign -> SNR (or None).
 
         Returns:
-            (distance in miles, SNR dB) for the closest spotter, or (None, None).
+            (callsign, distance in miles, SNR dB) for the closest spotter,
+            or (None, None, None).
         """
+        best_call: str | None = None
         best_dist: int | None = None
         best_snr: int | None = None
         for spotter, snr in spotter_snrs.items():
@@ -216,9 +218,10 @@ class SpotterGrids:
             if grid:
                 dist = grid_distance_mi(my_grid, grid)
                 if dist is not None and (best_dist is None or dist < best_dist):
+                    best_call = spotter
                     best_dist = dist
                     best_snr = snr
-        return best_dist, best_snr
+        return best_call, best_dist, best_snr
 
 
 spotter_grids = SpotterGrids()

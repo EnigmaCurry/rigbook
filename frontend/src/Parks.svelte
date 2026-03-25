@@ -7,6 +7,7 @@
   import ParkDetail from "./ParkDetail.svelte";
 
   const dispatch = createEventDispatcher();
+  export let activePark = "";
 
   // --- Tab routing ---
   const TABS = ["my-qsos", "by-country", "download"];
@@ -43,6 +44,8 @@
   let leafletMap = null;
   let markersByRef = {};
   let selectedPark = null;
+  let activeMarker = null; // temporary marker for activePark from QSO form
+  let lastActivePark = "";
   let fullscreenMap = null; // reference to the map currently fullscreen
   let fullscreenWrap = null; // reference to the wrap element
 
@@ -309,6 +312,7 @@
     if (leafletMap) { leafletMap.remove(); leafletMap = null; }
     markersByRef = {};
     selectedPark = null;
+    activeMarker = null;
   }
 
   const highlightIcon = L.divIcon({
@@ -324,6 +328,45 @@
     iconSize: [12, 12],
     iconAnchor: [6, 6],
   });
+
+  const activeIcon = L.divIcon({
+    className: "park-marker",
+    html: '<div class="park-marker-dot active"></div>',
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+  });
+
+  async function showActivePark(ref) {
+    if (!ref || !leafletMap) {
+      if (activeMarker) { leafletMap?.removeLayer(activeMarker); activeMarker = null; }
+      return;
+    }
+    // If it's already a known park marker, just highlight it
+    if (markersByRef[ref]) {
+      if (activeMarker) { leafletMap.removeLayer(activeMarker); activeMarker = null; }
+      selectPark(ref);
+      return;
+    }
+    // Fetch park data and add temporary marker
+    try {
+      const res = await fetch(`/api/pota/park/${encodeURIComponent(ref)}`);
+      if (!res.ok) return;
+      const park = await res.json();
+      if (park.latitude == null || park.longitude == null) return;
+      if (activeMarker) leafletMap.removeLayer(activeMarker);
+      const ll = [park.latitude, park.longitude];
+      activeMarker = L.marker(ll, { icon: activeIcon })
+        .bindPopup(`<b>${park.reference}</b><br>${park.name || ""}<br><i>Not yet logged</i>`)
+        .addTo(leafletMap);
+      activeMarker.openPopup();
+      leafletMap.panTo(ll);
+    } catch {}
+  }
+
+  $: if (activePark !== lastActivePark) {
+    lastActivePark = activePark;
+    if (tab === "my-qsos") showActivePark(activePark);
+  }
 
   function highlightPark(ref) {
     if (selectedPark) return;
@@ -384,6 +427,11 @@
     }
     leafletMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 8 });
     addExpandControl(leafletMap, mapEl.parentElement);
+    if (activePark) showActivePark(activePark);
+  }
+
+  export async function refreshParks() {
+    await loadMyParks();
   }
 
   async function loadMyParks() {
@@ -393,7 +441,12 @@
       if (res.ok) myParks = await res.json();
     } catch {}
     myParksLoading = false;
-    if (tab === "my-qsos") renderMap();
+    if (tab === "my-qsos" && !loading) renderMap();
+  }
+
+  // Render map once both loads complete and we're on the my-qsos tab
+  $: if (tab === "my-qsos" && !myParksLoading && !loading && myParks.length > 0 && !leafletMap) {
+    renderMap();
   }
 
   onMount(() => {
@@ -622,6 +675,10 @@
 <style>
   .parks {
     padding: 0;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
   }
 
   .parks-header {
@@ -693,6 +750,10 @@
 
   .tab-content {
     min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
   }
 
   /* Shared */
@@ -794,11 +855,19 @@
     border-color: #996600;
     box-shadow: 0 0 8px rgba(255, 204, 0, 0.6);
   }
+  :global(.park-marker-dot.active) {
+    width: 18px;
+    height: 18px;
+    background: var(--accent, #00ff88);
+    border-color: #006633;
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.6);
+  }
 
   .my-parks-list {
     display: flex;
     flex-direction: column;
-    height: 40vh;
+    flex: 1;
+    min-height: 0;
     overflow-y: scroll;
     border: 1px solid var(--border);
     border-radius: 3px;

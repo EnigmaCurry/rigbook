@@ -100,6 +100,7 @@
   }
   export let showForm = true;
   export let formDirty = false;
+  export let activePark = "";
 
   function formSnapshot() {
     return { call, freq, mode, rst_sent, rst_recv, pota_park, name, qth, state, country, grid, skcc, skcc_exch, comments, notes, datePart, timePart };
@@ -147,6 +148,7 @@
 
   $: formDirty = editingId ? editHasChanges : addHasChanges;
   $: orig = editingId ? editOriginal : addOriginal;
+  $: activePark = showForm ? pota_park.trim().toUpperCase() : "";
 
   let sortCol = "timestamp";
   let sortAsc = false;
@@ -343,6 +345,7 @@
       if (res.ok) {
         const data = await res.json();
         if (!skcc.trim()) skcc = data.skcc || "";
+        if (!editingId && addOriginal) addOriginal = { ...addOriginal, skcc };
       }
     } catch {}
 
@@ -593,6 +596,7 @@
         dispatch("navigate", "back");
         clearForm();
         await fetchContacts();
+        dispatch("parkschanged");
       } else {
         errorMsg = `Delete failed: ${res.status} ${res.statusText}`;
       }
@@ -636,6 +640,7 @@
         dispatch("editchange", null);
         clearForm();
         await fetchContacts();
+        dispatch("parkschanged");
         dispatch("navigate", "back");
       } else {
         const data = await res.json().catch(() => null);
@@ -728,6 +733,7 @@
         timePart = "";
         addOriginal = formSnapshot();
         await fetchContacts();
+        dispatch("parkschanged");
         dispatch("navigate", "back");
       } else {
         const data = await res.json().catch(() => null);

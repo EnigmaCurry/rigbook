@@ -15,6 +15,61 @@
   let seenCalls = new Set();
   let newCalls = new Set();
   const qrz = new QrzLookup(() => { spots = spots; });
+  let potaKeys = new Set();
+  let potaByKey = {};
+
+  const BAND_RANGES = {
+    "160m": [1800, 2000], "80m": [3500, 4000], "60m": [5330, 5410],
+    "40m": [7000, 7300], "30m": [10100, 10150], "20m": [14000, 14350],
+    "17m": [18068, 18168], "15m": [21000, 21450], "12m": [24890, 24990],
+    "10m": [28000, 29700], "6m": [50000, 54000], "2m": [144000, 148000],
+  };
+
+  function freqToBand(freqKhz) {
+    const f = parseFloat(freqKhz);
+    if (isNaN(f)) return "";
+    for (const [band, [lo, hi]] of Object.entries(BAND_RANGES)) {
+      if (f >= lo && f <= hi) return band;
+    }
+    return "";
+  }
+
+  async function fetchPotaSpots() {
+    try {
+      const res = await fetch("/api/pota/spots");
+      if (res.ok) {
+        const pota = await res.json();
+        const keys = new Set();
+        const byKey = {};
+        for (const s of pota) {
+          const call = (s.activator || "").toUpperCase();
+          const band = freqToBand(parseFloat(s.frequency) * 1000);
+          if (call && band) {
+            const key = `${call}|${band}`;
+            keys.add(key);
+            byKey[key] = s;
+          }
+        }
+        potaKeys = keys;
+        potaByKey = byKey;
+      }
+    } catch {}
+  }
+
+  function isPotaActivator(spot) {
+    const call = (spot.callsign || "").toUpperCase();
+    return potaKeys.has(`${call}|${spot.band}`);
+  }
+
+  function addQsoWithPota(spot) {
+    const call = (spot.callsign || "").toUpperCase();
+    const pota = potaByKey[`${call}|${spot.band}`];
+    if (pota) {
+      dispatch("addqso", { ...spot, activator: spot.callsign, reference: pota.reference, grid4: pota.grid4, locationDesc: pota.locationDesc });
+    } else {
+      dispatch("addqso", spot);
+    }
+  }
 
   $: visible = !filterMode || filterMode === "CW";
 
@@ -63,7 +118,8 @@
 
   onMount(() => {
     fetchSkccSpots();
-    pollInterval = setInterval(fetchSkccSpots, 10000);
+    fetchPotaSpots();
+    pollInterval = setInterval(() => { fetchSkccSpots(); fetchPotaSpots(); }, 10000);
   });
 
   onDestroy(() => {
@@ -80,11 +136,11 @@
           <div class="card" class:new-spot={newCalls.has(spot.callsign)} class:worked={isWorked(spot)}>
             <div class="card-header">
               {#if isWorked(spot)}
-                <span class="callsign worked-call" title="Already worked today">{spot.callsign}</span>
+                <span class="callsign worked-call" title="Already worked today">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</span>
               {:else}
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <span class="callsign clickable" on:click={() => dispatch("addqso", spot)} title="Add QSO">{spot.callsign}</span>
+                <span class="callsign clickable" on:click={() => addQsoWithPota(spot)} title="Add QSO">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</span>
               {/if}
               <span class="skcc-nr">#{spot.skcc}</span>
               <span class="badge band" style="background: {bandColor(spot.band)}; color: {bandTextColor(spot.band)}">{spot.band}</span>

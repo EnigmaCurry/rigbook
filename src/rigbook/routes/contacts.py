@@ -178,6 +178,25 @@ async def today_cw_contacts(session: AsyncSession = Depends(get_session)):
     ]
 
 
+@router.get("/today")
+async def today_contacts(session: AsyncSession = Depends(get_session)):
+    today_start = (
+        datetime.now(timezone.utc)
+        .replace(hour=0, minute=0, second=0, microsecond=0)
+        .replace(tzinfo=None)
+    )
+    rows = (
+        await session.execute(
+            select(Contact.call, Contact.freq, Contact.mode)
+            .where(Contact.timestamp >= today_start)
+        )
+    ).all()
+    return [
+        {"call": call, "freq": freq, "mode": mode}
+        for call, freq, mode in rows
+    ]
+
+
 @router.get("/callsign-counts")
 async def callsign_counts(session: AsyncSession = Depends(get_session)):
     rows = (
