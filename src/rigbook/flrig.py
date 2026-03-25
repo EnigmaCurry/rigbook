@@ -98,7 +98,10 @@ async def flrig_status(url: str = Depends(get_flrig_url)):
 async def flrig_modes(url: str = Depends(get_flrig_url)):
     loop = asyncio.get_event_loop()
     client = FlrigClient(url)
-    return await loop.run_in_executor(None, client.get_modes)
+    radio_modes = await loop.run_in_executor(None, client.get_modes)
+    if "CW" not in (m.upper() for m in radio_modes):
+        radio_modes.append("CW")
+    return radio_modes
 
 
 @router.put("/vfo")
