@@ -832,7 +832,7 @@
 <form on:submit|preventDefault={editingId ? saveEdit : submitContact} on:keydown={e => { if (e.key === "Enter" && e.target.tagName !== "TEXTAREA") e.preventDefault(); if (e.key === "Escape") { e.target.blur(); if (editingId) cancelEdit(); else { dispatch("navigate", "back"); clearForm(); } } }}>
   <h3 class="form-heading">{editingId ? "Edit QSO" : "New QSO"}{#if call.trim()} <a class="form-callsign-text" href="https://www.qrz.com/db/{call.trim().toUpperCase()}" target="_blank" rel="noopener" title="View {call.trim().toUpperCase()} on QRZ.com">{call.trim().toUpperCase()}</a>{/if}{#if callCountryCode} <span class="form-callsign-flag">{countryFlag(callCountryCode)}</span>{/if}{#if editingId} <span class="prev-contact">({relativeTime(`${datePart}T${timePart || "00:00:00"}Z`)})</span>{:else if prevContactCount > 0} <span class="prev-contact">(contacted {prevContactCount} time{prevContactCount === 1 ? "" : "s"} before)</span>{/if}</h3>
   <div class="form-row">
-    <div class="field">
+    <div class="field" class:changed={editOriginal && call !== editOriginal.call}>
       <label for="call">Call *</label>
       <input
         id="call"
@@ -847,42 +847,42 @@
         use:autoFocus
       />
     </div>
-    <div class="field">
+    <div class="field" class:changed={editOriginal && freq !== editOriginal.freq}>
       <label for="freq">Freq (KHz) *</label>
       <input id="freq" type="text" bind:value={freq} required />
     </div>
-    <div class="field">
+    <div class="field" class:changed={editOriginal && mode !== editOriginal.mode}>
       <label>Mode *</label>
       <Autocomplete bind:value={mode} items={availableModes} />
     </div>
-    <div class="field">
+    <div class="field" class:changed={editOriginal && rst_sent !== editOriginal.rst_sent}>
       <label for="rst_sent">RST Sent</label>
       <input id="rst_sent" type="text" bind:value={rst_sent} />
     </div>
-    <div class="field">
+    <div class="field" class:changed={editOriginal && rst_recv !== editOriginal.rst_recv}>
       <label for="rst_recv">RST Recv</label>
       <input id="rst_recv" type="text" bind:value={rst_recv} />
     </div>
-    <div class="field field-name">
+    <div class="field field-name" class:changed={editOriginal && name !== editOriginal.name}>
       <label for="name">Name</label>
       <input id="name" type="text" bind:value={name} />
     </div>
   </div>
 
   <div class="form-row">
-    <div class="field">
+    <div class="field" class:changed={editOriginal && qth !== editOriginal.qth}>
       <label for="qth">QTH</label>
       <input id="qth" type="text" bind:value={qth} />
     </div>
-    <div class="field">
+    <div class="field" class:changed={editOriginal && country !== editOriginal.country}>
       <label>Country{#if dxcc != null} — <span class="dxcc-label">DXCC {dxcc}{#if dxccName}: {dxccName}{/if}</span>{/if}</label>
       <Autocomplete bind:value={country} items={countryItems} on:pick={onCountryChange} on:input={onCountryChange} on:blur={normalizeCountry} />
     </div>
-    <div class="field">
+    <div class="field" class:changed={editOriginal && state !== editOriginal.state}>
       <label>State</label>
       <Autocomplete bind:value={state} items={subdivisionNames} on:blur={normalizeState} />
     </div>
-    <div class="field">
+    <div class="field" class:changed={editOriginal && grid !== editOriginal.grid}>
       <label for="grid">Grid</label>
       <div class="grid-input-row">
         <input id="grid" type="text" bind:value={grid} on:input={stripGrid} />
@@ -906,7 +906,7 @@
   </div>
 
   <div class="form-row">
-    <div class="field field-pota">
+    <div class="field field-pota" class:changed={editOriginal && pota_park !== editOriginal.pota_park}>
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <!-- svelte-ignore a11y-no-static-element-interactions -->
       <label for="pota_park">POTA Park{#if potaParkName} — {#if potaParkName.endsWith("not downloaded")}<a class="pota-park-name" href="#/parks/download" on:click|stopPropagation>{potaParkName}</a>{:else}<span class="pota-park-name" on:click|preventDefault|stopPropagation={openParkOverlay}>{potaParkName}</span>{/if}{/if}</label>
@@ -926,29 +926,29 @@
         {/if}
       </div>
     </div>
-    <div class="field">
+    <div class="field" class:changed={editOriginal && (skcc !== editOriginal.skcc || skcc_exch !== editOriginal.skcc_exch)}>
       <label for="skcc">SKCC # / {skcc_exch ? "Validated!" : "Validated?"}</label>
       <div class="skcc-input-row">
         <input id="skcc" type="text" bind:value={skcc} on:input={stripSkcc} style="text-transform: uppercase" readonly={skcc_exch} />
         <button type="button" class="skcc-exch-btn" class:active={skcc_exch} on:click={() => skcc_exch = !skcc_exch} title="Valid SKCC exchange (RST, QTH, Name, SKCC#)">✓</button>
       </div>
     </div>
-    <div class="field wide">
+    <div class="field wide" class:changed={editOriginal && comments !== editOriginal.comments}>
       <label for="comments">Comments (public)</label>
       <input id="comments" type="text" bind:value={comments} />
     </div>
   </div>
 
   <div class="form-row">
-    <div class="field">
+    <div class="field" class:changed={editOriginal && datePart !== editOriginal.datePart}>
       <label for="date">Date (UTC)</label>
       <input id="date" type="date" bind:value={datePart} />
     </div>
-    <div class="field">
+    <div class="field" class:changed={editOriginal && timePart !== editOriginal.timePart}>
       <label for="time">Time (UTC)</label>
       <input id="time" type="text" bind:value={timePart} on:blur={normalizeTime} placeholder="HH:MM:SS" maxlength="8" />
     </div>
-    <div class="field wide">
+    <div class="field wide" class:changed={editOriginal && notes !== editOriginal.notes}>
       <label for="notes">Notes (private)</label>
       <textarea id="notes" bind:value={notes} rows="2"></textarea>
     </div>
@@ -1082,6 +1082,13 @@
     flex-direction: column;
     flex: 1;
     min-width: 120px;
+  }
+  .field.changed {
+    border-left: 3px solid var(--accent, #f0c040);
+    padding-left: 4px;
+  }
+  .field.changed label {
+    color: var(--accent, #f0c040);
   }
 
   .field.wide {
