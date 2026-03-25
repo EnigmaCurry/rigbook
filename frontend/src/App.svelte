@@ -1021,7 +1021,7 @@
       </div>
       <div class="dual-pane">
         {#if dualRightPage === "hunting"}
-          <Hunting bind:this={dualHunting} {potaEnabled} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
+          <Hunting bind:this={dualHunting} {potaEnabled} {spotsEnabled} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
         {:else if dualRightPage === "spots"}
           <Spots {potaEnabled} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
         {:else if dualRightPage === "parks"}
