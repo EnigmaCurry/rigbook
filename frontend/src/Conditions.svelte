@@ -39,6 +39,13 @@
     }
   }
 
+  function isStale(updated) {
+    if (!updated) return false;
+    const d = new Date(updated.replace("GMT", "UTC"));
+    if (isNaN(d)) return false;
+    return (Date.now() - d.getTime()) > 20 * 60 * 1000;
+  }
+
   function geoColor(g) {
     const v = (g || "").toLowerCase();
     if (v.includes("quiet")) return "#00cc66";
@@ -141,6 +148,9 @@
       </div>
     {/if}
 
+    {#if isStale(data.updated)}
+      <p class="stale-warning">Data may be outdated — last update was {data.updated}. Check your internet connection.</p>
+    {/if}
     <p class="updated">Updated: {data.updated} — Source: N0NBH / <a href="https://www.hamqsl.com/solar.html" target="_blank" rel="noopener">hamqsl.com</a></p>
   {/if}
 </div>
@@ -227,6 +237,16 @@
   .band-name {
     font-weight: bold;
     color: var(--accent);
+  }
+
+  .stale-warning {
+    margin-top: 1rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(204, 170, 0, 0.15);
+    border: 1px solid #ccaa00;
+    border-radius: 4px;
+    color: #ccaa00;
+    font-size: 0.85rem;
   }
 
   .updated {
