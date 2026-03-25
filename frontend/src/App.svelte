@@ -559,6 +559,10 @@
   }
 
   async function tuneOnly(spot) {
+    if (formDirty) {
+      alert("Cannot tune radio while editing a QSO. Save or cancel first.");
+      return;
+    }
     if (!flrigEnabled) return;
     try {
       await fetch("/api/flrig/vfo", {
