@@ -1003,10 +1003,10 @@
     <span class="utc-clock" on:click={copyUtcTimestamp} title="Click to copy">{clockCopied ? "Copied!" : utcNow}</span>
     <div class="hamburger-wrap">
       {#if wide}
-        <button class="add-btn dual-btn" class:active-nav={dualRightPage === "hunting"} on:click={() => navigate("hunting")} title="Logbook & Hunting">{#if dualRightPage === "hunting"}📖{/if}🧭</button>
-        {#if spotsEnabled}<button class="add-btn dual-btn" class:active-nav={dualRightPage === "spots"} on:click={() => navigate("spots")} title="Logbook & Spots">{#if dualRightPage === "spots"}📖{/if}🗺️</button>{/if}
-        {#if potaEnabled}<button class="add-btn dual-btn parks-btn" class:active-nav={dualRightPage === "parks"} on:click={() => navigate("parks")} title="Logbook & Parks">{#if dualRightPage === "parks"}📖{/if}🌲</button>{/if}
-        <button class="add-btn dual-btn notification-btn" class:active-nav={dualRightPage === "notifications"} on:click={handleNotificationClick} title="Logbook & Notifications">{#if dualRightPage === "notifications"}📖{/if}{#if unreadCount > 0}<span class="notif-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>{:else}✉️{/if}</button>
+        <button class="add-btn dual-btn" class:active-nav={dualRightPage === "hunting"} on:click={() => navigate("hunting")} title="Logbook & Hunting">{#if dualRightPage === "hunting" && !logbookRight}📖{/if}🧭{#if dualRightPage === "hunting" && logbookRight}📖{/if}</button>
+        {#if spotsEnabled}<button class="add-btn dual-btn" class:active-nav={dualRightPage === "spots"} on:click={() => navigate("spots")} title="Logbook & Spots">{#if dualRightPage === "spots" && !logbookRight}📖{/if}🗺️{#if dualRightPage === "spots" && logbookRight}📖{/if}</button>{/if}
+        {#if potaEnabled}<button class="add-btn dual-btn parks-btn" class:active-nav={dualRightPage === "parks"} on:click={() => navigate("parks")} title="Logbook & Parks">{#if dualRightPage === "parks" && !logbookRight}📖{/if}🌲{#if dualRightPage === "parks" && logbookRight}📖{/if}</button>{/if}
+        <button class="add-btn dual-btn notification-btn" class:active-nav={dualRightPage === "notifications"} on:click={handleNotificationClick} title="Logbook & Notifications">{#if dualRightPage === "notifications" && !logbookRight}📖{/if}{#if unreadCount > 0}<span class="notif-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>{:else}✉️{/if}{#if dualRightPage === "notifications" && logbookRight}📖{/if}</button>
       {:else}
         <button class="add-btn" on:click={() => navigate("log")} title="Logbook">📖</button>
         <button class="add-btn" on:click={() => navigate("hunting")} title="Hunting">🧭</button>
