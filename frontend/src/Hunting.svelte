@@ -505,6 +505,9 @@
     color: var(--text-muted);
     font-style: italic;
   }
+  .status a, .status a:visited {
+    color: var(--accent);
+  }
 
   .status.error {
     color: var(--accent-error);
