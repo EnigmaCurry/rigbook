@@ -1,5 +1,8 @@
 <script>
   import { onMount, onDestroy, createEventDispatcher } from "svelte";
+  import GridMap from "./GridMap.svelte";
+
+  let showGridPicker = false;
 
   export let logbookName = "";
   export let pickerMode = false;
@@ -411,7 +414,24 @@
     </div>
     <div class="setting-row">
       <label for="my_grid">My Grid Square{#if needsSetup && !my_grid.trim()} <span class="required">*</span>{/if}</label>
-      <input id="my_grid" type="text" bind:value={my_grid} on:input={stripGrid} autocomplete="off" style="text-transform: uppercase" class:input-required={needsSetup && !my_grid.trim()} />
+      <div class="grid-input-row">
+        <input id="my_grid" type="text" bind:value={my_grid} on:input={stripGrid} autocomplete="off" style="text-transform: uppercase" class:input-required={needsSetup && !my_grid.trim()} />
+        <button type="button" class="grid-picker-btn" on:click={() => showGridPicker = !showGridPicker} title="Pick from map">🌍</button>
+      </div>
+      {#if showGridPicker}
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+        <div class="grid-picker-overlay" on:click|self={() => showGridPicker = false} on:keydown={e => e.key === "Escape" && (showGridPicker = false)} tabindex="0">
+          <div class="grid-picker-modal">
+            <div class="grid-picker-header">
+              <span>Grid Square</span>
+              <button type="button" class="grid-picker-close" on:click={() => showGridPicker = false}>✕</button>
+            </div>
+            <GridMap bind:value={my_grid} on:select={() => showGridPicker = false} />
+          </div>
+        </div>
+      {/if}
     </div>
     <div class="setting-row">
       <label for="default_rst">Default RST</label>
@@ -697,6 +717,59 @@
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
+  }
+  .grid-input-row {
+    display: flex;
+    gap: 0.25rem;
+  }
+  .grid-input-row input {
+    flex: 1;
+  }
+  .grid-picker-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border-input);
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0 0.4rem;
+  }
+  .grid-picker-btn:hover {
+    border-color: var(--accent);
+  }
+  .grid-picker-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  .grid-picker-modal {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem;
+    width: min(90vw, 600px);
+    max-height: 90vh;
+    overflow: auto;
+  }
+  .grid-picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+  }
+  .grid-picker-close {
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 1.2rem;
+    cursor: pointer;
+  }
+  .grid-picker-close:hover {
+    color: var(--accent);
   }
 
   .setting-row:last-child {
