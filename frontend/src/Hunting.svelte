@@ -8,6 +8,7 @@
   import { timeAgo } from "./qrzLookup.js";
 
   const dispatch = createEventDispatcher();
+  export let potaEnabled = true;
 
   let spots = [];
   let loading = true;
@@ -357,7 +358,7 @@
   </div>
 
   {#if skccSkimmerEnabled}
-    <SkccSkimmer filterMode={filterMode} filterBand={filterBand} workedTodayKeys={workedTodayCwKeys} on:tune on:addqso />
+    <SkccSkimmer filterMode={filterMode} filterBand={filterBand} workedTodayKeys={workedTodayCwKeys} {potaEnabled} on:tune on:addqso />
   {/if}
 
   <h2>POTA Spots ({filteredSpots.length})</h2>

@@ -12,6 +12,7 @@
   let default_rst = "599";
   let qrz_password = "";
   let hasQrzPassword = false;
+  let pota_enabled = true;
   let flrig_enabled = false;
   let flrig_simulate = false;
   let flrig_host = "127.0.0.1";
@@ -163,6 +164,7 @@
           if (s.key === "my_grid") my_grid = s.value || "";
           if (s.key === "default_rst") default_rst = s.value || "599";
           if (s.key === "qrz_password") hasQrzPassword = !!s.value && s.value !== "";
+          if (s.key === "pota_enabled") pota_enabled = s.value !== "false";
           if (s.key === "flrig_enabled") flrig_enabled = s.value === "true";
           if (s.key === "flrig_simulate") flrig_simulate = s.value === "true";
           if (s.key === "flrig_host") flrig_host = s.value || "127.0.0.1";
@@ -223,6 +225,11 @@
         hasQrzPassword = true;
         qrz_password = "";
       }
+      await fetch("/api/settings/pota_enabled", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: pota_enabled ? "true" : "false" }),
+      });
       await fetch("/api/settings/flrig_enabled", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -434,6 +441,16 @@
       <button class="theme-toggle" on:click={sendTestNotification} disabled={testPending}>
         {testPending ? "Sending in 5s..." : "Send Test Notification"}
       </button>
+    </div>
+  </section>
+
+  <section class="settings-section">
+    <h3>Parks on the Air (POTA)</h3>
+    <div class="setting-row toggle-row">
+      <label>
+        <input type="checkbox" bind:checked={pota_enabled} />
+        Enable POTA
+      </label>
     </div>
   </section>
 

@@ -4,6 +4,7 @@
   import { QrzLookup, formatFreq, locationStr } from "./qrzLookup.js";
 
   const dispatch = createEventDispatcher();
+  export let potaEnabled = true;
 
   let spots = [];
   let status = { rbn: { connected: false, enabled: false }, hamalert: { connected: false, enabled: false }, callsigns: 0, entries: 0, total_spots: 0, avg_spots_per_callsign: 0 };
@@ -85,6 +86,7 @@
   }
 
   async function fetchPotaSpots() {
+    if (!potaEnabled) { potaKeys = new Set(); potaByKey = {}; return; }
     try {
       const res = await fetch("/api/pota/spots");
       if (res.ok) {

@@ -8,6 +8,7 @@
   export let filterMode = "";
   export let filterBand = "";
   export let workedTodayKeys = new Set();
+  export let potaEnabled = true;
 
   let spots = [];
   let loading = true;
@@ -35,6 +36,7 @@
   }
 
   async function fetchPotaSpots() {
+    if (!potaEnabled) { potaKeys = new Set(); potaByKey = {}; return; }
     try {
       const res = await fetch("/api/pota/spots");
       if (res.ok) {
