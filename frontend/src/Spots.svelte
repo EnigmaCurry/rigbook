@@ -154,7 +154,10 @@
   }
 
   const factoryFilters = { source: "", band: "", mode: "", callsign: "", skcc: "" };
-  $: isDefault = filtersLoaded && filtersMatch(currentFilters(), savedFilters || factoryFilters);
+  $: isDefault = filtersLoaded && filtersMatch(
+    { source: filterSource, band: filterBand, mode: filterMode, callsign: filterCallsign, skcc: filterSkcc },
+    savedFilters || factoryFilters
+  );
 
   async function loadDefaultFilters() {
     try {
