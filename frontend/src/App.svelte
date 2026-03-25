@@ -513,11 +513,14 @@
 
   async function fetchSpotsEnabled() {
     try {
-      const res = await fetch("/api/spots/status");
-      if (res.ok) {
-        const data = await res.json();
-        spotsEnabled = data.rbn?.enabled || data.hamalert?.enabled;
-      }
+      const [rbnRes, haRes] = await Promise.all([
+        fetch("/api/settings/rbn_enabled"),
+        fetch("/api/settings/hamalert_enabled"),
+      ]);
+      let rbn = false, ha = false;
+      if (rbnRes.ok) { const d = await rbnRes.json(); rbn = d.value === "true"; }
+      if (haRes.ok) { const d = await haRes.json(); ha = d.value === "true"; }
+      spotsEnabled = rbn || ha;
     } catch {}
   }
 
