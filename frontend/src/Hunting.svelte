@@ -334,6 +334,10 @@
 </script>
 
 <div class="hunting">
+  {#if !potaEnabled && !skccSkimmerEnabled}
+    <h2>Hunting</h2>
+    <p class="status">No hunting activities enabled. Enable POTA or SKCC Skimmer in Settings.</p>
+  {:else}
   <div class="controls">
     <h2>Hunting</h2>
     <div class="filters">
@@ -411,6 +415,7 @@
         </div>
       {/each}
     </div>
+  {/if}
   {/if}
   {/if}
 </div>
