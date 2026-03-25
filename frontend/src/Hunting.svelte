@@ -336,7 +336,7 @@
 <div class="hunting">
   {#if !potaEnabled && !skccSkimmerEnabled}
     <h2>Hunting</h2>
-    <p class="status">No hunting activities enabled. Enable POTA or SKCC Skimmer in Settings.</p>
+    <p class="status">No hunting activities enabled. Enable POTA or SKCC Skimmer in <a href="#/settings">Settings</a>.</p>
   {:else}
   <div class="controls">
     <h2>Hunting</h2>
