@@ -393,7 +393,12 @@
       if (res.ok) myParks = await res.json();
     } catch {}
     myParksLoading = false;
-    if (tab === "my-qsos") renderMap();
+    if (tab === "my-qsos" && !loading) renderMap();
+  }
+
+  // Render map once both loads complete and we're on the my-qsos tab
+  $: if (tab === "my-qsos" && !myParksLoading && !loading && myParks.length > 0 && !leafletMap) {
+    renderMap();
   }
 
   onMount(() => {
