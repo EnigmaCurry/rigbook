@@ -13,6 +13,7 @@
   let qrz_password = "";
   let hasQrzPassword = false;
   let flrig_enabled = false;
+  let flrig_simulate = false;
   let flrig_host = "127.0.0.1";
   let flrig_port = "12345";
   let wide_breakpoint = "1200";
@@ -163,6 +164,7 @@
           if (s.key === "default_rst") default_rst = s.value || "599";
           if (s.key === "qrz_password") hasQrzPassword = !!s.value && s.value !== "";
           if (s.key === "flrig_enabled") flrig_enabled = s.value === "true";
+          if (s.key === "flrig_simulate") flrig_simulate = s.value === "true";
           if (s.key === "flrig_host") flrig_host = s.value || "127.0.0.1";
           if (s.key === "flrig_port") flrig_port = s.value || "12345";
           if (s.key === "rbn_enabled") rbn_enabled = s.value === "true";
@@ -225,6 +227,11 @@
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value: flrig_enabled ? "true" : "false" }),
+      });
+      await fetch("/api/settings/flrig_simulate", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: flrig_simulate ? "true" : "false" }),
       });
       await fetch("/api/settings/flrig_host", {
         method: "PUT",
@@ -438,13 +445,19 @@
         Enable flrig
       </label>
     </div>
+    <div class="setting-row toggle-row">
+      <label>
+        <input type="checkbox" bind:checked={flrig_simulate} disabled={!flrig_enabled} />
+        Simulate flrig (no real radio)
+      </label>
+    </div>
     <div class="setting-row">
       <label for="flrig_host">flrig Host</label>
-      <input id="flrig_host" type="text" bind:value={flrig_host} autocomplete="off" disabled={!flrig_enabled} />
+      <input id="flrig_host" type="text" bind:value={flrig_host} autocomplete="off" disabled={!flrig_enabled || flrig_simulate} />
     </div>
     <div class="setting-row">
       <label for="flrig_port">flrig Port</label>
-      <input id="flrig_port" type="text" bind:value={flrig_port} autocomplete="off" inputmode="numeric" disabled={!flrig_enabled} />
+      <input id="flrig_port" type="text" bind:value={flrig_port} autocomplete="off" inputmode="numeric" disabled={!flrig_enabled || flrig_simulate} />
     </div>
   </section>
 

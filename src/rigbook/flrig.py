@@ -13,6 +13,21 @@ router = APIRouter(prefix="/api/flrig", tags=["flrig"])
 DEFAULT_FLRIG_HOST = "127.0.0.1"
 DEFAULT_FLRIG_PORT = "12345"
 
+SIMULATED_MODES = ["CW", "USB", "LSB", "RTTY", "FT8"]
+
+
+# --- Simulated radio state ---
+_sim_freq: str = "14074000"
+_sim_mode: str = "CW"
+
+
+async def is_simulate(session: AsyncSession) -> bool:
+    result = await session.execute(
+        select(Setting.value).where(Setting.key == "flrig_simulate")
+    )
+    val = result.scalar_one_or_none()
+    return val == "true"
+
 
 async def get_flrig_url(session: AsyncSession = Depends(get_session)) -> str:
     host = DEFAULT_FLRIG_HOST
@@ -85,7 +100,12 @@ class FlrigSet(BaseModel):
 
 
 @router.get("/status", response_model=FlrigStatus)
-async def flrig_status(url: str = Depends(get_flrig_url)):
+async def flrig_status(
+    url: str = Depends(get_flrig_url),
+    session: AsyncSession = Depends(get_session),
+):
+    if await is_simulate(session):
+        return FlrigStatus(freq=_sim_freq, mode=_sim_mode, connected=True)
     loop = asyncio.get_event_loop()
     client = FlrigClient(url)
     freq = await loop.run_in_executor(None, client.get_frequency)
@@ -95,17 +115,30 @@ async def flrig_status(url: str = Depends(get_flrig_url)):
 
 
 @router.get("/modes")
-async def flrig_modes(url: str = Depends(get_flrig_url)):
+async def flrig_modes(
+    url: str = Depends(get_flrig_url),
+    session: AsyncSession = Depends(get_session),
+):
+    if await is_simulate(session):
+        return SIMULATED_MODES
     loop = asyncio.get_event_loop()
     client = FlrigClient(url)
-    radio_modes = await loop.run_in_executor(None, client.get_modes)
-    if "CW" not in (m.upper() for m in radio_modes):
-        radio_modes.append("CW")
-    return radio_modes
+    return await loop.run_in_executor(None, client.get_modes)
 
 
 @router.put("/vfo")
-async def flrig_set_vfo(data: FlrigSet, url: str = Depends(get_flrig_url)):
+async def flrig_set_vfo(
+    data: FlrigSet,
+    url: str = Depends(get_flrig_url),
+    session: AsyncSession = Depends(get_session),
+):
+    global _sim_freq, _sim_mode
+    if await is_simulate(session):
+        if data.freq is not None:
+            _sim_freq = data.freq
+        if data.mode is not None:
+            _sim_mode = data.mode
+        return {"ok": True}
     loop = asyncio.get_event_loop()
     client = FlrigClient(url)
     if data.freq is not None:
