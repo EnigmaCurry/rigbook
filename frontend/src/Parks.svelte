@@ -675,6 +675,10 @@
 <style>
   .parks {
     padding: 0;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
   }
 
   .parks-header {
@@ -746,6 +750,10 @@
 
   .tab-content {
     min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
   }
 
   /* Shared */
@@ -858,7 +866,8 @@
   .my-parks-list {
     display: flex;
     flex-direction: column;
-    height: 40vh;
+    flex: 1;
+    min-height: 0;
     overflow-y: scroll;
     border: 1px solid var(--border);
     border-radius: 3px;
