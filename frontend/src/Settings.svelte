@@ -43,6 +43,7 @@
   let hamalert_password = "";
   let hasHamalertPassword = false;
 
+  let settingsLoaded = false;
   let savedSnapshot = {};
 
   function settingsSnapshot() {
@@ -57,7 +58,7 @@
   }
 
   $: currentSnap = settingsSnapshot();
-  $: dirty = JSON.stringify(currentSnap) !== JSON.stringify(savedSnapshot);
+  $: dirty = settingsLoaded && JSON.stringify(currentSnap) !== JSON.stringify(savedSnapshot);
   $: changed = Object.fromEntries(
     Object.keys(currentSnap).map(k => [k, savedSnapshot[k] !== undefined && savedSnapshot[k] !== currentSnap[k]])
   );
@@ -218,6 +219,7 @@
         }
       }
       savedSnapshot = settingsSnapshot();
+      settingsLoaded = true;
     } catch {}
   }
 
