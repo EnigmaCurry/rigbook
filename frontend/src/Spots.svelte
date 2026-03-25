@@ -381,9 +381,6 @@
       {status.total_spots} spot{status.total_spots !== 1 ? "s" : ""} &middot;
       {status.avg_spots_per_callsign} avg/call
     </div>
-    <button class="restart-btn" on:click={restart} disabled={restarting}>
-      {restarting ? "Restarting..." : "Restart Feeds"}
-    </button>
   </div>
 
   <div class="filters">
