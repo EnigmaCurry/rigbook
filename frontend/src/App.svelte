@@ -744,7 +744,12 @@
   function onResize() {
     wide = isWide();
     if (page === "dual" && !wide) {
-      navigate("log");
+      if (formDirty || dualShowForm || editId) {
+        // Keep dual page alive so Logbook component isn't destroyed;
+        // the hunting pane is hidden via CSS when not wide
+      } else {
+        navigate("log");
+      }
     } else if ((page === "log" || page === "hunting") && wide) {
       navigate("dual");
     }
@@ -909,9 +914,9 @@
   {:else if page === "hunting"}
     <Hunting on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
   {:else if page === "dual"}
-    <div class="dual-layout">
+    <div class="dual-layout" class:dual-narrow={!wide}>
       <div class="dual-pane">
-        <Logbook showForm={dualShowForm || !!prefill || !!editId} {prefill} {editId} {vfoFreq} {vfoMode} bind:formDirty on:editchange={e => { editId = e.detail; dualShowForm = !!e.detail; }} on:navigate={e => { if (e.detail === "hunting" || e.detail === "log" || e.detail === "back") { prefill = null; editId = null; dualShowForm = false; dualHunting?.refreshAwards(); } else navigate(e.detail); }} on:prefillconsumed={() => prefill = null} />
+        <Logbook showForm={dualShowForm || !!prefill || !!editId} {prefill} {editId} {vfoFreq} {vfoMode} bind:formDirty on:editchange={e => { editId = e.detail; dualShowForm = !!e.detail; }} on:navigate={e => { if (e.detail === "hunting" || e.detail === "log" || e.detail === "back") { prefill = null; editId = null; dualShowForm = false; dualHunting?.refreshAwards(); if (!wide) navigate("log"); } else navigate(e.detail); }} on:prefillconsumed={() => prefill = null} />
       </div>
       <div class="dual-pane">
         <Hunting bind:this={dualHunting} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
@@ -1456,6 +1461,9 @@
     flex: 1;
     min-width: 0;
     overflow-y: auto;
+  }
+  .dual-narrow .dual-pane:last-child {
+    display: none;
   }
 
   @media (max-width: 600px) {
