@@ -716,6 +716,7 @@
         notes = "";
         datePart = "";
         timePart = "";
+        addOriginal = formSnapshot();
         await fetchContacts();
         dispatch("navigate", "back");
       } else {
