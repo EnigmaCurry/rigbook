@@ -40,6 +40,8 @@
   let filtersLoaded = false;
   let restarting = false;
   let workedTodayKeys = new Set();
+  let potaKeys = new Set();
+  let potaByKey = {};
 
   const BAND_RANGES = {
     "160m": [1800, 2000], "80m": [3500, 4000], "60m": [5330, 5410],
@@ -80,6 +82,50 @@
         workedTodayKeys = keys;
       }
     } catch {}
+  }
+
+  async function fetchPotaSpots() {
+    try {
+      const res = await fetch("/api/pota/spots");
+      if (res.ok) {
+        const pota = await res.json();
+        const keys = new Set();
+        const byKey = {};
+        for (const s of pota) {
+          const call = (s.activator || "").toUpperCase();
+          const band = freqToBand(parseFloat(s.frequency) * 1000);
+          if (call && band) {
+            const key = `${call}|${band}`;
+            keys.add(key);
+            byKey[key] = s;
+          }
+        }
+        potaKeys = keys;
+        potaByKey = byKey;
+      }
+    } catch {}
+  }
+
+  function isPotaActivator(spot) {
+    if (potaKeys.size === 0) return false;
+    const call = (spot.callsign || "").toUpperCase();
+    const band = spot.band || freqToBand(parseFloat(spot.frequency));
+    return potaKeys.has(`${call}|${band}`);
+  }
+
+  function getPotaSpot(spot) {
+    const call = (spot.callsign || "").toUpperCase();
+    const band = spot.band || freqToBand(parseFloat(spot.frequency));
+    return potaByKey[`${call}|${band}`] || null;
+  }
+
+  function addQsoWithPota(spot) {
+    const pota = getPotaSpot(spot);
+    if (pota) {
+      dispatch("addqso", { ...spot, activator: spot.callsign, reference: pota.reference, grid4: pota.grid4, locationDesc: pota.locationDesc });
+    } else {
+      dispatch("addqso", spot);
+    }
   }
 
   function isWorkedToday(spot) {
@@ -265,9 +311,10 @@
     fetchBands();
     fetchModes();
     fetchWorkedToday();
+    fetchPotaSpots();
     await loadDefaultFilters();
     fetchSpots();
-    statusInterval = setInterval(() => { fetchStatus(); fetchBands(); fetchModes(); fetchWorkedToday(); }, 5000);
+    statusInterval = setInterval(() => { fetchStatus(); fetchBands(); fetchModes(); fetchWorkedToday(); fetchPotaSpots(); }, 5000);
     spotsInterval = setInterval(fetchSpots, 3000);
   });
 
@@ -407,9 +454,9 @@
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
             {#if isWorkedToday(spot)}
-              <td class="mono call worked-call" title="Already worked today">{spot.callsign}</td>
+              <td class="mono call worked-call" title="Already worked today">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</td>
             {:else}
-              <td class="mono call clickable" on:click={() => dispatch("addqso", spot)} title="Log QSO with {spot.callsign}">{spot.callsign}</td>
+              <td class="mono call clickable" on:click={() => addQsoWithPota(spot)} title="Log QSO with {spot.callsign}">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</td>
             {/if}
             {#if filterMode === "CW"}<td class="mono skcc">{spot.skcc ?? ""}</td>{/if}
             <!-- svelte-ignore a11y-click-events-have-key-events -->
