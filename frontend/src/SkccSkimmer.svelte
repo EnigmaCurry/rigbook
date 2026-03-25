@@ -43,7 +43,7 @@
         const byKey = {};
         for (const s of pota) {
           const call = (s.activator || "").toUpperCase();
-          const band = freqToBand(parseFloat(s.frequency) * 1000);
+          const band = freqToBand(parseFloat(s.frequency));
           if (call && band) {
             const key = `${call}|${band}`;
             keys.add(key);
