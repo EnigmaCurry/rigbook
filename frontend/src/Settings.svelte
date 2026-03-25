@@ -612,7 +612,13 @@
 
 <style>
   .settings {
-    max-width: 400px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+    align-items: start;
+  }
+  .settings h2 {
+    grid-column: 1 / -1;
   }
 
   h2 {
@@ -626,7 +632,6 @@
     border: 1px solid var(--border);
     border-radius: 4px;
     padding: 0.75rem 1rem;
-    margin-bottom: 1rem;
   }
 
   h3 {
