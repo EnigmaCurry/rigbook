@@ -141,7 +141,7 @@
       </div>
     {/if}
 
-    <p class="updated">Updated: {data.updated} — Source: N0NBH / hamqsl.com</p>
+    <p class="updated">Updated: {data.updated} — Source: N0NBH / <a href="https://www.hamqsl.com/solar.html" target="_blank" rel="noopener">hamqsl.com</a></p>
   {/if}
 </div>
 
