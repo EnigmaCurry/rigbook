@@ -153,7 +153,8 @@
       && a.callsign === b.callsign && a.skcc === b.skcc;
   }
 
-  $: isDefault = filtersLoaded && filtersMatch(currentFilters(), savedFilters);
+  const factoryFilters = { source: "", band: "", mode: "", callsign: "", skcc: "" };
+  $: isDefault = filtersLoaded && filtersMatch(currentFilters(), savedFilters || factoryFilters);
 
   async function loadDefaultFilters() {
     try {
