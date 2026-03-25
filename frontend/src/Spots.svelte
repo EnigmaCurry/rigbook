@@ -91,16 +91,9 @@
         const pota = await res.json();
         const keys = new Set();
         const byKey = {};
-        if (pota.length > 0) {
-          console.log("[POTA debug] sample spot:", JSON.stringify(pota[0]));
-        }
         for (const s of pota) {
           const call = (s.activator || "").toUpperCase();
-          const rawFreq = s.frequency;
-          const band = freqToBand(parseFloat(rawFreq));
-          if (!band && call) {
-            console.log(`[POTA debug] no band for ${call} freq=${rawFreq} parsed=${parseFloat(rawFreq)}`);
-          }
+          const band = freqToBand(parseFloat(s.frequency));
           if (call && band) {
             const key = `${call}|${band}`;
             keys.add(key);
@@ -109,30 +102,15 @@
         }
         potaKeys = keys;
         potaByKey = byKey;
-        console.log(`[POTA debug] ${potaKeys.size} POTA keys loaded, sample:`, [...potaKeys].slice(0, 5));
-      } else {
-        console.log("[POTA debug] fetch failed:", res.status);
       }
-    } catch (e) {
-      console.log("[POTA debug] fetch error:", e);
-    }
+    } catch {}
   }
 
   function isPotaActivator(spot) {
     if (potaKeys.size === 0) return false;
     const call = (spot.callsign || "").toUpperCase();
     const band = spot.band || freqToBand(parseFloat(spot.frequency));
-    const key = `${call}|${band}`;
-    const match = potaKeys.has(key);
-    if (!match && potaKeys.size > 0) {
-      // Log first few misses to help debug
-      if (!isPotaActivator._logged) isPotaActivator._logged = 0;
-      if (isPotaActivator._logged < 5) {
-        console.log(`[POTA debug] no match: key="${key}" (spot.band="${spot.band}" spot.frequency="${spot.frequency}")`);
-        isPotaActivator._logged++;
-      }
-    }
-    return match;
+    return potaKeys.has(`${call}|${band}`);
   }
 
   function getPotaSpot(spot) {
