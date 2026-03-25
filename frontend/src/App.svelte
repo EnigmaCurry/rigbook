@@ -1487,7 +1487,7 @@
 
   .dual-layout {
     display: flex;
-    gap: 1.5rem;
+    gap: 0;
     flex: 1;
     min-height: 0;
   }
@@ -1496,6 +1496,10 @@
     flex: 1;
     min-width: 0;
     overflow-y: auto;
+    padding: 0 0.75rem;
+  }
+  .dual-pane + .dual-pane {
+    border-left: 1px solid var(--border);
   }
   .dual-narrow .dual-pane:last-child {
     display: none;
