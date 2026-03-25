@@ -43,6 +43,25 @@
   let hamalert_password = "";
   let hasHamalertPassword = false;
 
+  let savedSnapshot = {};
+
+  function settingsSnapshot() {
+    return {
+      my_callsign, my_grid, default_rst, pota_enabled, solar_enabled,
+      flrig_enabled, flrig_simulate, flrig_host, flrig_port,
+      logbook_right, wide_breakpoint, wide_mode_enabled,
+      rbn_enabled, rbn_host, rbn_feed_cw, rbn_feed_digital,
+      skcc_skimmer_enabled, skcc_skimmer_distance,
+      hamalert_enabled, hamalert_host, hamalert_port, hamalert_username,
+    };
+  }
+
+  $: currentSnap = settingsSnapshot();
+  $: dirty = JSON.stringify(currentSnap) !== JSON.stringify(savedSnapshot);
+  $: changed = Object.fromEntries(
+    Object.keys(currentSnap).map(k => [k, savedSnapshot[k] !== undefined && savedSnapshot[k] !== currentSnap[k]])
+  );
+
   // Desktop notifications
   let desktopNotifPermission = typeof Notification !== "undefined" ? Notification.permission : "denied";
   let desktopNotifEnabled = localStorage.getItem("desktop_notifications_enabled") === "true";
@@ -198,6 +217,7 @@
           }
         }
       }
+      savedSnapshot = settingsSnapshot();
     } catch {}
   }
 
@@ -330,6 +350,7 @@
       await fetch("/api/spots/restart", { method: "POST" });
       setTimeout(fetchSpotStatus, 2000);
       dispatch("saved");
+      savedSnapshot = settingsSnapshot();
       message = "Settings saved.";
       if (my_callsign.trim() && my_grid.trim()) {
         dispatch("setupcomplete");
@@ -365,12 +386,15 @@
 
 <div class="settings">
   <h2>Settings</h2>
+  {#if dirty}
+    <p class="save-reminder">You have unsaved changes. Click Save when finished.</p>
+  {/if}
 
   {#if needsSetup}
     <p class="setup-hint">Enter your callsign and grid square to get started.</p>
   {/if}
 
-  <section class="settings-section">
+  <section class="settings-section" class:section-changed={changed.my_callsign || changed.my_grid || changed.default_rst}>
     <h3>Station</h3>
     <div class="setting-row">
       <label for="my_callsign">My Callsign{#if needsSetup && !my_callsign.trim()} <span class="required">*</span>{/if}</label>
@@ -409,7 +433,7 @@
     {/if}
   </section>
 
-  <section class="settings-section">
+  <section class="settings-section" class:section-changed={changed.wide_mode_enabled || changed.wide_breakpoint || changed.logbook_right}>
     <h3>Appearance</h3>
     <div class="setting-row toggle-row">
       <label>Theme</label>
@@ -465,7 +489,7 @@
     </div>
   </section>
 
-  <section class="settings-section">
+  <section class="settings-section" class:section-changed={changed.pota_enabled}>
     <h3>Parks on the Air (POTA)</h3>
     <div class="setting-row toggle-row">
       <label>
@@ -475,7 +499,7 @@
     </div>
   </section>
 
-  <section class="settings-section">
+  <section class="settings-section" class:section-changed={changed.solar_enabled}>
     <h3>Solar / Band Conditions</h3>
     <div class="setting-row toggle-row">
       <label>
@@ -485,7 +509,7 @@
     </div>
   </section>
 
-  <section class="settings-section">
+  <section class="settings-section" class:section-changed={changed.flrig_enabled || changed.flrig_simulate || changed.flrig_host || changed.flrig_port}>
     <h3>flrig Connection</h3>
     <div class="setting-row toggle-row">
       <label>
@@ -509,7 +533,7 @@
     </div>
   </section>
 
-  <section class="settings-section">
+  <section class="settings-section" class:section-changed={changed.rbn_enabled || changed.rbn_host || changed.rbn_feed_cw || changed.rbn_feed_digital || changed.skcc_skimmer_enabled || changed.skcc_skimmer_distance}>
     <h3>Reverse Beacon Network (RBN)</h3>
     <div class="setting-row toggle-row">
       <label>
@@ -539,7 +563,7 @@
     <p class="hint">Uses your My Callsign to authenticate.</p>
   </section>
 
-  <section class="settings-section">
+  <section class="settings-section" class:section-changed={changed.hamalert_enabled || changed.hamalert_host || changed.hamalert_port || changed.hamalert_username}>
     <h3>HamAlert</h3>
     <div class="setting-row toggle-row">
       <label>
@@ -578,7 +602,7 @@
   </section>
 
   <div class="setting-row">
-    <button on:click={save} disabled={saving}>
+    <button class:btn-dirty={dirty} on:click={save} disabled={saving}>
       {saving ? "Saving..." : "Save"}
     </button>
     {#if message}
@@ -629,6 +653,26 @@
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
     break-inside: avoid;
+  }
+  .settings-section.section-changed {
+    border-color: var(--accent);
+  }
+
+  .save-reminder {
+    color: var(--accent);
+    font-size: 0.85rem;
+    font-style: italic;
+    margin-bottom: 0.5rem;
+  }
+
+  .btn-dirty {
+    background: var(--accent) !important;
+    color: var(--bg) !important;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
   }
 
   h3 {
