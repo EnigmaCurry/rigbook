@@ -578,10 +578,7 @@
       if (rbnRes.ok) { const d = await rbnRes.json(); rbn = d.value === "true"; }
       if (haRes.ok) { const d = await haRes.json(); ha = d.value === "true"; }
       spotsEnabled = rbn || ha;
-      console.log("[debug] fetchSpotsEnabled: rbn=" + rbn + " ha=" + ha + " spotsEnabled=" + spotsEnabled);
-    } catch (e) {
-      console.log("[debug] fetchSpotsEnabled error:", e);
-    }
+    } catch {}
   }
 
   async function fetchPotaEnabled() {

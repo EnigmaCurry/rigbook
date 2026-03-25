@@ -66,10 +66,6 @@
     hamalert_enabled, hamalert_host, hamalert_port, hamalert_username,
   };
   $: dirty = savedSnapshot !== null && JSON.stringify(currentSnap) !== JSON.stringify(savedSnapshot);
-  $: if (dirty && savedSnapshot) {
-    const diffs = Object.keys(currentSnap).filter(k => currentSnap[k] !== savedSnapshot[k]);
-    console.log("[settings dirty]", diffs, "current:", Object.fromEntries(diffs.map(k => [k, currentSnap[k]])), "saved:", Object.fromEntries(diffs.map(k => [k, savedSnapshot[k]])));
-  }
   $: changed = savedSnapshot ? Object.fromEntries(
     Object.keys(currentSnap).map(k => [k, savedSnapshot[k] !== currentSnap[k]])
   ) : {};

@@ -335,11 +335,9 @@
 </script>
 
 <div class="hunting">
-  <!-- debug: filtersLoaded={filtersLoaded} potaEnabled={potaEnabled} skccSkimmerEnabled={skccSkimmerEnabled} spotsEnabled={spotsEnabled} -->
   {#if filtersLoaded && !potaEnabled && !(skccSkimmerEnabled && spotsEnabled)}
     <h2>Hunting</h2>
     <p class="status">No hunting activities enabled. Enable POTA or SKCC Skimmer in <a href="#/settings">Settings</a>.</p>
-    <p class="status" style="font-size:0.7rem">debug: pota={potaEnabled} skcc={skccSkimmerEnabled} spots={spotsEnabled} loaded={filtersLoaded}</p>
   {:else}
   <div class="controls">
     <h2>Hunting</h2>
