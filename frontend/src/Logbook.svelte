@@ -100,6 +100,7 @@
   }
   export let showForm = true;
   export let formDirty = false;
+  export let activePark = "";
 
   function formSnapshot() {
     return { call, freq, mode, rst_sent, rst_recv, pota_park, name, qth, state, country, grid, skcc, skcc_exch, comments, notes, datePart, timePart };
@@ -147,6 +148,7 @@
 
   $: formDirty = editingId ? editHasChanges : addHasChanges;
   $: orig = editingId ? editOriginal : addOriginal;
+  $: activePark = showForm ? pota_park.trim().toUpperCase() : "";
 
   let sortCol = "timestamp";
   let sortAsc = false;
