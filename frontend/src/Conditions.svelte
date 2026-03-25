@@ -23,7 +23,7 @@
 
   onMount(() => {
     fetchConditions();
-    pollInterval = setInterval(fetchConditions, 60000);
+    pollInterval = setInterval(fetchConditions, 30000);
   });
 
   onDestroy(() => {

@@ -89,14 +89,14 @@
     return (n >= seg.lo + loMargin && n <= seg.hi - hiMargin) ? b.name : "";
   }
 
-  const DUAL_RIGHT_PAGES = new Set(["hunting", "spots", "parks", "notifications"]);
+  const DUAL_RIGHT_PAGES = new Set(["hunting", "spots", "parks", "notifications", "conditions"]);
 
   function parseHash() {
     const hash = window.location.hash.slice(1) || "/";
     if (hash === "/picker") return { page: "picker", editId: null, dualRight: null };
     if (hash === "/grid") return { page: "grid", editId: null, dualRight: null };
     if (hash === "/about") return { page: "about", editId: null, dualRight: null };
-    if (hash === "/conditions") return { page: "conditions", editId: null, dualRight: null };
+    if (hash === "/conditions") return { page: isWide() ? "dual" : "conditions", editId: null, dualRight: "conditions" };
     if (hash === "/links") return { page: "links", editId: null, dualRight: null };
     if (hash === "/settings") return { page: "settings", editId: null, dualRight: null };
     if (hash === "/export") return { page: "export", editId: null, dualRight: null };
@@ -651,6 +651,7 @@
     if (p === "spots" && !spotsEnabled) p = "log";
     if (p === "parks" && !potaEnabled) p = "log";
     if (p === "conditions" && !solarEnabled) p = "log";
+
     if (isWide() && (p === "add" || p === "log" || DUAL_RIGHT_PAGES.has(p))) {
       if (DUAL_RIGHT_PAGES.has(p)) dualRightPage = p;
       p = "dual";
@@ -811,10 +812,11 @@
     // Redirect disabled pages
     if (p === "spots" && !spotsEnabled) p = isWide() ? "dual" : "log";
     if (p === "parks" && !potaEnabled) p = isWide() ? "dual" : "log";
+    if (p === "conditions" && !solarEnabled) p = isWide() ? "dual" : "log";
     page = p;
     editId = parsed.editId;
     if (parsed.dualRight) {
-      if ((parsed.dualRight === "spots" && !spotsEnabled) || (parsed.dualRight === "parks" && !potaEnabled)) {
+      if ((parsed.dualRight === "spots" && !spotsEnabled) || (parsed.dualRight === "parks" && !potaEnabled) || (parsed.dualRight === "conditions" && !solarEnabled)) {
         // Don't set disabled right page
       } else {
         dualRightPage = parsed.dualRight;
@@ -1022,11 +1024,13 @@
         {#if spotsEnabled}<button class="add-btn dual-btn" class:active-nav={dualRightPage === "spots"} on:click={() => navigate("spots")} title="Logbook & Spots">{#if dualRightPage === "spots" && !logbookRight}📖{/if}🗺️{#if dualRightPage === "spots" && logbookRight}📖{/if}</button>{/if}
         {#if potaEnabled}<button class="add-btn dual-btn parks-btn" class:active-nav={dualRightPage === "parks"} on:click={() => navigate("parks")} title="Logbook & Parks">{#if dualRightPage === "parks" && !logbookRight}📖{/if}🌲{#if dualRightPage === "parks" && logbookRight}📖{/if}</button>{/if}
         <button class="add-btn dual-btn notification-btn" class:active-nav={dualRightPage === "notifications"} on:click={handleNotificationClick} title="Logbook & Notifications">{#if dualRightPage === "notifications" && !logbookRight}📖{/if}{#if unreadCount > 0}<span class="notif-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>{:else}✉️{/if}{#if dualRightPage === "notifications" && logbookRight}📖{/if}</button>
+        {#if solarEnabled}<button class="add-btn dual-btn" class:active-nav={dualRightPage === "conditions"} on:click={() => navigate("conditions")} title="Logbook & Conditions">{#if dualRightPage === "conditions" && !logbookRight}📖{/if}🌤️{#if dualRightPage === "conditions" && logbookRight}📖{/if}</button>{/if}
       {:else}
         <button class="add-btn" on:click={() => navigate("log")} title="Logbook">📖</button>
         <button class="add-btn" on:click={() => navigate("hunting")} title="Hunting">🧭</button>
         {#if potaEnabled}<button class="add-btn parks-btn" on:click={() => navigate("parks")} title="My Parks">🌲</button>{/if}
         {#if spotsEnabled}<button class="add-btn" on:click={() => navigate("spots")} title="Spots">🗺️</button>{/if}
+        {#if solarEnabled}<button class="add-btn" on:click={() => navigate("conditions")} title="Conditions">🌤️</button>{/if}
         <button class="add-btn notification-btn" class:has-unread={unreadCount > 0} on:click={handleNotificationClick} title="Notifications">
           {#if unreadCount > 0}
             <span class="notif-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>
@@ -1053,7 +1057,7 @@
           {#if potaEnabled}<button class="menu-item" class:active={page === "parks" || (page === "dual" && dualRightPage === "parks")} on:click={() => navigate("parks")}>Parks</button>{/if}
           {#if spotsEnabled}<button class="menu-item" class:active={page === "spots" || (page === "dual" && dualRightPage === "spots")} on:click={() => navigate("spots")}>Spots</button>{/if}
           <button class="menu-item" class:active={page === "notifications" || (page === "dual" && dualRightPage === "notifications")} on:click={() => navigate("notifications")}>Notifications{#if unreadCount > 0} ({unreadCount}){/if}</button>
-          {#if solarEnabled}<button class="menu-item" class:active={page === "conditions"} on:click={() => navigate("conditions")}>Conditions</button>{/if}
+          {#if solarEnabled}<button class="menu-item" class:active={page === "conditions" || (page === "dual" && dualRightPage === "conditions")} on:click={() => navigate("conditions")}>Conditions</button>{/if}
           <button class="menu-item" class:active={page === "export"} on:click={() => navigate("export")}>Export / Import</button>
           <button class="menu-item" class:active={page === "settings"} on:click={() => navigate("settings")}>Settings</button>
           <button class="menu-item" class:active={page === "links"} on:click={() => navigate("links")}>Links</button>
@@ -1089,6 +1093,8 @@
           <Parks bind:this={dualParks} {activePark} on:addqso={e => { if (formDirty) { alert("Save or cancel your current QSO before selecting a new spot."); return; } prefill = e.detail; dualShowForm = true; }} />
         {:else if dualRightPage === "notifications"}
           <Notifications on:countchange={() => fetchUnreadCount()} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
+        {:else if dualRightPage === "conditions"}
+          <Conditions />
         {/if}
       </div>
     </div>
