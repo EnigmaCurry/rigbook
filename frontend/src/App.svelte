@@ -126,6 +126,7 @@
   let formDirty = false;
   let activePark = "";
   let dualShowForm = !!editId || (page === "dual" && (window.location.hash.slice(1) === "/add"));
+  let logbookRight = false;
   let dualSplit = parseFloat(localStorage.getItem("dualSplit")) || 50;
   let draggingSplit = false;
 
@@ -137,7 +138,9 @@
       const layout = e.target.closest(".dual-layout");
       if (!layout) return;
       const rect = layout.getBoundingClientRect();
-      let pct = ((clientX - rect.left) / rect.width) * 100;
+      let pct = logbookRight
+        ? 100 - ((clientX - rect.left) / rect.width) * 100
+        : ((clientX - rect.left) / rect.width) * 100;
       if (pct < 10) pct = 10;
       if (pct > 90) pct = 90;
       dualSplit = pct;
@@ -230,6 +233,7 @@
 
   async function startAppServices() {
     fetchCallsign();
+    await fetchLogbookRight();
     await fetchSpotsEnabled();
     await fetchPotaEnabled();
     await fetchFlrigEnabled();
@@ -536,6 +540,16 @@
       if (res.ok) {
         const data = await res.json();
         myCallsign = data.value || "";
+      }
+    } catch {}
+  }
+
+  async function fetchLogbookRight() {
+    try {
+      const res = await fetch("/api/settings/logbook_right");
+      if (res.ok) {
+        const data = await res.json();
+        logbookRight = data.value === "true";
       }
     } catch {}
   }
@@ -1044,7 +1058,7 @@
   {:else if page === "hunting"}
     <Hunting {potaEnabled} {spotsEnabled} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
   {:else if page === "dual"}
-    <div class="dual-layout" class:dual-narrow={!wide} class:dragging={draggingSplit}>
+    <div class="dual-layout" class:dual-narrow={!wide} class:dragging={draggingSplit} class:dual-reversed={logbookRight}>
       <div class="dual-pane" style="flex: 0 0 {dualSplit}%">
         <Logbook showForm={dualShowForm || !!prefill || !!editId} {prefill} {editId} {vfoFreq} {vfoMode} bind:formDirty bind:activePark on:editchange={e => { editId = e.detail; dualShowForm = !!e.detail; }} on:navigate={e => { if (e.detail === "hunting" || e.detail === "log" || e.detail === "back") { prefill = null; editId = null; dualShowForm = false; dualHunting?.refreshAwards(); if (!wide) navigate(dualRightPage); } else navigate(e.detail); }} on:prefillconsumed={() => prefill = null} on:parkschanged={() => dualParks?.refreshParks()} />
       </div>
@@ -1073,7 +1087,7 @@
   {:else if page === "spots"}
     <Spots {potaEnabled} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
   {:else if page === "settings"}
-    <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} on:deleted={e => { if (e.detail.shutdown) { serverShutdown = true; } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { stopAppServices(); }} />
+    <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} on:deleted={e => { if (e.detail.shutdown) { serverShutdown = true; } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { await fetchLogbookRight(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { stopAppServices(); }} />
   {:else if page === "links"}
     <Links />
   {:else if page === "about"}
@@ -1605,6 +1619,9 @@
     min-width: 0;
     overflow-y: auto;
     padding: 0 0.75rem;
+  }
+  .dual-reversed {
+    flex-direction: row-reverse;
   }
   .dual-divider {
     width: 5px;

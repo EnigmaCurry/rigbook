@@ -17,6 +17,7 @@
   let flrig_simulate = false;
   let flrig_host = "127.0.0.1";
   let flrig_port = "12345";
+  let logbook_right = false;
   let wide_breakpoint = "1200";
   let wide_mode_enabled = true;
   let theme = localStorage.getItem("rigbook-theme") || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
@@ -190,6 +191,7 @@
             } else {
               wide_mode_enabled = true;
               wide_breakpoint = s.value || "1500";
+          if (s.key === "logbook_right") logbook_right = s.value === "true";
             }
           }
         }
@@ -254,6 +256,11 @@
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value: wide_mode_enabled ? String(wide_breakpoint) : "0" }),
+      });
+      await fetch("/api/settings/logbook_right", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: logbook_right ? "true" : "false" }),
       });
       // RBN settings
       await fetch("/api/settings/rbn_enabled", {
@@ -412,6 +419,12 @@
     <div class="setting-row">
       <label for="wide_breakpoint">Breakpoint: {wide_breakpoint}px</label>
       <input id="wide_breakpoint" type="range" min="1200" max="2500" step="50" bind:value={wide_breakpoint} disabled={!wide_mode_enabled} />
+    </div>
+    <div class="setting-row toggle-row">
+      <label>
+        <input type="checkbox" bind:checked={logbook_right} disabled={!wide_mode_enabled} />
+        Logbook on right side
+      </label>
     </div>
   </section>
 
