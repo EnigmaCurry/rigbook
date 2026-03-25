@@ -117,14 +117,16 @@ async def query_spots(
         if all_spotters:
             await spotter_grids.ensure_spotters(all_spotters)
         for s in spots:
-            dist, snr = spotter_grids.closest_spotter(
+            call, dist, snr = spotter_grids.closest_spotter(
                 my_grid, s.pop("spotter_snrs", {})
             )
+            s["closest_call"] = call
             s["distance_mi"] = dist
             s["closest_snr"] = snr
     else:
         for s in spots:
             s.pop("spotter_snrs", None)
+            s["closest_call"] = None
             s["distance_mi"] = None
             s["closest_snr"] = None
 

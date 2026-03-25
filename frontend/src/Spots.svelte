@@ -360,7 +360,7 @@
             <td class="mono">{spot.wpm ?? ""}</td>
             <td class="location">{#if spot.country || spot.qrz_state}{locationStr(spot)}{:else if !qrzConfigured}<span class="fetch-hint">(Configure QRZ account)</span>{:else if qrz.skipped}<span class="fetch-hint">(filter more to fetch)</span>{:else if qrz.pending > 0}<span class="fetch-hint">(fetching... {qrz.pending} left)</span>{/if}</td>
             <td class="source-tag {spot.source}">{spot.source}</td>
-            <td class="mono">{spot.distance_mi != null ? `${spot.distance_mi}mi` : ""}{spot.closest_snr != null ? ` ${spot.closest_snr}dB` : ""}</td>
+            <td class="mono">{spot.closest_call || ""}{spot.distance_mi != null ? ` ${spot.distance_mi}mi` : ""}{spot.closest_snr != null ? ` ${spot.closest_snr}dB` : ""}</td>
             <td class="info">{spot.state}{spot.wwff_ref ? ` ${spot.wwff_ref}` : ""}{spot.comment ? ` ${spot.comment}` : ""}</td>
           </tr>
         {/each}
