@@ -39,6 +39,63 @@
   let savedFilters = null; // what's stored as the default
   let filtersLoaded = false;
   let restarting = false;
+  let workedTodayKeys = new Set();
+
+  const BAND_RANGES = {
+    "160m": [1800, 2000], "80m": [3500, 4000], "60m": [5330, 5410],
+    "40m": [7000, 7300], "30m": [10100, 10150], "20m": [14000, 14350],
+    "17m": [18068, 18168], "15m": [21000, 21450], "12m": [24890, 24990],
+    "10m": [28000, 29700], "6m": [50000, 54000], "2m": [144000, 148000],
+  };
+
+  const MODE_NORMALIZE = {
+    "USB": "SSB", "LSB": "SSB", "CW-R": "CW", "CWR": "CW", "RTTY-R": "RTTY",
+  };
+
+  function freqToBand(freqKhz) {
+    const f = parseFloat(freqKhz);
+    if (isNaN(f)) return "";
+    for (const [band, [lo, hi]] of Object.entries(BAND_RANGES)) {
+      if (f >= lo && f <= hi) return band;
+    }
+    return "";
+  }
+
+  function normalizeMode(m) {
+    const u = (m || "").toUpperCase();
+    return MODE_NORMALIZE[u] || u;
+  }
+
+  async function fetchWorkedToday() {
+    try {
+      const res = await fetch("/api/contacts/today");
+      if (res.ok) {
+        const contacts = await res.json();
+        const keys = new Set();
+        for (const c of contacts) {
+          const band = freqToBand(parseFloat(c.freq));
+          const key = `${(c.call || "").toUpperCase()}|${band}|${normalizeMode(c.mode)}`;
+          keys.add(key);
+        }
+        workedTodayKeys = keys;
+      }
+    } catch {}
+  }
+
+  function isWorkedToday(spot) {
+    if (workedTodayKeys.size === 0) return false;
+    const band = spot.band || freqToBand(parseFloat(spot.frequency));
+    const mode = normalizeMode(spot.mode);
+    if (!mode || mode === "?") {
+      const prefix = `${(spot.callsign || "").toUpperCase()}|${band}|`;
+      for (const k of workedTodayKeys) {
+        if (k.startsWith(prefix)) return true;
+      }
+      return false;
+    }
+    const key = `${(spot.callsign || "").toUpperCase()}|${band}|${mode}`;
+    return workedTodayKeys.has(key);
+  }
   let qrzConfigured = true;
   const qrz = new QrzLookup(() => { spots = spots; });
   let sortCol = "distance";
@@ -207,9 +264,10 @@
     fetchStatus();
     fetchBands();
     fetchModes();
+    fetchWorkedToday();
     await loadDefaultFilters();
     fetchSpots();
-    statusInterval = setInterval(() => { fetchStatus(); fetchBands(); fetchModes(); }, 5000);
+    statusInterval = setInterval(() => { fetchStatus(); fetchBands(); fetchModes(); fetchWorkedToday(); }, 5000);
     spotsInterval = setInterval(fetchSpots, 3000);
   });
 
@@ -344,11 +402,15 @@
       </thead>
       <tbody>
         {#each sortedSpots as spot (spot.callsign + spot.frequency + spot.mode)}
-          <tr>
+          <tr class:worked={isWorkedToday(spot)}>
             <td class="mono">{formatTime(spot)}</td>
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <td class="mono call clickable" on:click={() => dispatch("addqso", spot)} title="Log QSO with {spot.callsign}">{spot.callsign}</td>
+            {#if isWorkedToday(spot)}
+              <td class="mono call worked-call" title="Already worked today">{spot.callsign}</td>
+            {:else}
+              <td class="mono call clickable" on:click={() => dispatch("addqso", spot)} title="Log QSO with {spot.callsign}">{spot.callsign}</td>
+            {/if}
             {#if filterMode === "CW"}<td class="mono skcc">{spot.skcc ?? ""}</td>{/if}
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -528,6 +590,13 @@
   .call {
     font-weight: bold;
     color: var(--accent-callsign, #ffcc00);
+  }
+  .worked-call {
+    color: var(--fg, #ccc);
+    font-weight: normal;
+  }
+  tr.worked {
+    opacity: 0.5;
   }
 
   .freq {
