@@ -191,10 +191,11 @@
     } catch {}
   }
 
-  // Save filters whenever they change (after initial load)
+  // Save filters and refresh spots whenever they change (after initial load)
   $: if (filtersLoaded) {
     const _filters = { m: filterMode, b: [...filterBands].join(","), p: filterProgram };
     saveFilters();
+    fetchSpots();
   }
 
   async function fetchSpots() {
@@ -377,7 +378,6 @@
           <option value={p}>{p}</option>
         {/each}
       </select>
-      <button class="btn-refresh" on:click={() => { loading = true; fetchSpots(); }}>Refresh</button>
     </div>
   </div>
 
@@ -528,21 +528,6 @@
     border-color: var(--accent);
   }
 
-  .btn-refresh {
-    background: var(--btn-secondary);
-    color: var(--text);
-    border: none;
-    padding: 0.3rem 0.75rem;
-    font-family: inherit;
-    font-size: 0.8rem;
-    font-weight: bold;
-    border-radius: 3px;
-    cursor: pointer;
-  }
-
-  .btn-refresh:hover {
-    background: var(--btn-secondary-hover);
-  }
 
   .status {
     color: var(--text-muted);
