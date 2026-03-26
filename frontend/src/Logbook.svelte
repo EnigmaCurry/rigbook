@@ -1451,7 +1451,8 @@
 
   table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     font-size: 0.85rem;
   }
 
@@ -1461,6 +1462,10 @@
     border-bottom: 1px solid var(--border);
     padding: 0.3rem 0.5rem;
     white-space: nowrap;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 1;
   }
 
   th.sortable {
