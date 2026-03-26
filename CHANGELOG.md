@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.1.14
+
+### Map Tile Themes
+
+- Configurable map tile theme in Settings > Appearance
+- 11 built-in themes: USGS Topo/Imagery, ESRI Topo/Satellite, National Geographic, Blue Marble, NASA City Lights, Carto Dark/Light, Canvas World Dark Grey, and Default (follows app light/dark theme)
+- Custom tile URL option with automatic uppercase {Z}/{X}/{Y} normalization for Leaflet
+- Live map preview widget in settings with QTH marker
+- Preview updates when toggling light/dark app theme in Default mode
+- Default map theme is now National Geographic
+
+### Bug Fixes
+
+- Fix spot map showing markers that don't match the current filter
+- Fix duplicate fullscreen button on Parks My Parks map
+
 ## v0.1.13
 
 ### Spot Map
