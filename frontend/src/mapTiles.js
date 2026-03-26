@@ -96,7 +96,7 @@ export function resolveTileConfig(mapTheme, customUrl) {
 
 /** Fetch map tile settings and resolve to { url, attribution, maxZoom }. */
 export async function getMapTileConfig() {
-  let mapTheme = "default";
+  let mapTheme = "natgeo";
   let customUrl = "";
   try {
     const [themeRes, urlRes] = await Promise.all([

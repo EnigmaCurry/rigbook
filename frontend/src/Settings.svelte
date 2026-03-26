@@ -28,7 +28,7 @@
   let wide_breakpoint = "1200";
   let wide_mode_enabled = true;
   let theme = localStorage.getItem("rigbook-theme") || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
-  let map_theme = "default";
+  let map_theme = "natgeo";
   let map_custom_url = "";
   let saving = false;
   let message = "";
