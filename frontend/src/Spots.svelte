@@ -731,7 +731,7 @@
         <option value={m}>{m} ({modes[m]})</option>
       {/each}
     </select>
-    <input type="text" placeholder="Callsign" bind:value={filterCallsign} on:input={onFilterChange} style="text-transform: uppercase" />
+    <input type="text" placeholder="Callsign" bind:value={filterCallsign} on:input={onFilterChange} style="text-transform: uppercase; width: 8ch" />
     {#if filterMode === "CW"}
       <select bind:value={filterSkcc} on:change={onFilterChange}>
         <option value="">SKCC: Any</option>
@@ -835,7 +835,7 @@
 
 <style>
   .spots-page {
-    max-width: 1200px;
+    max-width: none;
     display: flex;
     flex-direction: column;
     flex: 1;
