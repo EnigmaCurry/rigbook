@@ -24,7 +24,9 @@ export async function getMapTileConfig() {
   } catch {}
 
   if (mapTheme === "custom" && customUrl) {
-    return { url: customUrl, attribution: "", maxZoom: 19 };
+    // Normalize uppercase {Z}/{X}/{Y} to lowercase for Leaflet
+    const url = customUrl.replace(/\{Z\}/g, "{z}").replace(/\{X\}/g, "{x}").replace(/\{Y\}/g, "{y}");
+    return { url, attribution: "", maxZoom: 19 };
   }
 
   let useDark;
