@@ -12,6 +12,8 @@
   let spots = [];
   let myGrid = "";
   let showMap = localStorage.getItem("spotsMapEnabled") !== "false";
+  let mapHeight = parseInt(localStorage.getItem("spotsMapHeight")) || 350;
+  const MIN_MAP_HEIGHT = 60;
   let status = { rbn: { connected: false, enabled: false }, hamalert: { connected: false, enabled: false }, callsigns: 0, entries: 0, total_spots: 0, avg_spots_per_callsign: 0 };
   let bands = {};
   let modes = {};
@@ -196,6 +198,36 @@
       tick().then(() => { initMap(); updateMap(); });
     }
     if (!showMap) { destroyMap(); }
+  }
+
+  function onDragStart(e) {
+    e.preventDefault();
+    const startY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
+    const startH = mapHeight;
+    function onMove(ev) {
+      const clientY = ev.type === "touchmove" ? ev.touches[0].clientY : ev.clientY;
+      const newH = startH + (clientY - startY);
+      if (newH < MIN_MAP_HEIGHT) {
+        showMap = false;
+        localStorage.setItem("spotsMapEnabled", "false");
+        destroyMap();
+        cleanup();
+        return;
+      }
+      mapHeight = newH;
+      if (leafletMap) leafletMap.invalidateSize();
+    }
+    function cleanup() {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", cleanup);
+      window.removeEventListener("touchmove", onMove);
+      window.removeEventListener("touchend", cleanup);
+      localStorage.setItem("spotsMapHeight", String(mapHeight));
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", cleanup);
+    window.addEventListener("touchmove", onMove);
+    window.addEventListener("touchend", cleanup);
   }
 
   function onFilterChange() {
@@ -716,7 +748,11 @@
 
   {#if myGrid && showMap}
     <div class="spots-map-wrap">
-      <div class="spots-map" bind:this={mapEl}></div>
+      <div class="spots-map" bind:this={mapEl} style="height: {mapHeight}px"></div>
+    </div>
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <div class="map-drag-handle" on:mousedown={onDragStart} on:touchstart={onDragStart}>
+      <div class="drag-grip"></div>
     </div>
   {/if}
 
@@ -1024,14 +1060,35 @@
   }
 
   .spots-map-wrap {
-    margin-bottom: 0.75rem;
+    margin-bottom: 0;
   }
 
   .spots-map {
     width: 100%;
-    height: 350px;
     border: 1px solid var(--border);
     border-radius: 3px;
+  }
+
+  .map-drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 10px;
+    cursor: row-resize;
+    user-select: none;
+    touch-action: none;
+    margin-bottom: 0.5rem;
+  }
+
+  .drag-grip {
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+  }
+
+  .map-drag-handle:hover .drag-grip {
+    background: var(--accent);
   }
 
   :global(.spot-marker-dot) {

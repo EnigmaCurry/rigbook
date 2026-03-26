@@ -41,6 +41,9 @@
     if (mySort === col) mySortAsc = !mySortAsc;
     else { mySort = col; mySortAsc = col === "name" || col === "code"; }
   }
+  let showMap = localStorage.getItem("parksMapEnabled") !== "false";
+  let mapHeight = parseInt(localStorage.getItem("parksMapHeight")) || 350;
+  const MIN_MAP_HEIGHT = 60;
   let mapEl;
   let leafletMap = null;
   let markersByRef = {};
@@ -318,6 +321,45 @@
     activeMarker = null;
   }
 
+  function toggleMap() {
+    showMap = !showMap;
+    localStorage.setItem("parksMapEnabled", String(showMap));
+    if (showMap && myParks.length > 0 && !leafletMap) {
+      tick().then(() => renderMap());
+    }
+    if (!showMap) destroyMap();
+  }
+
+  function onDragStart(e) {
+    e.preventDefault();
+    const startY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
+    const startH = mapHeight;
+    function onMove(ev) {
+      const clientY = ev.type === "touchmove" ? ev.touches[0].clientY : ev.clientY;
+      const newH = startH + (clientY - startY);
+      if (newH < MIN_MAP_HEIGHT) {
+        showMap = false;
+        localStorage.setItem("parksMapEnabled", "false");
+        destroyMap();
+        cleanup();
+        return;
+      }
+      mapHeight = newH;
+      if (leafletMap) leafletMap.invalidateSize();
+    }
+    function cleanup() {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", cleanup);
+      window.removeEventListener("touchmove", onMove);
+      window.removeEventListener("touchend", cleanup);
+      localStorage.setItem("parksMapHeight", String(mapHeight));
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", cleanup);
+    window.addEventListener("touchmove", onMove);
+    window.addEventListener("touchend", cleanup);
+  }
+
   const highlightIcon = L.divIcon({
     className: "park-marker",
     html: '<div class="park-marker-dot highlight"></div>',
@@ -450,11 +492,11 @@
       if (res.ok) myParks = await res.json();
     } catch {}
     myParksLoading = false;
-    if (tab === "my-qsos" && !loading) renderMap();
+    if (tab === "my-qsos" && !loading && showMap) renderMap();
   }
 
   // Render map once both loads complete and we're on the my-qsos tab
-  $: if (tab === "my-qsos" && !myParksLoading && !loading && myParks.length > 0 && !leafletMap) {
+  $: if (tab === "my-qsos" && showMap && !myParksLoading && !loading && myParks.length > 0 && !leafletMap) {
     renderMap();
   }
 
@@ -502,12 +544,19 @@
       {:else if myParks.length === 0}
         <p class="empty">No POTA parks contacted yet.</p>
       {:else}
-        <div class="my-map-wrap">
-          <div class="my-map" bind:this={mapEl}></div>
-        </div>
+        {#if showMap}
+          <div class="my-map-wrap">
+            <div class="my-map" bind:this={mapEl} style="height: {mapHeight}px"></div>
+          </div>
+          <!-- svelte-ignore a11y-no-static-element-interactions -->
+          <div class="map-drag-handle" on:mousedown={onDragStart} on:touchstart={onDragStart}>
+            <div class="drag-grip"></div>
+          </div>
+        {/if}
         <div class="stats">
           <span class="stat-highlight">{myParks.length} parks contacted</span>
           <span>{myAvgQsos} avg QSOs/park</span>
+          <button class="map-toggle-btn" class:active={showMap} on:click={toggleMap}>Map</button>
         </div>
         <div class="my-sort-bar">
           <span class="my-sort-label">Sort:</span>
@@ -842,15 +891,51 @@
 
   /* My QSOs tab */
   .my-map-wrap {
-    margin-bottom: 0.75rem;
+    margin-bottom: 0;
   }
 
   .my-map {
     width: 100%;
-    height: 350px;
     border: 1px solid var(--border);
     border-radius: 3px;
   }
+
+  .map-drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 10px;
+    cursor: row-resize;
+    user-select: none;
+    touch-action: none;
+    margin-bottom: 0.5rem;
+  }
+
+  .drag-grip {
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+  }
+
+  .map-drag-handle:hover .drag-grip {
+    background: var(--accent);
+  }
+
+  .map-toggle-btn {
+    background: var(--btn-secondary);
+    color: var(--text);
+    border: none;
+    padding: 0.2rem 0.5rem;
+    font-family: inherit;
+    font-size: 0.75rem;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-left: auto;
+  }
+
+  .map-toggle-btn:hover { background: var(--btn-secondary-hover); }
+  .map-toggle-btn.active { background: var(--accent); color: var(--bg); }
 
   :global(.park-marker-dot) {
     width: 10px;
