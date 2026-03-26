@@ -945,7 +945,7 @@
   });
 </script>
 
-<main class:dual-mode={page === "dual"} class:wide-mode={page === "grid"} class:parks-mode={page === "parks"}>
+<main class:dual-mode={page === "dual"} class:wide-mode={page === "grid"} class:parks-mode={page === "parks"} class:spots-mode={page === "spots"}>
   {#if serverShutdown}
     <header>
       <div class="header-left">
@@ -1653,7 +1653,8 @@
     max-width: 1600px;
   }
 
-  main.parks-mode {
+  main.parks-mode,
+  main.spots-mode {
     height: 100vh;
     display: flex;
     flex-direction: column;

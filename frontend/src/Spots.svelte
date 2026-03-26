@@ -817,6 +817,11 @@
 <style>
   .spots-page {
     max-width: 1200px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
   }
 
   h2 {
@@ -929,12 +934,15 @@
   }
 
   .spots-table-wrap {
-    overflow-x: auto;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
   }
 
   .spots-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     font-size: 0.8rem;
   }
 
@@ -947,6 +955,10 @@
     text-transform: uppercase;
     letter-spacing: 0.03em;
     white-space: nowrap;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 1;
   }
 
   .spots-table th.sortable {
