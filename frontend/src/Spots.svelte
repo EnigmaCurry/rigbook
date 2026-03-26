@@ -717,6 +717,24 @@
   </div>
 
   <div class="filters">
+    {#if bandList.length > 0}
+      {#each bandList as b}
+        <span
+          class="band-badge"
+          class:active={filterBands.has(b)}
+          style="background: {bandColor(b)}; color: {bandTextColor(b)}; opacity: {filterBands.size > 0 && !filterBands.has(b) ? 0.3 : 1}"
+          on:click={() => { toggleBand(b); onFilterChange(); }}
+          on:keydown={(e) => { if (e.key === 'Enter') { toggleBand(b); onFilterChange(); } }}
+          role="button"
+          tabindex="0"
+        >
+          {b}: {bands[b]}
+        </span>
+      {/each}
+    {/if}
+    {#if filterBands.size > 0}
+      <button class="default-btn clear-bands" on:click={() => { filterBands = new Set(); onFilterChange(); }}>Clear bands</button>
+    {/if}
     <select bind:value={filterSource} on:change={onFilterChange}>
       <option value="">All Sources</option>
       <option value="rbn">RBN</option>
@@ -735,9 +753,6 @@
         <option value="required">SKCC: Required</option>
       </select>
     {/if}
-    {#if filterBands.size > 0}
-      <button class="default-btn clear-bands" on:click={() => { filterBands = new Set(); onFilterChange(); }}>Clear bands</button>
-    {/if}
     {#if filtersLoaded}
       {#if !isDefault}
         <button class="default-btn save" on:click={saveDefaultFilters} title="Save current filters as default">Save as default</button>
@@ -747,21 +762,6 @@
     {/if}
     {#if myGrid}
       <button class="default-btn map-toggle" class:active={showMap} on:click={toggleMap} title="{showMap ? 'Hide' : 'Show'} map">Map</button>
-    {/if}
-    {#if bandList.length > 0}
-      {#each bandList as b}
-        <span
-          class="band-badge"
-          class:active={filterBands.has(b)}
-          style="background: {bandColor(b)}; color: {bandTextColor(b)}; opacity: {filterBands.size > 0 && !filterBands.has(b) ? 0.3 : 1}"
-          on:click={() => { toggleBand(b); onFilterChange(); }}
-          on:keydown={(e) => { if (e.key === 'Enter') { toggleBand(b); onFilterChange(); } }}
-          role="button"
-          tabindex="0"
-        >
-          {b}: {bands[b]}
-        </span>
-      {/each}
     {/if}
   </div>
 
