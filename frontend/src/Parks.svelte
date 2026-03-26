@@ -315,6 +315,7 @@
   }
 
   function destroyMap() {
+    if (mapResizeObserver) { mapResizeObserver.disconnect(); mapResizeObserver = null; }
     if (leafletMap) { leafletMap.remove(); leafletMap = null; }
     markersByRef = {};
     selectedPark = null;
@@ -477,6 +478,8 @@
     leafletMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 8 });
     if (leafletMap.getZoom() < 5) leafletMap.setZoom(5);
     addExpandControl(leafletMap, mapEl.parentElement);
+    mapResizeObserver = new ResizeObserver(() => { leafletMap?.invalidateSize(); });
+    mapResizeObserver.observe(mapEl);
     if (activePark) showActivePark(activePark);
     renderingMap = false;
   }
@@ -509,6 +512,7 @@
     window.addEventListener("resize", onWindowResize);
   });
 
+  let mapResizeObserver;
   function onWindowResize() {
     if (leafletMap) leafletMap.invalidateSize();
   }

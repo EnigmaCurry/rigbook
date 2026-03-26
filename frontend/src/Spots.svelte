@@ -353,6 +353,7 @@
     window.addEventListener("resize", onWindowResize);
   });
 
+  let mapResizeObserver;
   function onWindowResize() {
     if (leafletMap) leafletMap.invalidateSize();
   }
@@ -580,6 +581,8 @@
     }).addTo(leafletMap);
     leafletMap.on("click", clearAll);
     addExpandControl(leafletMap, mapEl.parentElement);
+    mapResizeObserver = new ResizeObserver(() => { leafletMap?.invalidateSize(); });
+    mapResizeObserver.observe(mapEl);
   }
 
   function updateMap() {
@@ -655,6 +658,7 @@
   }
 
   function destroyMap() {
+    if (mapResizeObserver) { mapResizeObserver.disconnect(); mapResizeObserver = null; }
     if (leafletMap) { leafletMap.remove(); leafletMap = null; }
     spotterMarkers = {};
     homeMarkers = {};
