@@ -81,6 +81,19 @@ const THEMES = {
   },
 };
 
+/** Resolve tile config from theme name and optional custom URL (no fetch). */
+export function resolveTileConfig(mapTheme, customUrl) {
+  if (mapTheme === "custom" && customUrl) {
+    return { url: normUrl(customUrl), attribution: "", maxZoom: 19 };
+  }
+  if (THEMES[mapTheme]) {
+    return THEMES[mapTheme];
+  }
+  const stored = localStorage.getItem("rigbook-theme");
+  const appTheme = stored || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  return appTheme === "dark" ? THEMES["default-dark"] : THEMES["default-light"];
+}
+
 /** Fetch map tile settings and resolve to { url, attribution, maxZoom }. */
 export async function getMapTileConfig() {
   let mapTheme = "default";

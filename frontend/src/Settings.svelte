@@ -1,6 +1,8 @@
 <script>
-  import { onMount, onDestroy, createEventDispatcher } from "svelte";
-  import { TILE_THEMES } from "./mapTiles.js";
+  import { onMount, onDestroy, createEventDispatcher, tick } from "svelte";
+  import { TILE_THEMES, resolveTileConfig } from "./mapTiles.js";
+  import L from "leaflet";
+  import "leaflet/dist/leaflet.css";
   import GridMap from "./GridMap.svelte";
 
   let showGridPicker = false;
@@ -81,6 +83,65 @@
   let desktopNotifEnabled = localStorage.getItem("desktop_notifications_enabled") === "true";
   let popupNotifEnabled = localStorage.getItem("popup_notifications_enabled") === "true";
   let testPending = false;
+
+  // Map preview
+  let previewEl;
+  let previewMap;
+  let previewTileLayer;
+  let previewMarker;
+
+  function gridToLatLon(grid) {
+    if (!grid || grid.length < 4) return null;
+    const g = grid.toUpperCase();
+    const lonField = g.charCodeAt(0) - 65;
+    const latField = g.charCodeAt(1) - 65;
+    const lonSq = parseInt(g[2]);
+    const latSq = parseInt(g[3]);
+    let lon = lonField * 20 - 180 + lonSq * 2 + 1;
+    let lat = latField * 10 - 90 + latSq * 1 + 0.5;
+    if (grid.length >= 6) {
+      const lonSub = g.charCodeAt(4) - 65;
+      const latSub = g.charCodeAt(5) - 65;
+      lon = lonField * 20 - 180 + lonSq * 2 + lonSub * (2/24) + (1/24);
+      lat = latField * 10 - 90 + latSq * 1 + latSub * (1/24) + (1/48);
+    }
+    return { lat, lon };
+  }
+
+  const qthIcon = L.divIcon({
+    className: "",
+    html: '<div style="width:10px;height:10px;background:#e53e3e;border-radius:50%;border:2px solid #fff;"></div>',
+    iconSize: [10, 10],
+    iconAnchor: [5, 5],
+  });
+
+  function updatePreview() {
+    if (!previewEl) return;
+    const tiles = resolveTileConfig(map_theme, map_custom_url);
+    const pos = gridToLatLon(my_grid);
+    if (!previewMap) {
+      previewMap = L.map(previewEl, {
+        scrollWheelZoom: false, zoomControl: false,
+        dragging: false, doubleClickZoom: false,
+        attributionControl: false,
+      });
+      previewMap.setView(pos ? [pos.lat, pos.lon] : [39, -98], 4);
+    }
+    if (previewTileLayer) previewMap.removeLayer(previewTileLayer);
+    previewTileLayer = L.tileLayer(tiles.url, {
+      attribution: tiles.attribution,
+      maxZoom: tiles.maxZoom,
+    }).addTo(previewMap);
+    if (previewMarker) previewMap.removeLayer(previewMarker);
+    if (pos) {
+      previewMarker = L.marker([pos.lat, pos.lon], { icon: qthIcon }).addTo(previewMap);
+    }
+  }
+
+  $: if (settingsLoaded && previewEl) {
+    map_theme, map_custom_url;
+    updatePreview();
+  }
 
   // Danger zone
   let deleteConfirmName = "";
@@ -499,6 +560,7 @@
         <input id="map_custom_url" type="text" bind:value={map_custom_url} placeholder="https://&#123;s&#125;.tile.example.com/&#123;z&#125;/&#123;x&#125;/&#123;y&#125;.png" />
       </div>
     {/if}
+    <div class="map-preview" bind:this={previewEl}></div>
     <div class="setting-row toggle-row">
       <label>
         <input type="checkbox" bind:checked={wide_mode_enabled} />
@@ -702,6 +764,13 @@
     color: var(--accent);
     font-size: 1.2rem;
     margin: 0 0 1rem 0;
+  }
+
+  .map-preview {
+    height: 120px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    margin-bottom: 0.75rem;
   }
 
   .settings-section {
