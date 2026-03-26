@@ -358,6 +358,9 @@
   .gridmap {
     width: 100%;
     max-width: 100%;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
   }
 
   .map-header {
