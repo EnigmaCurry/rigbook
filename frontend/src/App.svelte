@@ -1093,6 +1093,7 @@
     </div>
   </header>
 
+  <div class="page-content" class:page-content-full={page === "dual" || page === "parks" || page === "spots" || page === "grid"}>
   {#if page === "log"}
     <Logbook showForm={false} {vfoFreq} {vfoMode} on:editchange={e => { editId = e.detail; navigate("add"); window.location.hash = `/log/${e.detail}`; }} on:navigate={e => navigate(e.detail)} />
   {:else if page === "add"}
@@ -1139,6 +1140,7 @@
   {:else if page === "about"}
     <About />
   {/if}
+  </div>
   {/if}
 </main>
 
@@ -1262,6 +1264,19 @@
     max-width: 100%;
     margin: 0 auto;
     padding: 1rem;
+  }
+
+  .page-content {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .page-content-full {
+    max-width: 100%;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
 
   header {
