@@ -223,9 +223,9 @@
             } else {
               wide_mode_enabled = true;
               wide_breakpoint = s.value || "1500";
-          if (s.key === "logbook_right") logbook_right = s.value === "true";
             }
           }
+          if (s.key === "logbook_right") logbook_right = s.value === "true";
         }
       }
       savedSnapshot = settingsSnapshot();
