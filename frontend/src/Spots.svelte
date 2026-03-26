@@ -283,7 +283,7 @@
   function currentFilters() {
     return {
       source: filterSource,
-      band: filterBandsStr,
+      band: [...filterBands].sort().join(","),
       mode: filterMode,
       callsign: filterCallsign,
       skcc: filterSkcc,
