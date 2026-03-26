@@ -15,34 +15,11 @@
   let status = { rbn: { connected: false, enabled: false }, hamalert: { connected: false, enabled: false }, callsigns: 0, entries: 0, total_spots: 0, avg_spots_per_callsign: 0 };
   let bands = {};
   let modes = {};
-  // Parse initial filter state from URL hash query params
-  function parseFiltersFromHash() {
-    const hash = window.location.hash.slice(1) || "";
-    const qIdx = hash.indexOf("?");
-    if (qIdx < 0) return {};
-    const params = new URLSearchParams(hash.slice(qIdx + 1));
-    return Object.fromEntries(params.entries());
-  }
-
-  function updateHash() {
-    const params = new URLSearchParams();
-    if (filterSource) params.set("source", filterSource);
-    if (filterBandsStr) params.set("band", filterBandsStr);
-    if (filterMode) params.set("mode", filterMode);
-    if (filterCallsign) params.set("callsign", filterCallsign);
-    if (filterSkcc) params.set("skcc", filterSkcc);
-    const qs = params.toString();
-    window.location.hash = qs ? `/spots?${qs}` : "/spots";
-  }
-
-  const initFilters = parseFiltersFromHash();
-  const hasHashFilters = Object.keys(initFilters).length > 0;
-  let filterSource = initFilters.source || "";
-  let filterBands = initFilters.band ? new Set(initFilters.band.split(",")) : new Set();
-  let filterMode = initFilters.mode || "";
-  let filterCallsign = initFilters.callsign || "";
-  let filterSkcc = initFilters.skcc || "";
-  let savedFilters = null; // what's stored as the default
+  let filterSource = "";
+  let filterBands = new Set();
+  let filterMode = "";
+  let filterCallsign = "";
+  let filterSkcc = "";
   let filtersLoaded = false;
   let restarting = false;
   let workedTodayKeys = new Set();
@@ -222,7 +199,6 @@
   }
 
   function onFilterChange() {
-    updateHash();
     fetchSpots();
   }
 
@@ -280,78 +256,53 @@
 
   $: filterBandsStr = [...filterBands].sort().join(",");
 
-  function currentFilters() {
-    return {
-      source: filterSource,
-      band: [...filterBands].sort().join(","),
-      mode: filterMode,
-      callsign: filterCallsign,
-      skcc: filterSkcc,
-    };
-  }
-
-  function filtersMatch(a, b) {
-    if (!a || !b) return false;
-    return a.source === b.source && a.band === b.band && a.mode === b.mode
-      && a.callsign === b.callsign && a.skcc === b.skcc;
-  }
-
   function toggleBand(b) {
     if (filterBands.has(b)) filterBands.delete(b);
     else filterBands.add(b);
     filterBands = new Set(filterBands);
   }
 
-  const factoryFilters = { source: "", band: "", mode: "", callsign: "", skcc: "" };
-  $: isDefault = filtersLoaded && filtersMatch(
-    { source: filterSource, band: filterBandsStr, mode: filterMode, callsign: filterCallsign, skcc: filterSkcc },
-    savedFilters || factoryFilters
-  );
+  const FILTER_SETTINGS_KEY = "spot_filters";
 
-  async function loadDefaultFilters() {
+  async function loadFilters() {
     try {
-      const res = await fetch("/api/settings/spot_filters");
+      const res = await fetch(`/api/settings/${FILTER_SETTINGS_KEY}`);
       if (res.ok) {
         const data = await res.json();
         if (data.value) {
-          savedFilters = JSON.parse(data.value);
-          if (savedFilters && savedFilters.band) {
-            savedFilters.band = savedFilters.band.split(",").sort().join(",");
-          }
-          if (!hasHashFilters && savedFilters) {
-            filterSource = savedFilters.source || "";
-            filterBands = savedFilters.band ? new Set(savedFilters.band.split(",")) : new Set();
-            filterMode = savedFilters.mode || "";
-            filterCallsign = savedFilters.callsign || "";
-            filterSkcc = savedFilters.skcc || "";
-            updateHash();
-          }
+          const saved = JSON.parse(data.value);
+          filterSource = saved.source || "";
+          filterBands = saved.band ? new Set(saved.band.split(",")) : new Set();
+          filterMode = saved.mode || "";
+          filterCallsign = saved.callsign || "";
+          filterSkcc = saved.skcc || "";
         }
       }
     } catch {}
     filtersLoaded = true;
   }
 
-  async function saveDefaultFilters() {
-    savedFilters = currentFilters();
+  async function saveFilters() {
+    if (!filtersLoaded) return;
     try {
-      await fetch("/api/settings/spot_filters", {
+      await fetch(`/api/settings/${FILTER_SETTINGS_KEY}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: JSON.stringify(savedFilters) }),
+        body: JSON.stringify({ value: JSON.stringify({
+          source: filterSource,
+          band: [...filterBands].sort().join(","),
+          mode: filterMode,
+          callsign: filterCallsign,
+          skcc: filterSkcc,
+        }) }),
       });
     } catch {}
   }
 
-  async function clearDefaultFilters() {
-    savedFilters = null;
-    try {
-      await fetch("/api/settings/spot_filters", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: "" }),
-      });
-    } catch {}
+  // Auto-save filters whenever they change (after initial load)
+  $: if (filtersLoaded) {
+    const _filters = { s: filterSource, b: filterBandsStr, m: filterMode, c: filterCallsign, k: filterSkcc };
+    saveFilters();
   }
 
   onMount(async () => {
@@ -361,7 +312,7 @@
     fetchModes();
     fetchWorkedToday();
     fetchPotaSpots();
-    await loadDefaultFilters();
+    await loadFilters();
     await fetchSpots();
     if (myGrid && showMap) { await initMap(); updateMap(); }
     statusInterval = setInterval(() => { fetchStatus(); fetchBands(); fetchModes(); fetchWorkedToday(); fetchPotaSpots(); }, 5000);
@@ -758,13 +709,6 @@
         <option value="required">SKCC: Required</option>
       </select>
     {/if}
-    {#if filtersLoaded}
-      {#if !isDefault}
-        <button class="default-btn save" on:click={saveDefaultFilters} title="Save current filters as default">Save as default</button>
-      {:else if savedFilters}
-        <button class="default-btn clear" on:click={clearDefaultFilters} title="Clear saved default filters">Clear default</button>
-      {/if}
-    {/if}
     {#if myGrid}
       <button class="default-btn map-toggle" class:active={showMap} on:click={toggleMap} title="{showMap ? 'Hide' : 'Show'} map">Map</button>
     {/if}
@@ -932,9 +876,6 @@
     white-space: nowrap;
   }
   .default-btn:hover { background: var(--btn-secondary-hover); }
-  .default-btn.save { background: var(--accent); color: var(--bg); }
-  .default-btn.save:hover { opacity: 0.85; }
-  .default-btn.clear { opacity: 0.7; font-size: 0.75rem; }
   .default-btn.map-toggle.active { background: var(--accent); color: var(--bg); }
 
   .band-badge {
