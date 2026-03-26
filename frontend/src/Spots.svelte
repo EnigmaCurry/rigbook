@@ -728,7 +728,7 @@
           role="button"
           tabindex="0"
         >
-          {b}: {bands[b]}
+          {b}
         </span>
       {/each}
     {/if}
