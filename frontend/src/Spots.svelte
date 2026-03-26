@@ -359,7 +359,9 @@
   let spotterLines = {};     // closest_call -> polyline (to my QTH)
   let myMarker = null;
   let selectionLines = [];   // active triangle lines
-  let selectedSpotter = null;
+  let hoveredSpot = null;    // spot hovered in table (temporary triangle)
+  let lockedSpot = null;     // spot clicked in table (persistent triangle)
+  let selectedSpotter = null; // spotter clicked on map (highlights table rows)
   let mapInitialFitDone = false;
   let fullscreenMap = null;
   let fullscreenWrap = null;
@@ -426,37 +428,109 @@
     if (e.key === "Escape" && fullscreenMap) exitFullscreen();
   }
 
-  function clearSelection() {
+  function clearLines() {
     for (const line of selectionLines) leafletMap.removeLayer(line);
     selectionLines = [];
+  }
+
+  function clearAll() {
+    clearLines();
+    hoveredSpot = null;
+    lockedSpot = null;
     selectedSpotter = null;
   }
 
-  function selectSpotter(call) {
-    if (!leafletMap) return;
-    clearSelection();
-    if (!call) return;
-    selectedSpotter = call;
+  function spotKey(s) {
+    return `${s.callsign}|${s.frequency}|${s.mode}`;
+  }
 
+  function drawTriangleForSpot(spot) {
+    if (!leafletMap || !spot) return;
+    clearLines();
     const myPos = gridToLatLon(myGrid);
-    const spotterMarker = spotterMarkers[call];
-    if (!myPos || !spotterMarker) return;
-    const spotterLL = spotterMarker.getLatLng();
+    if (!myPos) return;
     const myLL = [myPos.lat, myPos.lon];
 
-    // Find all spots using this spotter and draw triangles to their home locations
+    const spotterGrid = spot.closest_grid;
+    const homeGrid = spot.qrz_grid;
+    const spotterPos = spotterGrid ? gridToLatLon(spotterGrid) : null;
+    const homePos = homeGrid ? gridToLatLon(homeGrid) : null;
+
+    if (spotterPos && homePos) {
+      const spotterLL = [spotterPos.lat, spotterPos.lon];
+      const homeLL = [homePos.lat, homePos.lon];
+      selectionLines.push(
+        L.polyline([spotterLL, homeLL], { color: "#00ccff", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline([homeLL, myLL], { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+      );
+    } else if (spotterPos) {
+      selectionLines.push(
+        L.polyline([myLL, [spotterPos.lat, spotterPos.lon]], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+      );
+    } else if (homePos) {
+      selectionLines.push(
+        L.polyline([myLL, [homePos.lat, homePos.lon]], { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+      );
+    }
+  }
+
+  function drawTrianglesForSpotter(call) {
+    if (!leafletMap || !call) return;
+    clearLines();
+    const myPos = gridToLatLon(myGrid);
+    if (!myPos) return;
+    const myLL = [myPos.lat, myPos.lon];
+    const spotterMarker = spotterMarkers[call];
+    if (!spotterMarker) return;
+    const spotterLL = spotterMarker.getLatLng();
+
     for (const s of spots) {
       if (s.closest_call !== call || !s.qrz_grid) continue;
       const homePos = gridToLatLon(s.qrz_grid);
       if (!homePos) continue;
       const homeLL = [homePos.lat, homePos.lon];
-
       selectionLines.push(
         L.polyline([spotterLL, homeLL], { color: "#00ccff", weight: 2, opacity: 0.6 }).addTo(leafletMap),
         L.polyline([homeLL, myLL], { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
         L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
       );
     }
+  }
+
+  function onSpotHover(spot) {
+    if (lockedSpot || selectedSpotter) return;
+    hoveredSpot = spot;
+    drawTriangleForSpot(spot);
+  }
+
+  function onSpotLeave() {
+    if (lockedSpot || selectedSpotter) return;
+    hoveredSpot = null;
+    clearLines();
+  }
+
+  function onSpotClick(spot) {
+    if (lockedSpot && spotKey(lockedSpot) === spotKey(spot)) {
+      lockedSpot = null;
+      selectedSpotter = null;
+      clearLines();
+      return;
+    }
+    lockedSpot = spot;
+    selectedSpotter = null;
+    drawTriangleForSpot(spot);
+  }
+
+  function onMapSpotterClick(call) {
+    if (selectedSpotter === call) {
+      clearAll();
+      return;
+    }
+    lockedSpot = null;
+    hoveredSpot = null;
+    selectedSpotter = call;
+    drawTrianglesForSpotter(call);
   }
 
   async function initMap() {
@@ -467,7 +541,7 @@
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
       maxZoom: 18,
     }).addTo(leafletMap);
-    leafletMap.on("click", clearSelection);
+    leafletMap.on("click", clearAll);
     addExpandControl(leafletMap, mapEl.parentElement);
   }
 
@@ -514,7 +588,7 @@
       const m = L.marker([pos.lat, pos.lon], { icon: spotterIcon })
         .bindPopup(`Spotter: ${call}<br>Grid: ${grid}`)
         .addTo(leafletMap);
-      m.on("click", () => selectSpotter(call));
+      m.on("click", () => onMapSpotterClick(call));
       spotterMarkers[call] = m;
     }
 
@@ -674,19 +748,25 @@
       </thead>
       <tbody>
         {#each sortedSpots as spot (spot.callsign + spot.frequency + spot.mode)}
-          <tr class:worked={isWorkedToday(spot)}>
+          <!-- svelte-ignore a11y-no-static-element-interactions -->
+          <tr class:worked={isWorkedToday(spot)}
+              class:spot-highlighted={selectedSpotter && spot.closest_call === selectedSpotter}
+              class:spot-locked={lockedSpot && spotKey(lockedSpot) === spotKey(spot)}
+              on:mouseenter={() => onSpotHover(spot)}
+              on:mouseleave={onSpotLeave}
+              on:click|stopPropagation={() => onSpotClick(spot)}>
             <td class="mono">{formatTime(spot)}</td>
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
             {#if isWorkedToday(spot)}
               <td class="mono call worked-call" title="Already worked today">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</td>
             {:else}
-              <td class="mono call clickable" on:click={() => addQsoWithPota(spot)} title="Log QSO with {spot.callsign}">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</td>
+              <td class="mono call clickable" on:click|stopPropagation={() => addQsoWithPota(spot)} title="Log QSO with {spot.callsign}">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</td>
             {/if}
             {#if filterMode === "CW"}<td class="mono skcc">{spot.skcc ?? ""}</td>{/if}
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <td class="mono freq clickable" on:click={() => dispatch("tune", spot)} title="Tune radio">{formatFreq(spot.frequency)}</td>
+            <td class="mono freq clickable" on:click|stopPropagation={() => dispatch("tune", spot)} title="Tune radio">{formatFreq(spot.frequency)}</td>
             <td><span class="band-tag" style="background: {bandColor(spot.band)}; color: {bandTextColor(spot.band)}">{spot.band}</span></td>
             <td>{spot.mode}</td>
             <td class="mono" title={spot.spotters ? spot.spotters.join(", ") : ""}>{spot.spotter_count}</td>
@@ -869,6 +949,13 @@
   }
   tr.worked {
     opacity: 0.5;
+  }
+  tr.spot-highlighted {
+    background: rgba(0, 204, 255, 0.15);
+  }
+  tr.spot-locked {
+    background: rgba(0, 204, 255, 0.25);
+    outline: 1px solid rgba(0, 204, 255, 0.4);
   }
 
   .freq {
