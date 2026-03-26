@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.1.15
+
+### Multi-Band Filtering
+
+- Select multiple bands simultaneously on Spots and Hunting pages
+- Color-coded band badge toggle buttons replace single-select dropdown
+- Filters auto-save on every change (no more Save/Clear default buttons)
+- Backend accepts comma-separated band values for multi-band queries
+- Backward compatible with existing saved single-band filters
+
+### Spots Page
+
+- Full-width layout (removed max-width cap)
+- Right-aligned filters matching Hunting page style
+- Narrower callsign input sized to fit placeholder text
+- Hunting page auto-refreshes spots on filter change (removed Refresh button)
+
+### Draggable Map Resize
+
+- Draggable divider between map and list on Spots and Parks pages
+- Drag handle to resize map height, persisted to localStorage
+- Dragging below minimum height hides the map and toggles the button off
+- Map toggle button added to Parks page
+- ResizeObserver on map elements fixes tile rendering on container resize
+
 ## v0.1.14
 
 ### Map Tile Themes
