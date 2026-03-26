@@ -348,22 +348,6 @@
   <div class="controls">
     <h2>Hunting</h2>
     <div class="filters">
-      <select bind:value={filterMode}>
-        <option value="">All Modes</option>
-        {#each modes as m}
-          <option value={m}>{m}</option>
-        {/each}
-      </select>
-      {#if filterBands.size > 0}
-        <button class="btn-clear-bands" on:click={() => { filterBands = new Set(); }}>Clear bands</button>
-      {/if}
-      <select bind:value={filterProgram}>
-        <option value="">All Programs</option>
-        {#each programs as p}
-          <option value={p}>{p}</option>
-        {/each}
-      </select>
-      <button class="btn-refresh" on:click={() => { loading = true; fetchSpots(); }}>Refresh</button>
       {#if bands.length > 0}
         {#each bands as b}
           <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -378,6 +362,22 @@
           </span>
         {/each}
       {/if}
+      {#if filterBands.size > 0}
+        <button class="btn-clear-bands" on:click={() => { filterBands = new Set(); }}>Clear bands</button>
+      {/if}
+      <select bind:value={filterMode}>
+        <option value="">All Modes</option>
+        {#each modes as m}
+          <option value={m}>{m}</option>
+        {/each}
+      </select>
+      <select bind:value={filterProgram}>
+        <option value="">All Programs</option>
+        {#each programs as p}
+          <option value={p}>{p}</option>
+        {/each}
+      </select>
+      <button class="btn-refresh" on:click={() => { loading = true; fetchSpots(); }}>Refresh</button>
     </div>
   </div>
 
