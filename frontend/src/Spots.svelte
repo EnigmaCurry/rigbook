@@ -986,4 +986,9 @@
   :global(.map-fullscreen .spots-map) {
     height: 100% !important;
   }
+
+  :global(.spots-map .leaflet-popup-content-wrapper),
+  :global(.spots-map .leaflet-popup-tip) {
+    opacity: 0.7;
+  }
 </style>
