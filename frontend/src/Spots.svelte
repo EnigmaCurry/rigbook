@@ -748,10 +748,7 @@
     {#if myGrid}
       <button class="default-btn map-toggle" class:active={showMap} on:click={toggleMap} title="{showMap ? 'Hide' : 'Show'} map">Map</button>
     {/if}
-  </div>
-
-  {#if bandList.length > 0}
-    <div class="band-badges">
+    {#if bandList.length > 0}
       {#each bandList as b}
         <span
           class="band-badge"
@@ -765,8 +762,8 @@
           {b}: {bands[b]}
         </span>
       {/each}
-    </div>
-  {/if}
+    {/if}
+  </div>
 
   {#if myGrid && showMap}
     <div class="spots-map-wrap">
@@ -933,13 +930,6 @@
   .default-btn.clear { opacity: 0.7; font-size: 0.75rem; }
   .default-btn.map-toggle { margin-left: auto; }
   .default-btn.map-toggle.active { background: var(--accent); color: var(--bg); }
-
-  .band-badges {
-    display: flex;
-    gap: 0.4rem;
-    margin-bottom: 0.75rem;
-    flex-wrap: wrap;
-  }
 
   .band-badge {
     padding: 0.15rem 0.5rem;
