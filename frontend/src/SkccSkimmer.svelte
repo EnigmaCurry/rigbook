@@ -6,7 +6,7 @@
   const dispatch = createEventDispatcher();
 
   export let filterMode = "";
-  export let filterBand = "";
+  export let filterBands = new Set();
   export let workedTodayKeys = new Set();
   export let potaEnabled = true;
 
@@ -95,7 +95,7 @@
     if (!visible) { spots = []; loading = false; return; }
     try {
       const params = new URLSearchParams();
-      if (filterBand) params.set("band", filterBand);
+      if (filterBands.size > 0) params.set("band", [...filterBands].join(","));
       const res = await fetch(`/api/spots/skcc?${params}`);
       if (res.ok) {
         const fresh = await res.json();
@@ -119,11 +119,14 @@
 
   // Re-fetch when filters actually change
   let prevFilterMode = filterMode;
-  let prevFilterBand = filterBand;
-  $: if (filterMode !== prevFilterMode || filterBand !== prevFilterBand) {
-    prevFilterMode = filterMode;
-    prevFilterBand = filterBand;
-    fetchSkccSpots();
+  let prevFilterBandsKey = [...filterBands].sort().join(",");
+  $: {
+    const bandsKey = [...filterBands].sort().join(",");
+    if (filterMode !== prevFilterMode || bandsKey !== prevFilterBandsKey) {
+      prevFilterMode = filterMode;
+      prevFilterBandsKey = bandsKey;
+      fetchSkccSpots();
+    }
   }
 
   onMount(() => {

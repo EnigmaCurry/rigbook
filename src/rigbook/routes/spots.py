@@ -75,11 +75,12 @@ async def query_spots(
     limit: int = 200,
     session: AsyncSession = Depends(get_session),
 ):
+    bands = {b.strip().lower() for b in band.split(",") if b.strip()} if band else None
     spots = await spot_cache.query(
         source=source,
         callsign=callsign,
         mode=mode,
-        band=band,
+        bands=bands,
         min_freq=min_freq,
         max_freq=max_freq,
         limit=limit,
@@ -192,18 +193,20 @@ async def skcc_skimmer(
     max_dist = int(dist_str) if dist_str and dist_str.isdigit() else 500
 
     # Get current qualifying spots from the live cache
-    fresh = (await query_spots(
-        source=None,
-        callsign=None,
-        mode="CW",
-        band=None,  # don't filter by band here — filter the snapshot below
-        min_freq=None,
-        max_freq=None,
-        skcc="required",
-        max_distance=max_dist if max_dist > 0 else None,
-        limit=200,
-        session=session,
-    ))["spots"]
+    fresh = (
+        await query_spots(
+            source=None,
+            callsign=None,
+            mode="CW",
+            band=None,  # don't filter by band here — filter the snapshot below
+            min_freq=None,
+            max_freq=None,
+            skcc="required",
+            max_distance=max_dist if max_dist > 0 else None,
+            limit=200,
+            session=session,
+        )
+    )["spots"]
 
     now = time.time()
     logger = logging.getLogger("rigbook.spots")
@@ -236,9 +239,10 @@ async def skcc_skimmer(
     logger.debug("SKCC skimmer: returning %d from snapshot", len(_skcc_cache))
 
     # Build result from snapshot, applying band filter
+    bands = {b.strip().lower() for b in band.split(",") if b.strip()} if band else None
     results = []
     for call, (s, _) in _skcc_cache.items():
-        if band and s.get("band") != band.lower():
+        if bands and s.get("band") not in bands:
             continue
         results.append(s)
 

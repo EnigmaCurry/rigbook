@@ -16,7 +16,7 @@
   let error = "";
   let pollInterval;
   let filterMode = "";
-  let filterBand = "";
+  let filterBands = new Set();
   let filterProgram = "";
   let skccSkimmerEnabled = false;
   let filtersLoaded = false;
@@ -120,6 +120,12 @@
     return "";
   }
 
+  function toggleBand(b) {
+    if (filterBands.has(b)) filterBands.delete(b);
+    else filterBands.add(b);
+    filterBands = new Set(filterBands);
+  }
+
   function formatFreq(f) {
     if (!f) return "";
     const n = parseFloat(f);
@@ -135,7 +141,7 @@
   }
 
   $: modes = [...new Set([...spots.map(s => s.mode), filterMode].filter(Boolean))].sort();
-  $: bands = [...new Set([...spots.map(s => freqToBand(s.frequency)), filterBand].filter(Boolean))].sort((a, b) => {
+  $: bands = [...new Set([...spots.map(s => freqToBand(s.frequency)), ...filterBands].filter(Boolean))].sort((a, b) => {
     const order = Object.keys(BANDS);
     return order.indexOf(a) - order.indexOf(b);
   });
@@ -143,7 +149,7 @@
 
   $: filteredSpots = spots.filter(s => {
     if (filterMode && s.mode !== filterMode) return false;
-    if (filterBand && freqToBand(s.frequency) !== filterBand) return false;
+    if (filterBands.size > 0 && !filterBands.has(freqToBand(s.frequency))) return false;
     if (filterProgram && spotProgram(s) !== filterProgram) return false;
     return true;
   });
@@ -159,7 +165,7 @@
         if (data.value) {
           const saved = JSON.parse(data.value);
           filterMode = saved.mode || "";
-          filterBand = saved.band || "";
+          filterBands = saved.band ? new Set(saved.band.split(",")) : new Set();
           filterProgram = saved.program || "";
         }
       }
@@ -180,14 +186,14 @@
       await fetch(`/api/settings/${FILTER_SETTINGS_KEY}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: JSON.stringify({ mode: filterMode, band: filterBand, program: filterProgram }) }),
+        body: JSON.stringify({ value: JSON.stringify({ mode: filterMode, band: [...filterBands].join(","), program: filterProgram }) }),
       });
     } catch {}
   }
 
   // Save filters whenever they change (after initial load)
   $: if (filtersLoaded) {
-    const _filters = { m: filterMode, b: filterBand, p: filterProgram };
+    const _filters = { m: filterMode, b: [...filterBands].join(","), p: filterProgram };
     saveFilters();
   }
 
@@ -348,12 +354,9 @@
           <option value={m}>{m}</option>
         {/each}
       </select>
-      <select bind:value={filterBand}>
-        <option value="">All Bands</option>
-        {#each bands as b}
-          <option value={b}>{b}</option>
-        {/each}
-      </select>
+      {#if filterBands.size > 0}
+        <button class="btn-clear-bands" on:click={() => { filterBands = new Set(); }}>Clear bands</button>
+      {/if}
       <select bind:value={filterProgram}>
         <option value="">All Programs</option>
         {#each programs as p}
@@ -364,8 +367,25 @@
     </div>
   </div>
 
+  {#if bands.length > 0}
+    <div class="band-badges">
+      {#each bands as b}
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <span
+          class="band-badge"
+          class:active={filterBands.has(b)}
+          style="background: {bandColor(b)}; color: {bandTextColor(b)}; opacity: {filterBands.size > 0 && !filterBands.has(b) ? 0.3 : 1}"
+          on:click={() => { toggleBand(b); }}
+        >
+          {b}
+        </span>
+      {/each}
+    </div>
+  {/if}
+
   {#if skccSkimmerEnabled && spotsEnabled}
-    <SkccSkimmer filterMode={filterMode} filterBand={filterBand} workedTodayKeys={workedTodayCwKeys} {potaEnabled} on:tune on:addqso />
+    <SkccSkimmer filterMode={filterMode} filterBands={filterBands} workedTodayKeys={workedTodayCwKeys} {potaEnabled} on:tune on:addqso />
   {/if}
 
   {#if potaEnabled}
@@ -447,6 +467,37 @@
 <style>
   .hunting {
     width: 100%;
+  }
+
+  .band-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .band-badge {
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    user-select: none;
+    transition: opacity 0.15s;
+    border: 2px solid transparent;
+  }
+
+  .band-badge.active {
+    border-color: var(--accent, #fff);
+  }
+
+  .btn-clear-bands {
+    background: var(--bg2, #333);
+    color: var(--fg, #ccc);
+    border: 1px solid var(--border, #555);
+    border-radius: 4px;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.8rem;
+    cursor: pointer;
   }
 
   .controls {

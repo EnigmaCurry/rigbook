@@ -385,7 +385,7 @@ class SpotCache:
         source: str | None = None,
         callsign: str | None = None,
         mode: str | None = None,
-        band: str | None = None,
+        bands: set[str] | None = None,
         min_freq: float | None = None,
         max_freq: float | None = None,
         limit: int = 200,
@@ -401,8 +401,8 @@ class SpotCache:
             live = [e for e in live if q in e.callsign.upper()]
         if mode:
             live = [e for e in live if e.mode.upper() == mode.upper()]
-        if band:
-            live = [e for e in live if e.band == band.lower()]
+        if bands:
+            live = [e for e in live if e.band in bands]
         if min_freq is not None:
             live = [e for e in live if e.frequency >= min_freq]
         if max_freq is not None:

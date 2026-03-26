@@ -27,7 +27,7 @@
   function updateHash() {
     const params = new URLSearchParams();
     if (filterSource) params.set("source", filterSource);
-    if (filterBand) params.set("band", filterBand);
+    if (filterBands.size > 0) params.set("band", [...filterBands].join(","));
     if (filterMode) params.set("mode", filterMode);
     if (filterCallsign) params.set("callsign", filterCallsign);
     if (filterSkcc) params.set("skcc", filterSkcc);
@@ -38,7 +38,7 @@
   const initFilters = parseFiltersFromHash();
   const hasHashFilters = Object.keys(initFilters).length > 0;
   let filterSource = initFilters.source || "";
-  let filterBand = initFilters.band || "";
+  let filterBands = initFilters.band ? new Set(initFilters.band.split(",")) : new Set();
   let filterMode = initFilters.mode || "";
   let filterCallsign = initFilters.callsign || "";
   let filterSkcc = initFilters.skcc || "";
@@ -230,7 +230,7 @@
     try {
       const params = new URLSearchParams();
       if (filterSource) params.set("source", filterSource);
-      if (filterBand) params.set("band", filterBand);
+      if (filterBands.size > 0) params.set("band", [...filterBands].join(","));
       if (filterMode) params.set("mode", filterMode);
       if (filterCallsign) params.set("callsign", filterCallsign);
       if (filterSkcc) params.set("skcc", filterSkcc);
@@ -281,7 +281,7 @@
   function currentFilters() {
     return {
       source: filterSource,
-      band: filterBand,
+      band: [...filterBands].join(","),
       mode: filterMode,
       callsign: filterCallsign,
       skcc: filterSkcc,
@@ -294,9 +294,15 @@
       && a.callsign === b.callsign && a.skcc === b.skcc;
   }
 
+  function toggleBand(b) {
+    if (filterBands.has(b)) filterBands.delete(b);
+    else filterBands.add(b);
+    filterBands = new Set(filterBands);
+  }
+
   const factoryFilters = { source: "", band: "", mode: "", callsign: "", skcc: "" };
   $: isDefault = filtersLoaded && filtersMatch(
-    { source: filterSource, band: filterBand, mode: filterMode, callsign: filterCallsign, skcc: filterSkcc },
+    { source: filterSource, band: [...filterBands].sort().join(","), mode: filterMode, callsign: filterCallsign, skcc: filterSkcc },
     savedFilters || factoryFilters
   );
 
@@ -309,7 +315,7 @@
           savedFilters = JSON.parse(data.value);
           if (!hasHashFilters && savedFilters) {
             filterSource = savedFilters.source || "";
-            filterBand = savedFilters.band || "";
+            filterBands = savedFilters.band ? new Set(savedFilters.band.split(",")) : new Set();
             filterMode = savedFilters.mode || "";
             filterCallsign = savedFilters.callsign || "";
             filterSkcc = savedFilters.skcc || "";
@@ -716,12 +722,9 @@
       <option value="rbn">RBN</option>
       <option value="hamalert">HamAlert</option>
     </select>
-    <select bind:value={filterBand} on:change={onFilterChange} style={filterBand ? `background: ${bandColor(filterBand)}; color: ${bandTextColor(filterBand)}` : ""}>
-      <option value="">All Bands</option>
-      {#each bandList as b}
-        <option value={b} style="background: {bandColor(b)}; color: {bandTextColor(b)}">{b} ({bands[b]})</option>
-      {/each}
-    </select>
+    {#if filterBands.size > 0}
+      <button class="default-btn clear-bands" on:click={() => { filterBands = new Set(); onFilterChange(); }}>Clear bands</button>
+    {/if}
     <select bind:value={filterMode} on:change={() => { if (filterMode !== "CW") filterSkcc = ""; onFilterChange(); }}>
       <option value="">All Modes</option>
       {#each modeList as m}
@@ -752,10 +755,10 @@
       {#each bandList as b}
         <span
           class="band-badge"
-          class:active={filterBand === b}
-          style="background: {bandColor(b)}; color: {bandTextColor(b)}; opacity: {filterBand && filterBand !== b ? 0.3 : 1}"
-          on:click={() => { filterBand = filterBand === b ? "" : b; onFilterChange(); }}
-          on:keydown={(e) => { if (e.key === 'Enter') { filterBand = filterBand === b ? "" : b; onFilterChange(); } }}
+          class:active={filterBands.has(b)}
+          style="background: {bandColor(b)}; color: {bandTextColor(b)}; opacity: {filterBands.size > 0 && !filterBands.has(b) ? 0.3 : 1}"
+          on:click={() => { toggleBand(b); onFilterChange(); }}
+          on:keydown={(e) => { if (e.key === 'Enter') { toggleBand(b); onFilterChange(); } }}
           role="button"
           tabindex="0"
         >
@@ -823,7 +826,7 @@
           </tr>
         {/each}
         {#if spots.length === 0}
-          <tr><td colspan={filterMode === "CW" ? 13 : 12} class="empty">No spots{filterSource || filterBand || filterMode || filterCallsign ? " matching filters" : ""}. {status.rbn.enabled || status.hamalert.enabled ? "Waiting for data..." : "Enable RBN or HamAlert in Settings."}</td></tr>
+          <tr><td colspan={filterMode === "CW" ? 13 : 12} class="empty">No spots{filterSource || filterBands.size > 0 || filterMode || filterCallsign ? " matching filters" : ""}. {status.rbn.enabled || status.hamalert.enabled ? "Waiting for data..." : "Enable RBN or HamAlert in Settings."}</td></tr>
         {/if}
       </tbody>
     </table>
