@@ -350,7 +350,12 @@
     statusInterval = setInterval(() => { fetchStatus(); fetchBands(); fetchModes(); fetchWorkedToday(); fetchPotaSpots(); }, 5000);
     spotsInterval = setInterval(fetchSpots, 3000);
     window.addEventListener("keydown", onFullscreenKey);
+    window.addEventListener("resize", onWindowResize);
   });
+
+  function onWindowResize() {
+    if (leafletMap) leafletMap.invalidateSize();
+  }
 
   onDestroy(() => {
     clearInterval(statusInterval);
@@ -358,6 +363,7 @@
     qrz.destroy();
     destroyMap();
     window.removeEventListener("keydown", onFullscreenKey);
+    window.removeEventListener("resize", onWindowResize);
   });
 
   $: bandList = Object.keys(bands).sort((a, b) => {

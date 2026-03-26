@@ -506,13 +506,19 @@
     if (tab === "park" && parkRef) loadParkDetail(parkRef);
     window.addEventListener("hashchange", onHashChange);
     window.addEventListener("keydown", onFullscreenKey);
+    window.addEventListener("resize", onWindowResize);
   });
+
+  function onWindowResize() {
+    if (leafletMap) leafletMap.invalidateSize();
+  }
 
   onDestroy(() => {
     exitFullscreen();
     destroyMap();
     window.removeEventListener("hashchange", onHashChange);
     window.removeEventListener("keydown", onFullscreenKey);
+    window.removeEventListener("resize", onWindowResize);
   });
 </script>
 
