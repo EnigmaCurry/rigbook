@@ -945,7 +945,7 @@
   });
 </script>
 
-<main class:dual-mode={page === "dual"} class:wide-mode={page === "grid"}>
+<main class:dual-mode={page === "dual"} class:wide-mode={page === "grid"} class:parks-mode={page === "parks"}>
   {#if serverShutdown}
     <header>
       <div class="header-left">
@@ -1653,6 +1653,13 @@
     max-width: 1600px;
   }
 
+  main.parks-mode {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
   .dual-layout {
     display: flex;
     gap: 0;
@@ -1665,6 +1672,8 @@
     min-width: 0;
     overflow-y: auto;
     padding: 0 0.75rem;
+    display: flex;
+    flex-direction: column;
   }
   .dual-reversed {
     flex-direction: row-reverse;

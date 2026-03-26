@@ -679,6 +679,7 @@
     flex-direction: column;
     flex: 1;
     min-height: 0;
+    overflow: hidden;
   }
 
   .parks-header {
@@ -749,11 +750,11 @@
   }
 
   .tab-content {
-    min-height: 200px;
     display: flex;
     flex-direction: column;
     flex: 1;
     min-height: 0;
+    overflow: hidden;
   }
 
   /* Shared */
