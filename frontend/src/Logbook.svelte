@@ -127,6 +127,11 @@
     datePart !== editOriginal.datePart ||
     timePart !== editOriginal.timePart
   );
+  $: if (editingId && editOriginal) {
+    const current = { call, freq, mode, rst_sent, rst_recv, pota_park, name, qth, state, country, grid, skcc, skcc_exch, comments, notes, datePart, timePart };
+    const diffs = Object.keys(current).filter(k => current[k] !== editOriginal[k]);
+    console.log("editHasChanges:", editHasChanges, "diffs:", diffs, "current:", current, "original:", editOriginal);
+  }
 
   $: addHasChanges = !addOriginal ? false : (
     call !== addOriginal.call ||
