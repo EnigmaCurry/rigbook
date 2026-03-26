@@ -27,7 +27,7 @@
   function updateHash() {
     const params = new URLSearchParams();
     if (filterSource) params.set("source", filterSource);
-    if (filterBands.size > 0) params.set("band", [...filterBands].join(","));
+    if (filterBandsStr) params.set("band", filterBandsStr);
     if (filterMode) params.set("mode", filterMode);
     if (filterCallsign) params.set("callsign", filterCallsign);
     if (filterSkcc) params.set("skcc", filterSkcc);
@@ -230,7 +230,7 @@
     try {
       const params = new URLSearchParams();
       if (filterSource) params.set("source", filterSource);
-      if (filterBands.size > 0) params.set("band", [...filterBands].join(","));
+      if (filterBandsStr) params.set("band", filterBandsStr);
       if (filterMode) params.set("mode", filterMode);
       if (filterCallsign) params.set("callsign", filterCallsign);
       if (filterSkcc) params.set("skcc", filterSkcc);
@@ -278,10 +278,12 @@
     }
   }
 
+  $: filterBandsStr = [...filterBands].sort().join(",");
+
   function currentFilters() {
     return {
       source: filterSource,
-      band: [...filterBands].join(","),
+      band: filterBandsStr,
       mode: filterMode,
       callsign: filterCallsign,
       skcc: filterSkcc,
@@ -302,7 +304,7 @@
 
   const factoryFilters = { source: "", band: "", mode: "", callsign: "", skcc: "" };
   $: isDefault = filtersLoaded && filtersMatch(
-    { source: filterSource, band: [...filterBands].sort().join(","), mode: filterMode, callsign: filterCallsign, skcc: filterSkcc },
+    { source: filterSource, band: filterBandsStr, mode: filterMode, callsign: filterCallsign, skcc: filterSkcc },
     savedFilters || factoryFilters
   );
 
@@ -313,6 +315,9 @@
         const data = await res.json();
         if (data.value) {
           savedFilters = JSON.parse(data.value);
+          if (savedFilters && savedFilters.band) {
+            savedFilters.band = savedFilters.band.split(",").sort().join(",");
+          }
           if (!hasHashFilters && savedFilters) {
             filterSource = savedFilters.source || "";
             filterBands = savedFilters.band ? new Set(savedFilters.band.split(",")) : new Set();
