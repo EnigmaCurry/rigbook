@@ -662,7 +662,8 @@
     mapInitialFitDone = false;
   }
 
-  $: if (leafletMap && spots.length > 0 && myGrid) {
+  $: if (leafletMap && myGrid) {
+    spots;  // track spots reassignment
     updateMap();
   }
 
