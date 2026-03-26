@@ -405,10 +405,13 @@
     }
   }
 
+  let renderingMap = false;
   async function renderMap() {
+    if (renderingMap) return;
+    renderingMap = true;
     await tick();
     destroyMap();
-    if (!mapEl) return;
+    if (!mapEl) { renderingMap = false; return; }
     const pts = myParks.filter(p => p.latitude != null && p.longitude != null);
     if (!pts.length) return;
 
@@ -433,6 +436,7 @@
     if (leafletMap.getZoom() < 5) leafletMap.setZoom(5);
     addExpandControl(leafletMap, mapEl.parentElement);
     if (activePark) showActivePark(activePark);
+    renderingMap = false;
   }
 
   export async function refreshParks() {
