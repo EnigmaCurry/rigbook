@@ -735,6 +735,19 @@
         <option value="required">SKCC: Required</option>
       </select>
     {/if}
+    {#if filterBands.size > 0}
+      <button class="default-btn clear-bands" on:click={() => { filterBands = new Set(); onFilterChange(); }}>Clear bands</button>
+    {/if}
+    {#if filtersLoaded}
+      {#if !isDefault}
+        <button class="default-btn save" on:click={saveDefaultFilters} title="Save current filters as default">Save as default</button>
+      {:else if savedFilters}
+        <button class="default-btn clear" on:click={clearDefaultFilters} title="Clear saved default filters">Clear default</button>
+      {/if}
+    {/if}
+    {#if myGrid}
+      <button class="default-btn map-toggle" class:active={showMap} on:click={toggleMap} title="{showMap ? 'Hide' : 'Show'} map">Map</button>
+    {/if}
     {#if bandList.length > 0}
       {#each bandList as b}
         <span
@@ -750,21 +763,6 @@
         </span>
       {/each}
     {/if}
-    <span class="filters-right">
-      {#if filterBands.size > 0}
-        <button class="default-btn clear-bands" on:click={() => { filterBands = new Set(); onFilterChange(); }}>Clear bands</button>
-      {/if}
-      {#if filtersLoaded}
-        {#if !isDefault}
-          <button class="default-btn save" on:click={saveDefaultFilters} title="Save current filters as default">Save as default</button>
-        {:else if savedFilters}
-          <button class="default-btn clear" on:click={clearDefaultFilters} title="Clear saved default filters">Clear default</button>
-        {/if}
-      {/if}
-      {#if myGrid}
-        <button class="default-btn map-toggle" class:active={showMap} on:click={toggleMap} title="{showMap ? 'Hide' : 'Show'} map">Map</button>
-      {/if}
-    </span>
   </div>
 
   {#if myGrid && showMap}
@@ -898,6 +896,7 @@
     margin-bottom: 0.75rem;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: flex-end;
   }
 
   .filters select,
@@ -932,13 +931,6 @@
   .default-btn.save:hover { opacity: 0.85; }
   .default-btn.clear { opacity: 0.7; font-size: 0.75rem; }
   .default-btn.map-toggle.active { background: var(--accent); color: var(--bg); }
-
-  .filters-right {
-    margin-left: auto;
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-  }
 
   .band-badge {
     padding: 0.15rem 0.5rem;
