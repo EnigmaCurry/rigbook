@@ -365,20 +365,18 @@
       </select>
       <button class="btn-refresh" on:click={() => { loading = true; fetchSpots(); }}>Refresh</button>
       {#if bands.length > 0}
-        <div class="band-badges">
-          {#each bands as b}
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <span
-              class="band-badge"
-              class:active={filterBands.has(b)}
-              style="background: {bandColor(b)}; color: {bandTextColor(b)}; opacity: {filterBands.size > 0 && !filterBands.has(b) ? 0.3 : 1}"
-              on:click={() => { toggleBand(b); }}
-            >
-              {b}
-            </span>
-          {/each}
-        </div>
+        {#each bands as b}
+          <!-- svelte-ignore a11y-click-events-have-key-events -->
+          <!-- svelte-ignore a11y-no-static-element-interactions -->
+          <span
+            class="band-badge"
+            class:active={filterBands.has(b)}
+            style="background: {bandColor(b)}; color: {bandTextColor(b)}; opacity: {filterBands.size > 0 && !filterBands.has(b) ? 0.3 : 1}"
+            on:click={() => { toggleBand(b); }}
+          >
+            {b}
+          </span>
+        {/each}
       {/if}
     </div>
   </div>
@@ -466,14 +464,6 @@
 <style>
   .hunting {
     width: 100%;
-  }
-
-  .band-badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.3rem;
-    width: 100%;
-    justify-content: flex-end;
   }
 
   .band-badge {
