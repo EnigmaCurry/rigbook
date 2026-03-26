@@ -945,7 +945,7 @@
   });
 </script>
 
-<main class:dual-mode={page === "dual"} class:wide-mode={page === "grid"} class:parks-mode={page === "parks"} class:spots-mode={page === "spots"} class:grid-mode={page === "grid"}>
+<main class:dual-mode={page === "dual"} class:parks-mode={page === "parks"} class:spots-mode={page === "spots"} class:grid-mode={page === "grid"}>
   {#if serverShutdown}
     <header>
       <div class="header-left">
@@ -1093,13 +1093,7 @@
     </div>
   </header>
 
-  {#if page === "log"}
-    <Logbook showForm={false} {vfoFreq} {vfoMode} on:editchange={e => { editId = e.detail; navigate("add"); window.location.hash = `/log/${e.detail}`; }} on:navigate={e => navigate(e.detail)} />
-  {:else if page === "add"}
-    <Logbook showForm={true} {editId} {prefill} {vfoFreq} {vfoMode} bind:formDirty bind:activePark on:editchange={e => { editId = e.detail; window.location.hash = e.detail ? `/log/${e.detail}` : "/add"; }} on:navigate={e => navigate(e.detail)} on:prefillconsumed={() => prefill = null} on:parkschanged={() => dualParks?.refreshParks()} />
-  {:else if page === "hunting"}
-    <Hunting {potaEnabled} {spotsEnabled} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
-  {:else if page === "dual"}
+  {#if page === "dual"}
     <div class="dual-layout" class:dual-narrow={!wide} class:dragging={draggingSplit} class:dual-reversed={logbookRight}>
       <div class="dual-pane" style="flex: 0 0 {dualSplit}%">
         <Logbook showForm={dualShowForm || !!prefill || !!editId} {prefill} {editId} {vfoFreq} {vfoMode} bind:formDirty bind:activePark on:editchange={e => { editId = e.detail; dualShowForm = !!e.detail; }} on:navigate={e => { if (e.detail === "hunting" || e.detail === "log" || e.detail === "back") { prefill = null; editId = null; dualShowForm = false; dualHunting?.refreshAwards(); if (!wide) navigate(dualRightPage); } else navigate(e.detail); }} on:prefillconsumed={() => prefill = null} on:parkschanged={() => dualParks?.refreshParks()} />
@@ -1122,22 +1116,32 @@
     </div>
   {:else if page === "parks"}
     <Parks on:addqso={e => { if (formDirty) { alert("Save or cancel your current QSO before selecting a new spot."); return; } prefill = e.detail; dualShowForm = true; navigate(isWide() ? "dual" : "add"); }} />
-  {:else if page === "grid"}
-    <GridMap bind:value={gridMapValue} on:select={e => { gridMapValue = e.detail; }} />
-  {:else if page === "export"}
-    <ExportImport />
-  {:else if page === "notifications"}
-    <Notifications on:countchange={() => fetchUnreadCount()} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
   {:else if page === "spots"}
     <Spots {potaEnabled} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
-  {:else if page === "settings"}
-    <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { setShutdownState(); }} />
-  {:else if page === "links"}
-    <Links />
-  {:else if page === "conditions"}
-    <Conditions />
-  {:else if page === "about"}
-    <About />
+  {:else if page === "grid"}
+    <GridMap bind:value={gridMapValue} on:select={e => { gridMapValue = e.detail; }} />
+  {:else}
+    <div class="page-content">
+    {#if page === "log"}
+      <Logbook showForm={false} {vfoFreq} {vfoMode} on:editchange={e => { editId = e.detail; navigate("add"); window.location.hash = `/log/${e.detail}`; }} on:navigate={e => navigate(e.detail)} />
+    {:else if page === "add"}
+      <Logbook showForm={true} {editId} {prefill} {vfoFreq} {vfoMode} bind:formDirty bind:activePark on:editchange={e => { editId = e.detail; window.location.hash = e.detail ? `/log/${e.detail}` : "/add"; }} on:navigate={e => navigate(e.detail)} on:prefillconsumed={() => prefill = null} on:parkschanged={() => dualParks?.refreshParks()} />
+    {:else if page === "hunting"}
+      <Hunting {potaEnabled} {spotsEnabled} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
+    {:else if page === "export"}
+      <ExportImport />
+    {:else if page === "notifications"}
+      <Notifications on:countchange={() => fetchUnreadCount()} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
+    {:else if page === "settings"}
+      <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { setShutdownState(); }} />
+    {:else if page === "links"}
+      <Links />
+    {:else if page === "conditions"}
+      <Conditions />
+    {:else if page === "about"}
+      <About />
+    {/if}
+    </div>
   {/if}
   {/if}
 </main>
@@ -1259,9 +1263,14 @@
   }
 
   main {
-    max-width: 1100px;
+    max-width: 100%;
     margin: 0 auto;
     padding: 1rem;
+  }
+
+  .page-content {
+    max-width: 1100px;
+    margin: 0 auto;
   }
 
   header {
@@ -1649,9 +1658,6 @@
     padding-bottom: 0;
   }
 
-  main.wide-mode {
-    max-width: 1600px;
-  }
 
   main.parks-mode,
   main.spots-mode,
