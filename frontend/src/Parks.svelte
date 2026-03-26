@@ -168,6 +168,8 @@
   $: cachedCountries = cachedPrograms.length;
   $: totalLocations = programs.reduce((s, p) => s + (p.location_count || 0), 0);
   $: totalParks = programs.reduce((s, p) => s + (p.park_count || 0), 0);
+  $: myTotalQsos = myParks.reduce((s, p) => s + (p.qso_count || 0), 0);
+  $: myAvgQsos = myParks.length ? (myTotalQsos / myParks.length).toFixed(1) : "0";
 
   async function loadPrograms() {
     loading = true;
@@ -475,12 +477,6 @@
     <!-- svelte-ignore a11y-no-static-element-interactions -->
     <span class="back-link" on:click={() => history.back()}>&larr; Back</span>
   {:else}
-    <div class="stats">
-      <span>{programs.length} countries</span>
-      <span>{totalLocations} locations</span>
-      <span class="stat-highlight">{totalParks} parks cached across {cachedCountries} {cachedCountries === 1 ? "country" : "countries"}</span>
-    </div>
-
     <div class="tabs">
       <button class="tab" class:active={tab === "my-qsos"} on:click={() => switchTab("my-qsos")}>My Parks</button>
       <button class="tab" class:active={tab === "by-country"} on:click={() => switchTab("by-country")}>By Country</button>
@@ -501,6 +497,10 @@
       {:else}
         <div class="my-map-wrap">
           <div class="my-map" bind:this={mapEl}></div>
+        </div>
+        <div class="stats">
+          <span class="stat-highlight">{myParks.length} parks contacted</span>
+          <span>{myAvgQsos} avg QSOs/park</span>
         </div>
         <div class="my-sort-bar">
           <span class="my-sort-label">Sort:</span>
@@ -600,6 +600,11 @@
 
   {:else if tab === "download"}
     <div class="tab-content">
+      <div class="stats">
+        <span>{programs.length} countries</span>
+        <span>{totalLocations} locations</span>
+        <span class="stat-highlight">{totalParks} parks cached across {cachedCountries} {cachedCountries === 1 ? "country" : "countries"}</span>
+      </div>
       <p class="description">Select countries to cache park data for. Then click Update to fetch all parks for selected countries.</p>
 
       <div class="controls">
