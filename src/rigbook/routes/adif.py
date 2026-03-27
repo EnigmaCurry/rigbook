@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import json
 from io import StringIO
 from typing import Optional
 
@@ -81,7 +82,41 @@ def _build_filtered_query(
     return stmt
 
 
-def contact_to_adif_record(c: Contact) -> dict:
+def render_comment_with_template(
+    template_fields: list[dict], c: Contact, separator: str = "|"
+) -> str:
+    """Render comment from template fields + user comments."""
+    field_map = {
+        "call": c.call,
+        "freq": c.freq,
+        "mode": c.mode,
+        "rst_sent": c.rst_sent,
+        "rst_recv": c.rst_recv,
+        "name": c.name,
+        "qth": c.qth,
+        "state": c.state,
+        "country": c.country,
+        "grid": c.grid,
+        "pota_park": c.pota_park,
+        "skcc": c.skcc,
+    }
+    parts = []
+    for entry in template_fields:
+        val = field_map.get(entry.get("field"))
+        if val:
+            label = entry.get("label", entry["field"])
+            parts.append(f"{label}: {val}")
+    if (c.comments or "").strip():
+        parts.append((c.comments or "").strip())
+    sep = f" {separator.strip()} "
+    return sep.join(parts)
+
+
+def contact_to_adif_record(
+    c: Contact,
+    comment_template: list | None = None,
+    comment_separator: str = "|",
+) -> dict:
     ts = c.timestamp or datetime.now(timezone.utc)
     record = {
         "QSO_DATE": ts.strftime("%Y%m%d"),
@@ -115,13 +150,74 @@ def contact_to_adif_record(c: Contact) -> dict:
         record["SKCC"] = str(c.skcc)
     if c.skcc_exch:
         record["APP_RIGBOOK_SKCC_EXCH"] = "Y"
-    if c.comments:
+    if comment_template:
+        comment = render_comment_with_template(
+            comment_template, c, comment_separator
+        )
+        if comment:
+            record["COMMENT"] = comment
+        record["APP_RIGBOOK_COMMENT_FMT"] = comment_separator.strip()
+    elif c.comments:
         record["COMMENT"] = c.comments
     if c.notes:
         record["NOTES"] = c.notes
     if c.uuid:
         record["APP_RIGBOOK_UUID"] = c.uuid
     return record
+
+
+def strip_comment_prefix(
+    comment: str,
+    record: dict,
+    template_fields: list[dict],
+    default_separator: str,
+) -> str:
+    """Strip template-generated prefix from COMMENT, return user's original text."""
+    if not comment:
+        return comment
+    fmt_sep = record.get("APP_RIGBOOK_COMMENT_FMT")
+    separator = (fmt_sep or default_separator or "|").strip()
+    padded = f" {separator} "
+
+    if not template_fields or padded not in comment:
+        return comment
+
+    parts = comment.split(padded)
+    if len(parts) <= 1:
+        return comment
+
+    # Build expected prefix segments from the ADIF record's own normalized fields
+    field_values = {
+        "call": record.get("CALL", ""),
+        "freq": record.get("FREQ", ""),
+        "mode": record.get("MODE", ""),
+        "rst_sent": record.get("RST_SENT", ""),
+        "rst_recv": record.get("RST_RCVD", ""),
+        "name": record.get("NAME", ""),
+        "qth": record.get("QTH", ""),
+        "state": record.get("STATE", ""),
+        "country": record.get("COUNTRY", ""),
+        "grid": record.get("GRIDSQUARE", ""),
+        "pota_park": record.get("POTA_REF", ""),
+        "skcc": record.get("SKCC", ""),
+    }
+    expected = []
+    for entry in template_fields:
+        val = field_values.get(entry.get("field"), "")
+        if val:
+            expected.append(f"{entry.get('label', entry['field'])}: {val}")
+
+    # Strip matching leading segments
+    strip_count = 0
+    for i, seg in enumerate(parts):
+        if i < len(expected) and seg.strip() == expected[i].strip():
+            strip_count += 1
+        else:
+            break
+
+    if strip_count > 0:
+        return padded.join(parts[strip_count:])
+    return comment
 
 
 def adif_record_to_contact_dict(record: dict) -> dict:
@@ -220,13 +316,41 @@ async def export_adif(
     result = await session.execute(stmt)
     contacts = result.scalars().all()
 
+    # Fetch comment template settings
+    comment_template = []
+    comment_separator = "|"
+    tpl_row = (
+        await session.execute(
+            select(Setting).where(Setting.key == "comment_template")
+        )
+    ).scalar_one_or_none()
+    if tpl_row and tpl_row.value:
+        try:
+            comment_template = json.loads(tpl_row.value)
+        except (json.JSONDecodeError, TypeError):
+            comment_template = []
+    sep_row = (
+        await session.execute(
+            select(Setting).where(Setting.key == "comment_separator")
+        )
+    ).scalar_one_or_none()
+    if sep_row and sep_row.value:
+        comment_separator = sep_row.value
+
     doc = {
         "HEADER": {
             "ADIF_VER": "3.1.4",
             "PROGRAMID": "Rigbook",
             "PROGRAMVERSION": "0.1.0",
         },
-        "RECORDS": [contact_to_adif_record(c) for c in contacts],
+        "RECORDS": [
+            contact_to_adif_record(
+                c,
+                comment_template=comment_template or None,
+                comment_separator=comment_separator,
+            )
+            for c in contacts
+        ],
     }
 
     output = adi.dumps(doc)
@@ -259,11 +383,39 @@ async def import_adif(file: UploadFile, session: AsyncSession = Depends(get_sess
     doc = adi.loads(content)
     records = doc.get("RECORDS", [])
 
+    # Fetch comment template settings for prefix stripping
+    import_template = []
+    import_separator = "|"
+    tpl_row = (
+        await session.execute(
+            select(Setting).where(Setting.key == "comment_template")
+        )
+    ).scalar_one_or_none()
+    if tpl_row and tpl_row.value:
+        try:
+            import_template = json.loads(tpl_row.value)
+        except (json.JSONDecodeError, TypeError):
+            import_template = []
+    sep_row = (
+        await session.execute(
+            select(Setting).where(Setting.key == "comment_separator")
+        )
+    ).scalar_one_or_none()
+    if sep_row and sep_row.value:
+        import_separator = sep_row.value
+
     imported = 0
     skipped = 0
     duplicates = 0
     for record in records:
         data = adif_record_to_contact_dict(record)
+        # Strip template prefix from comments if applicable
+        if data.get("comments") and import_template:
+            data["comments"] = strip_comment_prefix(
+                data["comments"], record, import_template, import_separator
+            )
+            if not data["comments"]:
+                del data["comments"]
         if not data.get("call"):
             skipped += 1
             continue

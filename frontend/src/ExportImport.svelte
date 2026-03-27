@@ -7,6 +7,114 @@
   let message = "";
   let messageType = "";
 
+  // Comment template
+  const TEMPLATE_FIELDS = [
+    { field: "pota_park", label: "POTA" },
+    { field: "skcc", label: "SKCC" },
+    { field: "grid", label: "Grid" },
+    { field: "call", label: "Call" },
+    { field: "freq", label: "Freq" },
+    { field: "mode", label: "Mode" },
+    { field: "rst_sent", label: "RST Sent" },
+    { field: "rst_recv", label: "RST Recv" },
+    { field: "name", label: "Name" },
+    { field: "qth", label: "QTH" },
+    { field: "state", label: "State" },
+    { field: "country", label: "Country" },
+  ];
+
+  let commentTemplate = [];
+  let commentSeparator = "|";
+  let templateExpanded = false;
+  let addField = "";
+  let dragIndex = null;
+  let dropIndex = null;
+  let templateSaveTimer = null;
+
+  $: availableFields = TEMPLATE_FIELDS.filter(
+    f => !commentTemplate.some(t => t.field === f.field)
+  );
+
+  async function loadCommentTemplate() {
+    try {
+      const [tplRes, sepRes] = await Promise.all([
+        fetch("/api/settings/comment_template"),
+        fetch("/api/settings/comment_separator"),
+      ]);
+      if (tplRes.ok) {
+        const data = await tplRes.json();
+        if (data.value) {
+          try { commentTemplate = JSON.parse(data.value); } catch { commentTemplate = []; }
+        }
+      }
+      if (sepRes.ok) {
+        const data = await sepRes.json();
+        if (data.value) commentSeparator = data.value;
+      }
+    } catch { /* ignore */ }
+  }
+
+  async function saveCommentTemplate() {
+    clearTimeout(templateSaveTimer);
+    templateSaveTimer = setTimeout(async () => {
+      try {
+        await Promise.all([
+          fetch("/api/settings/comment_template", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ value: JSON.stringify(commentTemplate) }),
+          }),
+          fetch("/api/settings/comment_separator", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ value: commentSeparator }),
+          }),
+        ]);
+      } catch { /* ignore */ }
+    }, 300);
+  }
+
+  function addTemplateField() {
+    if (!addField) return;
+    const def = TEMPLATE_FIELDS.find(f => f.field === addField);
+    if (def) {
+      commentTemplate = [...commentTemplate, { field: def.field, label: def.label }];
+      addField = "";
+      saveCommentTemplate();
+    }
+  }
+
+  function removeTemplateField(index) {
+    commentTemplate = commentTemplate.filter((_, i) => i !== index);
+    saveCommentTemplate();
+  }
+
+  function handleDragStart(index) {
+    dragIndex = index;
+  }
+
+  function handleDragOver(event, index) {
+    event.preventDefault();
+    dropIndex = index;
+  }
+
+  function handleDrop(index) {
+    if (dragIndex !== null && dragIndex !== index) {
+      const items = [...commentTemplate];
+      const [moved] = items.splice(dragIndex, 1);
+      items.splice(index, 0, moved);
+      commentTemplate = items;
+      saveCommentTemplate();
+    }
+    dragIndex = null;
+    dropIndex = null;
+  }
+
+  function handleDragEnd() {
+    dragIndex = null;
+    dropIndex = null;
+  }
+
   // Country autocomplete
   let countries = [];
   $: countryItems = countries.map(c => ({ name: c.name, aliases: c.aliases || [], display: `${c.code} — ${c.name}` }));
@@ -28,7 +136,10 @@
     if (byAlias) { countryFilter = byAlias.name; return; }
   }
 
-  onMount(fetchCountries);
+  onMount(() => {
+    fetchCountries();
+    loadCommentTemplate();
+  });
 
   // Filter state
   let dateFrom = "";
@@ -215,6 +326,72 @@
       Showing {preview.included} of {preview.total} contacts ({preview.excluded} excluded)
     </div>
   {/if}
+
+  <div class="comment-template-section">
+    <button class="toggle-btn" on:click={() => templateExpanded = !templateExpanded}>
+      {templateExpanded ? "▾" : "▸"} Comment Template {#if commentTemplate.length > 0}<span class="template-count">({commentTemplate.length} field{commentTemplate.length !== 1 ? "s" : ""})</span>{/if}
+    </button>
+
+    {#if templateExpanded}
+      <div class="template-body">
+        <p class="help-text">Selected fields are prepended to COMMENT in exported ADIF. Empty fields are skipped.</p>
+
+        {#if commentTemplate.length > 0}
+          <div class="template-list">
+            {#each commentTemplate as entry, i}
+              <div
+                class="template-row"
+                class:drag-over={dropIndex === i && dragIndex !== i}
+                draggable="true"
+                on:dragstart={() => handleDragStart(i)}
+                on:dragover={(e) => handleDragOver(e, i)}
+                on:drop={() => handleDrop(i)}
+                on:dragend={handleDragEnd}
+              >
+                <span class="drag-handle" title="Drag to reorder">⠿</span>
+                <span class="field-name">{entry.field}</span>
+                <input
+                  type="text"
+                  class="label-input"
+                  bind:value={entry.label}
+                  on:input={saveCommentTemplate}
+                  placeholder="Label"
+                />
+                <button class="remove-btn" on:click={() => removeTemplateField(i)} title="Remove">×</button>
+              </div>
+            {/each}
+          </div>
+        {/if}
+
+        <div class="template-add-row">
+          <select bind:value={addField} on:change={addTemplateField}>
+            <option value="">Add field…</option>
+            {#each availableFields as f}
+              <option value={f.field}>{f.label} ({f.field})</option>
+            {/each}
+          </select>
+        </div>
+
+        <div class="separator-row">
+          <label>
+            Separator
+            <input
+              type="text"
+              class="separator-input"
+              bind:value={commentSeparator}
+              on:input={saveCommentTemplate}
+              placeholder="|"
+            />
+          </label>
+          {#if commentTemplate.length > 0}
+            <span class="preview-example">
+              Preview: {commentTemplate.map(e => `${e.label}: …`).join(` ${commentSeparator.trim()} `)}{ commentTemplate.length > 0 ? ` ${commentSeparator.trim()} ` : "" }your comment
+            </span>
+          {/if}
+        </div>
+      </div>
+    {/if}
+  </div>
 
   <button on:click={exportAdif}>Download ADIF{preview ? ` (${preview.included})` : ""}</button>
 
@@ -456,5 +633,155 @@
 
   .message.error {
     color: var(--accent-error);
+  }
+
+  .comment-template-section {
+    margin-bottom: 1rem;
+  }
+
+  .toggle-btn {
+    background: none;
+    color: var(--text-muted);
+    border: none;
+    padding: 0.3rem 0;
+    font-size: 0.85rem;
+    font-weight: normal;
+    cursor: pointer;
+    margin-bottom: 0;
+  }
+
+  .toggle-btn:hover {
+    background: none;
+    color: var(--text);
+  }
+
+  .template-count {
+    color: var(--accent);
+    font-size: 0.8rem;
+  }
+
+  .template-body {
+    border: 1px solid var(--border, #555);
+    border-radius: 3px;
+    padding: 0.75rem;
+    margin-top: 0.25rem;
+  }
+
+  .help-text {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 0 0 0.5rem 0;
+  }
+
+  .template-list {
+    margin-bottom: 0.5rem;
+  }
+
+  .template-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.4rem;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    margin-bottom: 0.2rem;
+    background: var(--bg);
+  }
+
+  .template-row:hover {
+    border-color: var(--border, #555);
+  }
+
+  .template-row.drag-over {
+    border-color: var(--accent);
+    background: var(--bg-header, var(--bg));
+  }
+
+  .drag-handle {
+    cursor: grab;
+    color: var(--text-muted);
+    font-size: 1rem;
+    user-select: none;
+  }
+
+  .field-name {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    min-width: 70px;
+  }
+
+  .label-input {
+    background: var(--bg-input, var(--bg));
+    color: var(--text);
+    border: 1px solid var(--border, #555);
+    padding: 0.2rem 0.4rem;
+    font-family: inherit;
+    font-size: 0.8rem;
+    border-radius: 3px;
+    width: 100px;
+  }
+
+  .remove-btn {
+    background: none;
+    color: var(--text-muted);
+    border: none;
+    padding: 0.1rem 0.4rem;
+    font-size: 1rem;
+    cursor: pointer;
+    margin: 0;
+    line-height: 1;
+  }
+
+  .remove-btn:hover {
+    color: var(--accent-error);
+    background: none;
+  }
+
+  .template-add-row {
+    margin-bottom: 0.5rem;
+  }
+
+  .template-add-row select {
+    background: var(--bg-input, var(--bg));
+    color: var(--text);
+    border: 1px solid var(--border, #555);
+    padding: 0.3rem 0.5rem;
+    font-family: inherit;
+    font-size: 0.8rem;
+    border-radius: 3px;
+  }
+
+  .separator-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .separator-row label {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    gap: 0.2rem;
+  }
+
+  .separator-input {
+    background: var(--bg-input, var(--bg));
+    color: var(--text);
+    border: 1px solid var(--border, #555);
+    padding: 0.2rem 0.4rem;
+    font-family: inherit;
+    font-size: 0.8rem;
+    border-radius: 3px;
+    width: 50px;
+    text-align: center;
+  }
+
+  .preview-example {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-style: italic;
+    padding-top: 0.8rem;
   }
 </style>
