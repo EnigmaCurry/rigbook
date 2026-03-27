@@ -808,7 +808,9 @@
     width: 100%;
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .tab-bar {
@@ -846,20 +848,23 @@
   .main-layout {
     display: flex;
     gap: 1.5rem;
-    align-items: flex-start;
+    align-items: stretch;
     flex: 1;
     min-height: 0;
+    overflow: hidden;
   }
 
   .sidebar {
     flex: 0 0 auto;
     min-width: 0;
     max-width: 315px;
+    overflow-y: auto;
   }
 
   .preview-pane {
     flex: 1 1 0;
     min-width: 0;
+    min-height: 0;
     display: flex;
     flex-direction: column;
   }
@@ -867,19 +872,17 @@
   @media (max-width: 900px) {
     .main-layout {
       flex-direction: column;
+      overflow: auto;
     }
 
     .sidebar {
       width: 100%;
       max-width: none;
+      overflow-y: visible;
     }
 
     .preview-pane {
       width: 100%;
-    }
-
-    .preview-table-wrap {
-      max-height: 400px !important;
     }
   }
 
@@ -1209,7 +1212,7 @@
 
   .preview-table-wrap {
     flex: 1;
-    max-height: calc(100vh - 16rem);
+    min-height: 0;
     overflow: auto;
     border: 1px solid var(--border, #555);
     border-radius: 0 0 3px 3px;

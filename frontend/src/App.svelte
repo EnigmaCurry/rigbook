@@ -1273,8 +1273,20 @@
     margin: 0 auto;
   }
 
+  :global(main.export-mode) {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
   :global(main.export-mode) .page-content {
     max-width: 100%;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
 
   header {
