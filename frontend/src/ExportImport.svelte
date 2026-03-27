@@ -542,10 +542,16 @@
             {commentTemplate.map(e => `${e.label}: …`).join(` ${commentSeparator.trim()} `)}{ commentTemplate.length > 0 ? ` ${commentSeparator.trim()} ` : "" }comment
           </span>
           {#if currentPreview && currentPreview.template_matches !== undefined}
-            <span class="template-match-count">
-              {currentPreview.template_matches} of {currentPreview.contacts ? currentPreview.contacts.length : 0} {activeTab === "export" ? "comments modified" : "comments stripped"}
-            </span>
+            {#if currentPreview.template_matches > 0}
+              <span class="template-match-count">
+                {currentPreview.template_matches} of {currentPreview.contacts ? currentPreview.contacts.length : 0} {activeTab === "export" ? "comments modified" : "comments stripped"}
+              </span>
+            {:else if currentPreview.contacts && currentPreview.contacts.length > 0}
+              <span class="template-no-match">No matches — comments {activeTab === "export" ? "exported" : "imported"} as-is. Check that the separator matches the comment format.</span>
+            {/if}
           {/if}
+        {:else if currentPreview && currentPreview.contacts && currentPreview.contacts.length > 0}
+          <span class="template-no-match">No template configured — comments {activeTab === "export" ? "exported" : "imported"} as-is.</span>
         {/if}
       </div>
 
@@ -1505,6 +1511,14 @@
     font-size: 0.75rem;
     color: var(--accent);
     font-weight: bold;
+    margin-top: 0.25rem;
+  }
+
+  .template-no-match {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-style: italic;
     margin-top: 0.25rem;
   }
 </style>
