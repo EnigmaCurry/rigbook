@@ -248,6 +248,12 @@
     window.removeEventListener("mouseup", stopResize);
   }
 
+  let expandedRow = null;
+
+  function toggleRow(index) {
+    expandedRow = expandedRow === index ? null : index;
+  }
+
   function renderComment(c, template, separator) {
     if (!template.length) return c.comments || c.notes || "";
     const fieldMap = {
@@ -495,8 +501,8 @@
               </tr>
             </thead>
             <tbody>
-              {#each currentPreview.contacts as c}
-                <tr>
+              {#each currentPreview.contacts as c, i}
+                <tr class="clickable" class:expanded={expandedRow === i} on:click={() => toggleRow(i)}>
                   <td>{formatTimestamp(c.timestamp)}</td>
                   <td class="call">{c.call}</td>
                   <td class="freq-cell">{formatFreq(c.freq)} {#if freqToBand(c.freq)}<span class="band-tag" style="background: {bandColor(freqToBand(c.freq))}; color: {bandTextColor(freqToBand(c.freq))}">{freqToBand(c.freq)}</span>{/if}</td>
@@ -514,6 +520,33 @@
                   <td class="truncate">{c.notes || ""}</td>
                   <td class="truncate">{activeTab === "export" ? renderComment(c, commentTemplate, commentSeparator) : (c.comments || "")}</td>
                 </tr>
+                {#if expandedRow === i}
+                  <tr class="detail-row">
+                    <td colspan="16">
+                      <div class="detail-grid">
+                        {#if c.timestamp}<div class="detail-field"><span class="detail-label">UTC</span> {formatTimestamp(c.timestamp)}</div>{/if}
+                        {#if c.call}<div class="detail-field"><span class="detail-label">Call</span> {c.call}</div>{/if}
+                        {#if c.freq}<div class="detail-field"><span class="detail-label">Freq</span> {formatFreq(c.freq)}{#if freqToBand(c.freq)} ({freqToBand(c.freq)}){/if}</div>{/if}
+                        {#if c.mode}<div class="detail-field"><span class="detail-label">Mode</span> {c.mode}</div>{/if}
+                        {#if c.rst_sent}<div class="detail-field"><span class="detail-label">RST Sent</span> {c.rst_sent}</div>{/if}
+                        {#if c.rst_recv}<div class="detail-field"><span class="detail-label">RST Recv</span> {c.rst_recv}</div>{/if}
+                        {#if c.name}<div class="detail-field"><span class="detail-label">Name</span> {c.name}</div>{/if}
+                        {#if c.pota_park}<div class="detail-field"><span class="detail-label">POTA</span> {c.pota_park}</div>{/if}
+                        {#if c.grid}<div class="detail-field"><span class="detail-label">Grid</span> {c.grid}</div>{/if}
+                        {#if c.qth}<div class="detail-field"><span class="detail-label">QTH</span> {c.qth}</div>{/if}
+                        {#if c.state}<div class="detail-field"><span class="detail-label">State</span> {c.state}</div>{/if}
+                        {#if c.country}<div class="detail-field"><span class="detail-label">Country</span> {c.country}</div>{/if}
+                        {#if c.skcc}<div class="detail-field"><span class="detail-label">SKCC</span> {c.skcc}{#if c.skcc_exch} (validated){/if}</div>{/if}
+                        {#if c.notes}<div class="detail-field detail-full"><span class="detail-label">Notes</span> {c.notes}</div>{/if}
+                        {#if activeTab === "export"}
+                          {#if renderComment(c, commentTemplate, commentSeparator)}<div class="detail-field detail-full"><span class="detail-label">Comments</span> {renderComment(c, commentTemplate, commentSeparator)}</div>{/if}
+                        {:else}
+                          {#if c.comments}<div class="detail-field detail-full"><span class="detail-label">Comments</span> {c.comments}</div>{/if}
+                        {/if}
+                      </div>
+                    </td>
+                  </tr>
+                {/if}
               {/each}
             </tbody>
           </table>
@@ -830,6 +863,51 @@
 
   .preview-table .col-compact { width: 5rem; }
   .preview-table .col-flex { width: 8rem; }
+
+  .preview-table .clickable {
+    cursor: pointer;
+  }
+
+  .preview-table .clickable:hover td {
+    background: var(--bg-header, rgba(255,255,255,0.03));
+  }
+
+  .preview-table .expanded td {
+    background: var(--bg-header, rgba(255,255,255,0.03));
+  }
+
+  .detail-row td {
+    padding: 0 !important;
+    border-bottom: 1px solid var(--border, #555) !important;
+    white-space: normal !important;
+    overflow: visible !important;
+  }
+
+  .detail-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 1.2rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .detail-field {
+    white-space: nowrap;
+  }
+
+  .detail-field.detail-full {
+    width: 100%;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .detail-label {
+    color: var(--accent);
+    font-weight: bold;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    margin-right: 0.3rem;
+  }
 
   .preview-table .truncate {
     overflow: hidden;
