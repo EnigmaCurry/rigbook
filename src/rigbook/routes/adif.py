@@ -637,13 +637,14 @@ async def _classify_import_records(
     for record in records:
         data = adif_record_to_contact_dict(record)
         data["_original_comment"] = data.get("comments")
+        data["_comment_stripped"] = False
         if data.get("comments") and template:
             original = data["comments"]
             data["comments"] = strip_comment_prefix(
                 data["comments"], record, template, separator
             )
             if data["comments"] != original:
-                template_matches += 1
+                data["_comment_stripped"] = True
             if not data["comments"]:
                 del data["comments"]
         if not data.get("call"):
@@ -685,6 +686,8 @@ async def _classify_import_records(
         if is_dup:
             duplicates += 1
         else:
+            if data.get("_comment_stripped"):
+                template_matches += 1
             new_records.append((data, record))
     return new_records, duplicates, skipped, template_matches
 
