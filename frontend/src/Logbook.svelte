@@ -1,5 +1,5 @@
 <script>
-  import { onMount, createEventDispatcher } from "svelte";
+  import { onMount, tick, createEventDispatcher } from "svelte";
   import Autocomplete from "./Autocomplete.svelte";
   import GridMap from "./GridMap.svelte";
   import ParkDetail from "./ParkDetail.svelte";
@@ -265,6 +265,50 @@
     window.removeEventListener("mouseup", stopColResize);
   }
 
+  let columnsAutoSized = false;
+
+  async function autoSizeColumns() {
+    if (columnsAutoSized) return;
+    // Check if any columns still need default widths
+    const needsAuto = columns.some(col => !columnWidths[col.key]);
+    if (!needsAuto) { columnsAutoSized = true; return; }
+    if (!tableWrapEl) return;
+    const table = tableWrapEl.querySelector("table");
+    if (!table) return;
+
+    // Temporarily switch to auto layout to measure natural widths
+    table.style.tableLayout = "auto";
+    // Force reflow
+    await tick();
+    // Small delay to ensure browser has reflowed
+    await new Promise(r => requestAnimationFrame(r));
+
+    const ths = table.querySelectorAll("thead th");
+    const measured = {};
+    ths.forEach((th, i) => {
+      if (i < columns.length) {
+        measured[columns[i].key] = th.offsetWidth;
+      }
+    });
+
+    // Switch back to fixed
+    table.style.tableLayout = "fixed";
+
+    // Apply measured widths only for columns without saved widths
+    ths.forEach((th, i) => {
+      if (i < columns.length) {
+        const key = columns[i].key;
+        if (columnWidths[key]) {
+          th.style.width = columnWidths[key];
+        } else if (measured[key]) {
+          th.style.width = measured[key] + "px";
+        }
+      }
+    });
+
+    columnsAutoSized = true;
+  }
+
   function toggleSort(key) {
     if (sortCol === key) {
       sortAsc = !sortAsc;
@@ -315,6 +359,8 @@
       const res = await fetch("/api/contacts/");
       if (res.ok) {
         contacts = await res.json();
+        await tick();
+        autoSizeColumns();
       }
     } catch {}
   }
@@ -1117,7 +1163,7 @@
         <thead>
           <tr>
             {#each columns as col (col.key)}
-              <th class:drag-over={dragOverCol === col.key && dragCol !== col.key} class:col-flex={flexColumns.has(col.key)} on:dragover={e => onColDragOver(e, col.key)} on:drop={e => onColDrop(e, col.key)} style={columnWidths[col.key] ? `width: ${columnWidths[col.key]}` : ""}>
+              <th class:drag-over={dragOverCol === col.key && dragCol !== col.key} on:dragover={e => onColDragOver(e, col.key)} on:drop={e => onColDrop(e, col.key)} style={columnWidths[col.key] ? `width: ${columnWidths[col.key]}` : ""}>
                 <span class="col-label" draggable="true" on:dragstart={e => onColDragStart(e, col.key)} on:dragend={onColDragEnd} on:click={() => toggleSort(col.key)}>{col.label}{#if sortCol === col.key}{sortAsc ? " ▲" : " ▼"}{/if}</span><span class="resize-handle" on:mousedown={e => startColResize(e, col.key)}></span>
               </th>
             {/each}
@@ -1534,6 +1580,7 @@
     border-collapse: separate;
     border-spacing: 0;
     font-size: 0.85rem;
+    table-layout: fixed;
   }
 
   th {
@@ -1547,11 +1594,6 @@
     background: var(--bg);
     z-index: 1;
     overflow: hidden;
-    width: 1px;
-  }
-
-  th.col-flex {
-    width: auto;
   }
 
   .col-label {
