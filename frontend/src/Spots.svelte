@@ -545,12 +545,6 @@
     lockedSpot = spot;
     selectedSpotter = null;
     drawTriangleForSpot(spot);
-  }
-
-  function onSpotDblClick(spot) {
-    lockedSpot = spot;
-    selectedSpotter = null;
-    drawTriangleForSpot(spot);
     fitMapToSpot(spot);
   }
 
@@ -822,8 +816,7 @@
               class:spot-locked={lockedSpot && spotKey(lockedSpot) === spotKey(spot)}
               on:mouseenter={() => onSpotHover(spot)}
               on:mouseleave={onSpotLeave}
-              on:click|stopPropagation={() => onSpotClick(spot)}
-              on:dblclick|stopPropagation={() => onSpotDblClick(spot)}>
+              on:click|stopPropagation={() => onSpotClick(spot)}>
             <td class="mono">{formatTime(spot)}</td>
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
