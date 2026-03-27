@@ -324,10 +324,16 @@
   function toggleMap() {
     showMap = !showMap;
     storageSet("spotsMapEnabled", String(showMap));
-    if (showMap && myGrid && !leafletMap) {
-      tick().then(() => { initMap(); updateMap(); });
+    if (showMap) {
+      const maxH = Math.floor(document.documentElement.clientHeight * 0.5);
+      if (mapHeight > maxH) {
+        mapHeight = maxH;
+        storageSet("spotsMapHeight", String(mapHeight));
+      }
+      if (myGrid && !leafletMap) tick().then(() => { initMap(); updateMap(); });
+    } else {
+      destroyMap();
     }
-    if (!showMap) { destroyMap(); }
   }
 
   function onDragStart(e) {

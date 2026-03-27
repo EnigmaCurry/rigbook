@@ -366,10 +366,16 @@
   function toggleMap() {
     showMap = !showMap;
     storageSet("parksMapEnabled", String(showMap));
-    if (showMap && myParks.length > 0 && !leafletMap) {
-      tick().then(() => renderMap());
+    if (showMap) {
+      const maxH = Math.floor(document.documentElement.clientHeight * 0.5);
+      if (mapHeight > maxH) {
+        mapHeight = maxH;
+        storageSet("parksMapHeight", String(mapHeight));
+      }
+      if (myParks.length > 0 && !leafletMap) tick().then(() => renderMap());
+    } else {
+      destroyMap();
     }
-    if (!showMap) destroyMap();
   }
 
   function onDragStart(e) {
