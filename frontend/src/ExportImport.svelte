@@ -541,6 +541,11 @@
           <span class="preview-example">
             {commentTemplate.map(e => `${e.label}: …`).join(` ${commentSeparator.trim()} `)}{ commentTemplate.length > 0 ? ` ${commentSeparator.trim()} ` : "" }comment
           </span>
+          {#if currentPreview && currentPreview.template_matches !== undefined}
+            <span class="template-match-count">
+              {currentPreview.template_matches} of {currentPreview.contacts ? currentPreview.contacts.length : 0} {activeTab === "export" ? "comments modified" : "comments stripped"}
+            </span>
+          {/if}
         {/if}
       </div>
 
@@ -1493,5 +1498,13 @@
     color: var(--text-muted);
     font-style: italic;
     margin-top: 0.5rem;
+  }
+
+  .template-match-count {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--accent);
+    font-weight: bold;
+    margin-top: 0.25rem;
   }
 </style>

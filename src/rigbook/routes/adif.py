@@ -306,6 +306,11 @@ async def preview_adif(
     comment_template, comment_separator = await _fetch_comment_settings(session)
 
     previews = []
+    template_matches = 0
+    field_map_keys = {
+        "call", "freq", "mode", "rst_sent", "rst_recv", "name",
+        "qth", "state", "country", "grid", "pota_park", "skcc",
+    }
     for c in contacts:
         data = ContactResponse.model_validate(c).model_dump()
         adif_rec = contact_to_adif_record(
@@ -315,6 +320,12 @@ async def preview_adif(
         )
         data["adif_line"] = record_to_adif_line(adif_rec)
         previews.append(data)
+        if comment_template:
+            for entry in comment_template:
+                f = entry.get("field")
+                if f in field_map_keys and getattr(c, f, None):
+                    template_matches += 1
+                    break
 
     header = {
         "ADIF_VER": "3.1.4",
@@ -327,6 +338,7 @@ async def preview_adif(
         "total": total,
         "included": included,
         "excluded": total - included,
+        "template_matches": template_matches,
         "header": header,
         "header_adif": record_to_adif_line(header).replace("<eor>", "<eoh>"),
     }
@@ -502,12 +514,16 @@ async def _classify_import_records(
     new_records = []
     skipped = 0
     duplicates = 0
+    template_matches = 0
     for record in records:
         data = adif_record_to_contact_dict(record)
         if data.get("comments") and template:
+            original = data["comments"]
             data["comments"] = strip_comment_prefix(
                 data["comments"], record, template, separator
             )
+            if data["comments"] != original:
+                template_matches += 1
             if not data["comments"]:
                 del data["comments"]
         if not data.get("call"):
@@ -550,7 +566,7 @@ async def _classify_import_records(
             duplicates += 1
         else:
             new_records.append((data, record))
-    return new_records, duplicates, skipped
+    return new_records, duplicates, skipped, template_matches
 
 
 def _extract_raw_header(content: str) -> str:
@@ -667,8 +683,8 @@ async def preview_import_adif(
 ):
     records, file_header, raw_header = await _parse_adif_upload(file)
     template, separator = await _fetch_comment_settings(session)
-    new_records, duplicate_count, skipped_count = await _classify_import_records(
-        records, session, template, separator
+    new_records, duplicate_count, skipped_count, tpl_matches = (
+        await _classify_import_records(records, session, template, separator)
     )
 
     contacts = []
@@ -707,6 +723,7 @@ async def preview_import_adif(
         "new_count": len(new_records),
         "duplicate_count": duplicate_count,
         "skipped_count": skipped_count,
+        "template_matches": tpl_matches,
         "header": file_header,
         "header_raw": raw_header,
     }
@@ -722,7 +739,7 @@ async def suggest_template(file: UploadFile):
 async def import_adif(file: UploadFile, session: AsyncSession = Depends(get_session)):
     records, _header, _raw = await _parse_adif_upload(file)
     template, separator = await _fetch_comment_settings(session)
-    new_records, duplicates, skipped = await _classify_import_records(
+    new_records, duplicates, skipped, _tpl = await _classify_import_records(
         records, session, template, separator
     )
 
