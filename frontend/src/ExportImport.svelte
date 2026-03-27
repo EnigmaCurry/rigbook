@@ -4,7 +4,7 @@
   import { bandColor, bandTextColor } from "./bandColors.js";
 
   // Tab state
-  let activeTab = "export";
+  let activeTab = "import";
   let importing = false;
   let message = "";
   let messageType = "";
@@ -410,8 +410,8 @@
 
 <div class="export-import">
   <div class="tab-bar">
-    <button class="tab" class:active={activeTab === "export"} on:click={() => activeTab = "export"}>Export</button>
     <button class="tab" class:active={activeTab === "import"} on:click={() => activeTab = "import"}>Import</button>
+    <button class="tab" class:active={activeTab === "export"} on:click={() => activeTab = "export"}>Export</button>
   </div>
 
   <div class="main-layout">
