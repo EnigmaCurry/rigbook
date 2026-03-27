@@ -483,11 +483,13 @@
     addExpandControl(leafletMap, mapEl.parentElement);
     mapResizeObserver = new ResizeObserver(() => { leafletMap?.invalidateSize(); });
     mapResizeObserver.observe(mapEl);
-    setTimeout(() => {
-      if (activePark) showActivePark(activePark);
-      else if (myParksSorted.length > 0) selectPark(myParksSorted[0].reference);
-      renderingMap = false;
-    }, 0);
+    leafletMap.whenReady(() => {
+      setTimeout(() => {
+        if (activePark) showActivePark(activePark);
+        else if (myParksSorted.length > 0) selectPark(myParksSorted[0].reference);
+        renderingMap = false;
+      }, 100);
+    });
   }
 
   export async function refreshParks() {
