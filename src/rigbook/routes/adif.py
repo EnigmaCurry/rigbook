@@ -416,8 +416,16 @@ async def _fetch_comment_settings(session: AsyncSession):
 
 def _validate_import_record(
     record: dict, template_fields: list[dict], separator: str
-) -> list[str]:
-    """Check for mismatches between comment-parsed values and normalized fields."""
+) -> list[dict]:
+    """Check for mismatches between comment-parsed values and normalized fields.
+
+    Returns list of warning dicts with keys:
+    - field: contact field name (e.g. "skcc")
+    - label: display label (e.g. "SKCC")
+    - comment_val: value parsed from comment
+    - field_val: value from normalized ADIF field (may be empty)
+    - message: human-readable warning text
+    """
     comment = record.get("COMMENT", "")
     if not comment or not template_fields:
         return []
@@ -428,12 +436,11 @@ def _validate_import_record(
         return []
 
     parts = comment.split(padded)
-    # Parse "Label: value" segments from the comment
     comment_values = {}
     for part in parts:
         if ": " in part:
-            label, _, val = part.partition(": ")
-            comment_values[label.strip()] = val.strip()
+            lbl, _, val = part.partition(": ")
+            comment_values[lbl.strip()] = val.strip()
 
     field_to_adif = {
         "call": "CALL",
@@ -460,13 +467,23 @@ def _validate_import_record(
         adif_key = field_to_adif.get(field, "")
         adif_val = record.get(adif_key, "") if adif_key else ""
         if adif_val and comment_val != adif_val:
-            warnings.append(
-                f"{label}: comment has '{comment_val}' but field has '{adif_val}'"
-            )
+            warnings.append({
+                "field": field,
+                "label": label,
+                "comment_val": comment_val,
+                "field_val": adif_val,
+                "message": f"{label}: comment has '{comment_val}'"
+                f" but field has '{adif_val}'",
+            })
         elif not adif_val and comment_val:
-            warnings.append(
-                f"{label}: '{comment_val}' found in comment but no normalized field"
-            )
+            warnings.append({
+                "field": field,
+                "label": label,
+                "comment_val": comment_val,
+                "field_val": "",
+                "message": f"{label}: '{comment_val}' found in comment"
+                " but no normalized field",
+            })
     return warnings
 
 
@@ -609,9 +626,46 @@ async def import_adif(file: UploadFile, session: AsyncSession = Depends(get_sess
         records, session, template, separator
     )
 
-    for data, _raw in new_records:
+    for data, _raw_rec in new_records:
         contact = Contact(**data)
         session.add(contact)
 
     await session.commit()
     return {"imported": len(new_records), "skipped": skipped, "duplicates": duplicates}
+
+
+IMPORT_FIELDS = {
+    "call", "freq", "mode", "rst_sent", "rst_recv", "name", "qth",
+    "state", "country", "grid", "pota_park", "skcc", "skcc_exch",
+    "comments", "notes",
+}
+
+
+@router.post("/import/confirmed")
+async def import_confirmed(
+    contacts: list[dict], session: AsyncSession = Depends(get_session)
+):
+    """Import pre-validated contacts with user corrections applied."""
+    imported = 0
+    for c in contacts:
+        data = {}
+        for key in IMPORT_FIELDS:
+            if key in c and c[key] is not None and c[key] != "":
+                data[key] = c[key]
+        if not data.get("call"):
+            continue
+        if c.get("timestamp"):
+            try:
+                data["timestamp"] = datetime.fromisoformat(
+                    c["timestamp"].replace("Z", "+00:00")
+                    if isinstance(c["timestamp"], str)
+                    else c["timestamp"]
+                )
+            except (ValueError, TypeError):
+                pass
+        contact = Contact(**data)
+        session.add(contact)
+        imported += 1
+
+    await session.commit()
+    return {"imported": imported}

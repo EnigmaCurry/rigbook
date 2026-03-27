@@ -160,6 +160,16 @@
   // Unified preview based on active tab
   $: currentPreview = activeTab === "export" ? exportPreview : importPreview;
   $: warningCount = importPreview ? (importPreview.contacts || []).filter(c => c.warnings && c.warnings.length > 0).length : 0;
+
+  function applyWarningFix(contact, warning, useValue) {
+    // Update the contact's field with the chosen value
+    const field = warning.field;
+    contact[field] = useValue;
+    // Re-validate client-side: remove this warning
+    contact.warnings = contact.warnings.filter(w => w !== warning);
+    // Trigger reactivity
+    if (importPreview) importPreview = { ...importPreview };
+  }
   $: displayContacts = currentPreview && currentPreview.contacts
     ? (activeTab === "import" && importFilter === "warnings"
       ? currentPreview.contacts.filter(c => c.warnings && c.warnings.length > 0)
@@ -329,15 +339,14 @@
   }
 
   async function executeImport() {
-    if (!importFile) return;
+    if (!importPreview || !importPreview.contacts) return;
     importing = true;
     message = "";
     try {
-      const formData = new FormData();
-      formData.append("file", importFile);
-      const res = await fetch("/api/adif/import", {
+      const res = await fetch("/api/adif/import/confirmed", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(importPreview.contacts),
       });
       if (res.ok) {
         const data = await res.json();
@@ -582,7 +591,27 @@
                       {#if c.warnings && c.warnings.length > 0}
                         <div class="warning-list">
                           {#each c.warnings as w}
-                            <div class="warning-item">⚠ {w}</div>
+                            <div class="warning-item">
+                              <div class="warning-message">⚠ {w.message}</div>
+                              <div class="warning-actions">
+                                <span class="warning-label">Use:</span>
+                                <button class="warning-fix-btn" on:click|stopPropagation={() => applyWarningFix(c, w, w.comment_val)} title="Use value from comment">
+                                  "{w.comment_val}" <span class="fix-source">(comment)</span>
+                                </button>
+                                {#if w.field_val}
+                                  <button class="warning-fix-btn" on:click|stopPropagation={() => applyWarningFix(c, w, w.field_val)} title="Use value from field">
+                                    "{w.field_val}" <span class="fix-source">(field)</span>
+                                  </button>
+                                {/if}
+                                <input
+                                  type="text"
+                                  class="warning-custom-input"
+                                  placeholder="custom…"
+                                  on:click|stopPropagation
+                                  on:keydown|stopPropagation={e => { if (e.key === "Enter" && e.target.value.trim()) { applyWarningFix(c, w, e.target.value.trim()); } }}
+                                />
+                              </div>
+                            </div>
                           {/each}
                         </div>
                       {/if}
@@ -920,9 +949,63 @@
   }
 
   .warning-item {
-    color: #ea0;
     font-size: 0.8rem;
-    padding: 0.15rem 0;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid var(--border-dim, rgba(255,255,255,0.05));
+  }
+
+  .warning-item:last-child {
+    border-bottom: none;
+  }
+
+  .warning-message {
+    color: #ea0;
+    margin-bottom: 0.3rem;
+  }
+
+  .warning-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+
+  .warning-label {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+  }
+
+  .warning-fix-btn {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border, #555);
+    padding: 0.15rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: normal;
+    border-radius: 3px;
+    cursor: pointer;
+    margin: 0;
+  }
+
+  .warning-fix-btn:hover {
+    border-color: var(--accent);
+    background: var(--bg);
+  }
+
+  .fix-source {
+    color: var(--text-muted);
+    font-size: 0.65rem;
+  }
+
+  .warning-custom-input {
+    background: var(--bg-input, var(--bg));
+    color: var(--text);
+    border: 1px solid var(--border, #555);
+    padding: 0.15rem 0.4rem;
+    font-family: inherit;
+    font-size: 0.75rem;
+    border-radius: 3px;
+    width: 80px;
   }
 
   .action-warning {
