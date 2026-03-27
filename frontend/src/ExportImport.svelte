@@ -424,12 +424,12 @@
           <table class="preview-table">
             <thead>
               <tr>
-                <th>Timestamp</th>
-                <th>Callsign</th>
-                <th>Freq</th>
-                <th>Mode</th>
-                <th>Country</th>
-                <th>Comments</th>
+                <th class="col-ts">Timestamp</th>
+                <th class="col-call">Call</th>
+                <th class="col-freq">Freq</th>
+                <th class="col-mode">Mode</th>
+                <th class="col-country">Country</th>
+                <th class="col-comments">Comments</th>
               </tr>
             </thead>
             <tbody>
@@ -623,6 +623,7 @@
     width: 100%;
     border-collapse: collapse;
     font-size: 0.8rem;
+    table-layout: fixed;
   }
 
   .preview-table th {
@@ -641,6 +642,8 @@
     padding: 0.3rem 0.5rem;
     border-bottom: 1px solid var(--border-dim, rgba(255,255,255,0.05));
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .preview-table .call {
@@ -648,8 +651,14 @@
     color: var(--accent);
   }
 
+  .preview-table .col-ts { width: 11rem; }
+  .preview-table .col-call { width: 6rem; }
+  .preview-table .col-freq { width: 9rem; }
+  .preview-table .col-mode { width: 3.5rem; }
+  .preview-table .col-country { width: 6rem; }
+  .preview-table .col-comments { width: auto; }
+
   .preview-table .truncate {
-    max-width: 200px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
