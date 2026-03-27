@@ -445,7 +445,7 @@
       <button on:click={exportAdif}>Download ADIF{preview ? ` (${preview.included})` : ""}</button>
 
       <h2>Import</h2>
-      <p>Import an ADIF file. Duplicates are skipped.</p>
+      <p>Import contacts from an ADIF (.adi) file. Duplicates (same callsign + timestamp) are automatically skipped.</p>
       <label class="file-label">
         <input type="file" accept=".adi,.adif,.ADI,.ADIF" on:change={importAdif} disabled={importing} />
         {importing ? "Importing..." : "Choose ADIF File"}
@@ -504,6 +504,7 @@
   .export-form {
     flex: 0 0 auto;
     min-width: 0;
+    max-width: 420px;
   }
 
   .export-preview {
