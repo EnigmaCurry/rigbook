@@ -341,6 +341,15 @@
     await fetchImportPreview();
   }
 
+  function cancelImport() {
+    importFile = null;
+    importFileName = "";
+    importPreview = null;
+    importFilter = "all";
+    message = "";
+    expandedRow = null;
+  }
+
   async function executeImport() {
     if (!importPreview || !importPreview.contacts) return;
     importing = true;
@@ -675,6 +684,9 @@
               {#if warningCount > 0}<span class="action-error">— {warningCount} error{warningCount !== 1 ? "s" : ""} must be resolved</span>{/if}
             {/if}
           </span>
+          {#if importPreview}
+            <button class="action-btn cancel-btn" on:click={cancelImport}>Cancel</button>
+          {/if}
           <button class="action-btn" on:click={executeImport} disabled={!importPreview || importPreview.new_count === 0 || importing || warningCount > 0}>
             {importing ? "Importing..." : "Import"}
           </button>
@@ -883,6 +895,18 @@
   .action-btn:disabled {
     opacity: 0.4;
     cursor: default;
+  }
+
+  .action-btn.cancel-btn {
+    background: none;
+    color: var(--text-muted);
+    border: 1px solid var(--border, #555);
+  }
+
+  .action-btn.cancel-btn:hover {
+    color: var(--text);
+    border-color: var(--text-muted);
+    background: none;
   }
 
   button {
