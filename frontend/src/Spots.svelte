@@ -704,6 +704,16 @@
     }
   }
 
+  function scrollToSpot(spot) {
+    if (!tableWrapEl) return;
+    const idx = sortedSpots.findIndex(s => spotKey(s) === spotKey(spot));
+    if (idx < 0) return;
+    tick().then(() => {
+      const row = tableWrapEl.querySelector(`tbody tr:nth-child(${idx + 1})`);
+      if (row) row.scrollIntoView({ block: "nearest" });
+    });
+  }
+
   function onMapHomeClick(call) {
     const spot = spots.find(s => s.callsign === call);
     if (!spot) return;
@@ -715,6 +725,7 @@
     selectedSpotter = null;
     drawTriangleForSpot(spot);
     filterMarkersForSpot(spot);
+    scrollToSpot(spot);
   }
 
   function onMapSpotterClick(call) {
@@ -726,6 +737,9 @@
     hoveredSpot = null;
     selectedSpotter = call;
     drawTrianglesForSpotter(call);
+    // Scroll to first spot for this spotter
+    const spot = sortedSpots.find(s => s.closest_call === call);
+    if (spot) scrollToSpot(spot);
   }
 
   async function initMap() {
@@ -880,6 +894,11 @@
     if (typeof va === "string") return sortDir * va.localeCompare(vb);
     return sortDir * (va - vb);
   });
+
+  // Keep locked/selected spot in view as data refreshes
+  $: if (sortedSpots && lockedSpot) {
+    scrollToSpot(lockedSpot);
+  }
 </script>
 
 <div class="spots-page">
