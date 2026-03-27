@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 import json
 import re
+from importlib.metadata import version as pkg_version
 from io import StringIO
 from typing import Optional
 
@@ -318,7 +319,7 @@ async def preview_adif(
     header = {
         "ADIF_VER": "3.1.4",
         "PROGRAMID": "Rigbook",
-        "PROGRAMVERSION": "0.1.0",
+        "PROGRAMVERSION": pkg_version("rigbook"),
     }
 
     return {
@@ -355,7 +356,7 @@ async def export_adif(
         "HEADER": {
             "ADIF_VER": "3.1.4",
             "PROGRAMID": "Rigbook",
-            "PROGRAMVERSION": "0.1.0",
+            "PROGRAMVERSION": pkg_version("rigbook"),
         },
         "RECORDS": [
             contact_to_adif_record(
