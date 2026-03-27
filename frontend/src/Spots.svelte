@@ -3,16 +3,42 @@
   import { bandColor, bandTextColor } from "./bandColors.js";
   import { QrzLookup, formatFreq, locationStr } from "./qrzLookup.js";
   import { getMapTileConfig } from "./mapTiles.js";
+  import { storageGet, storageSet } from "./storage.js";
+  import ParkDetail from "./ParkDetail.svelte";
   import L from "leaflet";
   import "leaflet/dist/leaflet.css";
 
   const dispatch = createEventDispatcher();
   export let potaEnabled = true;
 
+  let modalParkRef = null;
+  let modalParkDetail = null;
+  let modalParkLoading = false;
+
+  async function openParkModal(ref) {
+    modalParkRef = ref;
+    modalParkDetail = null;
+    modalParkLoading = true;
+    try {
+      const res = await fetch(`/api/pota/park/${encodeURIComponent(ref)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (!data.error) modalParkDetail = data;
+      }
+    } catch {}
+    modalParkLoading = false;
+  }
+
+  function closeParkModal() {
+    modalParkRef = null;
+    modalParkDetail = null;
+    modalParkLoading = false;
+  }
+
   let spots = [];
   let myGrid = "";
-  let showMap = localStorage.getItem("spotsMapEnabled") !== "false";
-  let mapHeight = parseInt(localStorage.getItem("spotsMapHeight")) || 350;
+  let showMap = storageGet("spotsMapEnabled") !== "false";
+  let mapHeight = parseInt(storageGet("spotsMapHeight")) || 350;
   const MIN_MAP_HEIGHT = 60;
   let status = { rbn: { connected: false, enabled: false }, hamalert: { connected: false, enabled: false }, callsigns: 0, entries: 0, total_spots: 0, avg_spots_per_callsign: 0 };
   let bands = {};
@@ -150,8 +176,114 @@
   }
   let qrzConfigured = true;
   const qrz = new QrzLookup(() => { spots = spots; });
-  let sortCol = "distance";
-  let sortDir = 1; // 1 = ascending, -1 = descending
+  let sortCol = storageGet("spotsSortCol") || "distance";
+  let sortDir = storageGet("spotsSortDir") === "-1" ? -1 : 1;
+
+  const defaultSpotColumns = ["time", "callsign", "skcc", "frequency", "band", "mode", "spotters", "snr", "wpm", "location", "source", "distance", "info"];
+  const spotColumnDefs = {
+    time:      { key: "time",      label: "Time" },
+    callsign:  { key: "callsign",  label: "Callsign" },
+    skcc:      { key: "skcc",      label: "SKCC" },
+    frequency: { key: "frequency", label: "Freq (MHz)" },
+    band:      { key: "band",      label: "Band" },
+    mode:      { key: "mode",      label: "Mode" },
+    spotters:  { key: "spotters",  label: "Spotters" },
+    snr:       { key: "snr",       label: "Best SNR" },
+    wpm:       { key: "wpm",       label: "WPM" },
+    location:  { key: "location",   label: "Location" },
+    source:    { key: "source",    label: "Source" },
+    distance:  { key: "distance",  label: "Closest Spot" },
+    info:      { key: "info",      label: "Info" },
+  };
+
+  function loadSpotColumnOrder() {
+    try {
+      const saved = JSON.parse(storageGet("spotsColumnOrder"));
+      if (Array.isArray(saved) && saved.every(k => spotColumnDefs[k])) {
+        const missing = defaultSpotColumns.filter(k => !saved.includes(k));
+        const merged = [...saved.filter(k => spotColumnDefs[k]), ...missing];
+        if (merged.length === defaultSpotColumns.length) return merged;
+      }
+    } catch {}
+    return [...defaultSpotColumns];
+  }
+
+  let spotColumnOrder = loadSpotColumnOrder();
+  $: spotColumns = spotColumnOrder.filter(k => k !== "skcc" || filterMode === "CW").map(k => spotColumnDefs[k]);
+
+  let spotDragCol = null;
+  let spotDragOverCol = null;
+
+  function onSpotColDragStart(e, key) {
+    spotDragCol = key;
+    e.dataTransfer.effectAllowed = "move";
+  }
+  function onSpotColDragOver(e, key) {
+    e.preventDefault();
+    spotDragOverCol = key;
+  }
+  function onSpotColDrop(e, key) {
+    e.preventDefault();
+    if (spotDragCol && spotDragCol !== key) {
+      const from = spotColumnOrder.indexOf(spotDragCol);
+      const to = spotColumnOrder.indexOf(key);
+      const newOrder = [...spotColumnOrder];
+      newOrder.splice(from, 1);
+      newOrder.splice(to, 0, spotDragCol);
+      spotColumnOrder = newOrder;
+      storageSet("spotsColumnOrder", JSON.stringify(spotColumnOrder));
+    }
+    spotDragCol = null;
+    spotDragOverCol = null;
+  }
+  function onSpotColDragEnd() {
+    spotDragCol = null;
+    spotDragOverCol = null;
+  }
+
+  // Column resize
+  let spotResizeCol = null;
+  let spotResizeColKey = null;
+  let spotResizeStartX = 0;
+  let spotResizeStartW = 0;
+
+  function loadSpotColumnWidths() {
+    try {
+      return JSON.parse(storageGet("spotsColumnWidths")) || {};
+    } catch { return {}; }
+  }
+
+  let spotColumnWidths = loadSpotColumnWidths();
+
+  function startSpotColResize(e, key) {
+    e.preventDefault();
+    e.stopPropagation();
+    const th = e.target.parentElement;
+    spotResizeCol = th;
+    spotResizeColKey = key;
+    spotResizeStartX = e.clientX;
+    spotResizeStartW = th.offsetWidth;
+    window.addEventListener("mousemove", onSpotColResize);
+    window.addEventListener("mouseup", stopSpotColResize);
+  }
+
+  function onSpotColResize(e) {
+    if (!spotResizeCol) return;
+    const diff = e.clientX - spotResizeStartX;
+    const newW = Math.max(30, spotResizeStartW + diff);
+    spotResizeCol.style.width = newW + "px";
+  }
+
+  function stopSpotColResize() {
+    if (spotResizeCol && spotResizeColKey) {
+      spotColumnWidths[spotResizeColKey] = spotResizeCol.style.width;
+      storageSet("spotsColumnWidths", JSON.stringify(spotColumnWidths));
+    }
+    spotResizeCol = null;
+    spotResizeColKey = null;
+    window.removeEventListener("mousemove", onSpotColResize);
+    window.removeEventListener("mouseup", stopSpotColResize);
+  }
 
   function toggleSort(col) {
     if (sortCol === col) {
@@ -160,11 +292,8 @@
       sortCol = col;
       sortDir = 1;
     }
-  }
-
-  function sortIndicator(col) {
-    if (sortCol !== col) return "";
-    return sortDir === 1 ? " \u25B2" : " \u25BC";
+    storageSet("spotsSortCol", sortCol);
+    storageSet("spotsSortDir", String(sortDir));
   }
 
   let statusInterval;
@@ -193,7 +322,7 @@
 
   function toggleMap() {
     showMap = !showMap;
-    localStorage.setItem("spotsMapEnabled", String(showMap));
+    storageSet("spotsMapEnabled", String(showMap));
     if (showMap && myGrid && !leafletMap) {
       tick().then(() => { initMap(); updateMap(); });
     }
@@ -209,7 +338,7 @@
       const newH = startH + (clientY - startY);
       if (newH < MIN_MAP_HEIGHT) {
         showMap = false;
-        localStorage.setItem("spotsMapEnabled", "false");
+        storageSet("spotsMapEnabled", "false");
         destroyMap();
         cleanup();
         return;
@@ -222,7 +351,7 @@
       window.removeEventListener("mouseup", cleanup);
       window.removeEventListener("touchmove", onMove);
       window.removeEventListener("touchend", cleanup);
-      localStorage.setItem("spotsMapHeight", String(mapHeight));
+      storageSet("spotsMapHeight", String(mapHeight));
     }
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", cleanup);
@@ -350,6 +479,7 @@
     statusInterval = setInterval(() => { fetchStatus(); fetchBands(); fetchModes(); fetchWorkedToday(); fetchPotaSpots(); }, 5000);
     spotsInterval = setInterval(fetchSpots, 3000);
     window.addEventListener("keydown", onFullscreenKey);
+    window.addEventListener("keydown", onSpotsKeydown);
     window.addEventListener("resize", onWindowResize);
   });
 
@@ -364,6 +494,7 @@
     qrz.destroy();
     destroyMap();
     window.removeEventListener("keydown", onFullscreenKey);
+    window.removeEventListener("keydown", onSpotsKeydown);
     window.removeEventListener("resize", onWindowResize);
   });
 
@@ -386,6 +517,7 @@
   let hoveredSpot = null;    // spot hovered in table (temporary triangle)
   let lockedSpot = null;     // spot clicked in table (persistent triangle)
   let selectedSpotter = null; // spotter clicked on map (highlights table rows)
+  let tableWrapEl;
   let mapInitialFitDone = false;
   let fullscreenMap = null;
   let fullscreenWrap = null;
@@ -408,8 +540,40 @@
     return { lat, lon };
   }
 
+  /** Shift lon to be within ±180 of baseLon so lines take the short path. */
+  function nearLon(baseLon, lon) {
+    let d = lon - baseLon;
+    if (d > 180) lon -= 360;
+    else if (d < -180) lon += 360;
+    return lon;
+  }
+
+  /** Normalize a [lat, lon] point relative to a base longitude. */
+  function nearLL(baseLon, pt) {
+    return [pt[0], nearLon(baseLon, pt[1])];
+  }
+
   const spotterIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot spotter"></div>', iconSize: [10, 10], iconAnchor: [5, 5] });
-  const homeLocIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot home-loc"></div>', iconSize: [10, 10], iconAnchor: [5, 5] });
+  const spotterSecondaryIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot spotter-secondary"></div>', iconSize: [10, 10], iconAnchor: [5, 5] });
+  function homeLocIcon(spotterCount) {
+    const t = Math.min(spotterCount / 10, 1);
+    // Lerp from dim gold (#886600) to bright yellow (#ffee00)
+    const r = Math.round(0x88 + t * (0xff - 0x88));
+    const g = Math.round(0x66 + t * (0xee - 0x66));
+    const b = Math.round(0x00 + t * (0x00 - 0x00));
+    const bg = `rgb(${r},${g},${b})`;
+    const br = Math.round(0x55 + t * (0x99 - 0x55));
+    const bg2 = Math.round(0x33 + t * (0x77 - 0x33));
+    const border = `rgb(${br},${bg2},0)`;
+    const size = spotterCount > 10 ? 15 : Math.round(10 + (spotterCount / 10) * 5);
+    const half = Math.round(size / 2);
+    return L.divIcon({
+      className: "spot-marker",
+      html: `<div class="spot-marker-dot" style="width:${size-2}px;height:${size-2}px;background:${bg};border:2px solid ${border};border-radius:50%"></div>`,
+      iconSize: [size, size],
+      iconAnchor: [half, half],
+    });
+  }
   const myIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot my-pos"></div>', iconSize: [14, 14], iconAnchor: [7, 7] });
 
   function addExpandControl(map, wrapEl) {
@@ -452,6 +616,45 @@
     if (e.key === "Escape" && fullscreenMap) exitFullscreen();
   }
 
+  function lockedIndex() {
+    if (!lockedSpot) return -1;
+    const k = spotKey(lockedSpot);
+    return sortedSpots.findIndex(s => spotKey(s) === k);
+  }
+
+  function onSpotsKeydown(e) {
+    const tag = e.target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const cur = lockedIndex();
+      const next = cur < sortedSpots.length - 1 ? cur + 1 : cur;
+      selectSpotByIndex(next);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const cur = lockedIndex();
+      const next = cur > 0 ? cur - 1 : 0;
+      selectSpotByIndex(next);
+    } else if (e.key === "Escape" && lockedSpot) {
+      clearAll();
+    } else if (e.key === "Enter" && lockedSpot) {
+      if (!isWorkedToday(lockedSpot)) addQsoWithPota(lockedSpot);
+    }
+  }
+
+  function selectSpotByIndex(idx) {
+    const spot = sortedSpots[idx];
+    if (!spot) return;
+    // Use onSpotClick but prevent it from toggling off if same spot
+    if (lockedSpot && spotKey(lockedSpot) === spotKey(spot)) return;
+    onSpotClick(spot);
+    tick().then(() => {
+      if (!tableWrapEl) return;
+      const row = tableWrapEl.querySelector(`tbody tr:nth-child(${idx + 1})`);
+      if (row) row.scrollIntoView({ block: "center" });
+    });
+  }
+
   function clearLines() {
     for (const line of selectionLines) leafletMap.removeLayer(line);
     selectionLines = [];
@@ -462,6 +665,44 @@
     hoveredSpot = null;
     lockedSpot = null;
     selectedSpotter = null;
+    showAllMarkers();
+  }
+
+  function setMarkerVisible(marker, visible) {
+    const el = marker.getElement?.();
+    if (el) el.style.display = visible ? "" : "none";
+  }
+
+  function filterMarkersForSpot(spot) {
+    if (!leafletMap) return;
+    const coWitnesses = new Set(Object.keys(spot.spotter_grids || {}));
+    for (const [call, marker] of Object.entries(spotterMarkers)) {
+      const visible = coWitnesses.has(call);
+      setMarkerVisible(marker, visible);
+      if (visible) {
+        marker.setIcon(call === spot.closest_call ? spotterIcon : spotterSecondaryIcon);
+      }
+    }
+    for (const [call, marker] of Object.entries(homeMarkers)) {
+      setMarkerVisible(marker, call === spot.callsign);
+    }
+  }
+
+  function globalClosestCalls() {
+    const closest = new Set();
+    for (const s of spots) {
+      if (s.closest_call) closest.add(s.closest_call);
+    }
+    return closest;
+  }
+
+  function showAllMarkers() {
+    const closest = globalClosestCalls();
+    for (const [call, m] of Object.entries(spotterMarkers)) {
+      setMarkerVisible(m, true);
+      m.setIcon(closest.has(call) ? spotterIcon : spotterSecondaryIcon);
+    }
+    for (const m of Object.values(homeMarkers)) setMarkerVisible(m, true);
   }
 
   function spotKey(s) {
@@ -474,27 +715,43 @@
     const myPos = gridToLatLon(myGrid);
     if (!myPos) return;
     const myLL = [myPos.lat, myPos.lon];
+    const baseLon = myLL[1];
 
     const spotterGrid = spot.closest_grid;
     const homeGrid = spotHomeGrid(spot);
     const spotterPos = spotterGrid ? gridToLatLon(spotterGrid) : null;
     const homePos = homeGrid ? gridToLatLon(homeGrid) : null;
 
-    if (spotterPos && homePos) {
-      const spotterLL = [spotterPos.lat, spotterPos.lon];
-      const homeLL = [homePos.lat, homePos.lon];
+    // Normalize all points relative to my QTH longitude
+    const homeLL = homePos ? nearLL(baseLon, [homePos.lat, homePos.lon]) : null;
+    const spotterLL = spotterPos ? nearLL(baseLon, [spotterPos.lat, spotterPos.lon]) : null;
+
+    // Draw dashed cyan lines from secondary spotters first (lower z-order)
+    if (homeLL && spot.spotter_grids) {
+      for (const [call, grid] of Object.entries(spot.spotter_grids)) {
+        if (call === spot.closest_call) continue;
+        const pos = gridToLatLon(grid);
+        if (!pos) continue;
+        selectionLines.push(
+          L.polyline([nearLL(baseLon, [pos.lat, pos.lon]), homeLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "6 4" }).addTo(leafletMap),
+        );
+      }
+    }
+
+    // Primary triangle lines drawn last (higher z-order)
+    if (spotterLL && homeLL) {
       selectionLines.push(
         L.polyline([spotterLL, homeLL], { color: "#00ccff", weight: 2, opacity: 0.6 }).addTo(leafletMap),
         L.polyline([homeLL, myLL], { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
         L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
       );
-    } else if (spotterPos) {
+    } else if (spotterLL) {
       selectionLines.push(
-        L.polyline([myLL, [spotterPos.lat, spotterPos.lon]], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
       );
-    } else if (homePos) {
+    } else if (homeLL) {
       selectionLines.push(
-        L.polyline([myLL, [homePos.lat, homePos.lon]], { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline([myLL, homeLL], { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
       );
     }
   }
@@ -505,20 +762,22 @@
     const myPos = gridToLatLon(myGrid);
     if (!myPos) return;
     const myLL = [myPos.lat, myPos.lon];
+    const baseLon = myLL[1];
     const spotterMarker = spotterMarkers[call];
     if (!spotterMarker) return;
-    const spotterLL = spotterMarker.getLatLng();
+    const rawLL = spotterMarker.getLatLng();
+    const sLL = nearLL(baseLon, [rawLL.lat, rawLL.lng]);
 
     for (const s of spots) {
       const hg = spotHomeGrid(s);
       if (s.closest_call !== call || !hg) continue;
       const homePos = gridToLatLon(hg);
       if (!homePos) continue;
-      const homeLL = [homePos.lat, homePos.lon];
+      const homeLL = nearLL(baseLon, [homePos.lat, homePos.lon]);
       selectionLines.push(
-        L.polyline([spotterLL, homeLL], { color: "#00ccff", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline([sLL, homeLL], { color: "#00ccff", weight: 2, opacity: 0.6 }).addTo(leafletMap),
         L.polyline([homeLL, myLL], { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
-        L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline([myLL, sLL], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
       );
     }
   }
@@ -540,11 +799,47 @@
       lockedSpot = null;
       selectedSpotter = null;
       clearLines();
+      showAllMarkers();
       return;
     }
     lockedSpot = spot;
     selectedSpotter = null;
     drawTriangleForSpot(spot);
+    filterMarkersForSpot(spot);
+    fitMapToSpot(spot);
+  }
+
+  function fitMapToSpot(spot) {
+    if (!leafletMap || !myGrid) return;
+    const myPos = gridToLatLon(myGrid);
+    if (!myPos) return;
+
+    const points = [[myPos.lat, myPos.lon]];
+
+    const spotterGrid = spot.closest_grid;
+    const homeGrid = spotHomeGrid(spot);
+    const spotterPos = spotterGrid ? gridToLatLon(spotterGrid) : null;
+    const homePos = homeGrid ? gridToLatLon(homeGrid) : null;
+
+    const baseLon = myPos.lon;
+    if (spotterPos) points.push(nearLL(baseLon, [spotterPos.lat, spotterPos.lon]));
+    if (homePos) points.push(nearLL(baseLon, [homePos.lat, homePos.lon]));
+
+    if (points.length > 1) {
+      leafletMap.fitBounds(L.latLngBounds(points), { padding: [40, 40], maxZoom: 12 });
+    } else {
+      leafletMap.setView(points[0], 8);
+    }
+  }
+
+  function scrollToSpot(spot) {
+    if (!tableWrapEl) return;
+    const idx = sortedSpots.findIndex(s => spotKey(s) === spotKey(spot));
+    if (idx < 0) return;
+    tick().then(() => {
+      const row = tableWrapEl.querySelector(`tbody tr:nth-child(${idx + 1})`);
+      if (row) row.scrollIntoView({ block: "center" });
+    });
   }
 
   function onMapHomeClick(call) {
@@ -557,6 +852,8 @@
     lockedSpot = spot;
     selectedSpotter = null;
     drawTriangleForSpot(spot);
+    filterMarkersForSpot(spot);
+    scrollToSpot(spot);
   }
 
   function onMapSpotterClick(call) {
@@ -568,12 +865,15 @@
     hoveredSpot = null;
     selectedSpotter = call;
     drawTrianglesForSpotter(call);
+    // Scroll to first spot for this spotter
+    const spot = sortedSpots.find(s => s.closest_call === call);
+    if (spot) scrollToSpot(spot);
   }
 
   async function initMap() {
     await tick();
     if (leafletMap || !mapEl) return;
-    leafletMap = L.map(mapEl, { scrollWheelZoom: true });
+    leafletMap = L.map(mapEl, { scrollWheelZoom: true, worldCopyJump: true });
     const tiles = await getMapTileConfig();
     L.tileLayer(tiles.url, {
       attribution: tiles.attribution,
@@ -589,6 +889,7 @@
     if (!leafletMap || !myGrid) return;
     const myPos = gridToLatLon(myGrid);
     if (!myPos) return;
+    const baseLon = myPos.lon;
 
     // User's home marker
     if (!myMarker) {
@@ -599,11 +900,25 @@
 
     // Collect current spotters and home locations
     const currentSpotters = new Map();
+    const closestCalls = new Set();
     const currentHomes = new Map();
+    const homeSpotterCounts = new Map();
     for (const s of spots) {
-      if (s.closest_call && s.closest_grid) currentSpotters.set(s.closest_call, s.closest_grid);
+      if (s.closest_call && s.closest_grid) {
+        currentSpotters.set(s.closest_call, s.closest_grid);
+        closestCalls.add(s.closest_call);
+      }
+      // Add all spotters with known grids
+      if (s.spotter_grids) {
+        for (const [call, grid] of Object.entries(s.spotter_grids)) {
+          currentSpotters.set(call, grid);
+        }
+      }
       const hg = spotHomeGrid(s);
-      if (s.callsign && hg) currentHomes.set(s.callsign, hg);
+      if (s.callsign && hg) {
+        currentHomes.set(s.callsign, hg);
+        homeSpotterCounts.set(s.callsign, s.spotter_count || 1);
+      }
     }
 
     // Remove stale spotter markers
@@ -621,24 +936,39 @@
       }
     }
 
-    // Add new spotter markers
+    // Add/update spotter markers (normalized to QTH longitude)
     for (const [call, grid] of currentSpotters) {
-      if (spotterMarkers[call]) continue;
+      const icon = closestCalls.has(call) ? spotterIcon : spotterSecondaryIcon;
       const pos = gridToLatLon(grid);
       if (!pos) continue;
-      const m = L.marker([pos.lat, pos.lon], { icon: spotterIcon })
+      const ll = nearLL(baseLon, [pos.lat, pos.lon]);
+      if (spotterMarkers[call]) {
+        spotterMarkers[call].setIcon(icon);
+        spotterMarkers[call].setLatLng(ll);
+        spotterMarkers[call].setPopupContent(`Spotter: ${call}<br>Grid: ${grid}`);
+        continue;
+      }
+      const m = L.marker(ll, { icon })
         .bindPopup(`Spotter: ${call}<br>Grid: ${grid}`)
         .addTo(leafletMap);
       m.on("click", () => onMapSpotterClick(call));
       spotterMarkers[call] = m;
     }
 
-    // Add new home location markers
+    // Add/update home location markers (normalized to QTH longitude)
     for (const [call, grid] of currentHomes) {
-      if (homeMarkers[call]) continue;
+      const count = homeSpotterCounts.get(call) || 1;
+      const icon = homeLocIcon(count);
       const pos = gridToLatLon(grid);
       if (!pos) continue;
-      const hm = L.marker([pos.lat, pos.lon], { icon: homeLocIcon })
+      const ll = nearLL(baseLon, [pos.lat, pos.lon]);
+      if (homeMarkers[call]) {
+        homeMarkers[call].setIcon(icon);
+        homeMarkers[call].setLatLng(ll);
+        homeMarkers[call].setPopupContent(`Station: ${call}<br>Grid: ${grid}`);
+        continue;
+      }
+      const hm = L.marker(ll, { icon })
         .bindPopup(`Station: ${call}<br>Grid: ${grid}`)
         .addTo(leafletMap);
       hm.on("click", () => onMapHomeClick(call));
@@ -655,6 +985,9 @@
         mapInitialFitDone = true;
       }
     }
+
+    // Re-apply marker filtering if a spot is locked
+    if (lockedSpot) filterMarkersForSpot(lockedSpot);
   }
 
   function destroyMap() {
@@ -685,7 +1018,7 @@
       case "spotters":    va = a.spotter_count || 0; vb = b.spotter_count || 0; break;
       case "snr":         va = a.best_snr ?? -999; vb = b.best_snr ?? -999; break;
       case "wpm":         va = a.wpm ?? 0; vb = b.wpm ?? 0; break;
-      case "country":     va = (a.country || "") + (a.qrz_state || ""); vb = (b.country || "") + (b.qrz_state || ""); break;
+      case "location":     va = (a.country || "") + (a.qrz_state || ""); vb = (b.country || "") + (b.qrz_state || ""); break;
       case "source":      va = a.source || ""; vb = b.source || ""; break;
       case "distance":    va = a.distance_mi ?? 99999; vb = b.distance_mi ?? 99999; break;
       default:            va = a.callsign || ""; vb = b.callsign || "";
@@ -693,6 +1026,11 @@
     if (typeof va === "string") return sortDir * va.localeCompare(vb);
     return sortDir * (va - vb);
   });
+
+  // Keep locked/selected spot in view as data refreshes
+  $: if (sortedSpots && lockedSpot) {
+    scrollToSpot(lockedSpot);
+  }
 </script>
 
 <div class="spots-page">
@@ -766,27 +1104,19 @@
     </div>
   {/if}
 
-  <div class="spots-table-wrap">
+  <div class="spots-table-wrap" bind:this={tableWrapEl}>
     <table class="spots-table">
       <thead>
         <tr>
-          <th class="sortable" on:click={() => toggleSort("time")}>Time{sortIndicator("time")}</th>
-          <th class="sortable" on:click={() => toggleSort("callsign")}>Callsign{sortIndicator("callsign")}</th>
-          {#if filterMode === "CW"}<th class="sortable" on:click={() => toggleSort("skcc")}>SKCC{sortIndicator("skcc")}</th>{/if}
-          <th class="sortable" on:click={() => toggleSort("frequency")}>Freq (MHz){sortIndicator("frequency")}</th>
-          <th class="sortable" on:click={() => toggleSort("band")}>Band{sortIndicator("band")}</th>
-          <th class="sortable" on:click={() => toggleSort("mode")}>Mode{sortIndicator("mode")}</th>
-          <th class="sortable" on:click={() => toggleSort("spotters")}>Spotters{sortIndicator("spotters")}</th>
-          <th class="sortable" on:click={() => toggleSort("snr")}>Best SNR{sortIndicator("snr")}</th>
-          <th class="sortable" on:click={() => toggleSort("wpm")}>WPM{sortIndicator("wpm")}</th>
-          <th class="sortable" on:click={() => toggleSort("country")}>Home Location{sortIndicator("country")}</th>
-          <th class="sortable" on:click={() => toggleSort("source")}>Source{sortIndicator("source")}</th>
-          <th class="sortable" on:click={() => toggleSort("distance")}>Closest Spot{sortIndicator("distance")}</th>
-          <th>Info</th>
+          {#each spotColumns as col (col.key)}
+            <th class="sortable" class:drag-over={spotDragOverCol === col.key && spotDragCol !== col.key} class:sorting={sortCol === col.key} on:dragover={e => onSpotColDragOver(e, col.key)} on:drop={e => onSpotColDrop(e, col.key)} style={spotColumnWidths[col.key] ? `width: ${spotColumnWidths[col.key]}` : ""}>
+              <span class="col-label" draggable="true" on:dragstart={e => onSpotColDragStart(e, col.key)} on:dragend={onSpotColDragEnd} on:click={() => { if (col.key !== "info") toggleSort(col.key); }}>{col.label}{#if sortCol === col.key}{sortDir === 1 ? " ▲" : " ▼"}{/if}</span><span class="resize-handle" on:mousedown={e => startSpotColResize(e, col.key)}></span>
+            </th>
+          {/each}
         </tr>
       </thead>
       <tbody>
-        {#each sortedSpots as spot (spot.callsign + spot.frequency + spot.mode)}
+        {#each sortedSpots as spot, i (spot.callsign + spot.frequency + spot.mode)}
           <!-- svelte-ignore a11y-no-static-element-interactions -->
           <tr class:worked={isWorkedToday(spot)}
               class:spot-highlighted={selectedSpotter && spot.closest_call === selectedSpotter}
@@ -794,36 +1124,59 @@
               on:mouseenter={() => onSpotHover(spot)}
               on:mouseleave={onSpotLeave}
               on:click|stopPropagation={() => onSpotClick(spot)}>
-            <td class="mono">{formatTime(spot)}</td>
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <!-- svelte-ignore a11y-no-static-element-interactions -->
-            {#if isWorkedToday(spot)}
-              <td class="mono call worked-call" title="Already worked today">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</td>
-            {:else}
-              <td class="mono call clickable" on:click|stopPropagation={() => addQsoWithPota(spot)} title="Log QSO with {spot.callsign}">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</td>
-            {/if}
-            {#if filterMode === "CW"}<td class="mono skcc">{spot.skcc ?? ""}</td>{/if}
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <td class="mono freq clickable" on:click|stopPropagation={() => dispatch("tune", spot)} title="Tune radio">{formatFreq(spot.frequency)}</td>
-            <td><span class="band-tag" style="background: {bandColor(spot.band)}; color: {bandTextColor(spot.band)}">{spot.band}</span></td>
-            <td>{spot.mode}</td>
-            <td class="mono" title={spot.spotters ? spot.spotters.join(", ") : ""}>{spot.spotter_count}</td>
-            <td class="mono">{spot.best_snr ?? ""}</td>
-            <td class="mono">{spot.wpm ?? ""}</td>
-            <td class="location">{#if isPotaActivator(spot)}<span class="pota-loc">{spotHomeLabel(spot)}</span>{:else if spot.country || spot.qrz_state}{locationStr(spot)}{:else if !qrzConfigured}<span class="fetch-hint">(Configure QRZ account)</span>{:else if qrz.skipped}<span class="fetch-hint">(filter more to fetch)</span>{:else if qrz.pending > 0}<span class="fetch-hint">(fetching... {qrz.pending} left)</span>{/if}</td>
-            <td class="source-tag {spot.source}">{spot.source}</td>
-            <td class="mono">{spot.closest_call || ""}{spot.distance_mi != null ? ` ${spot.distance_mi}mi` : ""}{spot.closest_snr != null ? ` ${spot.closest_snr}dB` : ""}</td>
-            <td class="info">{spot.state}{spot.wwff_ref ? ` ${spot.wwff_ref}` : ""}{spot.comment ? ` ${spot.comment}` : ""}</td>
+            {#each spotColumns as col (col.key)}
+              {#if col.key === "time"}<td class="mono">{formatTime(spot)}</td>
+              {:else if col.key === "callsign"}
+                {#if isWorkedToday(spot)}
+                  <td class="mono call worked-call" title="Already worked today">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</td>
+                {:else}
+                  <td class="mono call"><!-- svelte-ignore a11y-click-events-have-key-events --><!-- svelte-ignore a11y-no-static-element-interactions --><span class="clickable" on:click|stopPropagation={() => addQsoWithPota(spot)} title="Log QSO with {spot.callsign}">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</span></td>
+                {/if}
+              {:else if col.key === "skcc"}<td class="mono skcc">{spot.skcc ?? ""}</td>
+              {:else if col.key === "frequency"}<td class="mono freq"><!-- svelte-ignore a11y-click-events-have-key-events --><!-- svelte-ignore a11y-no-static-element-interactions --><span class="clickable" on:click|stopPropagation={() => dispatch("tune", spot)} title="Tune radio">{formatFreq(spot.frequency)}</span></td>
+              {:else if col.key === "band"}<td><span class="band-tag" style="background: {bandColor(spot.band)}; color: {bandTextColor(spot.band)}">{spot.band}</span></td>
+              {:else if col.key === "mode"}<td>{spot.mode}</td>
+              {:else if col.key === "spotters"}<td class="mono" title={spot.spotters ? spot.spotters.join(", ") : ""}>{spot.spotter_count}</td>
+              {:else if col.key === "snr"}<td class="mono">{spot.best_snr ?? ""}</td>
+              {:else if col.key === "wpm"}<td class="mono">{spot.wpm ?? ""}</td>
+              {:else if col.key === "location"}<td class="location">{#if isPotaActivator(spot)}{@const pota = getPotaSpot(spot)}<!-- svelte-ignore a11y-click-events-have-key-events --><!-- svelte-ignore a11y-no-static-element-interactions --><span class="pota-loc clickable" on:click|stopPropagation={() => openParkModal(spotHomeLabel(spot))}>{spotHomeLabel(spot)}</span>{#if pota?.name}<span class="pota-name">{pota.name}</span>{/if}{:else if spot.country || spot.qrz_state}{locationStr(spot)}{:else if !qrzConfigured}<span class="fetch-hint">(Configure QRZ account)</span>{:else if qrz.skipped}<span class="fetch-hint">(filter more to fetch)</span>{:else if qrz.pending > 0}<span class="fetch-hint">(fetching... {qrz.pending} left)</span>{/if}</td>
+              {:else if col.key === "source"}<td class="source-tag {spot.source}">{spot.source}</td>
+              {:else if col.key === "distance"}<td class="mono">{spot.closest_call || ""}{spot.distance_mi != null ? ` ${spot.distance_mi}mi` : ""}{spot.closest_snr != null ? ` ${spot.closest_snr}dB` : ""}</td>
+              {:else if col.key === "info"}<td class="info">{spot.state}{spot.wwff_ref ? ` ${spot.wwff_ref}` : ""}{spot.comment ? ` ${spot.comment}` : ""}</td>
+              {/if}
+            {/each}
           </tr>
         {/each}
         {#if spots.length === 0}
-          <tr><td colspan={filterMode === "CW" ? 13 : 12} class="empty">No spots{filterSource || filterBands.size > 0 || filterMode || filterCallsign ? " matching filters" : ""}. {status.rbn.enabled || status.hamalert.enabled ? "Waiting for data..." : "Enable RBN or HamAlert in Settings."}</td></tr>
+          <tr><td colspan={spotColumns.length} class="empty">No spots{filterSource || filterBands.size > 0 || filterMode || filterCallsign ? " matching filters" : ""}. {status.rbn.enabled || status.hamalert.enabled ? "Waiting for data..." : "Enable RBN or HamAlert in Settings."}</td></tr>
         {/if}
       </tbody>
     </table>
   </div>
 </div>
+
+{#if modalParkRef}
+  <!-- svelte-ignore a11y-click-events-have-key-events -->
+  <!-- svelte-ignore a11y-no-static-element-interactions -->
+  <div class="modal-backdrop" on:click={closeParkModal}>
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <div class="modal-content" on:click|stopPropagation on:keydown={e => { if (e.key === "Escape") closeParkModal(); }}>
+      <button class="modal-close" on:click={closeParkModal}>X</button>
+      {#if modalParkLoading}
+        <p class="status">Loading park details...</p>
+      {:else if modalParkDetail}
+        <ParkDetail park={modalParkDetail} on:close={closeParkModal} />
+      {:else}
+        {@const prefix = modalParkRef.match(/^([A-Z]{1,2})-/)?.[1] || ""}
+        <p class="status">Park {modalParkRef} not found in cache.</p>
+        <p class="cache-link">Go to <a href="#/parks/download">Cache</a> to download park data{prefix ? ` for country code ${prefix}` : ""}.</p>
+      {/if}
+    </div>
+  </div>
+{/if}
+
+<svelte:window on:keydown={e => { if (modalParkRef && e.key === "Escape") closeParkModal(); }} />
 
 <style>
   .spots-page {
@@ -972,6 +1325,32 @@
   .spots-table th.sortable:hover {
     color: var(--accent);
   }
+  .spots-table th.sorting {
+    color: var(--accent);
+  }
+  .spots-table th.drag-over {
+    border-left: 2px solid var(--accent);
+  }
+
+  .spots-table .col-label {
+    cursor: pointer;
+  }
+
+  .spots-table .resize-handle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    cursor: col-resize;
+    background: transparent;
+  }
+
+  .spots-table .resize-handle:hover,
+  .spots-table .resize-handle:active {
+    background: var(--accent);
+    opacity: 0.4;
+  }
 
   .spots-table td {
     padding: 0.25rem 0.5rem;
@@ -1049,6 +1428,12 @@
     font-size: 0.8rem;
   }
 
+  .pota-name {
+    color: var(--text-dim);
+    font-size: 0.7rem;
+    margin-left: 0.3rem;
+  }
+
   .fetch-hint {
     color: var(--text-dim);
     font-size: 0.65rem;
@@ -1113,12 +1498,13 @@
     border: 2px solid #006688;
   }
 
-  :global(.spot-marker-dot.home-loc) {
+  :global(.spot-marker-dot.spotter-secondary) {
     width: 8px;
     height: 8px;
-    background: #ffaa00;
-    border: 2px solid #885500;
+    background: #005577;
+    border: 2px solid #003344;
   }
+
 
   :global(.spot-marker-dot.my-pos) {
     width: 12px;
@@ -1148,5 +1534,60 @@
   :global(.spots-map .leaflet-popup-content-wrapper),
   :global(.spots-map .leaflet-popup-tip) {
     opacity: 0.7;
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    max-width: 900px;
+    width: 95%;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1rem;
+    font-family: inherit;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .modal-close:hover {
+    color: var(--text);
+  }
+
+  .cache-link {
+    font-size: 0.9rem;
+  }
+
+  .cache-link a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .cache-link a:hover {
+    text-decoration: underline;
   }
 </style>

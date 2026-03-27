@@ -254,4 +254,13 @@
     font-size: 0.75rem;
     color: var(--text-muted);
   }
+
+  a {
+    color: var(--accent-vfo);
+    text-decoration: none;
+  }
+
+  a:hover {
+    color: var(--accent);
+  }
 </style>

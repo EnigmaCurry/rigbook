@@ -3,6 +3,7 @@
   import L from "leaflet";
   import "leaflet/dist/leaflet.css";
   import { getMapTileConfig } from "./mapTiles.js";
+  import { storageGet, storageSet } from "./storage.js";
   import { parkAward, parkAwardTitle } from "./parkAward.js";
   import { countryFlag, prefixFromRef } from "./countryFlag.js";
   import ParkDetail from "./ParkDetail.svelte";
@@ -41,8 +42,8 @@
     if (mySort === col) mySortAsc = !mySortAsc;
     else { mySort = col; mySortAsc = col === "name" || col === "code"; }
   }
-  let showMap = localStorage.getItem("parksMapEnabled") !== "false";
-  let mapHeight = parseInt(localStorage.getItem("parksMapHeight")) || 350;
+  let showMap = storageGet("parksMapEnabled") !== "false";
+  let mapHeight = parseInt(storageGet("parksMapHeight")) || 350;
   const MIN_MAP_HEIGHT = 60;
   let mapEl;
   let leafletMap = null;
@@ -52,6 +53,7 @@
   let lastActivePark = activePark;
   let fullscreenMap = null; // reference to the map currently fullscreen
   let fullscreenWrap = null; // reference to the wrap element
+  let myParksListEl;
 
   function addExpandControl(map, wrapEl) {
     const ExpandControl = L.Control.extend({
@@ -91,6 +93,44 @@
 
   function onFullscreenKey(e) {
     if (e.key === "Escape" && fullscreenMap) exitFullscreen();
+  }
+
+  function selectedParkIndex() {
+    if (!selectedPark) return -1;
+    return myParksSorted.findIndex(p => p.reference === selectedPark);
+  }
+
+  function onParksKeydown(e) {
+    if (tab !== "my-qsos" || myParksSorted.length === 0) return;
+    const tag = e.target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const cur = selectedParkIndex();
+      const next = cur < myParksSorted.length - 1 ? cur + 1 : cur;
+      navigateToParkIndex(next);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const cur = selectedParkIndex();
+      const next = cur > 0 ? cur - 1 : 0;
+      navigateToParkIndex(next);
+    } else if (e.key === "Escape" && selectedPark) {
+      deselectPark();
+    } else if (e.key === "Enter" && selectedPark) {
+      viewPark(selectedPark);
+    }
+  }
+
+  function navigateToParkIndex(idx) {
+    const park = myParksSorted[idx];
+    if (!park) return;
+    if (selectedPark === park.reference) return;
+    selectPark(park.reference);
+    tick().then(() => {
+      if (!myParksListEl) return;
+      const row = myParksListEl.querySelector(`.park-row:nth-child(${idx + 1})`);
+      if (row) row.scrollIntoView({ block: "center" });
+    });
   }
 
   function parseTab() {
@@ -324,7 +364,7 @@
 
   function toggleMap() {
     showMap = !showMap;
-    localStorage.setItem("parksMapEnabled", String(showMap));
+    storageSet("parksMapEnabled", String(showMap));
     if (showMap && myParks.length > 0 && !leafletMap) {
       tick().then(() => renderMap());
     }
@@ -340,7 +380,7 @@
       const newH = startH + (clientY - startY);
       if (newH < MIN_MAP_HEIGHT) {
         showMap = false;
-        localStorage.setItem("parksMapEnabled", "false");
+        storageSet("parksMapEnabled", "false");
         destroyMap();
         cleanup();
         return;
@@ -353,7 +393,7 @@
       window.removeEventListener("mouseup", cleanup);
       window.removeEventListener("touchmove", onMove);
       window.removeEventListener("touchend", cleanup);
-      localStorage.setItem("parksMapHeight", String(mapHeight));
+      storageSet("parksMapHeight", String(mapHeight));
     }
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", cleanup);
@@ -426,12 +466,18 @@
     if (m) { m.setIcon(normalIcon); m.closePopup(); }
   }
 
+  function deselectPark() {
+    if (selectedPark) {
+      const m = markersByRef[selectedPark];
+      if (m) { m.setIcon(normalIcon); m.closePopup(); }
+      selectedPark = null;
+    }
+  }
+
   function selectPark(ref) {
     // Deselect if clicking the same park
     if (selectedPark === ref) {
-      const m = markersByRef[ref];
-      if (m) { m.setIcon(normalIcon); m.closePopup(); }
-      selectedPark = null;
+      deselectPark();
       return;
     }
     // Unhighlight previous selection
@@ -446,6 +492,17 @@
       m.openPopup();
       leafletMap?.panTo(m.getLatLng());
     }
+    scrollToParkRef(ref);
+  }
+
+  function scrollToParkRef(ref) {
+    if (!myParksListEl) return;
+    const idx = myParksSorted.findIndex(p => p.reference === ref);
+    if (idx < 0) return;
+    tick().then(() => {
+      const row = myParksListEl.querySelector(`.park-row:nth-child(${idx + 1})`);
+      if (row) row.scrollIntoView({ block: "center" });
+    });
   }
 
   let renderingMap = false;
@@ -475,8 +532,10 @@
       const m = L.marker(ll, { icon: normalIcon })
         .bindPopup(`<b>${p.reference}</b><br>${p.name || ""}<br>${p.qso_count} QSO${p.qso_count !== 1 ? "s" : ""} <span title="${parkAwardTitle(p.qso_count)}">${parkAward(p.qso_count)}</span><br><a href="#/parks/park/${encodeURIComponent(p.reference)}">View details</a>`)
         .addTo(leafletMap);
+      m.on("click", () => selectPark(p.reference));
       markersByRef[p.reference] = m;
     }
+    leafletMap.on("click", deselectPark);
     leafletMap.invalidateSize();
     // Pick the initial park to focus on
     const initRef = activePark || (myParksSorted.length > 0 ? myParksSorted[0].reference : null);
@@ -520,6 +579,7 @@
     if (tab === "park" && parkRef) loadParkDetail(parkRef);
     window.addEventListener("hashchange", onHashChange);
     window.addEventListener("keydown", onFullscreenKey);
+    window.addEventListener("keydown", onParksKeydown);
     window.addEventListener("resize", onWindowResize);
   });
 
@@ -533,6 +593,7 @@
     destroyMap();
     window.removeEventListener("hashchange", onHashChange);
     window.removeEventListener("keydown", onFullscreenKey);
+    window.removeEventListener("keydown", onParksKeydown);
     window.removeEventListener("resize", onWindowResize);
   });
 </script>
@@ -586,7 +647,7 @@
           <button class="my-sort-btn" class:active={mySort === "name"} on:click={() => toggleMySort("name")}>Name {mySort === "name" ? (mySortAsc ? "▲" : "▼") : ""}</button>
           <button class="my-sort-btn" class:active={mySort === "qsos"} on:click={() => toggleMySort("qsos")}>QSOs {mySort === "qsos" ? (mySortAsc ? "▲" : "▼") : ""}</button>
         </div>
-        <div class="my-parks-list">
+        <div class="my-parks-list" bind:this={myParksListEl}>
           {#each myParksSorted as park}
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -1034,6 +1095,7 @@
     background: var(--bg-deep);
     border-left: 3px solid var(--accent);
   }
+
 
   .park-date {
     color: var(--text-dim);

@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy, createEventDispatcher, tick } from "svelte";
   import { TILE_THEMES, resolveTileConfig } from "./mapTiles.js";
+  import { storageGet, storageSet } from "./storage.js";
   import L from "leaflet";
   import "leaflet/dist/leaflet.css";
   import GridMap from "./GridMap.svelte";
@@ -27,7 +28,7 @@
   let logbook_right = false;
   let wide_breakpoint = "1200";
   let wide_mode_enabled = true;
-  let theme = localStorage.getItem("rigbook-theme") || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  let theme = storageGet("rigbook-theme") || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
   let map_theme = "natgeo";
   let map_custom_url = "";
   let saving = false;
@@ -80,8 +81,8 @@
 
   // Desktop notifications
   let desktopNotifPermission = typeof Notification !== "undefined" ? Notification.permission : "denied";
-  let desktopNotifEnabled = localStorage.getItem("desktop_notifications_enabled") === "true";
-  let popupNotifEnabled = localStorage.getItem("popup_notifications_enabled") === "true";
+  let desktopNotifEnabled = storageGet("desktop_notifications_enabled") === "true";
+  let popupNotifEnabled = storageGet("popup_notifications_enabled") === "true";
   let testPending = false;
 
   // Map preview
@@ -398,13 +399,13 @@
     desktopNotifPermission = perm;
     if (perm === "granted") {
       desktopNotifEnabled = true;
-      localStorage.setItem("desktop_notifications_enabled", "true");
+      storageSet("desktop_notifications_enabled", "true");
     }
   }
 
   function disableDesktopNotifications() {
     desktopNotifEnabled = false;
-    localStorage.setItem("desktop_notifications_enabled", "false");
+    storageSet("desktop_notifications_enabled", "false");
   }
 
   async function sendTestNotification() {
@@ -414,7 +415,7 @@
       desktopNotifPermission = perm;
       if (perm === "granted") {
         desktopNotifEnabled = true;
-        localStorage.setItem("desktop_notifications_enabled", "true");
+        storageSet("desktop_notifications_enabled", "true");
       }
     }
     testPending = true;
@@ -430,7 +431,7 @@
 
   function toggleTheme() {
     theme = theme === "dark" ? "light" : "dark";
-    localStorage.setItem("rigbook-theme", theme);
+    storageSet("rigbook-theme", theme);
     document.documentElement.classList.toggle("light", theme === "light");
     if (map_theme === "default") updatePreview();
   }
@@ -656,6 +657,19 @@
     saving = false;
   }
 
+  async function logoutQrz() {
+    try {
+      await fetch("/api/settings/qrz_password", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: "" }),
+      });
+      hasQrzPassword = false;
+      qrzStatus = null;
+      qrz_password = "";
+    } catch {}
+  }
+
   async function checkQrz() {
     qrzChecking = true;
     qrzStatus = null;
@@ -687,6 +701,15 @@
   {#if dirty}
     <p class="save-reminder">You have unsaved changes. Click Save when finished.</p>
   {/if}
+
+  <div class="setting-row save-row">
+    <button class:btn-dirty={dirty} on:click={save} disabled={saving}>
+      {saving ? "Saving..." : "Save"}
+    </button>
+    {#if message}
+      <span class="message">{message}</span>
+    {/if}
+  </div>
 
   {#if needsSetup}
     <p class="setup-hint">Enter your callsign and grid square to get started.</p>
@@ -729,7 +752,7 @@
     <h3>QRZ</h3>
     <div class="setting-row">
       <label for="qrz_password">{hasQrzPassword ? "Change QRZ Password" : "QRZ Password"}</label>
-      <input id="qrz_password" type="password" bind:value={qrz_password} autocomplete="off" disabled={!my_callsign.trim()} placeholder={hasQrzPassword ? "Leave blank to keep current" : ""} />
+      <input id="qrz_password" type="password" bind:value={qrz_password} autocomplete="off" disabled={!my_callsign.trim()} placeholder={hasQrzPassword ? "Leave blank to keep current" : "unset"} />
       <span class="hint">{#if !my_callsign.trim()}Set My Callsign first{:else if hasQrzPassword}Leave blank to remain unchanged{:else}Your QRZ account password (uses My Callsign as username){/if}</span>
     </div>
     {#if hasQrzPassword}
@@ -737,6 +760,7 @@
         <button class="theme-toggle" on:click={checkQrz} disabled={qrzChecking}>
           {qrzChecking ? "Checking..." : "Test QRZ Connection"}
         </button>
+        <button class="theme-toggle" on:click={logoutQrz}>Logout</button>
         {#if qrzStatus}
           {#if qrzStatus.ok}
             <span class="qrz-ok">Connected as {qrzStatus.username}</span>
@@ -799,7 +823,7 @@
         <button class="theme-toggle" on:click={disableDesktopNotifications}>Disable</button>
       {:else if desktopNotifPermission === "granted" && !desktopNotifEnabled}
         <span style="font-size:0.85rem; color:var(--text-muted);">Desktop notifications disabled</span>
-        <button class="theme-toggle" on:click={() => { desktopNotifEnabled = true; localStorage.setItem("desktop_notifications_enabled", "true"); }}>Enable</button>
+        <button class="theme-toggle" on:click={() => { desktopNotifEnabled = true; storageSet("desktop_notifications_enabled", "true"); }}>Enable</button>
       {:else}
         <button class="theme-toggle" on:click={enableDesktopNotifications}>Enable Desktop Notifications</button>
       {/if}
@@ -807,7 +831,7 @@
     <p class="hint">In-app notifications are always enabled. Desktop notifications show browser popups when new alerts arrive.</p>
     <div class="setting-row toggle-row" style="margin-top: 0.5rem;">
       <label>
-        <input type="checkbox" bind:checked={popupNotifEnabled} on:change={() => localStorage.setItem("popup_notifications_enabled", popupNotifEnabled ? "true" : "false")} />
+        <input type="checkbox" bind:checked={popupNotifEnabled} on:change={() => storageSet("popup_notifications_enabled", popupNotifEnabled ? "true" : "false")} />
         Popup notifications
       </label>
     </div>
@@ -930,15 +954,6 @@
       <button class="theme-toggle" on:click={clearCache}>Clear Cache</button>
     </div>
   </section>
-
-  <div class="setting-row">
-    <button class:btn-dirty={dirty} on:click={save} disabled={saving}>
-      {saving ? "Saving..." : "Save"}
-    </button>
-    {#if message}
-      <span class="message">{message}</span>
-    {/if}
-  </div>
 
   <section class="settings-section">
     <h3>Authentication</h3>
