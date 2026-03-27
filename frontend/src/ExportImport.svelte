@@ -884,6 +884,8 @@
     border-bottom: 1px solid var(--border, #555) !important;
     white-space: normal !important;
     overflow: visible !important;
+    position: sticky;
+    left: 0;
   }
 
   .detail-grid {
@@ -892,6 +894,14 @@
     gap: 0.3rem 1.2rem;
     padding: 0.5rem 0.75rem;
     font-size: 0.8rem;
+    max-width: calc(100vw - 480px);
+    box-sizing: border-box;
+  }
+
+  @media (max-width: 900px) {
+    .detail-grid {
+      max-width: calc(100vw - 2rem);
+    }
   }
 
   .detail-field {
