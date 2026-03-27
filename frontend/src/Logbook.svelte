@@ -222,14 +222,24 @@
 
   // Column resize
   let resizeCol = null;
+  let resizeColKey = null;
   let resizeStartX = 0;
   let resizeStartW = 0;
 
-  function startColResize(e) {
+  function loadColumnWidths() {
+    try {
+      return JSON.parse(localStorage.getItem("logColumnWidths")) || {};
+    } catch { return {}; }
+  }
+
+  let columnWidths = loadColumnWidths();
+
+  function startColResize(e, key) {
     e.preventDefault();
     e.stopPropagation();
     const th = e.target.parentElement;
     resizeCol = th;
+    resizeColKey = key;
     resizeStartX = e.clientX;
     resizeStartW = th.offsetWidth;
     window.addEventListener("mousemove", onColResize);
@@ -244,7 +254,12 @@
   }
 
   function stopColResize() {
+    if (resizeCol && resizeColKey) {
+      columnWidths[resizeColKey] = resizeCol.style.width;
+      localStorage.setItem("logColumnWidths", JSON.stringify(columnWidths));
+    }
     resizeCol = null;
+    resizeColKey = null;
     window.removeEventListener("mousemove", onColResize);
     window.removeEventListener("mouseup", stopColResize);
   }
@@ -1101,8 +1116,8 @@
         <thead>
           <tr>
             {#each columns as col (col.key)}
-              <th class:drag-over={dragOverCol === col.key && dragCol !== col.key} on:dragover={e => onColDragOver(e, col.key)} on:drop={e => onColDrop(e, col.key)}>
-                <span class="col-label" draggable="true" on:dragstart={e => onColDragStart(e, col.key)} on:dragend={onColDragEnd} on:click={() => toggleSort(col.key)}>{col.label}{#if sortCol === col.key}{sortAsc ? " ▲" : " ▼"}{/if}</span><span class="resize-handle" on:mousedown={startColResize}></span>
+              <th class:drag-over={dragOverCol === col.key && dragCol !== col.key} on:dragover={e => onColDragOver(e, col.key)} on:drop={e => onColDrop(e, col.key)} style={columnWidths[col.key] ? `width: ${columnWidths[col.key]}` : ""}>
+                <span class="col-label" draggable="true" on:dragstart={e => onColDragStart(e, col.key)} on:dragend={onColDragEnd} on:click={() => toggleSort(col.key)}>{col.label}{#if sortCol === col.key}{sortAsc ? " ▲" : " ▼"}{/if}</span><span class="resize-handle" on:mousedown={e => startColResize(e, col.key)}></span>
               </th>
             {/each}
           </tr>
