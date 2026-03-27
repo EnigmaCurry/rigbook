@@ -854,16 +854,13 @@
   }
 
   .sidebar {
-    flex: 0 0 auto;
-    min-width: 0;
-    max-width: 315px;
+    flex: 0 0 315px;
     overflow-y: auto;
     align-self: stretch;
   }
 
   .preview-pane {
-    flex: 1;
-    min-width: 100px;
+    flex: 1 1 auto;
     min-height: 0;
     display: flex;
     flex-direction: column;
@@ -877,8 +874,8 @@
     }
 
     .sidebar {
+      flex: 0 0 auto;
       width: 100%;
-      max-width: none;
       overflow-y: visible;
     }
 
