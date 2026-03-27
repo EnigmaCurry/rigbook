@@ -462,6 +462,28 @@
     hoveredSpot = null;
     lockedSpot = null;
     selectedSpotter = null;
+    showAllMarkers();
+  }
+
+  function setMarkerVisible(marker, visible) {
+    const el = marker.getElement?.();
+    if (el) el.style.display = visible ? "" : "none";
+  }
+
+  function filterMarkersForSpot(spot) {
+    if (!leafletMap) return;
+    const coWitnesses = new Set(spot.spotters || []);
+    for (const [call, marker] of Object.entries(spotterMarkers)) {
+      setMarkerVisible(marker, coWitnesses.has(call));
+    }
+    for (const [call, marker] of Object.entries(homeMarkers)) {
+      setMarkerVisible(marker, call === spot.callsign);
+    }
+  }
+
+  function showAllMarkers() {
+    for (const m of Object.values(spotterMarkers)) setMarkerVisible(m, true);
+    for (const m of Object.values(homeMarkers)) setMarkerVisible(m, true);
   }
 
   function spotKey(s) {
@@ -496,6 +518,20 @@
       selectionLines.push(
         L.polyline([myLL, [homePos.lat, homePos.lon]], { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
       );
+    }
+
+    // Draw grey lines from secondary (non-closest) co-witnessing spotters to the station
+    const homeLL2 = homePos ? [homePos.lat, homePos.lon] : null;
+    if (homeLL2 && spot.spotters) {
+      for (const call of spot.spotters) {
+        if (call === spot.closest_call) continue;
+        const marker = spotterMarkers[call];
+        if (!marker) continue;
+        const ll = marker.getLatLng();
+        selectionLines.push(
+          L.polyline([[ll.lat, ll.lng], homeLL2], { color: "#888", weight: 1.5, opacity: 0.4, dashArray: "6 4" }).addTo(leafletMap),
+        );
+      }
     }
   }
 
@@ -540,11 +576,13 @@
       lockedSpot = null;
       selectedSpotter = null;
       clearLines();
+      showAllMarkers();
       return;
     }
     lockedSpot = spot;
     selectedSpotter = null;
     drawTriangleForSpot(spot);
+    filterMarkersForSpot(spot);
     fitMapToSpot(spot);
   }
 
@@ -580,6 +618,7 @@
     lockedSpot = spot;
     selectedSpotter = null;
     drawTriangleForSpot(spot);
+    filterMarkersForSpot(spot);
   }
 
   function onMapSpotterClick(call) {
