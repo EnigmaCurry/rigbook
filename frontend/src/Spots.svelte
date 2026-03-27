@@ -818,17 +818,13 @@
               on:mouseleave={onSpotLeave}
               on:click|stopPropagation={() => onSpotClick(spot)}>
             <td class="mono">{formatTime(spot)}</td>
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <!-- svelte-ignore a11y-no-static-element-interactions -->
             {#if isWorkedToday(spot)}
               <td class="mono call worked-call" title="Already worked today">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</td>
             {:else}
-              <td class="mono call clickable" on:click|stopPropagation={() => addQsoWithPota(spot)} title="Log QSO with {spot.callsign}">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</td>
+              <td class="mono call"><!-- svelte-ignore a11y-click-events-have-key-events --><!-- svelte-ignore a11y-no-static-element-interactions --><span class="clickable" on:click|stopPropagation={() => addQsoWithPota(spot)} title="Log QSO with {spot.callsign}">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</span></td>
             {/if}
             {#if filterMode === "CW"}<td class="mono skcc">{spot.skcc ?? ""}</td>{/if}
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <td class="mono freq clickable" on:click|stopPropagation={() => dispatch("tune", spot)} title="Tune radio">{formatFreq(spot.frequency)}</td>
+            <td class="mono freq"><!-- svelte-ignore a11y-click-events-have-key-events --><!-- svelte-ignore a11y-no-static-element-interactions --><span class="clickable" on:click|stopPropagation={() => dispatch("tune", spot)} title="Tune radio">{formatFreq(spot.frequency)}</span></td>
             <td><span class="band-tag" style="background: {bandColor(spot.band)}; color: {bandTextColor(spot.band)}">{spot.band}</span></td>
             <td>{spot.mode}</td>
             <td class="mono" title={spot.spotters ? spot.spotters.join(", ") : ""}>{spot.spotter_count}</td>
