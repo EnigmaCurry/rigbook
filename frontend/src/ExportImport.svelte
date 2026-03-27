@@ -479,7 +479,7 @@
       <div class="comment-template-section">
         <div class="template-header">
           <h3>Comment Template</h3>
-          {#if activeTab === "import" && importFile}
+          {#if activeTab === "import" && (importFile || importPreview)}
             <button class="suggest-btn" on:click={suggestTemplate} disabled={suggesting}>
               {suggesting ? "Analyzing..." : "Suggest from file"}
             </button>
