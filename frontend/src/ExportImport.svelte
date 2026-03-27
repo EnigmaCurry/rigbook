@@ -317,68 +317,6 @@
 </script>
 
 <div class="export-import">
-  <div class="comment-template-section">
-    <h2>Comment Template</h2>
-    <p class="help-text">Selected fields are prepended to COMMENT in exported ADIF and stripped on import. Empty fields are skipped.</p>
-
-    {#if commentTemplate.length > 0}
-      <div class="template-list">
-        {#each commentTemplate as entry, i}
-          <div
-            class="template-row"
-            class:drag-over={dropIndex === i && dragIndex !== i}
-            draggable="true"
-            on:dragstart={() => handleDragStart(i)}
-            on:dragover={(e) => handleDragOver(e, i)}
-            on:drop={() => handleDrop(i)}
-            on:dragend={handleDragEnd}
-          >
-            <span class="drag-handle" title="Drag to reorder">⠿</span>
-            <span class="field-name">{entry.field}</span>
-            <input
-              type="text"
-              class="label-input"
-              bind:value={entry.label}
-              on:input={saveCommentTemplate}
-              placeholder="Label"
-            />
-            <button class="remove-btn" on:click={() => removeTemplateField(i)} title="Remove">×</button>
-          </div>
-        {/each}
-      </div>
-    {/if}
-
-    <div class="template-controls">
-      <div class="template-add-row">
-        <select bind:value={addField} on:change={addTemplateField}>
-          <option value="">Add field…</option>
-          {#each availableFields as f}
-            <option value={f.field}>{f.label} ({f.field})</option>
-          {/each}
-        </select>
-      </div>
-
-      <div class="separator-row">
-        <label>
-          Separator
-          <input
-            type="text"
-            class="separator-input"
-            bind:value={commentSeparator}
-            on:input={saveCommentTemplate}
-            placeholder="|"
-          />
-        </label>
-      </div>
-    </div>
-
-    {#if commentTemplate.length > 0}
-      <span class="preview-example">
-        Preview: {commentTemplate.map(e => `${e.label}: …`).join(` ${commentSeparator.trim()} `)}{ commentTemplate.length > 0 ? ` ${commentSeparator.trim()} ` : "" }your comment
-      </span>
-    {/if}
-  </div>
-
   <div class="export-layout">
     <div class="export-form">
       <h2>Export</h2>
@@ -439,6 +377,68 @@
       {/if}
 
       <button on:click={exportAdif}>Download ADIF{preview ? ` (${preview.included})` : ""}</button>
+
+      <div class="comment-template-section">
+        <h2>Comment Template</h2>
+        <p class="help-text">Selected fields are prepended to COMMENT in exported ADIF and stripped on import. Empty fields are skipped.</p>
+
+        {#if commentTemplate.length > 0}
+          <div class="template-list">
+            {#each commentTemplate as entry, i}
+              <div
+                class="template-row"
+                class:drag-over={dropIndex === i && dragIndex !== i}
+                draggable="true"
+                on:dragstart={() => handleDragStart(i)}
+                on:dragover={(e) => handleDragOver(e, i)}
+                on:drop={() => handleDrop(i)}
+                on:dragend={handleDragEnd}
+              >
+                <span class="drag-handle" title="Drag to reorder">⠿</span>
+                <span class="field-name">{entry.field}</span>
+                <input
+                  type="text"
+                  class="label-input"
+                  bind:value={entry.label}
+                  on:input={saveCommentTemplate}
+                  placeholder="Label"
+                />
+                <button class="remove-btn" on:click={() => removeTemplateField(i)} title="Remove">×</button>
+              </div>
+            {/each}
+          </div>
+        {/if}
+
+        <div class="template-controls">
+          <div class="template-add-row">
+            <select bind:value={addField} on:change={addTemplateField}>
+              <option value="">Add field…</option>
+              {#each availableFields as f}
+                <option value={f.field}>{f.label} ({f.field})</option>
+              {/each}
+            </select>
+          </div>
+
+          <div class="separator-row">
+            <label>
+              Separator
+              <input
+                type="text"
+                class="separator-input"
+                bind:value={commentSeparator}
+                on:input={saveCommentTemplate}
+                placeholder="|"
+              />
+            </label>
+          </div>
+        </div>
+
+        {#if commentTemplate.length > 0}
+          <span class="preview-example">
+            Preview: {commentTemplate.map(e => `${e.label}: …`).join(` ${commentSeparator.trim()} `)}{ commentTemplate.length > 0 ? ` ${commentSeparator.trim()} ` : "" }your comment
+          </span>
+        {/if}
+      </div>
 
       <h2>Import</h2>
       <p>Import contacts from an ADIF (.adi) file. Duplicates (same callsign + timestamp) are automatically skipped.</p>
