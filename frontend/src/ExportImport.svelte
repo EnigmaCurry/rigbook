@@ -657,6 +657,7 @@
   .preview-table th {
     position: sticky;
     top: 0;
+    z-index: 1;
     background: var(--bg-header, var(--bg));
     text-align: left;
     padding: 0.4rem 0.5rem;
@@ -665,7 +666,6 @@
     font-size: 0.75rem;
     text-transform: uppercase;
     overflow: hidden;
-    position: relative;
   }
 
   .resize-handle {
