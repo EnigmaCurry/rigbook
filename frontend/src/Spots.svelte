@@ -717,6 +717,9 @@
         mapInitialFitDone = true;
       }
     }
+
+    // Re-apply marker filtering if a spot is locked
+    if (lockedSpot) filterMarkersForSpot(lockedSpot);
   }
 
   function destroyMap() {
