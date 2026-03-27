@@ -411,7 +411,7 @@
 
   $: if (activePark !== lastActivePark) {
     lastActivePark = activePark;
-    if (tab === "my-qsos") showActivePark(activePark);
+    if (tab === "my-qsos" && !renderingMap) showActivePark(activePark);
   }
 
   function highlightPark(ref) {
@@ -486,8 +486,8 @@
     setTimeout(() => {
       if (activePark) showActivePark(activePark);
       else if (myParksSorted.length > 0) selectPark(myParksSorted[0].reference);
+      renderingMap = false;
     }, 0);
-    renderingMap = false;
   }
 
   export async function refreshParks() {
