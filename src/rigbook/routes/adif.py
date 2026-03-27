@@ -439,6 +439,9 @@ def _validate_import_record(
 ) -> list[dict]:
     """Check for mismatches between comment-parsed values and normalized fields.
 
+    Only validates the leading prefix segments that match the template pattern
+    (Label: value). Free-form text after the prefix is ignored.
+
     Returns list of warning dicts with keys:
     - field: contact field name (e.g. "skcc")
     - label: display label (e.g. "SKCC")
@@ -449,18 +452,6 @@ def _validate_import_record(
     comment = record.get("COMMENT", "")
     if not comment or not template_fields:
         return []
-
-    sep = (separator or "|").strip()
-    padded = f" {sep} "
-    if padded not in comment:
-        return []
-
-    parts = comment.split(padded)
-    comment_values = {}
-    for part in parts:
-        if ": " in part:
-            lbl, _, val = part.partition(": ")
-            comment_values[lbl.strip()] = val.strip()
 
     field_to_adif = {
         "call": "CALL",
@@ -477,11 +468,37 @@ def _validate_import_record(
         "skcc": "SKCC",
     }
 
+    # Build the set of expected labels from the template
+    template_labels = {
+        entry.get("label", entry.get("field", "")) for entry in template_fields
+    }
+
+    sep = (separator or "|").strip()
+    padded = f" {sep} "
+
+    # Determine which segments to check: only leading "Label: value" segments
+    # that match a template label
+    if padded in comment:
+        parts = comment.split(padded)
+    else:
+        parts = [comment]
+
+    # Only check leading segments that look like "Label: value" for a template label
+    prefix_values = {}
+    for part in parts:
+        if ": " not in part:
+            break
+        lbl, _, val = part.partition(": ")
+        lbl = lbl.strip()
+        if lbl not in template_labels:
+            break
+        prefix_values[lbl] = val.strip()
+
     warnings = []
     for entry in template_fields:
         field = entry.get("field", "")
         label = entry.get("label", field)
-        comment_val = comment_values.get(label, "")
+        comment_val = prefix_values.get(label, "")
         if not comment_val:
             continue
         adif_key = field_to_adif.get(field, "")
