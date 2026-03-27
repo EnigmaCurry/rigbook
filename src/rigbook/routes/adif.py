@@ -879,6 +879,7 @@ async def import_adif(file: UploadFile, session: AsyncSession = Depends(get_sess
     )
 
     for data, _raw_rec in new_records:
+        data = {k: v for k, v in data.items() if not k.startswith("_")}
         contact = Contact(**data)
         session.add(contact)
 
