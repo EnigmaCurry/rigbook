@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 import json
+import logging
 import re
 from importlib.metadata import version as pkg_version
 from io import StringIO
@@ -14,6 +15,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from rigbook.db import Contact, Setting, get_session
 from rigbook.dxcc import dxcc_country
 from rigbook.routes.contacts import ContactResponse
+
+logger = logging.getLogger("rigbook")
 
 router = APIRouter(prefix="/api/adif", tags=["adif"])
 
@@ -880,6 +883,10 @@ async def import_adif(file: UploadFile, session: AsyncSession = Depends(get_sess
         session.add(contact)
 
     await session.commit()
+    logger.info(
+        "ADIF import: %d imported, %d duplicates, %d skipped",
+        len(new_records), duplicates, skipped,
+    )
     return {"imported": len(new_records), "skipped": skipped, "duplicates": duplicates}
 
 
@@ -953,4 +960,8 @@ async def import_confirmed(
         imported += 1
 
     await session.commit()
+    logger.info(
+        "ADIF confirmed import: %d imported, %d duplicates",
+        imported, duplicates,
+    )
     return {"imported": imported, "duplicates": duplicates}

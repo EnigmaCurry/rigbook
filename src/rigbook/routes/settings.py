@@ -89,7 +89,9 @@ async def backup_database():
     except OSError as e:
         raise HTTPException(status_code=500, detail=f"Backup failed: {e}") from e
 
-    return {"path": str(backup_path), "size": backup_path.stat().st_size}
+    size = backup_path.stat().st_size
+    logger.info("Manual backup: saved %s (%.1f KB)", backup_name, size / 1024)
+    return {"path": str(backup_path), "size": size}
 
 
 @router.get("/backup/db-info")
