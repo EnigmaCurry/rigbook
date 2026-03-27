@@ -412,6 +412,28 @@
     return { lat, lon };
   }
 
+  /** Adjust a pair of [lat, lon] points so polylines take the shortest path across the antimeridian. */
+  function shortPath(a, b) {
+    let [latA, lonA] = a;
+    let [latB, lonB] = b;
+    const diff = lonB - lonA;
+    if (diff > 180) lonB -= 360;
+    else if (diff < -180) lonB += 360;
+    return [[latA, lonA], [latB, lonB]];
+  }
+
+  /** Normalize a group of [lat, lon] points to use the shortest-path longitudes relative to the first point. */
+  function shortPathGroup(points) {
+    if (points.length === 0) return [];
+    const base = points[0][1];
+    return points.map(([lat, lon]) => {
+      let diff = lon - base;
+      if (diff > 180) lon -= 360;
+      else if (diff < -180) lon += 360;
+      return [lat, lon];
+    });
+  }
+
   const spotterIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot spotter"></div>', iconSize: [10, 10], iconAnchor: [5, 5] });
   const homeLocIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot home-loc"></div>', iconSize: [10, 10], iconAnchor: [5, 5] });
   const myIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot my-pos"></div>', iconSize: [14, 14], iconAnchor: [7, 7] });
@@ -553,7 +575,7 @@
         const pos = gridToLatLon(grid);
         if (!pos) continue;
         selectionLines.push(
-          L.polyline([[pos.lat, pos.lon], homeLL2], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "6 4" }).addTo(leafletMap),
+          L.polyline(shortPath([pos.lat, pos.lon], homeLL2), { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "6 4" }).addTo(leafletMap),
         );
       }
     }
@@ -563,17 +585,17 @@
       const spotterLL = [spotterPos.lat, spotterPos.lon];
       const homeLL = [homePos.lat, homePos.lon];
       selectionLines.push(
-        L.polyline([spotterLL, homeLL], { color: "#00ccff", weight: 2, opacity: 0.6 }).addTo(leafletMap),
-        L.polyline([homeLL, myLL], { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
-        L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline(shortPath(spotterLL, homeLL), { color: "#00ccff", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline(shortPath(homeLL, myLL), { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline(shortPath(myLL, spotterLL), { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
       );
     } else if (spotterPos) {
       selectionLines.push(
-        L.polyline([myLL, [spotterPos.lat, spotterPos.lon]], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline(shortPath(myLL, [spotterPos.lat, spotterPos.lon]), { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
       );
     } else if (homePos) {
       selectionLines.push(
-        L.polyline([myLL, [homePos.lat, homePos.lon]], { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline(shortPath(myLL, [homePos.lat, homePos.lon]), { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
       );
     }
   }
@@ -594,10 +616,11 @@
       const homePos = gridToLatLon(hg);
       if (!homePos) continue;
       const homeLL = [homePos.lat, homePos.lon];
+      const sLL = [spotterLL.lat, spotterLL.lng];
       selectionLines.push(
-        L.polyline([spotterLL, homeLL], { color: "#00ccff", weight: 2, opacity: 0.6 }).addTo(leafletMap),
-        L.polyline([homeLL, myLL], { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
-        L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline(shortPath(sLL, homeLL), { color: "#00ccff", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline(shortPath(homeLL, myLL), { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline(shortPath(myLL, sLL), { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
       );
     }
   }
@@ -645,7 +668,8 @@
     if (homePos) points.push([homePos.lat, homePos.lon]);
 
     if (points.length > 1) {
-      leafletMap.fitBounds(L.latLngBounds(points), { padding: [40, 40], maxZoom: 12 });
+      const adjusted = shortPathGroup(points);
+      leafletMap.fitBounds(L.latLngBounds(adjusted), { padding: [40, 40], maxZoom: 12 });
     } else {
       leafletMap.setView(points[0], 8);
     }
@@ -678,7 +702,7 @@
   async function initMap() {
     await tick();
     if (leafletMap || !mapEl) return;
-    leafletMap = L.map(mapEl, { scrollWheelZoom: true });
+    leafletMap = L.map(mapEl, { scrollWheelZoom: true, worldCopyJump: true });
     const tiles = await getMapTileConfig();
     L.tileLayer(tiles.url, {
       attribution: tiles.attribution,
