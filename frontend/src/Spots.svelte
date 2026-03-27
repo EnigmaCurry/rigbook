@@ -523,7 +523,7 @@
     tick().then(() => {
       if (!tableWrapEl) return;
       const row = tableWrapEl.querySelector(`tbody tr:nth-child(${idx + 1})`);
-      if (row) row.scrollIntoView({ block: "nearest" });
+      if (row) row.scrollIntoView({ block: "center" });
     });
   }
 
@@ -710,7 +710,7 @@
     if (idx < 0) return;
     tick().then(() => {
       const row = tableWrapEl.querySelector(`tbody tr:nth-child(${idx + 1})`);
-      if (row) row.scrollIntoView({ block: "nearest" });
+      if (row) row.scrollIntoView({ block: "center" });
     });
   }
 

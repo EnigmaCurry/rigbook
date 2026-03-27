@@ -131,7 +131,7 @@
     tick().then(() => {
       if (!myParksListEl) return;
       const row = myParksListEl.querySelector(`.park-row:nth-child(${idx + 1})`);
-      if (row) row.scrollIntoView({ block: "nearest" });
+      if (row) row.scrollIntoView({ block: "center" });
     });
   }
 
