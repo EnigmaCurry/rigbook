@@ -43,8 +43,9 @@
     else { mySort = col; mySortAsc = col === "name" || col === "code"; }
   }
   let showMap = storageGet("parksMapEnabled") !== "false";
-  let mapHeight = parseInt(storageGet("parksMapHeight")) || 350;
   const MIN_MAP_HEIGHT = 60;
+  const MAX_MAP_FRAC = 0.7;
+  let mapHeight = Math.min(parseInt(storageGet("parksMapHeight")) || 350, Math.floor(window.innerHeight * MAX_MAP_FRAC));
   let mapEl;
   let leafletMap = null;
   let markersByRef = {};
@@ -385,7 +386,7 @@
         cleanup();
         return;
       }
-      mapHeight = newH;
+      mapHeight = Math.min(newH, Math.floor(window.innerHeight * MAX_MAP_FRAC));
       if (leafletMap) leafletMap.invalidateSize();
     }
     function cleanup() {
@@ -585,6 +586,11 @@
 
   let mapResizeObserver;
   function onWindowResize() {
+    const maxH = Math.floor(window.innerHeight * MAX_MAP_FRAC);
+    if (mapHeight > maxH) {
+      mapHeight = maxH;
+      storageSet("parksMapHeight", String(mapHeight));
+    }
     if (leafletMap) leafletMap.invalidateSize();
   }
 

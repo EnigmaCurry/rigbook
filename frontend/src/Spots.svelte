@@ -38,8 +38,9 @@
   let spots = [];
   let myGrid = "";
   let showMap = storageGet("spotsMapEnabled") !== "false";
-  let mapHeight = parseInt(storageGet("spotsMapHeight")) || 350;
   const MIN_MAP_HEIGHT = 60;
+  const MAX_MAP_FRAC = 0.7;
+  let mapHeight = Math.min(parseInt(storageGet("spotsMapHeight")) || 350, Math.floor(window.innerHeight * MAX_MAP_FRAC));
   let status = { rbn: { connected: false, enabled: false }, hamalert: { connected: false, enabled: false }, callsigns: 0, entries: 0, total_spots: 0, avg_spots_per_callsign: 0 };
   let bands = {};
   let modes = {};
@@ -343,7 +344,7 @@
         cleanup();
         return;
       }
-      mapHeight = newH;
+      mapHeight = Math.min(newH, Math.floor(window.innerHeight * MAX_MAP_FRAC));
       if (leafletMap) leafletMap.invalidateSize();
     }
     function cleanup() {
@@ -485,6 +486,11 @@
 
   let mapResizeObserver;
   function onWindowResize() {
+    const maxH = Math.floor(window.innerHeight * MAX_MAP_FRAC);
+    if (mapHeight > maxH) {
+      mapHeight = maxH;
+      storageSet("spotsMapHeight", String(mapHeight));
+    }
     if (leafletMap) leafletMap.invalidateSize();
   }
 
