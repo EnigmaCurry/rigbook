@@ -169,6 +169,9 @@
     contact.warnings = contact.warnings.filter(w => w !== warning);
     // Trigger reactivity
     if (importPreview) importPreview = { ...importPreview };
+    // Switch back to all view if no warnings remain
+    const remaining = (importPreview?.contacts || []).filter(c => c.warnings && c.warnings.length > 0).length;
+    if (remaining === 0) importFilter = "all";
   }
   $: displayContacts = currentPreview && currentPreview.contacts
     ? (activeTab === "import" && importFilter === "warnings"
