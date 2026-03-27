@@ -531,15 +531,31 @@
     if (!leafletMap) return;
     const coWitnesses = new Set(Object.keys(spot.spotter_grids || {}));
     for (const [call, marker] of Object.entries(spotterMarkers)) {
-      setMarkerVisible(marker, coWitnesses.has(call));
+      const visible = coWitnesses.has(call);
+      setMarkerVisible(marker, visible);
+      if (visible) {
+        marker.setIcon(call === spot.closest_call ? spotterIcon : spotterSecondaryIcon);
+      }
     }
     for (const [call, marker] of Object.entries(homeMarkers)) {
       setMarkerVisible(marker, call === spot.callsign);
     }
   }
 
+  function globalClosestCalls() {
+    const closest = new Set();
+    for (const s of spots) {
+      if (s.closest_call) closest.add(s.closest_call);
+    }
+    return closest;
+  }
+
   function showAllMarkers() {
-    for (const m of Object.values(spotterMarkers)) setMarkerVisible(m, true);
+    const closest = globalClosestCalls();
+    for (const [call, m] of Object.entries(spotterMarkers)) {
+      setMarkerVisible(m, true);
+      m.setIcon(closest.has(call) ? spotterIcon : spotterSecondaryIcon);
+    }
     for (const m of Object.values(homeMarkers)) setMarkerVisible(m, true);
   }
 
