@@ -72,6 +72,9 @@
           }),
         ]);
       } catch { /* ignore */ }
+      // Re-fetch previews with updated template
+      fetchExportPreview();
+      if (importFile) fetchImportPreview();
     }, 300);
   }
 
@@ -281,16 +284,12 @@
     window.location.href = "/api/adif/export" + (qs ? "?" + qs : "");
   }
 
-  async function stageImportFile(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    importFile = file;
-    importFileName = file.name;
+  async function fetchImportPreview() {
+    if (!importFile) return;
     loadingImport = true;
-    message = "";
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", importFile);
       const res = await fetch("/api/adif/import/preview", {
         method: "POST",
         body: formData,
@@ -309,6 +308,15 @@
       importPreview = null;
     }
     loadingImport = false;
+  }
+
+  async function stageImportFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    importFile = file;
+    importFileName = file.name;
+    message = "";
+    await fetchImportPreview();
   }
 
   async function executeImport() {
