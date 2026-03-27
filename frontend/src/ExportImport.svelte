@@ -542,7 +542,7 @@
       {#if activeTab === "import" && importPreview && warningCount > 0}
         <div class="filter-tabs">
           <button class="filter-tab" class:active={importFilter === "all"} on:click={() => importFilter = "all"}>All ({importPreview.contacts.length})</button>
-          <button class="filter-tab warning-tab" class:active={importFilter === "warnings"} on:click={() => importFilter = "warnings"}>Warnings ({warningCount})</button>
+          <button class="filter-tab error-tab" class:active={importFilter === "warnings"} on:click={() => importFilter = "warnings"}>Errors ({warningCount})</button>
         </div>
       {/if}
       {#if displayContacts.length > 0}
@@ -672,10 +672,10 @@
               Importing {importPreview.new_count} new QSOs
               {#if importPreview.duplicate_count > 0}({importPreview.duplicate_count} duplicates skipped){/if}
               {#if importPreview.skipped_count > 0}({importPreview.skipped_count} invalid skipped){/if}
-              {#if warningCount > 0}<span class="action-warning">— {warningCount} warning{warningCount !== 1 ? "s" : ""}</span>{/if}
+              {#if warningCount > 0}<span class="action-error">— {warningCount} error{warningCount !== 1 ? "s" : ""} must be resolved</span>{/if}
             {/if}
           </span>
-          <button class="action-btn" on:click={executeImport} disabled={!importPreview || importPreview.new_count === 0 || importing}>
+          <button class="action-btn" on:click={executeImport} disabled={!importPreview || importPreview.new_count === 0 || importing || warningCount > 0}>
             {importing ? "Importing..." : "Import"}
           </button>
         {/if}
@@ -934,11 +934,11 @@
     border-color: var(--border, #555);
   }
 
-  .filter-tab.warning-tab {
+  .filter-tab.error-tab {
     color: #c90;
   }
 
-  .filter-tab.warning-tab.active {
+  .filter-tab.error-tab.active {
     color: #ea0;
   }
 
@@ -1011,7 +1011,7 @@
     width: 80px;
   }
 
-  .action-warning {
+  .action-error {
     color: #ea0;
   }
 
@@ -1078,7 +1078,7 @@
 
   .preview-table-wrap {
     flex: 1;
-    max-height: calc(100vh - 14rem);
+    max-height: calc(100vh - 16rem);
     overflow: auto;
     border: 1px solid var(--border, #555);
     border-radius: 0 0 3px 3px;
