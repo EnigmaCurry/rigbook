@@ -1,5 +1,5 @@
 <script>
-  import { onMount, createEventDispatcher } from "svelte";
+  import { onMount, tick, createEventDispatcher } from "svelte";
   import Autocomplete from "./Autocomplete.svelte";
   import GridMap from "./GridMap.svelte";
   import ParkDetail from "./ParkDetail.svelte";
@@ -161,6 +161,7 @@
   let sortAsc = localStorage.getItem("logSortAsc") === "true";
 
   const defaultColumnOrder = ["timestamp", "call", "name", "freq", "mode", "pota_park", "qth", "rst_sent", "rst_recv", "comments", "updated_at"];
+  const flexColumns = new Set(["name", "qth", "comments"]);
   const columnDefs = {
     timestamp: { key: "timestamp", label: "UTC" },
     call: { key: "call", label: "Call" },
@@ -220,6 +221,94 @@
     dragOverCol = null;
   }
 
+  // Column resize
+  let resizeCol = null;
+  let resizeColKey = null;
+  let resizeStartX = 0;
+  let resizeStartW = 0;
+
+  function loadColumnWidths() {
+    try {
+      return JSON.parse(localStorage.getItem("logColumnWidths")) || {};
+    } catch { return {}; }
+  }
+
+  let columnWidths = loadColumnWidths();
+
+  function startColResize(e, key) {
+    e.preventDefault();
+    e.stopPropagation();
+    const th = e.target.parentElement;
+    resizeCol = th;
+    resizeColKey = key;
+    resizeStartX = e.clientX;
+    resizeStartW = th.offsetWidth;
+    window.addEventListener("mousemove", onColResize);
+    window.addEventListener("mouseup", stopColResize);
+  }
+
+  function onColResize(e) {
+    if (!resizeCol) return;
+    const diff = e.clientX - resizeStartX;
+    const newW = Math.max(30, resizeStartW + diff);
+    resizeCol.style.width = newW + "px";
+  }
+
+  function stopColResize() {
+    if (resizeCol && resizeColKey) {
+      columnWidths[resizeColKey] = resizeCol.style.width;
+      localStorage.setItem("logColumnWidths", JSON.stringify(columnWidths));
+    }
+    resizeCol = null;
+    resizeColKey = null;
+    window.removeEventListener("mousemove", onColResize);
+    window.removeEventListener("mouseup", stopColResize);
+  }
+
+  let columnsAutoSized = false;
+
+  async function autoSizeColumns() {
+    if (columnsAutoSized) return;
+    // Check if any columns still need default widths
+    const needsAuto = columns.some(col => !columnWidths[col.key]);
+    if (!needsAuto) { columnsAutoSized = true; return; }
+    if (!tableWrapEl) return;
+    const table = tableWrapEl.querySelector("table");
+    if (!table) return;
+
+    // Temporarily switch to auto layout to measure natural widths
+    table.style.tableLayout = "auto";
+    // Force reflow
+    await tick();
+    // Small delay to ensure browser has reflowed
+    await new Promise(r => requestAnimationFrame(r));
+
+    const ths = table.querySelectorAll("thead th");
+    const measured = {};
+    ths.forEach((th, i) => {
+      if (i < columns.length) {
+        measured[columns[i].key] = th.offsetWidth;
+      }
+    });
+
+    // Switch back to fixed
+    table.style.tableLayout = "fixed";
+
+    // Apply measured widths only for columns without saved widths
+    ths.forEach((th, i) => {
+      if (i < columns.length) {
+        const key = columns[i].key;
+        if (columnWidths[key]) {
+          th.style.width = columnWidths[key];
+        } else if (measured[key]) {
+          th.style.width = measured[key] + "px";
+        }
+      }
+    });
+
+    columnsAutoSized = true;
+  }
+
   function toggleSort(key) {
     if (sortCol === key) {
       sortAsc = !sortAsc;
@@ -270,6 +359,8 @@
       const res = await fetch("/api/contacts/");
       if (res.ok) {
         contacts = await res.json();
+        await tick();
+        autoSizeColumns();
       }
     } catch {}
   }
@@ -1072,8 +1163,8 @@
         <thead>
           <tr>
             {#each columns as col (col.key)}
-              <th class="sortable" class:drag-over={dragOverCol === col.key && dragCol !== col.key} draggable="true" on:dragstart={e => onColDragStart(e, col.key)} on:dragover={e => onColDragOver(e, col.key)} on:drop={e => onColDrop(e, col.key)} on:dragend={onColDragEnd} on:click={() => toggleSort(col.key)}>
-                {col.label}{#if sortCol === col.key}{sortAsc ? " ▲" : " ▼"}{/if}
+              <th class:drag-over={dragOverCol === col.key && dragCol !== col.key} on:dragover={e => onColDragOver(e, col.key)} on:drop={e => onColDrop(e, col.key)} style={columnWidths[col.key] ? `width: ${columnWidths[col.key]}` : ""}>
+                <span class="col-label" draggable="true" on:dragstart={e => onColDragStart(e, col.key)} on:dragend={onColDragEnd} on:click={() => toggleSort(col.key)}>{col.label}{#if sortCol === col.key}{sortAsc ? " ▲" : " ▼"}{/if}</span><span class="resize-handle" on:mousedown={e => startColResize(e, col.key)}></span>
               </th>
             {/each}
           </tr>
@@ -1489,6 +1580,7 @@
     border-collapse: separate;
     border-spacing: 0;
     font-size: 0.85rem;
+    table-layout: fixed;
   }
 
   th {
@@ -1501,24 +1593,43 @@
     top: 0;
     background: var(--bg);
     z-index: 1;
+    overflow: hidden;
   }
 
-  th.sortable {
+  .col-label {
     cursor: pointer;
     user-select: none;
   }
 
-  th.sortable:hover {
+  .col-label:hover {
     color: var(--accent);
   }
   th.drag-over {
     border-left: 2px solid var(--accent);
   }
 
+  .resize-handle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    cursor: col-resize;
+    background: transparent;
+  }
+
+  .resize-handle:hover,
+  .resize-handle:active {
+    background: var(--accent);
+    opacity: 0.4;
+  }
+
   td {
     padding: 0.3rem 0.5rem;
     border-bottom: 1px solid var(--bg-card);
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   td.call {

@@ -143,13 +143,219 @@
     updatePreview();
   }
 
+  // Authentication
+  let authStatus = null;
+  let authPassword = "";
+  let authConfirm = "";
+  let authMessage = "";
+  let authMessageType = "";
+  let authSaving = false;
+
+  async function loadAuthStatus() {
+    try {
+      const res = await fetch("/api/settings/auth/status");
+      if (res.ok) authStatus = await res.json();
+    } catch { /* ignore */ }
+  }
+
+  async function enableAuth() {
+    if (authPassword !== authConfirm) {
+      authMessage = "Passwords do not match";
+      authMessageType = "error";
+      return;
+    }
+    if (!authPassword) {
+      authMessage = "Password cannot be empty";
+      authMessageType = "error";
+      return;
+    }
+    authSaving = true;
+    authMessage = "";
+    try {
+      const res = await fetch("/api/settings/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: authPassword, confirm: authConfirm }),
+      });
+      if (res.ok) {
+        authMessage = "Authentication enabled. Refresh the page to log in.";
+        authMessageType = "success";
+        authPassword = "";
+        authConfirm = "";
+        loadAuthStatus();
+      } else {
+        const data = await res.json().catch(() => null);
+        authMessage = data?.detail || "Failed to enable auth";
+        authMessageType = "error";
+      }
+    } catch (e) {
+      authMessage = `Error: ${e.message}`;
+      authMessageType = "error";
+    }
+    authSaving = false;
+  }
+
+  async function disableAuth() {
+    try {
+      const res = await fetch("/api/settings/auth/disable", { method: "POST" });
+      if (res.ok) {
+        authMessage = "Authentication disabled.";
+        authMessageType = "success";
+        loadAuthStatus();
+      }
+    } catch { /* ignore */ }
+  }
+
+  // Backup
+  let backupMessage = "";
+  let backupMessageType = "";
+  let backingUp = false;
+  let dbInfo = null;
+  let backupStatus = null;
+  let autoBackupEnabled = true;
+  let autoBackupHours = 24;
+  let autoBackupMax = 10;
+  let backupSaveTimer = null;
+
+  async function loadDbInfo() {
+    try {
+      const res = await fetch("/api/settings/backup/db-info");
+      if (res.ok) dbInfo = await res.json();
+    } catch { /* ignore */ }
+  }
+
+  async function loadBackupStatus() {
+    try {
+      const res = await fetch("/api/settings/backup/status");
+      if (res.ok) {
+        backupStatus = await res.json();
+        autoBackupEnabled = backupStatus.auto_enabled;
+        autoBackupHours = backupStatus.interval_hours;
+        autoBackupMax = backupStatus.max_backups;
+      }
+    } catch { /* ignore */ }
+  }
+
+  function formatSize(bytes) {
+    if (!bytes) return "0 B";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function timeAgo(iso) {
+    if (!iso) return "never";
+    const d = new Date(iso);
+    const now = new Date();
+    const mins = Math.floor((now - d) / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+  }
+
+  function formatDue(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    const now = new Date();
+    if (d <= now) return "now";
+    const mins = Math.floor((d - now) / 60000);
+    if (mins < 60) return `in ${mins}m`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `in ${hrs}h`;
+    const days = Math.floor(hrs / 24);
+    return `in ${days}d`;
+  }
+
+  async function saveAutoBackupSettings() {
+    clearTimeout(backupSaveTimer);
+    backupSaveTimer = setTimeout(async () => {
+      try {
+        await Promise.all([
+          fetch("/api/settings/auto_backup_enabled", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ value: autoBackupEnabled ? "true" : "false" }),
+          }),
+          fetch("/api/settings/auto_backup_hours", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ value: String(autoBackupHours) }),
+          }),
+          fetch("/api/settings/auto_backup_max", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ value: String(autoBackupMax) }),
+          }),
+        ]);
+        loadBackupStatus();
+      } catch { /* ignore */ }
+    }, 300);
+  }
+
+  async function performBackup() {
+    backingUp = true;
+    backupMessage = "";
+    try {
+      const res = await fetch("/api/settings/backup", { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        const sizeKB = (data.size / 1024).toFixed(1);
+        backupMessage = `Saved to ${data.path} (${sizeKB} KB)`;
+        backupMessageType = "success";
+      } else {
+        const data = await res.json().catch(() => null);
+        backupMessage = data?.detail || "Backup failed";
+        backupMessageType = "error";
+      }
+    } catch (e) {
+      backupMessage = `Backup failed: ${e.message}`;
+      backupMessageType = "error";
+    }
+    backingUp = false;
+  }
+
   // Danger zone
-  let deleteConfirmName = "";
+  let dangerConfirmName = "";
   let deleteError = "";
   let deleting = false;
+  let clearing = false;
+  let clearError = "";
+
+  async function clearAllContacts() {
+    if (dangerConfirmName !== logbookName) {
+      clearError = "Name does not match";
+      return;
+    }
+    let count = "all";
+    try {
+      const res = await fetch("/api/contacts/");
+      if (res.ok) { const data = await res.json(); count = data.length; }
+    } catch {}
+    if (!confirm(`Are you sure you want to delete ${count} QSOs from "${logbookName}"? This cannot be undone.`)) {
+      return;
+    }
+    clearError = "";
+    clearing = true;
+    try {
+      const res = await fetch("/api/contacts/all", { method: "DELETE" });
+      if (res.ok) {
+        const data = await res.json();
+        clearError = `Deleted ${data.deleted} contacts.`;
+      } else {
+        const data = await res.json().catch(() => null);
+        clearError = data?.detail || "Failed to clear contacts";
+      }
+    } catch {
+      clearError = "Failed to clear contacts";
+    }
+    clearing = false;
+  }
 
   async function deleteLogbook() {
-    if (deleteConfirmName !== logbookName) {
+    if (dangerConfirmName !== logbookName) {
       deleteError = "Name does not match";
       return;
     }
@@ -465,6 +671,9 @@
   onMount(() => {
     fetchSettings();
     fetchSpotStatus();
+    loadAuthStatus();
+    loadDbInfo();
+    loadBackupStatus();
     spotStatusInterval = setInterval(fetchSpotStatus, 5000);
   });
 
@@ -731,19 +940,106 @@
     {/if}
   </div>
 
+  <section class="settings-section">
+    <h3>Authentication</h3>
+    <p class="hint">HTTP Basic auth. Username is your callsign. Use <code>--no-auth</code> to bypass.</p>
+    {#if authStatus}
+      {#if authStatus.enabled}
+        <p class="hint" style="color: var(--accent)">Enabled{#if my_callsign} (username: {my_callsign}){/if}</p>
+        <div class="setting-row">
+          <button on:click={disableAuth}>Disable Authentication</button>
+        </div>
+      {:else}
+        <p class="hint">Disabled</p>
+        <div class="setting-row">
+          <label>Password</label>
+          <input type="password" bind:value={authPassword} placeholder="Enter password" autocomplete="new-password" />
+        </div>
+        <div class="setting-row">
+          <label>Confirm</label>
+          <input type="password" bind:value={authConfirm} placeholder="Confirm password" autocomplete="new-password"
+            on:keydown={e => { if (e.key === "Enter") enableAuth(); }} />
+        </div>
+        <div class="setting-row">
+          <button on:click={enableAuth} disabled={authSaving || !authPassword || authPassword !== authConfirm}>
+            {authSaving ? "Saving..." : "Enable Authentication"}
+          </button>
+        </div>
+      {/if}
+    {/if}
+    {#if authMessage}
+      <p class="hint" class:danger-error={authMessageType === "error"} style={authMessageType === "success" ? "color: var(--accent)" : ""}>{authMessage}</p>
+    {/if}
+  </section>
+
+  <section class="settings-section">
+    <h3>Backup</h3>
+    {#if dbInfo}
+      <p class="hint">Database: {dbInfo.path} ({formatSize(dbInfo.size)})</p>
+      <p class="hint">Backups: {dbInfo.directory}</p>
+    {/if}
+    <div class="setting-row">
+      <button on:click={performBackup} disabled={backingUp}>
+        {backingUp ? "Backing up..." : "Backup Now"}
+      </button>
+    </div>
+    {#if backupMessage}
+      <p class="hint" class:danger-error={backupMessageType === "error"} style={backupMessageType === "success" ? "color: var(--accent)" : ""}>{backupMessage}</p>
+    {/if}
+    <div class="setting-row toggle-row">
+      <label class="toggle-label">
+        <input type="checkbox" bind:checked={autoBackupEnabled} on:change={saveAutoBackupSettings} />
+        Auto-backup
+      </label>
+    </div>
+    {#if autoBackupEnabled}
+      <div class="setting-row">
+        <label>Interval (hours)</label>
+        <input type="number" min="1" max="720" bind:value={autoBackupHours} on:input={saveAutoBackupSettings} style="width: 5rem" />
+      </div>
+      <div class="setting-row">
+        <label>Keep max</label>
+        <input type="number" min="1" max="100" bind:value={autoBackupMax} on:input={saveAutoBackupSettings} style="width: 5rem" />
+      </div>
+    {/if}
+    {#if backupStatus}
+      <p class="hint">
+        {#if backupStatus.auto_enabled}
+          Last auto-backup: {timeAgo(backupStatus.last_backup)} — Next: {formatDue(backupStatus.next_due)}
+        {:else}
+          Auto-backup disabled
+        {/if}
+        {#if backupStatus.auto_backup_count > 0 || backupStatus.manual_backup_count > 0}
+          — {backupStatus.auto_backup_count} auto, {backupStatus.manual_backup_count} manual
+        {/if}
+      </p>
+    {/if}
+  </section>
+
   {#if logbookName}
     <section class="settings-section danger-zone">
       <h3>Danger Zone</h3>
-      <p class="danger-text">Permanently delete the logbook <strong>{logbookName}</strong> and all its data. This cannot be undone.</p>
       <div class="setting-row">
-        <label for="delete-confirm">Type <strong>{logbookName}</strong> to confirm</label>
-        <input id="delete-confirm" type="text" bind:value={deleteConfirmName} placeholder={logbookName} autocomplete="off" />
+        <label for="danger-confirm">Type <strong>{logbookName}</strong> to enable</label>
+        <input id="danger-confirm" type="text" bind:value={dangerConfirmName} placeholder={logbookName} autocomplete="off" />
       </div>
+      <div class="danger-separator"></div>
+      <p class="danger-text">Delete all QSOs from <strong>{logbookName}</strong> but keep the logbook and settings.</p>
+      {#if clearError}
+        <p class="danger-error">{clearError}</p>
+      {/if}
+      <div class="setting-row">
+        <button class="danger-btn" on:click={clearAllContacts} disabled={clearing || dangerConfirmName !== logbookName}>
+          {clearing ? "Clearing..." : "Clear All QSOs"}
+        </button>
+      </div>
+      <div class="danger-separator"></div>
+      <p class="danger-text">Permanently delete the logbook <strong>{logbookName}</strong> and all its data. This cannot be undone.</p>
       {#if deleteError}
         <p class="danger-error">{deleteError}</p>
       {/if}
       <div class="setting-row">
-        <button class="danger-btn" on:click={deleteLogbook} disabled={deleting || deleteConfirmName !== logbookName}>
+        <button class="danger-btn" on:click={deleteLogbook} disabled={deleting || dangerConfirmName !== logbookName}>
           {deleting ? "Deleting..." : "Delete Logbook"}
         </button>
       </div>

@@ -945,7 +945,7 @@
   });
 </script>
 
-<main class:dual-mode={page === "dual"} class:parks-mode={page === "parks"} class:spots-mode={page === "spots"} class:grid-mode={page === "grid"}>
+<main class:dual-mode={page === "dual"} class:parks-mode={page === "parks"} class:spots-mode={page === "spots"} class:grid-mode={page === "grid"} class:export-mode={page === "export"}>
   {#if serverShutdown}
     <header>
       <div class="header-left">
@@ -1080,7 +1080,7 @@
           {#if spotsEnabled}<button class="menu-item" class:active={page === "spots" || (page === "dual" && dualRightPage === "spots")} on:click={() => navigate("spots")}>Spots</button>{/if}
           <button class="menu-item" class:active={page === "notifications" || (page === "dual" && dualRightPage === "notifications")} on:click={() => navigate("notifications")}>Notifications{#if unreadCount > 0} ({unreadCount}){/if}</button>
           {#if solarEnabled}<button class="menu-item" class:active={page === "conditions" || (page === "dual" && dualRightPage === "conditions")} on:click={() => navigate("conditions")}>Conditions</button>{/if}
-          <button class="menu-item" class:active={page === "export"} on:click={() => navigate("export")}>Export / Import</button>
+          <button class="menu-item" class:active={page === "export"} on:click={() => navigate("export")}>Import / Export</button>
           <button class="menu-item" class:active={page === "settings"} on:click={() => navigate("settings")}>Settings</button>
           <button class="menu-item" class:active={page === "links"} on:click={() => navigate("links")}>Links</button>
           <button class="menu-item" class:active={page === "about"} on:click={() => navigate("about")}>About</button>
@@ -1271,6 +1271,10 @@
   .page-content {
     max-width: 1100px;
     margin: 0 auto;
+  }
+
+  :global(main.export-mode) .page-content {
+    max-width: 100%;
   }
 
   header {

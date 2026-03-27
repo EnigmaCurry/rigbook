@@ -1,3 +1,4 @@
+import base64
 import logging
 import os
 import sys
@@ -24,10 +25,18 @@ from rigbook.routes.contacts import router as contacts_router
 from rigbook.routes.geo import router as geo_router
 from rigbook.routes.notifications import router as notifications_router
 from rigbook.sse import router as sse_router
-from rigbook.routes.settings import router as settings_router
+from rigbook.routes.settings import (
+    router as settings_router,
+    start_auto_backup,
+    stop_auto_backup,
+    get_auth_settings,
+    _verify_password,
+)
 from rigbook.routes.solar import router as solar_router
 
 logger = logging.getLogger("rigbook")
+
+_no_auth = False
 
 
 def _resource_path(relative: str) -> Path:
@@ -66,12 +75,45 @@ async def lifespan(app: FastAPI):
     await init_db()
     if db_manager.is_open:
         await start_feeds()
+        await start_auto_backup()
     yield
+    await stop_auto_backup()
     await stop_feeds()
     await db_manager.close()
 
 
 app = FastAPI(title="Rigbook", lifespan=lifespan)
+
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    if _no_auth:
+        return await call_next(request)
+    try:
+        auth = await get_auth_settings()
+    except Exception:
+        return await call_next(request)
+    if not auth.get("enabled"):
+        return await call_next(request)
+
+    realm = db_manager.db_name or "rigbook"
+    header = request.headers.get("authorization", "")
+    if header.startswith("Basic "):
+        try:
+            decoded = base64.b64decode(header[6:]).decode("utf-8")
+            username, _, password = decoded.partition(":")
+            if (
+                username.upper() == (auth.get("callsign") or "").upper()
+                and _verify_password(password, auth.get("password", ""), auth.get("salt", ""))
+            ):
+                return await call_next(request)
+        except Exception:
+            pass
+
+    return Response(
+        status_code=401,
+        headers={"WWW-Authenticate": f'Basic realm="{realm}"'},
+    )
 
 
 @app.middleware("http")
@@ -137,7 +179,15 @@ def run() -> None:
         action="store_true",
         help="Do not open the browser automatically",
     )
+    parser.add_argument(
+        "--no-auth",
+        action="store_true",
+        help="Disable authentication even if configured",
+    )
     args = parser.parse_args()
+
+    global _no_auth
+    _no_auth = args.no_auth
 
     db_manager.configure(db_name=args.name, picker=args.pick)
 
