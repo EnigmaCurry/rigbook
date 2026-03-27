@@ -1,5 +1,74 @@
 # Changelog
 
+## v0.1.16
+
+### Import / Export Redesign
+
+- Tab-based Import / Export page with shared preview table and action bar
+- Import preview: stage an ADIF file, review all contacts before committing
+- Full QSO field set in preview table (all 16 columns) with resizable columns
+- Click any row to expand and see all field details plus the raw ADIF line
+- ADIF header info bar above preview (click to expand raw header text)
+- Import dedup: duplicates detected by UUID or callsign+timestamp
+- Cancel button to clear staged import
+
+### Comment Template
+
+- Configurable comment template for ADIF export and import
+- Select QSO fields (POTA, SKCC, Grid, etc.) with editable labels and drag-to-reorder
+- Export: template fields prepended to COMMENT with configurable separator
+- Import: template prefix stripped from comments, with live preview of changes
+- "Suggest from file" button analyzes imported ADIF comments to auto-detect template
+- Colon-optional matching (e.g. "POTA US-9331" matches "POTA: US-9331")
+- Frequency KHz/MHz conversion handled in matching
+- Round-trip safe: APP_RIGBOOK_COMMENT_FMT field preserves separator in exported ADIF
+- Match count shown: "142 of 201 comments stripped"
+- Explanatory message when no template configured or no matches found
+
+### Import Validation
+
+- Validate imported records for field mismatches between comments and normalized ADIF fields
+- Errors tab filters to show only problematic rows
+- Editable fix UI: choose comment value, field value, or type custom value
+- Fixes update the contact in-place and re-strip comments client-side
+- Import button disabled until all errors are resolved
+- SKCC field validation: must start with a digit and be one word
+- Yellow highlight and border around selected row and expander
+
+### Logbook Table
+
+- Draggable column resize handles on logbook table headers
+- Column widths persisted to localStorage
+- Auto-size columns on first load: fixed columns shrink to content, free-form columns fill space
+- Sort/drag click area separated from resize handles
+
+### Database Backup
+
+- Manual backup button in Settings (copies DB to backups/ subdirectory)
+- Auto-backup system with configurable interval (default 24h) and max backups (default 10)
+- Auto-backups named with `_autobackup_` prefix, pruned automatically
+- Manual backups kept indefinitely
+- Last backup time stored in database for reliable scheduling
+- Database file size shown in Settings
+- Backup status: last auto-backup time, next due, counts
+
+### Authentication
+
+- Optional HTTP Basic auth (disabled by default)
+- Username is callsign, password is user-configured
+- Per-database password salt using database filename
+- `--no-auth` CLI flag to bypass authentication
+- WWW-Authenticate realm set to database name for per-logbook credentials
+
+### Other
+
+- Full-width export page layout with side-by-side form and preview on wide screens
+- Row expander stays within viewport regardless of horizontal scroll
+- Version read from package metadata instead of hardcoded
+- "Shift + Scroll" horizontal shortcut added to About page
+- "Clear All QSOs" in Settings Danger Zone with double confirmation
+- Info logging for backups, imports, and mass deletes
+
 ## v0.1.15
 
 ### Multi-Band Filtering
