@@ -490,8 +490,8 @@
                 <th class="col-compact">Country<span class="resize-handle" on:mousedown={e => startResize(e, 11)}></span></th>
                 <th class="col-compact">SKCC<span class="resize-handle" on:mousedown={e => startResize(e, 12)}></span></th>
                 <th class="col-compact">Exch<span class="resize-handle" on:mousedown={e => startResize(e, 13)}></span></th>
+                <th class="col-flex">Notes<span class="resize-handle" on:mousedown={e => startResize(e, 14)}></span></th>
                 <th class="col-flex">Comments</th>
-                <th class="col-flex">Notes<span class="resize-handle" on:mousedown={e => startResize(e, 15)}></span></th>
               </tr>
             </thead>
             <tbody>
@@ -511,8 +511,8 @@
                   <td>{c.country || ""}</td>
                   <td>{c.skcc || ""}</td>
                   <td>{c.skcc_exch ? "Y" : ""}</td>
-                  <td class="truncate">{activeTab === "export" ? renderComment(c, commentTemplate, commentSeparator) : (c.comments || "")}</td>
                   <td class="truncate">{c.notes || ""}</td>
+                  <td class="truncate">{activeTab === "export" ? renderComment(c, commentTemplate, commentSeparator) : (c.comments || "")}</td>
                 </tr>
               {/each}
             </tbody>
