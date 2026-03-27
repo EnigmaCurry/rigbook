@@ -897,7 +897,7 @@
 
   .preview-table-wrap {
     flex: 1;
-    max-height: calc(100vh - 12rem);
+    max-height: calc(100vh - 14rem);
     overflow: auto;
     border: 1px solid var(--border, #555);
     border-radius: 0 0 3px 3px;
