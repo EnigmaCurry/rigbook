@@ -220,6 +220,17 @@ def strip_comment_prefix(
     return comment
 
 
+def record_to_adif_line(record: dict) -> str:
+    """Render an ADIF record dict as a single ADIF line string."""
+    parts = []
+    for key, val in record.items():
+        if val is not None and val != "":
+            s = str(val)
+            parts.append(f"<{key}:{len(s)}>{s}")
+    parts.append("<eor>")
+    return " ".join(parts)
+
+
 def adif_record_to_contact_dict(record: dict) -> dict:
     data = {}
     data["call"] = record.get("CALL", "")
@@ -290,8 +301,21 @@ async def preview_adif(
     contacts = result.scalars().all()
     included = len(contacts)
 
+    comment_template, comment_separator = await _fetch_comment_settings(session)
+
+    previews = []
+    for c in contacts:
+        data = ContactResponse.model_validate(c).model_dump()
+        adif_rec = contact_to_adif_record(
+            c,
+            comment_template=comment_template or None,
+            comment_separator=comment_separator,
+        )
+        data["adif_line"] = record_to_adif_line(adif_rec)
+        previews.append(data)
+
     return {
-        "contacts": [ContactResponse.model_validate(c).model_dump() for c in contacts],
+        "contacts": previews,
         "total": total,
         "included": included,
         "excluded": total - included,
@@ -387,7 +411,11 @@ async def _classify_import_records(
     template: list[dict],
     separator: str,
 ):
-    """Classify ADIF records into new, duplicate, and skipped without committing."""
+    """Classify ADIF records into new, duplicate, and skipped without committing.
+
+    Returns (new_records, duplicates, skipped) where new_records is a list
+    of (contact_dict, raw_adif_record) tuples.
+    """
     new_records = []
     skipped = 0
     duplicates = 0
@@ -438,7 +466,7 @@ async def _classify_import_records(
         if is_dup:
             duplicates += 1
         else:
-            new_records.append(data)
+            new_records.append((data, record))
     return new_records, duplicates, skipped
 
 
@@ -458,9 +486,8 @@ async def preview_import_adif(
         records, session, template, separator
     )
 
-    # Convert dicts to contact-like objects for consistent response
     contacts = []
-    for data in new_records:
+    for data, raw_record in new_records:
         contact_data = {
             "id": 0,
             "uuid": data.get("uuid"),
@@ -484,6 +511,7 @@ async def preview_import_adif(
             if data.get("timestamp")
             else None,
             "updated_at": None,
+            "adif_line": record_to_adif_line(raw_record),
         }
         contacts.append(contact_data)
 
@@ -504,7 +532,7 @@ async def import_adif(file: UploadFile, session: AsyncSession = Depends(get_sess
         records, session, template, separator
     )
 
-    for data in new_records:
+    for data, _raw in new_records:
         contact = Contact(**data)
         session.add(contact)
 

@@ -543,6 +543,9 @@
                         {:else}
                           {#if c.comments}<div class="detail-field detail-full"><span class="detail-label">Comments</span> {c.comments}</div>{/if}
                         {/if}
+                        {#if c.adif_line}
+                          <div class="detail-field detail-full detail-adif"><span class="detail-label">ADIF</span><code>{c.adif_line}</code></div>
+                        {/if}
                       </div>
                     </td>
                   </tr>
@@ -907,6 +910,13 @@
     font-size: 0.7rem;
     text-transform: uppercase;
     margin-right: 0.3rem;
+  }
+
+  .detail-adif code {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    word-break: break-all;
+    white-space: pre-wrap;
   }
 
   .preview-table .truncate {
