@@ -972,6 +972,9 @@
     border-radius: 3px;
     background: var(--bg-header, var(--bg));
     margin-top: 0.5rem;
+    position: sticky;
+    left: 0;
+    max-width: calc(100vw - 315px - 3rem);
     gap: 1rem;
   }
 
