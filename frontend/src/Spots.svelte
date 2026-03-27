@@ -661,6 +661,7 @@
   }
 
   function clearAll() {
+    if (leafletMap) leafletMap.closePopup();
     clearLines();
     hoveredSpot = null;
     lockedSpot = null;
@@ -795,6 +796,7 @@
   }
 
   function onSpotClick(spot) {
+    if (leafletMap) leafletMap.closePopup();
     if (lockedSpot && spotKey(lockedSpot) === spotKey(spot)) {
       lockedSpot = null;
       selectedSpotter = null;
@@ -807,6 +809,8 @@
     drawTriangleForSpot(spot);
     filterMarkersForSpot(spot);
     fitMapToSpot(spot);
+    const hm = homeMarkers[spot.call];
+    if (hm) hm.openPopup();
   }
 
   function fitMapToSpot(spot) {
