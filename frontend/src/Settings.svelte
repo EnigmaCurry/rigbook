@@ -190,7 +190,12 @@
       clearError = "Name does not match";
       return;
     }
-    if (!confirm(`Are you sure you want to delete ALL QSOs from "${logbookName}"? This cannot be undone.`)) {
+    let count = "all";
+    try {
+      const res = await fetch("/api/contacts/");
+      if (res.ok) { const data = await res.json(); count = data.length; }
+    } catch {}
+    if (!confirm(`Are you sure you want to delete ${count} QSOs from "${logbookName}"? This cannot be undone.`)) {
       return;
     }
     clearError = "";
