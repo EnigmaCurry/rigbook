@@ -316,26 +316,7 @@ async def export_adif(
     result = await session.execute(stmt)
     contacts = result.scalars().all()
 
-    # Fetch comment template settings
-    comment_template = []
-    comment_separator = "|"
-    tpl_row = (
-        await session.execute(
-            select(Setting).where(Setting.key == "comment_template")
-        )
-    ).scalar_one_or_none()
-    if tpl_row and tpl_row.value:
-        try:
-            comment_template = json.loads(tpl_row.value)
-        except (json.JSONDecodeError, TypeError):
-            comment_template = []
-    sep_row = (
-        await session.execute(
-            select(Setting).where(Setting.key == "comment_separator")
-        )
-    ).scalar_one_or_none()
-    if sep_row and sep_row.value:
-        comment_separator = sep_row.value
+    comment_template, comment_separator = await _fetch_comment_settings(session)
 
     doc = {
         "HEADER": {
@@ -377,15 +358,9 @@ async def export_adif(
     )
 
 
-@router.post("/import")
-async def import_adif(file: UploadFile, session: AsyncSession = Depends(get_session)):
-    content = (await file.read()).decode("utf-8", errors="replace")
-    doc = adi.loads(content)
-    records = doc.get("RECORDS", [])
-
-    # Fetch comment template settings for prefix stripping
-    import_template = []
-    import_separator = "|"
+async def _fetch_comment_settings(session: AsyncSession):
+    template = []
+    separator = "|"
     tpl_row = (
         await session.execute(
             select(Setting).where(Setting.key == "comment_template")
@@ -393,34 +368,42 @@ async def import_adif(file: UploadFile, session: AsyncSession = Depends(get_sess
     ).scalar_one_or_none()
     if tpl_row and tpl_row.value:
         try:
-            import_template = json.loads(tpl_row.value)
+            template = json.loads(tpl_row.value)
         except (json.JSONDecodeError, TypeError):
-            import_template = []
+            template = []
     sep_row = (
         await session.execute(
             select(Setting).where(Setting.key == "comment_separator")
         )
     ).scalar_one_or_none()
     if sep_row and sep_row.value:
-        import_separator = sep_row.value
+        separator = sep_row.value
+    return template, separator
 
-    imported = 0
+
+async def _classify_import_records(
+    records: list[dict],
+    session: AsyncSession,
+    template: list[dict],
+    separator: str,
+):
+    """Classify ADIF records into new, duplicate, and skipped without committing."""
+    new_records = []
     skipped = 0
     duplicates = 0
     for record in records:
         data = adif_record_to_contact_dict(record)
-        # Strip template prefix from comments if applicable
-        if data.get("comments") and import_template:
+        if data.get("comments") and template:
             data["comments"] = strip_comment_prefix(
-                data["comments"], record, import_template, import_separator
+                data["comments"], record, template, separator
             )
             if not data["comments"]:
                 del data["comments"]
         if not data.get("call"):
             skipped += 1
             continue
-        # Dedup by UUID first
         record_uuid = data.get("uuid")
+        is_dup = False
         if record_uuid:
             existing = (
                 await session.execute(
@@ -428,10 +411,8 @@ async def import_adif(file: UploadFile, session: AsyncSession = Depends(get_sess
                 )
             ).scalar_one_or_none()
             if existing:
-                duplicates += 1
-                continue
+                is_dup = True
         else:
-            # Fall back to call + timestamp dedup (ignore seconds)
             ts = data.get("timestamp")
             if ts:
                 check_ts = (
@@ -453,11 +434,79 @@ async def import_adif(file: UploadFile, session: AsyncSession = Depends(get_sess
                     )
                 ).scalar_one_or_none()
                 if existing:
-                    duplicates += 1
-                    continue
+                    is_dup = True
+        if is_dup:
+            duplicates += 1
+        else:
+            new_records.append(data)
+    return new_records, duplicates, skipped
+
+
+async def _parse_adif_upload(file: UploadFile):
+    content = (await file.read()).decode("utf-8", errors="replace")
+    doc = adi.loads(content)
+    return doc.get("RECORDS", [])
+
+
+@router.post("/import/preview")
+async def preview_import_adif(
+    file: UploadFile, session: AsyncSession = Depends(get_session)
+):
+    records = await _parse_adif_upload(file)
+    template, separator = await _fetch_comment_settings(session)
+    new_records, duplicate_count, skipped_count = await _classify_import_records(
+        records, session, template, separator
+    )
+
+    # Convert dicts to contact-like objects for consistent response
+    contacts = []
+    for data in new_records:
+        contact_data = {
+            "id": 0,
+            "uuid": data.get("uuid"),
+            "call": data.get("call", ""),
+            "freq": data.get("freq"),
+            "mode": data.get("mode"),
+            "rst_sent": data.get("rst_sent"),
+            "rst_recv": data.get("rst_recv"),
+            "pota_park": data.get("pota_park"),
+            "name": data.get("name"),
+            "qth": data.get("qth"),
+            "state": data.get("state"),
+            "country": data.get("country"),
+            "dxcc": data.get("dxcc"),
+            "grid": data.get("grid"),
+            "skcc": data.get("skcc"),
+            "skcc_exch": bool(data.get("skcc_exch")),
+            "comments": data.get("comments"),
+            "notes": data.get("notes"),
+            "timestamp": data.get("timestamp", datetime.now(timezone.utc)).isoformat()
+            if data.get("timestamp")
+            else None,
+            "updated_at": None,
+        }
+        contacts.append(contact_data)
+
+    return {
+        "contacts": contacts,
+        "total": len(records),
+        "new_count": len(new_records),
+        "duplicate_count": duplicate_count,
+        "skipped_count": skipped_count,
+    }
+
+
+@router.post("/import")
+async def import_adif(file: UploadFile, session: AsyncSession = Depends(get_session)):
+    records = await _parse_adif_upload(file)
+    template, separator = await _fetch_comment_settings(session)
+    new_records, duplicates, skipped = await _classify_import_records(
+        records, session, template, separator
+    )
+
+    for data in new_records:
         contact = Contact(**data)
         session.add(contact)
-        imported += 1
 
     await session.commit()
-    return {"imported": imported, "skipped": skipped, "duplicates": duplicates}
+    return {"imported": len(new_records), "skipped": skipped, "duplicates": duplicates}

@@ -3,6 +3,8 @@
   import Autocomplete from "./Autocomplete.svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
 
+  // Tab state
+  let activeTab = "export";
   let importing = false;
   let message = "";
   let messageType = "";
@@ -25,7 +27,6 @@
 
   let commentTemplate = [];
   let commentSeparator = "|";
-  let templateExpanded = false;
   let addField = "";
   let dragIndex = null;
   let dropIndex = null;
@@ -89,15 +90,8 @@
     saveCommentTemplate();
   }
 
-  function handleDragStart(index) {
-    dragIndex = index;
-  }
-
-  function handleDragOver(event, index) {
-    event.preventDefault();
-    dropIndex = index;
-  }
-
+  function handleDragStart(index) { dragIndex = index; }
+  function handleDragOver(event, index) { event.preventDefault(); dropIndex = index; }
   function handleDrop(index) {
     if (dragIndex !== null && dragIndex !== index) {
       const items = [...commentTemplate];
@@ -109,11 +103,7 @@
     dragIndex = null;
     dropIndex = null;
   }
-
-  function handleDragEnd() {
-    dragIndex = null;
-    dropIndex = null;
-  }
+  function handleDragEnd() { dragIndex = null; dropIndex = null; }
 
   // Country autocomplete
   let countries = [];
@@ -141,7 +131,7 @@
     loadCommentTemplate();
   });
 
-  // Filter state
+  // Export filter state
   let dateFrom = "";
   let dateTo = "";
   let commentFilter = "";
@@ -151,10 +141,18 @@
   let bandFilter = "";
   let exportTitle = "";
 
-  // Preview state
-  let preview = null;
-  let loadingPreview = false;
+  // Export preview state
+  let exportPreview = null;
   let debounceTimer = null;
+
+  // Import state
+  let importFile = null;
+  let importFileName = "";
+  let importPreview = null;
+  let loadingImport = false;
+
+  // Unified preview based on active tab
+  $: currentPreview = activeTab === "export" ? exportPreview : importPreview;
 
   const BANDS = [
     { name: "160m", lo: 1800, hi: 2000 },
@@ -190,9 +188,7 @@
     try {
       const d = new Date(ts);
       return d.toISOString().replace("T", " ").substring(0, 19) + "z";
-    } catch {
-      return ts;
-    }
+    } catch { return ts; }
   }
 
   function buildParams() {
@@ -207,29 +203,22 @@
     return params;
   }
 
-  async function fetchPreview() {
-    loadingPreview = true;
+  async function fetchExportPreview() {
     try {
       const params = buildParams();
       const qs = params.toString();
       const url = "/api/adif/preview" + (qs ? "?" + qs : "");
       const res = await fetch(url);
-      if (res.ok) {
-        preview = await res.json();
-      }
-    } catch {
-      // ignore fetch errors
-    }
-    loadingPreview = false;
+      if (res.ok) exportPreview = await res.json();
+    } catch { /* ignore */ }
   }
 
-  function schedulePreview() {
+  function scheduleExportPreview() {
     clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(fetchPreview, 300);
+    debounceTimer = setTimeout(fetchExportPreview, 300);
   }
 
-  // Trigger on any filter change
-  $: dateFrom, dateTo, commentFilter, skccValidated, countryFilter, modeFilter, bandFilter, schedulePreview();
+  $: dateFrom, dateTo, commentFilter, skccValidated, countryFilter, modeFilter, bandFilter, scheduleExportPreview();
 
   // Column resize
   let resizeCol = null;
@@ -285,14 +274,43 @@
     window.location.href = "/api/adif/export" + (qs ? "?" + qs : "");
   }
 
-  async function importAdif(event) {
+  async function stageImportFile(event) {
     const file = event.target.files[0];
     if (!file) return;
-    importing = true;
+    importFile = file;
+    importFileName = file.name;
+    loadingImport = true;
     message = "";
     try {
       const formData = new FormData();
       formData.append("file", file);
+      const res = await fetch("/api/adif/import/preview", {
+        method: "POST",
+        body: formData,
+      });
+      if (res.ok) {
+        importPreview = await res.json();
+      } else {
+        const data = await res.json().catch(() => null);
+        message = data?.detail || `Error: ${res.status} ${res.statusText}`;
+        messageType = "error";
+        importPreview = null;
+      }
+    } catch (e) {
+      message = `Network error: ${e.message}`;
+      messageType = "error";
+      importPreview = null;
+    }
+    loadingImport = false;
+  }
+
+  async function executeImport() {
+    if (!importFile) return;
+    importing = true;
+    message = "";
+    try {
+      const formData = new FormData();
+      formData.append("file", importFile);
       const res = await fetch("/api/adif/import", {
         method: "POST",
         body: formData,
@@ -301,7 +319,10 @@
         const data = await res.json();
         message = `Imported ${data.imported} contacts.${data.duplicates ? ` ${data.duplicates} duplicates skipped.` : ""}${data.skipped ? ` ${data.skipped} invalid skipped.` : ""}`;
         messageType = "success";
-        fetchPreview();
+        importFile = null;
+        importFileName = "";
+        importPreview = null;
+        fetchExportPreview();
       } else {
         const data = await res.json().catch(() => null);
         message = data?.detail || `Error: ${res.status} ${res.statusText}`;
@@ -312,75 +333,80 @@
       messageType = "error";
     }
     importing = false;
-    event.target.value = "";
   }
 </script>
 
 <div class="export-import">
-  <div class="export-layout">
-    <div class="export-form">
-      <h2>Export</h2>
+  <div class="tab-bar">
+    <button class="tab" class:active={activeTab === "export"} on:click={() => activeTab = "export"}>Export</button>
+    <button class="tab" class:active={activeTab === "import"} on:click={() => activeTab = "import"}>Import</button>
+  </div>
 
-      <div class="title-row">
-        <label>
-          Title
-          <input type="text" bind:value={exportTitle} placeholder="optional — included in filename" />
+  <div class="main-layout">
+    <div class="sidebar">
+      {#if activeTab === "export"}
+        <div class="title-row">
+          <label>
+            Title
+            <input type="text" bind:value={exportTitle} placeholder="optional — included in filename" />
+          </label>
+        </div>
+
+        <div class="filters">
+          <div class="filter-row">
+            <label>
+              Date from
+              <input type="date" bind:value={dateFrom} />
+            </label>
+            <label>
+              Date to
+              <input type="date" bind:value={dateTo} />
+            </label>
+          </div>
+          <div class="filter-row">
+            <label>
+              Comment / Notes
+              <input type="text" bind:value={commentFilter} placeholder="substring search" />
+            </label>
+            <label>
+              Country
+              <Autocomplete bind:value={countryFilter} items={countryItems} on:blur={normalizeCountry} />
+            </label>
+          </div>
+          <div class="filter-row">
+            <label>
+              Mode
+              <input type="text" bind:value={modeFilter} placeholder="e.g. CW, SSB" />
+            </label>
+            <label>
+              Band
+              <select bind:value={bandFilter}>
+                <option value="">All</option>
+                {#each BANDS as b}
+                  <option value={b.name}>{b.name}</option>
+                {/each}
+              </select>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" bind:checked={skccValidated} />
+              SKCC Validated
+            </label>
+          </div>
+        </div>
+      {:else}
+        <p>Select an ADIF file to preview before importing.</p>
+        <label class="file-label">
+          <input type="file" accept=".adi,.adif,.ADI,.ADIF" on:change={stageImportFile} disabled={importing || loadingImport} />
+          {loadingImport ? "Loading..." : "Choose ADIF File"}
         </label>
-      </div>
-
-      <div class="filters">
-        <div class="filter-row">
-          <label>
-            Date from
-            <input type="date" bind:value={dateFrom} />
-          </label>
-          <label>
-            Date to
-            <input type="date" bind:value={dateTo} />
-          </label>
-        </div>
-        <div class="filter-row">
-          <label>
-            Comment / Notes
-            <input type="text" bind:value={commentFilter} placeholder="substring search" />
-          </label>
-          <label>
-            Country
-            <Autocomplete bind:value={countryFilter} items={countryItems} on:blur={normalizeCountry} />
-          </label>
-        </div>
-        <div class="filter-row">
-          <label>
-            Mode
-            <input type="text" bind:value={modeFilter} placeholder="e.g. CW, SSB" />
-          </label>
-          <label>
-            Band
-            <select bind:value={bandFilter}>
-              <option value="">All</option>
-              {#each BANDS as b}
-                <option value={b.name}>{b.name}</option>
-              {/each}
-            </select>
-          </label>
-          <label class="checkbox-label">
-            <input type="checkbox" bind:checked={skccValidated} />
-            SKCC Validated
-          </label>
-        </div>
-      </div>
-
-      {#if preview}
-        <div class="stats-bar">
-          Showing {preview.included} of {preview.total} contacts ({preview.excluded} excluded)
-        </div>
+        {#if importFileName}
+          <p class="file-name">{importFileName}</p>
+        {/if}
       {/if}
 
-      <button on:click={exportAdif}>Download ADIF{preview ? ` (${preview.included})` : ""}</button>
-
       <div class="comment-template-section">
-        <h2>Comment Template</h2>
-        <p class="help-text">Selected fields are prepended to COMMENT in exported ADIF and stripped on import. Empty fields are skipped.</p>
+        <h3>Comment Template</h3>
+        <p class="help-text">Fields prepended to COMMENT on export, stripped on import.</p>
 
         {#if commentTemplate.length > 0}
           <div class="template-list">
@@ -418,7 +444,6 @@
               {/each}
             </select>
           </div>
-
           <div class="separator-row">
             <label>
               Separator
@@ -435,26 +460,18 @@
 
         {#if commentTemplate.length > 0}
           <span class="preview-example">
-            Preview: {commentTemplate.map(e => `${e.label}: …`).join(` ${commentSeparator.trim()} `)}{ commentTemplate.length > 0 ? ` ${commentSeparator.trim()} ` : "" }your comment
+            {commentTemplate.map(e => `${e.label}: …`).join(` ${commentSeparator.trim()} `)}{ commentTemplate.length > 0 ? ` ${commentSeparator.trim()} ` : "" }comment
           </span>
         {/if}
       </div>
-
-      <h2>Import</h2>
-      <p>Import contacts from an ADIF (.adi) file. Duplicates (same callsign + timestamp) are automatically skipped.</p>
-      <label class="file-label">
-        <input type="file" accept=".adi,.adif,.ADI,.ADIF" on:change={importAdif} disabled={importing} />
-        {importing ? "Importing..." : "Choose ADIF File"}
-      </label>
 
       {#if message}
         <p class="message" class:error={messageType === "error"}>{message}</p>
       {/if}
     </div>
 
-    {#if preview && preview.contacts.length > 0}
-      <div class="export-preview">
-        <h2>Preview</h2>
+    <div class="preview-pane">
+      {#if currentPreview && currentPreview.contacts && currentPreview.contacts.length > 0}
         <div class="preview-table-wrap">
           <table class="preview-table">
             <thead>
@@ -468,76 +485,137 @@
               </tr>
             </thead>
             <tbody>
-              {#each preview.contacts as c}
+              {#each currentPreview.contacts as c}
                 <tr>
                   <td>{formatTimestamp(c.timestamp)}</td>
                   <td class="call">{c.call}</td>
                   <td class="freq-cell">{formatFreq(c.freq)} {#if freqToBand(c.freq)}<span class="band-tag" style="background: {bandColor(freqToBand(c.freq))}; color: {bandTextColor(freqToBand(c.freq))}">{freqToBand(c.freq)}</span>{/if}</td>
                   <td>{c.mode || ""}</td>
                   <td>{c.country || ""}</td>
-                  <td class="truncate">{renderComment(c, commentTemplate, commentSeparator)}</td>
+                  <td class="truncate">{activeTab === "export" ? renderComment(c, commentTemplate, commentSeparator) : (c.comments || "")}</td>
                 </tr>
               {/each}
             </tbody>
           </table>
         </div>
+      {:else if activeTab === "import" && !importFile && !loadingImport}
+        <div class="empty-preview">No file selected</div>
+      {:else if activeTab === "export" && exportPreview && exportPreview.contacts.length === 0}
+        <div class="empty-preview">No contacts match filters</div>
+      {/if}
+
+      <div class="action-bar">
+        {#if activeTab === "export"}
+          <span class="action-summary">
+            {#if exportPreview}
+              Exporting {exportPreview.included} of {exportPreview.total} contacts
+              {#if exportPreview.excluded > 0}({exportPreview.excluded} excluded by filters){/if}
+            {/if}
+          </span>
+          <button class="action-btn" on:click={exportAdif} disabled={!exportPreview || exportPreview.included === 0}>
+            Download ADIF
+          </button>
+        {:else}
+          <span class="action-summary">
+            {#if importPreview}
+              Importing {importPreview.new_count} new QSOs
+              {#if importPreview.duplicate_count > 0}({importPreview.duplicate_count} duplicates skipped){/if}
+              {#if importPreview.skipped_count > 0}({importPreview.skipped_count} invalid skipped){/if}
+            {/if}
+          </span>
+          <button class="action-btn" on:click={executeImport} disabled={!importPreview || importPreview.new_count === 0 || importing}>
+            {importing ? "Importing..." : "Import"}
+          </button>
+        {/if}
       </div>
-    {/if}
+    </div>
   </div>
 </div>
 
 <style>
   .export-import {
     width: 100%;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
   }
 
-  .export-layout {
+  .tab-bar {
+    display: flex;
+    gap: 0;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border, #555);
+  }
+
+  .tab {
+    background: none;
+    color: var(--text-muted);
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 0.5rem 1.5rem;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .tab:hover {
+    color: var(--text);
+    background: none;
+  }
+
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    background: none;
+  }
+
+  .main-layout {
     display: flex;
     gap: 1.5rem;
     align-items: flex-start;
+    flex: 1;
+    min-height: 0;
   }
 
-  .export-form {
+  .sidebar {
     flex: 0 0 auto;
     min-width: 0;
     max-width: 420px;
   }
 
-  .export-preview {
+  .preview-pane {
     flex: 1 1 0;
     min-width: 0;
-  }
-
-  .export-preview .preview-table-wrap {
-    max-height: calc(100vh - 10rem);
+    display: flex;
+    flex-direction: column;
   }
 
   @media (max-width: 900px) {
-    .export-layout {
+    .main-layout {
       flex-direction: column;
     }
 
-    .export-form {
+    .sidebar {
+      width: 100%;
+      max-width: none;
+    }
+
+    .preview-pane {
       width: 100%;
     }
 
-    .export-preview {
-      width: 100%;
-    }
-
-    .export-preview .preview-table-wrap {
-      max-height: 400px;
+    .preview-table-wrap {
+      max-height: 400px !important;
     }
   }
 
-  h2 {
+  h3 {
     color: var(--accent);
-    font-size: 1.2rem;
-    margin: 1.5rem 0 0.5rem 0;
-  }
-
-  h2:first-child {
-    margin-top: 0;
+    font-size: 1rem;
+    margin: 1.5rem 0 0.3rem 0;
   }
 
   p {
@@ -612,11 +690,47 @@
     margin: 0;
   }
 
-  .stats-bar {
+  /* Action bar */
+  .action-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--border, #555);
+    border-radius: 3px;
+    background: var(--bg-header, var(--bg));
+    margin-top: 0.5rem;
+    gap: 1rem;
+  }
+
+  .action-summary {
     color: var(--text-muted);
     font-size: 0.85rem;
-    margin-bottom: 0.75rem;
     font-weight: bold;
+  }
+
+  .action-btn {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    padding: 0.4rem 1.2rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: bold;
+    border-radius: 3px;
+    cursor: pointer;
+    margin: 0;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .action-btn:hover:not(:disabled) {
+    background: var(--accent-hover);
+  }
+
+  .action-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
   }
 
   button {
@@ -637,9 +751,9 @@
   }
 
   .preview-table-wrap {
-    max-height: 400px;
+    flex: 1;
+    max-height: calc(100vh - 12rem);
     overflow-y: auto;
-    margin-bottom: 1.5rem;
     border: 1px solid var(--border, #555);
     border-radius: 3px;
   }
@@ -721,6 +835,15 @@
     white-space: nowrap;
   }
 
+  .empty-preview {
+    color: var(--text-muted);
+    font-style: italic;
+    padding: 2rem;
+    text-align: center;
+    border: 1px solid var(--border, #555);
+    border-radius: 3px;
+  }
+
   .file-label {
     display: inline-block;
     background: var(--accent);
@@ -731,6 +854,7 @@
     font-weight: bold;
     border-radius: 3px;
     cursor: pointer;
+    margin-bottom: 0.5rem;
   }
 
   .file-label:hover {
@@ -739,6 +863,12 @@
 
   .file-label input[type="file"] {
     display: none;
+  }
+
+  .file-name {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 0 0 0.5rem 0;
   }
 
   .message {
@@ -752,8 +882,7 @@
   }
 
   .comment-template-section {
-    margin-bottom: 1.5rem;
-    max-width: 500px;
+    margin-bottom: 1rem;
   }
 
   .template-controls {
