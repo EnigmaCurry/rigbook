@@ -1101,8 +1101,8 @@
         <thead>
           <tr>
             {#each columns as col (col.key)}
-              <th class="sortable" class:drag-over={dragOverCol === col.key && dragCol !== col.key} draggable="true" on:dragstart={e => onColDragStart(e, col.key)} on:dragover={e => onColDragOver(e, col.key)} on:drop={e => onColDrop(e, col.key)} on:dragend={onColDragEnd} on:click={() => toggleSort(col.key)}>
-                {col.label}{#if sortCol === col.key}{sortAsc ? " ▲" : " ▼"}{/if}<span class="resize-handle" on:mousedown={startColResize}></span>
+              <th class:drag-over={dragOverCol === col.key && dragCol !== col.key} on:dragover={e => onColDragOver(e, col.key)} on:drop={e => onColDrop(e, col.key)}>
+                <span class="col-label" draggable="true" on:dragstart={e => onColDragStart(e, col.key)} on:dragend={onColDragEnd} on:click={() => toggleSort(col.key)}>{col.label}{#if sortCol === col.key}{sortAsc ? " ▲" : " ▼"}{/if}</span><span class="resize-handle" on:mousedown={startColResize}></span>
               </th>
             {/each}
           </tr>
@@ -1532,12 +1532,12 @@
     z-index: 1;
   }
 
-  th.sortable {
+  .col-label {
     cursor: pointer;
     user-select: none;
   }
 
-  th.sortable:hover {
+  .col-label:hover {
     color: var(--accent);
   }
   th.drag-over {
