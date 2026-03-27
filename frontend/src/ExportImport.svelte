@@ -646,20 +646,20 @@
               <tr>
                 <th class="col-compact">UTC<span class="resize-handle" on:mousedown={e => startResize(e, 0)}></span></th>
                 <th class="col-compact">Call<span class="resize-handle" on:mousedown={e => startResize(e, 1)}></span></th>
-                <th class="col-compact">Freq<span class="resize-handle" on:mousedown={e => startResize(e, 2)}></span></th>
-                <th class="col-compact">Mode<span class="resize-handle" on:mousedown={e => startResize(e, 3)}></span></th>
-                <th class="col-compact">RST S<span class="resize-handle" on:mousedown={e => startResize(e, 4)}></span></th>
-                <th class="col-compact">RST R<span class="resize-handle" on:mousedown={e => startResize(e, 5)}></span></th>
-                <th class="col-flex">Name<span class="resize-handle" on:mousedown={e => startResize(e, 6)}></span></th>
-                <th class="col-compact">POTA<span class="resize-handle" on:mousedown={e => startResize(e, 7)}></span></th>
-                <th class="col-compact">Grid<span class="resize-handle" on:mousedown={e => startResize(e, 8)}></span></th>
-                <th class="col-flex">QTH<span class="resize-handle" on:mousedown={e => startResize(e, 9)}></span></th>
-                <th class="col-compact">State<span class="resize-handle" on:mousedown={e => startResize(e, 10)}></span></th>
-                <th class="col-compact">Country<span class="resize-handle" on:mousedown={e => startResize(e, 11)}></span></th>
-                <th class="col-compact">SKCC<span class="resize-handle" on:mousedown={e => startResize(e, 12)}></span></th>
-                <th class="col-compact">Exch<span class="resize-handle" on:mousedown={e => startResize(e, 13)}></span></th>
-                <th class="col-flex">Notes<span class="resize-handle" on:mousedown={e => startResize(e, 14)}></span></th>
-                <th class="col-flex">Comments</th>
+                <th class="col-comment">Comments<span class="resize-handle" on:mousedown={e => startResize(e, 2)}></span></th>
+                <th class="col-compact">Freq<span class="resize-handle" on:mousedown={e => startResize(e, 3)}></span></th>
+                <th class="col-compact">Mode<span class="resize-handle" on:mousedown={e => startResize(e, 4)}></span></th>
+                <th class="col-compact">RST S<span class="resize-handle" on:mousedown={e => startResize(e, 5)}></span></th>
+                <th class="col-compact">RST R<span class="resize-handle" on:mousedown={e => startResize(e, 6)}></span></th>
+                <th class="col-flex">Name<span class="resize-handle" on:mousedown={e => startResize(e, 7)}></span></th>
+                <th class="col-compact">POTA<span class="resize-handle" on:mousedown={e => startResize(e, 8)}></span></th>
+                <th class="col-compact">Grid<span class="resize-handle" on:mousedown={e => startResize(e, 9)}></span></th>
+                <th class="col-flex">QTH<span class="resize-handle" on:mousedown={e => startResize(e, 10)}></span></th>
+                <th class="col-compact">State<span class="resize-handle" on:mousedown={e => startResize(e, 11)}></span></th>
+                <th class="col-compact">Country<span class="resize-handle" on:mousedown={e => startResize(e, 12)}></span></th>
+                <th class="col-compact">SKCC<span class="resize-handle" on:mousedown={e => startResize(e, 13)}></span></th>
+                <th class="col-compact">Exch<span class="resize-handle" on:mousedown={e => startResize(e, 14)}></span></th>
+                <th class="col-flex">Notes</th>
               </tr>
             </thead>
             <tbody>
@@ -667,6 +667,7 @@
                 <tr class="clickable" class:expanded={expandedRow === i} class:has-warning={c.warnings && c.warnings.length > 0} on:click={() => toggleRow(i)}>
                   <td>{formatTimestamp(c.timestamp)}</td>
                   <td class="call">{c.call}</td>
+                  <td class="truncate">{#if activeTab === "import" && c.original_comment && c.original_comment !== (c.comments || "")}<span class="comment-modified" title="Original: {c.original_comment}">* </span>{/if}{activeTab === "export" ? renderComment(c, commentTemplate, commentSeparator) : (c.comments || "")}</td>
                   <td class="freq-cell">{formatFreq(c.freq)} {#if freqToBand(c.freq)}<span class="band-tag" style="background: {bandColor(freqToBand(c.freq))}; color: {bandTextColor(freqToBand(c.freq))}">{freqToBand(c.freq)}</span>{/if}</td>
                   <td>{c.mode || ""}</td>
                   <td>{c.rst_sent || ""}</td>
@@ -680,7 +681,6 @@
                   <td>{c.skcc || ""}</td>
                   <td>{c.skcc_exch ? "Y" : ""}</td>
                   <td class="truncate">{c.notes || ""}</td>
-                  <td class="truncate">{activeTab === "export" ? renderComment(c, commentTemplate, commentSeparator) : (c.comments || "")}{#if activeTab === "import" && c.original_comment && c.original_comment !== (c.comments || "")}<span class="comment-modified" title="Original: {c.original_comment}"> *</span>{/if}</td>
                 </tr>
                 {#if expandedRow === i}
                   <tr class="detail-row">
@@ -1250,6 +1250,7 @@
 
   .preview-table .col-compact { width: 5rem; }
   .preview-table .col-flex { width: 8rem; }
+  .preview-table .col-comment { width: 25rem; }
 
   .preview-table .clickable {
     cursor: pointer;
