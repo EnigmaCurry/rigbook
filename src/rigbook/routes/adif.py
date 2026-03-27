@@ -497,7 +497,8 @@ def _validate_import_record(
         "skcc": "SKCC",
     }
 
-    sep = (separator or "|").strip()
+    fmt_sep = record.get("APP_RIGBOOK_COMMENT_FMT")
+    sep = (fmt_sep or separator or "|").strip()
     padded = f" {sep} "
 
     # Build expected "Label: value" for each template field from normalized fields
