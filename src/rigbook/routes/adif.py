@@ -881,8 +881,8 @@ async def import_adif(file: UploadFile, session: AsyncSession = Depends(get_sess
 
 
 IMPORT_FIELDS = {
-    "call", "freq", "mode", "rst_sent", "rst_recv", "name", "qth",
-    "state", "country", "grid", "pota_park", "skcc", "skcc_exch",
+    "uuid", "call", "freq", "mode", "rst_sent", "rst_recv", "name", "qth",
+    "state", "country", "dxcc", "grid", "pota_park", "skcc", "skcc_exch",
     "comments", "notes",
 }
 
@@ -903,11 +903,12 @@ async def import_confirmed(
             continue
         if c.get("timestamp"):
             try:
-                data["timestamp"] = datetime.fromisoformat(
-                    c["timestamp"].replace("Z", "+00:00")
-                    if isinstance(c["timestamp"], str)
-                    else c["timestamp"]
-                )
+                ts = c["timestamp"]
+                if isinstance(ts, str):
+                    ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                if ts.tzinfo is not None:
+                    ts = ts.replace(tzinfo=None)
+                data["timestamp"] = ts
             except (ValueError, TypeError):
                 pass
         # Dedup by UUID
