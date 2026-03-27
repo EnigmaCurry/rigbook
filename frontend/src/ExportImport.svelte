@@ -640,7 +640,7 @@
                   <td>{c.skcc || ""}</td>
                   <td>{c.skcc_exch ? "Y" : ""}</td>
                   <td class="truncate">{c.notes || ""}</td>
-                  <td class="truncate">{activeTab === "export" ? renderComment(c, commentTemplate, commentSeparator) : (c.comments || "")}</td>
+                  <td class="truncate">{activeTab === "export" ? renderComment(c, commentTemplate, commentSeparator) : (c.comments || "")}{#if activeTab === "import" && c.original_comment && c.original_comment !== (c.comments || "")}<span class="comment-modified" title="Original: {c.original_comment}"> *</span>{/if}</td>
                 </tr>
                 {#if expandedRow === i}
                   <tr class="detail-row">
@@ -690,7 +690,12 @@
                         {#if activeTab === "export"}
                           {#if renderComment(c, commentTemplate, commentSeparator)}<div class="detail-field detail-full"><span class="detail-label">Comments</span> {renderComment(c, commentTemplate, commentSeparator)}</div>{/if}
                         {:else}
-                          {#if c.comments}<div class="detail-field detail-full"><span class="detail-label">Comments</span> {c.comments}</div>{/if}
+                          {#if c.original_comment && c.original_comment !== (c.comments || "")}
+                            <div class="detail-field detail-full"><span class="detail-label">Original Comment</span> <span class="comment-original">{c.original_comment}</span></div>
+                            <div class="detail-field detail-full"><span class="detail-label">Imported Comment</span> {c.comments || "(empty — fully stripped)"}</div>
+                          {:else if c.comments}
+                            <div class="detail-field detail-full"><span class="detail-label">Comments</span> {c.comments}</div>
+                          {/if}
                         {/if}
                         {#if c.adif_line}
                           <div class="detail-field detail-full detail-adif"><span class="detail-label">ADIF</span><code>{c.adif_line}</code></div>
@@ -1512,6 +1517,16 @@
     color: var(--accent);
     font-weight: bold;
     margin-top: 0.25rem;
+  }
+
+  .comment-modified {
+    color: var(--accent);
+    font-weight: bold;
+  }
+
+  .comment-original {
+    text-decoration: line-through;
+    color: var(--text-muted);
   }
 
   .template-no-match {

@@ -517,6 +517,7 @@ async def _classify_import_records(
     template_matches = 0
     for record in records:
         data = adif_record_to_contact_dict(record)
+        data["_original_comment"] = data.get("comments")
         if data.get("comments") and template:
             original = data["comments"]
             data["comments"] = strip_comment_prefix(
@@ -707,6 +708,7 @@ async def preview_import_adif(
             "skcc": data.get("skcc"),
             "skcc_exch": bool(data.get("skcc_exch")),
             "comments": data.get("comments"),
+            "original_comment": data.get("_original_comment"),
             "notes": data.get("notes"),
             "timestamp": data.get("timestamp", datetime.now(timezone.utc)).isoformat()
             if data.get("timestamp")
