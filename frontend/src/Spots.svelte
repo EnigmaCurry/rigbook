@@ -911,16 +911,18 @@
       }
     }
 
-    // Add new spotter markers (normalized to QTH longitude)
+    // Add/update spotter markers (normalized to QTH longitude)
     for (const [call, grid] of currentSpotters) {
       const icon = closestCalls.has(call) ? spotterIcon : spotterSecondaryIcon;
-      if (spotterMarkers[call]) {
-        spotterMarkers[call].setIcon(icon);
-        continue;
-      }
       const pos = gridToLatLon(grid);
       if (!pos) continue;
       const ll = nearLL(baseLon, [pos.lat, pos.lon]);
+      if (spotterMarkers[call]) {
+        spotterMarkers[call].setIcon(icon);
+        spotterMarkers[call].setLatLng(ll);
+        spotterMarkers[call].setPopupContent(`Spotter: ${call}<br>Grid: ${grid}`);
+        continue;
+      }
       const m = L.marker(ll, { icon })
         .bindPopup(`Spotter: ${call}<br>Grid: ${grid}`)
         .addTo(leafletMap);
@@ -932,13 +934,15 @@
     for (const [call, grid] of currentHomes) {
       const count = homeSpotterCounts.get(call) || 1;
       const icon = homeLocIcon(count);
-      if (homeMarkers[call]) {
-        homeMarkers[call].setIcon(icon);
-        continue;
-      }
       const pos = gridToLatLon(grid);
       if (!pos) continue;
       const ll = nearLL(baseLon, [pos.lat, pos.lon]);
+      if (homeMarkers[call]) {
+        homeMarkers[call].setIcon(icon);
+        homeMarkers[call].setLatLng(ll);
+        homeMarkers[call].setPopupContent(`Station: ${call}<br>Grid: ${grid}`);
+        continue;
+      }
       const hm = L.marker(ll, { icon })
         .bindPopup(`Station: ${call}<br>Grid: ${grid}`)
         .addTo(leafletMap);
