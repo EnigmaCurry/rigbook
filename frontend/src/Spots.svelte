@@ -545,6 +545,20 @@
     const spotterPos = spotterGrid ? gridToLatLon(spotterGrid) : null;
     const homePos = homeGrid ? gridToLatLon(homeGrid) : null;
 
+    // Draw dashed cyan lines from secondary spotters first (lower z-order)
+    const homeLL2 = homePos ? [homePos.lat, homePos.lon] : null;
+    if (homeLL2 && spot.spotter_grids) {
+      for (const [call, grid] of Object.entries(spot.spotter_grids)) {
+        if (call === spot.closest_call) continue;
+        const pos = gridToLatLon(grid);
+        if (!pos) continue;
+        selectionLines.push(
+          L.polyline([[pos.lat, pos.lon], homeLL2], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "6 4" }).addTo(leafletMap),
+        );
+      }
+    }
+
+    // Primary triangle lines drawn last (higher z-order)
     if (spotterPos && homePos) {
       const spotterLL = [spotterPos.lat, spotterPos.lon];
       const homeLL = [homePos.lat, homePos.lon];
@@ -561,19 +575,6 @@
       selectionLines.push(
         L.polyline([myLL, [homePos.lat, homePos.lon]], { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
       );
-    }
-
-    // Draw dashed cyan lines from secondary (non-closest) co-witnessing spotters to the station
-    const homeLL2 = homePos ? [homePos.lat, homePos.lon] : null;
-    if (homeLL2 && spot.spotter_grids) {
-      for (const [call, grid] of Object.entries(spot.spotter_grids)) {
-        if (call === spot.closest_call) continue;
-        const pos = gridToLatLon(grid);
-        if (!pos) continue;
-        selectionLines.push(
-          L.polyline([[pos.lat, pos.lon], homeLL2], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "6 4" }).addTo(leafletMap),
-        );
-      }
     }
   }
 
