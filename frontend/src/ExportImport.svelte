@@ -779,10 +779,10 @@
   }
 
   .preview-table {
-    width: max-content;
-    min-width: 100%;
+    width: 100%;
     border-collapse: collapse;
     font-size: 0.8rem;
+    table-layout: fixed;
   }
 
   .preview-table th {
@@ -828,8 +828,8 @@
     color: var(--accent);
   }
 
-  .preview-table .col-compact { width: 1px; white-space: nowrap; }
-  .preview-table .col-flex { width: auto; }
+  .preview-table .col-compact { width: 5rem; }
+  .preview-table .col-flex { width: 8rem; }
 
   .preview-table .truncate {
     overflow: hidden;
