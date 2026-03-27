@@ -587,7 +587,7 @@
         const results = await res.json();
         const match = results.find(p => p.reference === ref);
         if (match) {
-          potaParkName = match.name;
+          pickPota(match);
         } else {
           const prefixMatch = ref.match(/^([A-Z]{1,2})-/);
           if (prefixMatch) potaParkName = `${prefixMatch[1]} not downloaded`;
