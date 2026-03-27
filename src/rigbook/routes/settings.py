@@ -1,9 +1,13 @@
-from fastapi import APIRouter, Depends
+import shutil
+from datetime import datetime, timezone
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from rigbook.db import Setting, get_session
+from rigbook.db import Setting, db_manager, get_session
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
@@ -57,3 +61,43 @@ async def upsert_setting(
     await session.commit()
     await session.refresh(setting)
     return setting
+
+
+class BackupRequest(BaseModel):
+    directory: str
+
+
+@router.post("/backup")
+async def backup_database(data: BackupRequest):
+    db_path = db_manager.db_path
+    if not db_path or not db_path.exists():
+        raise HTTPException(status_code=400, detail="No database is open")
+
+    backup_dir = Path(data.directory).expanduser().resolve()
+    if not backup_dir.is_dir():
+        raise HTTPException(
+            status_code=400, detail=f"Directory does not exist: {backup_dir}"
+        )
+
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H%M%Sz")
+    backup_name = f"{db_path.stem} - backup {ts}{db_path.suffix}"
+    backup_path = backup_dir / backup_name
+
+    try:
+        shutil.copy2(str(db_path), str(backup_path))
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"Backup failed: {e}") from e
+
+    return {"path": str(backup_path), "size": backup_path.stat().st_size}
+
+
+@router.get("/backup/db-info")
+async def get_db_info():
+    db_path = db_manager.db_path
+    if not db_path or not db_path.exists():
+        return {"path": None, "size": None, "directory": None}
+    return {
+        "path": str(db_path),
+        "size": db_path.stat().st_size,
+        "directory": str(db_path.parent),
+    }

@@ -143,6 +143,75 @@
     updatePreview();
   }
 
+  // Backup
+  let backupDir = "";
+  let backupMessage = "";
+  let backupMessageType = "";
+  let backingUp = false;
+  let dbInfo = null;
+
+  async function loadDbInfo() {
+    try {
+      const res = await fetch("/api/settings/backup/db-info");
+      if (res.ok) {
+        dbInfo = await res.json();
+        if (!backupDir && dbInfo.directory) backupDir = dbInfo.directory;
+      }
+    } catch { /* ignore */ }
+  }
+
+  async function loadBackupDir() {
+    try {
+      const res = await fetch("/api/settings/backup_directory");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.value) backupDir = data.value;
+      }
+    } catch { /* ignore */ }
+  }
+
+  async function saveBackupDir() {
+    try {
+      await fetch("/api/settings/backup_directory", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: backupDir }),
+      });
+    } catch { /* ignore */ }
+  }
+
+  async function performBackup() {
+    if (!backupDir.trim()) {
+      backupMessage = "Please enter a backup directory.";
+      backupMessageType = "error";
+      return;
+    }
+    backingUp = true;
+    backupMessage = "";
+    try {
+      const res = await fetch("/api/settings/backup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ directory: backupDir }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const sizeKB = (data.size / 1024).toFixed(1);
+        backupMessage = `Saved to ${data.path} (${sizeKB} KB)`;
+        backupMessageType = "success";
+        saveBackupDir();
+      } else {
+        const data = await res.json().catch(() => null);
+        backupMessage = data?.detail || "Backup failed";
+        backupMessageType = "error";
+      }
+    } catch (e) {
+      backupMessage = `Backup failed: ${e.message}`;
+      backupMessageType = "error";
+    }
+    backingUp = false;
+  }
+
   // Danger zone
   let dangerConfirmName = "";
   let deleteError = "";
@@ -492,6 +561,8 @@
   onMount(() => {
     fetchSettings();
     fetchSpotStatus();
+    loadDbInfo();
+    loadBackupDir();
     spotStatusInterval = setInterval(fetchSpotStatus, 5000);
   });
 
@@ -757,6 +828,25 @@
       <span class="message">{message}</span>
     {/if}
   </div>
+
+  <section class="settings-section">
+    <h3>Backup</h3>
+    {#if dbInfo}
+      <p class="hint">Database: {dbInfo.path}</p>
+    {/if}
+    <div class="setting-row">
+      <label for="backup-dir">Backup directory</label>
+      <input id="backup-dir" type="text" bind:value={backupDir} placeholder="/path/to/backup/folder" />
+    </div>
+    <div class="setting-row">
+      <button on:click={performBackup} disabled={backingUp || !backupDir.trim()}>
+        {backingUp ? "Backing up..." : "Backup Now"}
+      </button>
+    </div>
+    {#if backupMessage}
+      <p class="hint" class:danger-error={backupMessageType === "error"} style={backupMessageType === "success" ? "color: var(--accent)" : ""}>{backupMessage}</p>
+    {/if}
+  </section>
 
   {#if logbookName}
     <section class="settings-section danger-zone">
