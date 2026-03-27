@@ -151,8 +151,114 @@
   }
   let qrzConfigured = true;
   const qrz = new QrzLookup(() => { spots = spots; });
-  let sortCol = "distance";
-  let sortDir = 1; // 1 = ascending, -1 = descending
+  let sortCol = storageGet("spotsSortCol") || "distance";
+  let sortDir = storageGet("spotsSortDir") === "-1" ? -1 : 1;
+
+  const defaultSpotColumns = ["time", "callsign", "skcc", "frequency", "band", "mode", "spotters", "snr", "wpm", "country", "source", "distance", "info"];
+  const spotColumnDefs = {
+    time:      { key: "time",      label: "Time" },
+    callsign:  { key: "callsign",  label: "Callsign" },
+    skcc:      { key: "skcc",      label: "SKCC" },
+    frequency: { key: "frequency", label: "Freq (MHz)" },
+    band:      { key: "band",      label: "Band" },
+    mode:      { key: "mode",      label: "Mode" },
+    spotters:  { key: "spotters",  label: "Spotters" },
+    snr:       { key: "snr",       label: "Best SNR" },
+    wpm:       { key: "wpm",       label: "WPM" },
+    country:   { key: "country",   label: "Home Location" },
+    source:    { key: "source",    label: "Source" },
+    distance:  { key: "distance",  label: "Closest Spot" },
+    info:      { key: "info",      label: "Info" },
+  };
+
+  function loadSpotColumnOrder() {
+    try {
+      const saved = JSON.parse(storageGet("spotsColumnOrder"));
+      if (Array.isArray(saved) && saved.every(k => spotColumnDefs[k])) {
+        const missing = defaultSpotColumns.filter(k => !saved.includes(k));
+        const merged = [...saved.filter(k => spotColumnDefs[k]), ...missing];
+        if (merged.length === defaultSpotColumns.length) return merged;
+      }
+    } catch {}
+    return [...defaultSpotColumns];
+  }
+
+  let spotColumnOrder = loadSpotColumnOrder();
+  $: spotColumns = spotColumnOrder.filter(k => k !== "skcc" || filterMode === "CW").map(k => spotColumnDefs[k]);
+
+  let spotDragCol = null;
+  let spotDragOverCol = null;
+
+  function onSpotColDragStart(e, key) {
+    spotDragCol = key;
+    e.dataTransfer.effectAllowed = "move";
+  }
+  function onSpotColDragOver(e, key) {
+    e.preventDefault();
+    spotDragOverCol = key;
+  }
+  function onSpotColDrop(e, key) {
+    e.preventDefault();
+    if (spotDragCol && spotDragCol !== key) {
+      const from = spotColumnOrder.indexOf(spotDragCol);
+      const to = spotColumnOrder.indexOf(key);
+      const newOrder = [...spotColumnOrder];
+      newOrder.splice(from, 1);
+      newOrder.splice(to, 0, spotDragCol);
+      spotColumnOrder = newOrder;
+      storageSet("spotsColumnOrder", JSON.stringify(spotColumnOrder));
+    }
+    spotDragCol = null;
+    spotDragOverCol = null;
+  }
+  function onSpotColDragEnd() {
+    spotDragCol = null;
+    spotDragOverCol = null;
+  }
+
+  // Column resize
+  let spotResizeCol = null;
+  let spotResizeColKey = null;
+  let spotResizeStartX = 0;
+  let spotResizeStartW = 0;
+
+  function loadSpotColumnWidths() {
+    try {
+      return JSON.parse(storageGet("spotsColumnWidths")) || {};
+    } catch { return {}; }
+  }
+
+  let spotColumnWidths = loadSpotColumnWidths();
+
+  function startSpotColResize(e, key) {
+    e.preventDefault();
+    e.stopPropagation();
+    const th = e.target.parentElement;
+    spotResizeCol = th;
+    spotResizeColKey = key;
+    spotResizeStartX = e.clientX;
+    spotResizeStartW = th.offsetWidth;
+    window.addEventListener("mousemove", onSpotColResize);
+    window.addEventListener("mouseup", stopSpotColResize);
+  }
+
+  function onSpotColResize(e) {
+    if (!spotResizeCol) return;
+    const diff = e.clientX - spotResizeStartX;
+    const newW = Math.max(30, spotResizeStartW + diff);
+    spotResizeCol.style.width = newW + "px";
+  }
+
+  function stopSpotColResize() {
+    if (spotResizeCol && spotResizeColKey) {
+      spotColumnWidths[spotResizeColKey] = spotResizeCol.style.width;
+      storageSet("spotsColumnWidths", JSON.stringify(spotColumnWidths));
+    }
+    spotResizeCol = null;
+    spotResizeColKey = null;
+    window.removeEventListener("mousemove", onSpotColResize);
+    window.removeEventListener("mouseup", stopSpotColResize);
+  }
 
   function toggleSort(col) {
     if (sortCol === col) {
@@ -161,11 +267,8 @@
       sortCol = col;
       sortDir = 1;
     }
-  }
-
-  function sortIndicator(col) {
-    if (sortCol !== col) return "";
-    return sortDir === 1 ? " \u25B2" : " \u25BC";
+    storageSet("spotsSortCol", sortCol);
+    storageSet("spotsSortDir", String(sortDir));
   }
 
   let statusInterval;
@@ -976,19 +1079,11 @@
     <table class="spots-table">
       <thead>
         <tr>
-          <th class="sortable" on:click={() => toggleSort("time")}>Time{sortIndicator("time")}</th>
-          <th class="sortable" on:click={() => toggleSort("callsign")}>Callsign{sortIndicator("callsign")}</th>
-          {#if filterMode === "CW"}<th class="sortable" on:click={() => toggleSort("skcc")}>SKCC{sortIndicator("skcc")}</th>{/if}
-          <th class="sortable" on:click={() => toggleSort("frequency")}>Freq (MHz){sortIndicator("frequency")}</th>
-          <th class="sortable" on:click={() => toggleSort("band")}>Band{sortIndicator("band")}</th>
-          <th class="sortable" on:click={() => toggleSort("mode")}>Mode{sortIndicator("mode")}</th>
-          <th class="sortable" on:click={() => toggleSort("spotters")}>Spotters{sortIndicator("spotters")}</th>
-          <th class="sortable" on:click={() => toggleSort("snr")}>Best SNR{sortIndicator("snr")}</th>
-          <th class="sortable" on:click={() => toggleSort("wpm")}>WPM{sortIndicator("wpm")}</th>
-          <th class="sortable" on:click={() => toggleSort("country")}>Home Location{sortIndicator("country")}</th>
-          <th class="sortable" on:click={() => toggleSort("source")}>Source{sortIndicator("source")}</th>
-          <th class="sortable" on:click={() => toggleSort("distance")}>Closest Spot{sortIndicator("distance")}</th>
-          <th>Info</th>
+          {#each spotColumns as col (col.key)}
+            <th class="sortable" class:drag-over={spotDragOverCol === col.key && spotDragCol !== col.key} class:sorting={sortCol === col.key} on:dragover={e => onSpotColDragOver(e, col.key)} on:drop={e => onSpotColDrop(e, col.key)} style={spotColumnWidths[col.key] ? `width: ${spotColumnWidths[col.key]}` : ""}>
+              <span class="col-label" draggable="true" on:dragstart={e => onSpotColDragStart(e, col.key)} on:dragend={onSpotColDragEnd} on:click={() => { if (col.key !== "info") toggleSort(col.key); }}>{col.label}{#if sortCol === col.key}{sortDir === 1 ? " ▲" : " ▼"}{/if}</span><span class="resize-handle" on:mousedown={e => startSpotColResize(e, col.key)}></span>
+            </th>
+          {/each}
         </tr>
       </thead>
       <tbody>
@@ -1000,27 +1095,31 @@
               on:mouseenter={() => onSpotHover(spot)}
               on:mouseleave={onSpotLeave}
               on:click|stopPropagation={() => onSpotClick(spot)}>
-            <td class="mono">{formatTime(spot)}</td>
-            {#if isWorkedToday(spot)}
-              <td class="mono call worked-call" title="Already worked today">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</td>
-            {:else}
-              <td class="mono call"><!-- svelte-ignore a11y-click-events-have-key-events --><!-- svelte-ignore a11y-no-static-element-interactions --><span class="clickable" on:click|stopPropagation={() => addQsoWithPota(spot)} title="Log QSO with {spot.callsign}">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</span></td>
-            {/if}
-            {#if filterMode === "CW"}<td class="mono skcc">{spot.skcc ?? ""}</td>{/if}
-            <td class="mono freq"><!-- svelte-ignore a11y-click-events-have-key-events --><!-- svelte-ignore a11y-no-static-element-interactions --><span class="clickable" on:click|stopPropagation={() => dispatch("tune", spot)} title="Tune radio">{formatFreq(spot.frequency)}</span></td>
-            <td><span class="band-tag" style="background: {bandColor(spot.band)}; color: {bandTextColor(spot.band)}">{spot.band}</span></td>
-            <td>{spot.mode}</td>
-            <td class="mono" title={spot.spotters ? spot.spotters.join(", ") : ""}>{spot.spotter_count}</td>
-            <td class="mono">{spot.best_snr ?? ""}</td>
-            <td class="mono">{spot.wpm ?? ""}</td>
-            <td class="location">{#if isPotaActivator(spot)}<span class="pota-loc">{spotHomeLabel(spot)}</span>{:else if spot.country || spot.qrz_state}{locationStr(spot)}{:else if !qrzConfigured}<span class="fetch-hint">(Configure QRZ account)</span>{:else if qrz.skipped}<span class="fetch-hint">(filter more to fetch)</span>{:else if qrz.pending > 0}<span class="fetch-hint">(fetching... {qrz.pending} left)</span>{/if}</td>
-            <td class="source-tag {spot.source}">{spot.source}</td>
-            <td class="mono">{spot.closest_call || ""}{spot.distance_mi != null ? ` ${spot.distance_mi}mi` : ""}{spot.closest_snr != null ? ` ${spot.closest_snr}dB` : ""}</td>
-            <td class="info">{spot.state}{spot.wwff_ref ? ` ${spot.wwff_ref}` : ""}{spot.comment ? ` ${spot.comment}` : ""}</td>
+            {#each spotColumns as col (col.key)}
+              {#if col.key === "time"}<td class="mono">{formatTime(spot)}</td>
+              {:else if col.key === "callsign"}
+                {#if isWorkedToday(spot)}
+                  <td class="mono call worked-call" title="Already worked today">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</td>
+                {:else}
+                  <td class="mono call"><!-- svelte-ignore a11y-click-events-have-key-events --><!-- svelte-ignore a11y-no-static-element-interactions --><span class="clickable" on:click|stopPropagation={() => addQsoWithPota(spot)} title="Log QSO with {spot.callsign}">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</span></td>
+                {/if}
+              {:else if col.key === "skcc"}<td class="mono skcc">{spot.skcc ?? ""}</td>
+              {:else if col.key === "frequency"}<td class="mono freq"><!-- svelte-ignore a11y-click-events-have-key-events --><!-- svelte-ignore a11y-no-static-element-interactions --><span class="clickable" on:click|stopPropagation={() => dispatch("tune", spot)} title="Tune radio">{formatFreq(spot.frequency)}</span></td>
+              {:else if col.key === "band"}<td><span class="band-tag" style="background: {bandColor(spot.band)}; color: {bandTextColor(spot.band)}">{spot.band}</span></td>
+              {:else if col.key === "mode"}<td>{spot.mode}</td>
+              {:else if col.key === "spotters"}<td class="mono" title={spot.spotters ? spot.spotters.join(", ") : ""}>{spot.spotter_count}</td>
+              {:else if col.key === "snr"}<td class="mono">{spot.best_snr ?? ""}</td>
+              {:else if col.key === "wpm"}<td class="mono">{spot.wpm ?? ""}</td>
+              {:else if col.key === "country"}<td class="location">{#if isPotaActivator(spot)}<span class="pota-loc">{spotHomeLabel(spot)}</span>{:else if spot.country || spot.qrz_state}{locationStr(spot)}{:else if !qrzConfigured}<span class="fetch-hint">(Configure QRZ account)</span>{:else if qrz.skipped}<span class="fetch-hint">(filter more to fetch)</span>{:else if qrz.pending > 0}<span class="fetch-hint">(fetching... {qrz.pending} left)</span>{/if}</td>
+              {:else if col.key === "source"}<td class="source-tag {spot.source}">{spot.source}</td>
+              {:else if col.key === "distance"}<td class="mono">{spot.closest_call || ""}{spot.distance_mi != null ? ` ${spot.distance_mi}mi` : ""}{spot.closest_snr != null ? ` ${spot.closest_snr}dB` : ""}</td>
+              {:else if col.key === "info"}<td class="info">{spot.state}{spot.wwff_ref ? ` ${spot.wwff_ref}` : ""}{spot.comment ? ` ${spot.comment}` : ""}</td>
+              {/if}
+            {/each}
           </tr>
         {/each}
         {#if spots.length === 0}
-          <tr><td colspan={filterMode === "CW" ? 13 : 12} class="empty">No spots{filterSource || filterBands.size > 0 || filterMode || filterCallsign ? " matching filters" : ""}. {status.rbn.enabled || status.hamalert.enabled ? "Waiting for data..." : "Enable RBN or HamAlert in Settings."}</td></tr>
+          <tr><td colspan={spotColumns.length} class="empty">No spots{filterSource || filterBands.size > 0 || filterMode || filterCallsign ? " matching filters" : ""}. {status.rbn.enabled || status.hamalert.enabled ? "Waiting for data..." : "Enable RBN or HamAlert in Settings."}</td></tr>
         {/if}
       </tbody>
     </table>
@@ -1170,9 +1269,36 @@
   .spots-table th.sortable {
     cursor: pointer;
     user-select: none;
+    position: relative;
   }
   .spots-table th.sortable:hover {
     color: var(--accent);
+  }
+  .spots-table th.sorting {
+    color: var(--accent);
+  }
+  .spots-table th.drag-over {
+    border-left: 2px solid var(--accent);
+  }
+
+  .spots-table .col-label {
+    cursor: pointer;
+  }
+
+  .spots-table .resize-handle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    cursor: col-resize;
+    background: transparent;
+  }
+
+  .spots-table .resize-handle:hover,
+  .spots-table .resize-handle:active {
+    background: var(--accent);
+    opacity: 0.4;
   }
 
   .spots-table td {
