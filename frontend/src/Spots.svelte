@@ -529,7 +529,7 @@
         if (!marker) continue;
         const ll = marker.getLatLng();
         selectionLines.push(
-          L.polyline([[ll.lat, ll.lng], homeLL2], { color: "#888", weight: 1.5, opacity: 0.4, dashArray: "6 4" }).addTo(leafletMap),
+          L.polyline([[ll.lat, ll.lng], homeLL2], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "6 4" }).addTo(leafletMap),
         );
       }
     }
