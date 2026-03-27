@@ -1211,7 +1211,7 @@
 
   .preview-table-wrap {
     flex: 1;
-    min-height: 0;
+    min-height: 8rem;
     overflow: auto;
     border: 1px solid var(--border, #555);
     border-radius: 0 0 3px 3px;
@@ -1368,6 +1368,7 @@
 
   .empty-preview {
     flex: 1;
+    min-height: 8rem;
     display: flex;
     align-items: center;
     justify-content: center;
