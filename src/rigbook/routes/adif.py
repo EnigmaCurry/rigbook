@@ -752,9 +752,13 @@ def _suggest_comment_template(records: list[dict]) -> dict:
                 continue
             parts = comment.split(padded)
             for part in parts:
-                if ": " not in part:
+                part = part.strip()
+                if ": " in part:
+                    label, _, val = part.partition(": ")
+                elif " " in part:
+                    label, _, val = part.partition(" ")
+                else:
                     continue
-                label, _, val = part.partition(": ")
                 label = label.strip()
                 val = val.strip()
                 if not val:
@@ -762,7 +766,13 @@ def _suggest_comment_template(records: list[dict]) -> dict:
                 # Check if this value matches any ADIF field in the record
                 for adif_key, contact_field in ADIF_FIELD_MAP.items():
                     record_val = record.get(adif_key, "")
-                    if record_val and record_val == val:
+                    if not record_val:
+                        continue
+                    matched = record_val == val
+                    # Freq: comment may have KHz, ADIF has MHz
+                    if not matched and contact_field == "freq":
+                        matched = _normalize_freq(val, record_val)
+                    if matched:
                         key = (label, contact_field)
                         label_to_field[key] = label_to_field.get(key, 0) + 1
 
