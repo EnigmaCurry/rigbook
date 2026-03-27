@@ -231,6 +231,34 @@
   // Trigger on any filter change
   $: dateFrom, dateTo, commentFilter, skccValidated, countryFilter, modeFilter, bandFilter, schedulePreview();
 
+  // Column resize
+  let resizeCol = null;
+  let resizeStartX = 0;
+  let resizeStartW = 0;
+
+  function startResize(e, colIndex) {
+    e.preventDefault();
+    const th = e.target.parentElement;
+    resizeCol = th;
+    resizeStartX = e.clientX;
+    resizeStartW = th.offsetWidth;
+    window.addEventListener("mousemove", onResize);
+    window.addEventListener("mouseup", stopResize);
+  }
+
+  function onResize(e) {
+    if (!resizeCol) return;
+    const diff = e.clientX - resizeStartX;
+    const newW = Math.max(30, resizeStartW + diff);
+    resizeCol.style.width = newW + "px";
+  }
+
+  function stopResize() {
+    resizeCol = null;
+    window.removeEventListener("mousemove", onResize);
+    window.removeEventListener("mouseup", stopResize);
+  }
+
   function renderComment(c, template, separator) {
     if (!template.length) return c.comments || c.notes || "";
     const fieldMap = {
@@ -424,11 +452,11 @@
           <table class="preview-table">
             <thead>
               <tr>
-                <th class="col-ts">Timestamp</th>
-                <th class="col-call">Call</th>
-                <th class="col-freq">Freq</th>
-                <th class="col-mode">Mode</th>
-                <th class="col-country">Country</th>
+                <th class="col-ts">Timestamp<span class="resize-handle" on:mousedown={e => startResize(e, 0)}></span></th>
+                <th class="col-call">Call<span class="resize-handle" on:mousedown={e => startResize(e, 1)}></span></th>
+                <th class="col-freq">Freq<span class="resize-handle" on:mousedown={e => startResize(e, 2)}></span></th>
+                <th class="col-mode">Mode<span class="resize-handle" on:mousedown={e => startResize(e, 3)}></span></th>
+                <th class="col-country">Country<span class="resize-handle" on:mousedown={e => startResize(e, 4)}></span></th>
                 <th class="col-comments">Comments</th>
               </tr>
             </thead>
@@ -637,7 +665,23 @@
     font-size: 0.75rem;
     text-transform: uppercase;
     overflow: hidden;
-    resize: horizontal;
+    position: relative;
+  }
+
+  .resize-handle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    cursor: col-resize;
+    background: transparent;
+  }
+
+  .resize-handle:hover,
+  .resize-handle:active {
+    background: var(--accent);
+    opacity: 0.4;
   }
 
   .preview-table td {
