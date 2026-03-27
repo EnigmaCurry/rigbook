@@ -4,11 +4,36 @@
   import { QrzLookup, formatFreq, locationStr } from "./qrzLookup.js";
   import { getMapTileConfig } from "./mapTiles.js";
   import { storageGet, storageSet } from "./storage.js";
+  import ParkDetail from "./ParkDetail.svelte";
   import L from "leaflet";
   import "leaflet/dist/leaflet.css";
 
   const dispatch = createEventDispatcher();
   export let potaEnabled = true;
+
+  let modalParkRef = null;
+  let modalParkDetail = null;
+  let modalParkLoading = false;
+
+  async function openParkModal(ref) {
+    modalParkRef = ref;
+    modalParkDetail = null;
+    modalParkLoading = true;
+    try {
+      const res = await fetch(`/api/pota/park/${encodeURIComponent(ref)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (!data.error) modalParkDetail = data;
+      }
+    } catch {}
+    modalParkLoading = false;
+  }
+
+  function closeParkModal() {
+    modalParkRef = null;
+    modalParkDetail = null;
+    modalParkLoading = false;
+  }
 
   let spots = [];
   let myGrid = "";
@@ -1114,7 +1139,7 @@
               {:else if col.key === "spotters"}<td class="mono" title={spot.spotters ? spot.spotters.join(", ") : ""}>{spot.spotter_count}</td>
               {:else if col.key === "snr"}<td class="mono">{spot.best_snr ?? ""}</td>
               {:else if col.key === "wpm"}<td class="mono">{spot.wpm ?? ""}</td>
-              {:else if col.key === "country"}<td class="location">{#if isPotaActivator(spot)}<span class="pota-loc">{spotHomeLabel(spot)}</span>{:else if spot.country || spot.qrz_state}{locationStr(spot)}{:else if !qrzConfigured}<span class="fetch-hint">(Configure QRZ account)</span>{:else if qrz.skipped}<span class="fetch-hint">(filter more to fetch)</span>{:else if qrz.pending > 0}<span class="fetch-hint">(fetching... {qrz.pending} left)</span>{/if}</td>
+              {:else if col.key === "country"}<td class="location">{#if isPotaActivator(spot)}<!-- svelte-ignore a11y-click-events-have-key-events --><!-- svelte-ignore a11y-no-static-element-interactions --><span class="pota-loc clickable" on:click|stopPropagation={() => openParkModal(spotHomeLabel(spot))}>{spotHomeLabel(spot)}</span>{:else if spot.country || spot.qrz_state}{locationStr(spot)}{:else if !qrzConfigured}<span class="fetch-hint">(Configure QRZ account)</span>{:else if qrz.skipped}<span class="fetch-hint">(filter more to fetch)</span>{:else if qrz.pending > 0}<span class="fetch-hint">(fetching... {qrz.pending} left)</span>{/if}</td>
               {:else if col.key === "source"}<td class="source-tag {spot.source}">{spot.source}</td>
               {:else if col.key === "distance"}<td class="mono">{spot.closest_call || ""}{spot.distance_mi != null ? ` ${spot.distance_mi}mi` : ""}{spot.closest_snr != null ? ` ${spot.closest_snr}dB` : ""}</td>
               {:else if col.key === "info"}<td class="info">{spot.state}{spot.wwff_ref ? ` ${spot.wwff_ref}` : ""}{spot.comment ? ` ${spot.comment}` : ""}</td>
@@ -1129,6 +1154,29 @@
     </table>
   </div>
 </div>
+
+{#if modalParkRef}
+  <!-- svelte-ignore a11y-click-events-have-key-events -->
+  <!-- svelte-ignore a11y-no-static-element-interactions -->
+  <div class="modal-backdrop" on:click={closeParkModal}>
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <div class="modal-content" on:click|stopPropagation on:keydown={e => { if (e.key === "Escape") closeParkModal(); }}>
+      <button class="modal-close" on:click={closeParkModal}>X</button>
+      {#if modalParkLoading}
+        <p class="status">Loading park details...</p>
+      {:else if modalParkDetail}
+        <ParkDetail park={modalParkDetail} on:close={closeParkModal} />
+      {:else}
+        {@const prefix = modalParkRef.match(/^([A-Z]{1,2})-/)?.[1] || ""}
+        <p class="status">Park {modalParkRef} not found in cache.</p>
+        <p class="cache-link">Go to <a href="#/parks/download">Cache</a> to download park data{prefix ? ` for country code ${prefix}` : ""}.</p>
+      {/if}
+    </div>
+  </div>
+{/if}
+
+<svelte:window on:keydown={e => { if (modalParkRef && e.key === "Escape") closeParkModal(); }} />
 
 <style>
   .spots-page {
@@ -1480,5 +1528,60 @@
   :global(.spots-map .leaflet-popup-content-wrapper),
   :global(.spots-map .leaflet-popup-tip) {
     opacity: 0.7;
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    max-width: 900px;
+    width: 95%;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1rem;
+    font-family: inherit;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .modal-close:hover {
+    color: var(--text);
+  }
+
+  .cache-link {
+    font-size: 0.9rem;
+  }
+
+  .cache-link a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .cache-link a:hover {
+    text-decoration: underline;
   }
 </style>
