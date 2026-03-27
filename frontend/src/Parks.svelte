@@ -458,8 +458,10 @@
     const pts = myParks.filter(p => p.latitude != null && p.longitude != null);
     if (!pts.length) return;
 
-    leafletMap = L.map(mapEl, { scrollWheelZoom: true });
     const tiles = await getMapTileConfig();
+    // Re-check mapEl after async gap — DOM may have changed
+    if (!mapEl) { renderingMap = false; return; }
+    leafletMap = L.map(mapEl, { scrollWheelZoom: true });
     L.tileLayer(tiles.url, {
       attribution: tiles.attribution,
       maxZoom: tiles.maxZoom,
@@ -475,6 +477,7 @@
         .addTo(leafletMap);
       markersByRef[p.reference] = m;
     }
+    leafletMap.invalidateSize();
     leafletMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 8 });
     if (leafletMap.getZoom() < 5) leafletMap.setZoom(5);
     addExpandControl(leafletMap, mapEl.parentElement);
