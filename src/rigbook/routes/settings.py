@@ -79,8 +79,8 @@ async def backup_database(data: BackupRequest):
             status_code=400, detail=f"Directory does not exist: {backup_dir}"
         )
 
-    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H%M%Sz")
-    backup_name = f"{db_path.stem} - backup {ts}{db_path.suffix}"
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M%Sz")
+    backup_name = f"{db_path.stem}_backup_{ts}{db_path.suffix}"
     backup_path = backup_dir / backup_name
 
     try:
