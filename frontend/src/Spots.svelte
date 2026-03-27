@@ -712,6 +712,7 @@
     if (!leafletMap || !myGrid) return;
     const myPos = gridToLatLon(myGrid);
     if (!myPos) return;
+    const baseLon = myPos.lon;
 
     // User's home marker
     if (!myMarker) {
@@ -750,24 +751,26 @@
       }
     }
 
-    // Add new spotter markers
+    // Add new spotter markers (normalized to QTH longitude)
     for (const [call, grid] of currentSpotters) {
       if (spotterMarkers[call]) continue;
       const pos = gridToLatLon(grid);
       if (!pos) continue;
-      const m = L.marker([pos.lat, pos.lon], { icon: spotterIcon })
+      const ll = nearLL(baseLon, [pos.lat, pos.lon]);
+      const m = L.marker(ll, { icon: spotterIcon })
         .bindPopup(`Spotter: ${call}<br>Grid: ${grid}`)
         .addTo(leafletMap);
       m.on("click", () => onMapSpotterClick(call));
       spotterMarkers[call] = m;
     }
 
-    // Add new home location markers
+    // Add new home location markers (normalized to QTH longitude)
     for (const [call, grid] of currentHomes) {
       if (homeMarkers[call]) continue;
       const pos = gridToLatLon(grid);
       if (!pos) continue;
-      const hm = L.marker([pos.lat, pos.lon], { icon: homeLocIcon })
+      const ll = nearLL(baseLon, [pos.lat, pos.lon]);
+      const hm = L.marker(ll, { icon: homeLocIcon })
         .bindPopup(`Station: ${call}<br>Grid: ${grid}`)
         .addTo(leafletMap);
       hm.on("click", () => onMapHomeClick(call));
