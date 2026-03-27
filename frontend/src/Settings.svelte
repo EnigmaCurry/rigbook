@@ -657,6 +657,19 @@
     saving = false;
   }
 
+  async function logoutQrz() {
+    try {
+      await fetch("/api/settings/qrz_password", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: "" }),
+      });
+      hasQrzPassword = false;
+      qrzStatus = null;
+      qrz_password = "";
+    } catch {}
+  }
+
   async function checkQrz() {
     qrzChecking = true;
     qrzStatus = null;
@@ -738,6 +751,7 @@
         <button class="theme-toggle" on:click={checkQrz} disabled={qrzChecking}>
           {qrzChecking ? "Checking..." : "Test QRZ Connection"}
         </button>
+        <button class="theme-toggle" on:click={logoutQrz}>Logout</button>
         {#if qrzStatus}
           {#if qrzStatus.ok}
             <span class="qrz-ok">Connected as {qrzStatus.username}</span>
