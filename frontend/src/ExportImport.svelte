@@ -170,11 +170,6 @@
     }
     const sep = commentSeparator.trim();
     const padded = ` ${sep} `;
-    if (!original.includes(padded)) {
-      contact.comments = original;
-      return;
-    }
-    const parts = original.split(padded);
     const fieldMap = {
       call: contact.call, freq: contact.freq, mode: contact.mode,
       rst_sent: contact.rst_sent, rst_recv: contact.rst_recv,
@@ -188,6 +183,16 @@
       const val = fieldMap[entry.field];
       if (val) expected.push(`${entry.label}: ${val}`);
     }
+    // Check if entire comment matches a single expected segment
+    if (expected.some(e => original.trim() === e.trim())) {
+      contact.comments = "";
+      return;
+    }
+    if (!original.includes(padded)) {
+      contact.comments = original;
+      return;
+    }
+    const parts = original.split(padded);
     // Strip matching leading segments
     let stripCount = 0;
     for (let i = 0; i < parts.length && i < expected.length; i++) {

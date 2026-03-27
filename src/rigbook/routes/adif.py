@@ -181,11 +181,7 @@ def strip_comment_prefix(
     separator = (fmt_sep or default_separator or "|").strip()
     padded = f" {separator} "
 
-    if not template_fields or padded not in comment:
-        return comment
-
-    parts = comment.split(padded)
-    if len(parts) <= 1:
+    if not template_fields:
         return comment
 
     # Build expected prefix segments from the ADIF record's own normalized fields
@@ -208,6 +204,17 @@ def strip_comment_prefix(
         val = field_values.get(entry.get("field"), "")
         if val:
             expected.append(f"{entry.get('label', entry['field'])}: {val}")
+
+    # Check if entire comment matches a single expected segment (no separator)
+    if expected and comment.strip() in [e.strip() for e in expected]:
+        return ""
+
+    if padded not in comment:
+        return comment
+
+    parts = comment.split(padded)
+    if len(parts) <= 1:
+        return comment
 
     # Strip matching leading segments
     strip_count = 0
