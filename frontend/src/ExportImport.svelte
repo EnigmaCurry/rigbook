@@ -1255,7 +1255,7 @@
 
   .preview-table .col-compact { width: 5rem; }
   .preview-table .col-flex { width: 8rem; }
-  .preview-table .col-freq { width: 10rem; }
+  .preview-table .col-freq { width: 11rem; }
   .preview-table .col-comment { width: 15rem; }
 
   .preview-table .clickable {
