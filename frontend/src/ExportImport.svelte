@@ -478,15 +478,17 @@
     </div>
 
     <div class="preview-pane">
-      {#if currentPreview && currentPreview.header}
+      {#if currentPreview && (currentPreview.header_raw || currentPreview.header_adif || (currentPreview.header && Object.keys(currentPreview.header).length > 0))}
         <div class="adif-header-bar" on:click={() => headerExpanded = !headerExpanded}>
           <span class="adif-header-summary">
-            {#if currentPreview.header.PROGRAMID}
+            {#if currentPreview.header && currentPreview.header.PROGRAMID}
               <strong>{currentPreview.header.PROGRAMID}</strong>{#if currentPreview.header.PROGRAMVERSION} v{currentPreview.header.PROGRAMVERSION}{/if}
+            {:else if currentPreview.header_raw}
+              <strong>{currentPreview.header_raw.split('\n')[0]}</strong>
             {:else}
               <strong>ADIF</strong>
             {/if}
-            {#if currentPreview.header.ADIF_VER}
+            {#if currentPreview.header && currentPreview.header.ADIF_VER}
               <span class="adif-ver">ADIF {currentPreview.header.ADIF_VER}</span>
             {/if}
             <span class="expand-hint">{headerExpanded ? "▾" : "▸"}</span>
@@ -494,13 +496,16 @@
         </div>
         {#if headerExpanded}
           <div class="adif-header-detail">
-            <div class="adif-header-fields">
-              {#each Object.entries(currentPreview.header) as [key, val]}
-                <span class="adif-field"><strong>{key}:</strong> {val}</span>
-              {/each}
-            </div>
-            {#if currentPreview.header_adif}
+            {#if currentPreview.header_raw}
+              <pre class="adif-header-raw">{currentPreview.header_raw}</pre>
+            {:else if currentPreview.header_adif}
               <code class="adif-header-raw">{currentPreview.header_adif}</code>
+            {:else}
+              <div class="adif-header-fields">
+                {#each Object.entries(currentPreview.header) as [key, val]}
+                  <span class="adif-field"><strong>{key}:</strong> {val}</span>
+                {/each}
+              </div>
             {/if}
           </div>
         {/if}

@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 import json
+import re
 from io import StringIO
 from typing import Optional
 
@@ -478,17 +479,26 @@ async def _classify_import_records(
     return new_records, duplicates, skipped
 
 
+def _extract_raw_header(content: str) -> str:
+    """Extract everything before <eoh> (case-insensitive) as raw header text."""
+    match = re.search(r"<eoh>", content, re.IGNORECASE)
+    if match:
+        return content[: match.start()].strip()
+    return ""
+
+
 async def _parse_adif_upload(file: UploadFile):
     content = (await file.read()).decode("utf-8", errors="replace")
+    raw_header = _extract_raw_header(content)
     doc = adi.loads(content)
-    return doc.get("RECORDS", []), doc.get("HEADER", {})
+    return doc.get("RECORDS", []), doc.get("HEADER", {}), raw_header
 
 
 @router.post("/import/preview")
 async def preview_import_adif(
     file: UploadFile, session: AsyncSession = Depends(get_session)
 ):
-    records, file_header = await _parse_adif_upload(file)
+    records, file_header, raw_header = await _parse_adif_upload(file)
     template, separator = await _fetch_comment_settings(session)
     new_records, duplicate_count, skipped_count = await _classify_import_records(
         records, session, template, separator
@@ -530,13 +540,13 @@ async def preview_import_adif(
         "duplicate_count": duplicate_count,
         "skipped_count": skipped_count,
         "header": file_header,
-        "header_adif": record_to_adif_line(file_header).replace("<eor>", "<eoh>"),
+        "header_raw": raw_header,
     }
 
 
 @router.post("/import")
 async def import_adif(file: UploadFile, session: AsyncSession = Depends(get_session)):
-    records, _header = await _parse_adif_upload(file)
+    records, _header, _raw = await _parse_adif_upload(file)
     template, separator = await _fetch_comment_settings(session)
     new_records, duplicates, skipped = await _classify_import_records(
         records, session, template, separator
