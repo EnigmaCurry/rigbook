@@ -190,7 +190,7 @@
     spotters:  { key: "spotters",  label: "Spotters" },
     snr:       { key: "snr",       label: "Best SNR" },
     wpm:       { key: "wpm",       label: "WPM" },
-    country:   { key: "country",   label: "Home Location" },
+    country:   { key: "country",   label: "Location" },
     source:    { key: "source",    label: "Source" },
     distance:  { key: "distance",  label: "Closest Spot" },
     info:      { key: "info",      label: "Info" },
