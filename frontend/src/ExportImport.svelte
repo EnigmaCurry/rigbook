@@ -652,7 +652,7 @@
                 <th class="col-compact">UTC<span class="resize-handle" on:mousedown={e => startResize(e, 0)}></span></th>
                 <th class="col-compact">Call<span class="resize-handle" on:mousedown={e => startResize(e, 1)}></span></th>
                 <th class="col-comment">Comments<span class="resize-handle" on:mousedown={e => startResize(e, 2)}></span></th>
-                <th class="col-compact">Freq<span class="resize-handle" on:mousedown={e => startResize(e, 3)}></span></th>
+                <th class="col-freq">Freq<span class="resize-handle" on:mousedown={e => startResize(e, 3)}></span></th>
                 <th class="col-compact">Mode<span class="resize-handle" on:mousedown={e => startResize(e, 4)}></span></th>
                 <th class="col-compact">RST S<span class="resize-handle" on:mousedown={e => startResize(e, 5)}></span></th>
                 <th class="col-compact">RST R<span class="resize-handle" on:mousedown={e => startResize(e, 6)}></span></th>
@@ -1255,7 +1255,8 @@
 
   .preview-table .col-compact { width: 5rem; }
   .preview-table .col-flex { width: 8rem; }
-  .preview-table .col-comment { width: 25rem; }
+  .preview-table .col-freq { width: 10rem; }
+  .preview-table .col-comment { width: 15rem; }
 
   .preview-table .clickable {
     cursor: pointer;
