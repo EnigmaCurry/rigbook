@@ -547,6 +547,35 @@
     drawTriangleForSpot(spot);
   }
 
+  function onSpotDblClick(spot) {
+    lockedSpot = spot;
+    selectedSpotter = null;
+    drawTriangleForSpot(spot);
+    fitMapToSpot(spot);
+  }
+
+  function fitMapToSpot(spot) {
+    if (!leafletMap || !myGrid) return;
+    const myPos = gridToLatLon(myGrid);
+    if (!myPos) return;
+
+    const points = [[myPos.lat, myPos.lon]];
+
+    const spotterGrid = spot.closest_grid;
+    const homeGrid = spotHomeGrid(spot);
+    const spotterPos = spotterGrid ? gridToLatLon(spotterGrid) : null;
+    const homePos = homeGrid ? gridToLatLon(homeGrid) : null;
+
+    if (spotterPos) points.push([spotterPos.lat, spotterPos.lon]);
+    if (homePos) points.push([homePos.lat, homePos.lon]);
+
+    if (points.length > 1) {
+      leafletMap.fitBounds(L.latLngBounds(points), { padding: [40, 40], maxZoom: 12 });
+    } else {
+      leafletMap.setView(points[0], 8);
+    }
+  }
+
   function onMapHomeClick(call) {
     const spot = spots.find(s => s.callsign === call);
     if (!spot) return;
@@ -793,7 +822,8 @@
               class:spot-locked={lockedSpot && spotKey(lockedSpot) === spotKey(spot)}
               on:mouseenter={() => onSpotHover(spot)}
               on:mouseleave={onSpotLeave}
-              on:click|stopPropagation={() => onSpotClick(spot)}>
+              on:click|stopPropagation={() => onSpotClick(spot)}
+              on:dblclick|stopPropagation={() => onSpotDblClick(spot)}>
             <td class="mono">{formatTime(spot)}</td>
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
