@@ -317,6 +317,68 @@
 </script>
 
 <div class="export-import">
+  <div class="comment-template-section">
+    <h2>Comment Template</h2>
+    <p class="help-text">Selected fields are prepended to COMMENT in exported ADIF and stripped on import. Empty fields are skipped.</p>
+
+    {#if commentTemplate.length > 0}
+      <div class="template-list">
+        {#each commentTemplate as entry, i}
+          <div
+            class="template-row"
+            class:drag-over={dropIndex === i && dragIndex !== i}
+            draggable="true"
+            on:dragstart={() => handleDragStart(i)}
+            on:dragover={(e) => handleDragOver(e, i)}
+            on:drop={() => handleDrop(i)}
+            on:dragend={handleDragEnd}
+          >
+            <span class="drag-handle" title="Drag to reorder">⠿</span>
+            <span class="field-name">{entry.field}</span>
+            <input
+              type="text"
+              class="label-input"
+              bind:value={entry.label}
+              on:input={saveCommentTemplate}
+              placeholder="Label"
+            />
+            <button class="remove-btn" on:click={() => removeTemplateField(i)} title="Remove">×</button>
+          </div>
+        {/each}
+      </div>
+    {/if}
+
+    <div class="template-controls">
+      <div class="template-add-row">
+        <select bind:value={addField} on:change={addTemplateField}>
+          <option value="">Add field…</option>
+          {#each availableFields as f}
+            <option value={f.field}>{f.label} ({f.field})</option>
+          {/each}
+        </select>
+      </div>
+
+      <div class="separator-row">
+        <label>
+          Separator
+          <input
+            type="text"
+            class="separator-input"
+            bind:value={commentSeparator}
+            on:input={saveCommentTemplate}
+            placeholder="|"
+          />
+        </label>
+      </div>
+    </div>
+
+    {#if commentTemplate.length > 0}
+      <span class="preview-example">
+        Preview: {commentTemplate.map(e => `${e.label}: …`).join(` ${commentSeparator.trim()} `)}{ commentTemplate.length > 0 ? ` ${commentSeparator.trim()} ` : "" }your comment
+      </span>
+    {/if}
+  </div>
+
   <div class="export-layout">
     <div class="export-form">
       <h2>Export</h2>
@@ -375,72 +437,6 @@
           Showing {preview.included} of {preview.total} contacts ({preview.excluded} excluded)
         </div>
       {/if}
-
-      <div class="comment-template-section">
-        <button class="toggle-btn" on:click={() => templateExpanded = !templateExpanded}>
-          {templateExpanded ? "▾" : "▸"} Comment Template {#if commentTemplate.length > 0}<span class="template-count">({commentTemplate.length} field{commentTemplate.length !== 1 ? "s" : ""})</span>{/if}
-        </button>
-
-        {#if templateExpanded}
-          <div class="template-body">
-            <p class="help-text">Selected fields are prepended to COMMENT in exported ADIF. Empty fields are skipped.</p>
-
-            {#if commentTemplate.length > 0}
-              <div class="template-list">
-                {#each commentTemplate as entry, i}
-                  <div
-                    class="template-row"
-                    class:drag-over={dropIndex === i && dragIndex !== i}
-                    draggable="true"
-                    on:dragstart={() => handleDragStart(i)}
-                    on:dragover={(e) => handleDragOver(e, i)}
-                    on:drop={() => handleDrop(i)}
-                    on:dragend={handleDragEnd}
-                  >
-                    <span class="drag-handle" title="Drag to reorder">⠿</span>
-                    <span class="field-name">{entry.field}</span>
-                    <input
-                      type="text"
-                      class="label-input"
-                      bind:value={entry.label}
-                      on:input={saveCommentTemplate}
-                      placeholder="Label"
-                    />
-                    <button class="remove-btn" on:click={() => removeTemplateField(i)} title="Remove">×</button>
-                  </div>
-                {/each}
-              </div>
-            {/if}
-
-            <div class="template-add-row">
-              <select bind:value={addField} on:change={addTemplateField}>
-                <option value="">Add field…</option>
-                {#each availableFields as f}
-                  <option value={f.field}>{f.label} ({f.field})</option>
-                {/each}
-              </select>
-            </div>
-
-            <div class="separator-row">
-              <label>
-                Separator
-                <input
-                  type="text"
-                  class="separator-input"
-                  bind:value={commentSeparator}
-                  on:input={saveCommentTemplate}
-                  placeholder="|"
-                />
-              </label>
-              {#if commentTemplate.length > 0}
-                <span class="preview-example">
-                  Preview: {commentTemplate.map(e => `${e.label}: …`).join(` ${commentSeparator.trim()} `)}{ commentTemplate.length > 0 ? ` ${commentSeparator.trim()} ` : "" }your comment
-                </span>
-              {/if}
-            </div>
-          </div>
-        {/if}
-      </div>
 
       <button on:click={exportAdif}>Download ADIF{preview ? ` (${preview.included})` : ""}</button>
 
@@ -756,35 +752,15 @@
   }
 
   .comment-template-section {
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    max-width: 500px;
   }
 
-  .toggle-btn {
-    background: none;
-    color: var(--text-muted);
-    border: none;
-    padding: 0.3rem 0;
-    font-size: 0.85rem;
-    font-weight: normal;
-    cursor: pointer;
-    margin-bottom: 0;
-  }
-
-  .toggle-btn:hover {
-    background: none;
-    color: var(--text);
-  }
-
-  .template-count {
-    color: var(--accent);
-    font-size: 0.8rem;
-  }
-
-  .template-body {
-    border: 1px solid var(--border, #555);
-    border-radius: 3px;
-    padding: 0.75rem;
-    margin-top: 0.25rem;
+  .template-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
   }
 
   .help-text {
@@ -858,7 +834,7 @@
   }
 
   .template-add-row {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0;
   }
 
   .template-add-row select {
@@ -899,9 +875,10 @@
   }
 
   .preview-example {
+    display: block;
     font-size: 0.75rem;
     color: var(--text-muted);
     font-style: italic;
-    padding-top: 0.8rem;
+    margin-top: 0.5rem;
   }
 </style>
