@@ -893,6 +893,7 @@ async def import_confirmed(
 ):
     """Import pre-validated contacts with user corrections applied."""
     imported = 0
+    duplicates = 0
     for c in contacts:
         data = {}
         for key in IMPORT_FIELDS:
@@ -909,9 +910,43 @@ async def import_confirmed(
                 )
             except (ValueError, TypeError):
                 pass
+        # Dedup by UUID
+        record_uuid = c.get("uuid")
+        if record_uuid:
+            existing = (
+                await session.execute(
+                    select(Contact).where(Contact.uuid == record_uuid)
+                )
+            ).scalar_one_or_none()
+            if existing:
+                duplicates += 1
+                continue
+        else:
+            # Fall back to call + timestamp dedup (ignore seconds)
+            ts = data.get("timestamp")
+            if ts:
+                check_ts = (
+                    ts.replace(second=0, tzinfo=None)
+                    if ts.tzinfo
+                    else ts.replace(second=0)
+                )
+                existing = (
+                    await session.execute(
+                        select(Contact).where(
+                            and_(
+                                Contact.call == data["call"].upper(),
+                                Contact.timestamp >= check_ts,
+                                Contact.timestamp <= check_ts.replace(second=59),
+                            )
+                        )
+                    )
+                ).scalar_one_or_none()
+                if existing:
+                    duplicates += 1
+                    continue
         contact = Contact(**data)
         session.add(contact)
         imported += 1
 
     await session.commit()
-    return {"imported": imported}
+    return {"imported": imported, "duplicates": duplicates}
