@@ -791,31 +791,33 @@
     const spotterLL = spotterPos ? nearLL(baseLon, [spotterPos.lat, spotterPos.lon]) : null;
 
     // Draw dashed cyan lines from secondary spotters first (lower z-order)
+    // Lines point FROM spotter TO station so animation flows toward station
     if (homeLL && spot.spotter_grids) {
       for (const [call, grid] of Object.entries(spot.spotter_grids)) {
         if (call === spot.closest_call) continue;
         const pos = gridToLatLon(grid);
         if (!pos) continue;
         selectionLines.push(
-          L.polyline([nearLL(baseLon, [pos.lat, pos.lon]), homeLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "6 4" }).addTo(leafletMap),
+          L.polyline([nearLL(baseLon, [pos.lat, pos.lon]), homeLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "8 6", className: "line-flow" }).addTo(leafletMap),
         );
       }
     }
 
     // Primary triangle lines drawn last (higher z-order)
+    // Spotter->Station, Station->QTH, QTH->Spotter — all animate toward their endpoint
     if (spotterLL && homeLL) {
       selectionLines.push(
-        L.polyline([spotterLL, homeLL], { color: "#00ccff", weight: 2, opacity: 0.6 }).addTo(leafletMap),
-        L.polyline([homeLL, myLL], { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
-        L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline([spotterLL, homeLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "8 6", className: "line-flow" }).addTo(leafletMap),
+        L.polyline([homeLL, myLL], { color: "#ffaa00", weight: 2, opacity: 0.6, dashArray: "8 6", className: "line-flow" }).addTo(leafletMap),
+        L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6, dashArray: "8 6", className: "line-flow" }).addTo(leafletMap),
       );
     } else if (spotterLL) {
       selectionLines.push(
-        L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6, dashArray: "8 6", className: "line-flow" }).addTo(leafletMap),
       );
     } else if (homeLL) {
       selectionLines.push(
-        L.polyline([myLL, homeLL], { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline([myLL, homeLL], { color: "#ffaa00", weight: 2, opacity: 0.6, dashArray: "8 6", className: "line-flow" }).addTo(leafletMap),
       );
     }
   }
@@ -839,9 +841,9 @@
       if (!homePos) continue;
       const homeLL = nearLL(baseLon, [homePos.lat, homePos.lon]);
       selectionLines.push(
-        L.polyline([sLL, homeLL], { color: "#00ccff", weight: 2, opacity: 0.6 }).addTo(leafletMap),
-        L.polyline([homeLL, myLL], { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
-        L.polyline([myLL, sLL], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline([sLL, homeLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "8 6", className: "line-flow" }).addTo(leafletMap),
+        L.polyline([homeLL, myLL], { color: "#ffaa00", weight: 2, opacity: 0.6, dashArray: "8 6", className: "line-flow" }).addTo(leafletMap),
+        L.polyline([myLL, sLL], { color: "#ff4444", weight: 2, opacity: 0.6, dashArray: "8 6", className: "line-flow" }).addTo(leafletMap),
       );
     }
   }
@@ -1572,6 +1574,13 @@
     border: 2px solid #003344;
   }
 
+
+  :global(.line-flow) {
+    animation: dash-flow 0.8s linear infinite;
+  }
+  @keyframes dash-flow {
+    to { stroke-dashoffset: -14; }
+  }
 
   :global(.spot-marker-dot.my-pos) {
     width: 12px;
