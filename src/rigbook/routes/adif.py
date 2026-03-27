@@ -168,15 +168,25 @@ def contact_to_adif_record(
     return record
 
 
-def _segment_matches(segment: str, label: str, value: str) -> bool:
+def _normalize_freq(khz_val: str, mhz_val: str) -> bool:
+    """Check if a KHz value and MHz value represent the same frequency."""
+    try:
+        return abs(float(khz_val) - float(mhz_val) * 1000) < 0.1
+    except (ValueError, TypeError):
+        return False
+
+
+def _segment_matches(segment: str, label: str, value: str, field: str = "") -> bool:
     """Check if a comment segment matches 'Label: value' or 'Label value'."""
     s = segment.strip()
-    # Try with colon first
-    if s == f"{label}: {value}":
-        return True
-    # Try without colon
-    if s == f"{label} {value}":
-        return True
+    for fmt in (f"{label}: ", f"{label} "):
+        if s.startswith(fmt):
+            seg_val = s[len(fmt):]
+            if seg_val == value:
+                return True
+            # Frequency: comment has KHz, ADIF field has MHz
+            if field == "freq" and _normalize_freq(seg_val, value):
+                return True
     return False
 
 
@@ -213,14 +223,16 @@ def strip_comment_prefix(
     }
     expected = []
     for entry in template_fields:
-        val = field_values.get(entry.get("field"), "")
+        f = entry.get("field", "")
+        val = field_values.get(f, "")
         if val:
             label = entry.get("label", entry["field"])
-            expected.append({"label": label, "val": val})
+            expected.append({"label": label, "val": val, "field": f})
 
     # Check if entire comment matches a single expected segment (no separator)
     if expected and any(
-        _segment_matches(comment, e["label"], e["val"]) for e in expected
+        _segment_matches(comment, e["label"], e["val"], e["field"])
+        for e in expected
     ):
         return ""
 
@@ -235,7 +247,7 @@ def strip_comment_prefix(
     strip_count = 0
     for i, seg in enumerate(parts):
         if i < len(expected) and _segment_matches(
-            seg, expected[i]["label"], expected[i]["val"]
+            seg, expected[i]["label"], expected[i]["val"], expected[i]["field"]
         ):
             strip_count += 1
         else:
@@ -522,7 +534,7 @@ def _validate_import_record(
         if lbl.strip() != exp["label"]:
             break
         # This segment aligns with expected position — check if value matches
-        if _segment_matches(part, exp["label"], exp["val"]):
+        if _segment_matches(part, exp["label"], exp["val"], exp["field"]):
             continue  # clean match
         if val.strip() != exp["val"]:
             prefix_values[exp["label"]] = {

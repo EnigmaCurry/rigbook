@@ -161,9 +161,19 @@
   $: currentPreview = activeTab === "export" ? exportPreview : importPreview;
   $: warningCount = importPreview ? (importPreview.contacts || []).filter(c => c.warnings && c.warnings.length > 0).length : 0;
 
-  function segmentMatches(seg, label, value) {
+  function segmentMatches(seg, label, value, field) {
     const s = seg.trim();
-    return s === `${label}: ${value}` || s === `${label} ${value}`;
+    for (const fmt of [`${label}: `, `${label} `]) {
+      if (s.startsWith(fmt)) {
+        const segVal = s.slice(fmt.length);
+        if (segVal === value) return true;
+        // Freq: comment has KHz, field may have MHz
+        if (field === "freq") {
+          try { if (Math.abs(parseFloat(segVal) - parseFloat(value) * 1000) < 0.1) return true; } catch {}
+        }
+      }
+    }
+    return false;
   }
 
   function stripCommentClient(contact) {
@@ -184,10 +194,10 @@
     const expected = [];
     for (const entry of commentTemplate) {
       const val = fieldMap[entry.field];
-      if (val) expected.push({ label: entry.label, val });
+      if (val) expected.push({ label: entry.label, val, field: entry.field });
     }
     // Check if entire comment matches a single expected segment
-    if (expected.some(e => segmentMatches(original, e.label, e.val))) {
+    if (expected.some(e => segmentMatches(original, e.label, e.val, e.field))) {
       contact.comments = "";
       return;
     }
@@ -198,7 +208,7 @@
     const parts = original.split(padded);
     let stripCount = 0;
     for (let i = 0; i < parts.length && i < expected.length; i++) {
-      if (segmentMatches(parts[i], expected[i].label, expected[i].val)) {
+      if (segmentMatches(parts[i], expected[i].label, expected[i].val, expected[i].field)) {
         stripCount++;
       } else {
         break;
