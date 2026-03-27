@@ -389,7 +389,6 @@
   let hoveredSpot = null;    // spot hovered in table (temporary triangle)
   let lockedSpot = null;     // spot clicked in table (persistent triangle)
   let selectedSpotter = null; // spotter clicked on map (highlights table rows)
-  let selectedIndex = -1; // keyboard-navigated row index
   let tableWrapEl;
   let mapInitialFitDone = false;
   let fullscreenMap = null;
@@ -457,36 +456,37 @@
     if (e.key === "Escape" && fullscreenMap) exitFullscreen();
   }
 
+  function lockedIndex() {
+    if (!lockedSpot) return -1;
+    const k = spotKey(lockedSpot);
+    return sortedSpots.findIndex(s => spotKey(s) === k);
+  }
+
   function onSpotsKeydown(e) {
     const tag = e.target.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      if (selectedIndex < sortedSpots.length - 1) {
-        selectedIndex++;
-        selectSpotByIndex(selectedIndex);
-      }
+      const cur = lockedIndex();
+      const next = cur < sortedSpots.length - 1 ? cur + 1 : cur;
+      selectSpotByIndex(next);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      if (selectedIndex > 0) {
-        selectedIndex--;
-        selectSpotByIndex(selectedIndex);
-      } else if (selectedIndex === -1 && sortedSpots.length > 0) {
-        selectedIndex = 0;
-        selectSpotByIndex(selectedIndex);
-      }
-    } else if (e.key === "Escape" && selectedIndex >= 0) {
-      selectedIndex = -1;
+      const cur = lockedIndex();
+      const next = cur > 0 ? cur - 1 : 0;
+      selectSpotByIndex(next);
+    } else if (e.key === "Escape" && lockedSpot) {
       clearAll();
-    } else if (e.key === "Enter" && selectedIndex >= 0) {
-      const spot = sortedSpots[selectedIndex];
-      if (spot && !isWorkedToday(spot)) addQsoWithPota(spot);
+    } else if (e.key === "Enter" && lockedSpot) {
+      if (!isWorkedToday(lockedSpot)) addQsoWithPota(lockedSpot);
     }
   }
 
   function selectSpotByIndex(idx) {
     const spot = sortedSpots[idx];
     if (!spot) return;
+    // Use onSpotClick but prevent it from toggling off if same spot
+    if (lockedSpot && spotKey(lockedSpot) === spotKey(spot)) return;
     onSpotClick(spot);
     tick().then(() => {
       if (!tableWrapEl) return;
@@ -904,10 +904,9 @@
           <tr class:worked={isWorkedToday(spot)}
               class:spot-highlighted={selectedSpotter && spot.closest_call === selectedSpotter}
               class:spot-locked={lockedSpot && spotKey(lockedSpot) === spotKey(spot)}
-              class:spot-selected={i === selectedIndex}
               on:mouseenter={() => onSpotHover(spot)}
               on:mouseleave={onSpotLeave}
-              on:click|stopPropagation={() => { selectedIndex = i; onSpotClick(spot); }}>
+              on:click|stopPropagation={() => onSpotClick(spot)}>
             <td class="mono">{formatTime(spot)}</td>
             {#if isWorkedToday(spot)}
               <td class="mono call worked-call" title="Already worked today">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</td>
@@ -1108,10 +1107,6 @@
     background: rgba(0, 204, 255, 0.15);
   }
   tr.spot-locked {
-    background: rgba(0, 204, 255, 0.25);
-    outline: 1px solid rgba(0, 204, 255, 0.4);
-  }
-  tr.spot-selected {
     background: rgba(0, 204, 255, 0.25);
     outline: 1px solid rgba(0, 204, 255, 0.4);
   }

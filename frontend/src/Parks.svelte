@@ -53,7 +53,6 @@
   let lastActivePark = activePark;
   let fullscreenMap = null; // reference to the map currently fullscreen
   let fullscreenWrap = null; // reference to the wrap element
-  let parkSelectedIndex = -1; // keyboard-navigated row index
   let myParksListEl;
 
   function addExpandControl(map, wrapEl) {
@@ -96,41 +95,38 @@
     if (e.key === "Escape" && fullscreenMap) exitFullscreen();
   }
 
+  function selectedParkIndex() {
+    if (!selectedPark) return -1;
+    return myParksSorted.findIndex(p => p.reference === selectedPark);
+  }
+
   function onParksKeydown(e) {
     if (tab !== "my-qsos" || myParksSorted.length === 0) return;
     const tag = e.target.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      if (parkSelectedIndex < myParksSorted.length - 1) {
-        parkSelectedIndex++;
-        selectParkByIndex(parkSelectedIndex);
-      }
+      const cur = selectedParkIndex();
+      const next = cur < myParksSorted.length - 1 ? cur + 1 : cur;
+      navigateToParkIndex(next);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      if (parkSelectedIndex > 0) {
-        parkSelectedIndex--;
-        selectParkByIndex(parkSelectedIndex);
-      } else if (parkSelectedIndex === -1) {
-        parkSelectedIndex = 0;
-        selectParkByIndex(parkSelectedIndex);
-      }
-    } else if (e.key === "Escape" && parkSelectedIndex >= 0) {
-      parkSelectedIndex = -1;
-      if (selectedPark) {
-        const m = markersByRef[selectedPark];
-        if (m) { m.setIcon(normalIcon); m.closePopup(); }
-        selectedPark = null;
-      }
-    } else if (e.key === "Enter" && parkSelectedIndex >= 0) {
-      const park = myParksSorted[parkSelectedIndex];
-      if (park) viewPark(park.reference);
+      const cur = selectedParkIndex();
+      const next = cur > 0 ? cur - 1 : 0;
+      navigateToParkIndex(next);
+    } else if (e.key === "Escape" && selectedPark) {
+      const m = markersByRef[selectedPark];
+      if (m) { m.setIcon(normalIcon); m.closePopup(); }
+      selectedPark = null;
+    } else if (e.key === "Enter" && selectedPark) {
+      viewPark(selectedPark);
     }
   }
 
-  function selectParkByIndex(idx) {
+  function navigateToParkIndex(idx) {
     const park = myParksSorted[idx];
     if (!park) return;
+    if (selectedPark === park.reference) return;
     selectPark(park.reference);
     tick().then(() => {
       if (!myParksListEl) return;
@@ -635,11 +631,11 @@
           <button class="my-sort-btn" class:active={mySort === "qsos"} on:click={() => toggleMySort("qsos")}>QSOs {mySort === "qsos" ? (mySortAsc ? "▲" : "▼") : ""}</button>
         </div>
         <div class="my-parks-list" bind:this={myParksListEl}>
-          {#each myParksSorted as park, i}
+          {#each myParksSorted as park}
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
             <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-            <div class="tree-row park-row clickable" class:selected-park={selectedPark === park.reference} class:park-kb-selected={i === parkSelectedIndex} on:click={() => { parkSelectedIndex = i; selectPark(park.reference); }} on:mouseenter={() => highlightPark(park.reference)} on:mouseleave={() => unhighlightPark(park.reference)}>
+            <div class="tree-row park-row clickable" class:selected-park={selectedPark === park.reference} on:click={() => selectPark(park.reference)} on:mouseenter={() => highlightPark(park.reference)} on:mouseleave={() => unhighlightPark(park.reference)}>
               <span class="park-award" title="{parkAwardTitle(park.qso_count)}">{parkAward(park.qso_count)}</span>
               <span class="park-flag">{countryFlag(prefixFromRef(park.reference))}</span>
               <span class="park-ref">{park.reference}</span>
@@ -1083,10 +1079,6 @@
     border-left: 3px solid var(--accent);
   }
 
-  .my-parks-list .park-kb-selected {
-    background: var(--bg-deep);
-    border-left: 3px solid var(--accent);
-  }
 
   .park-date {
     color: var(--text-dim);
