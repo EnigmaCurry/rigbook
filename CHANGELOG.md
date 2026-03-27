@@ -1,5 +1,34 @@
 # Changelog
 
+## v0.1.20
+
+### Spots Map
+
+- Animated flowing dashes on blue spotter→station lines
+- Selected station marker shown in bright yellow
+- Show station popup on spot selection via click or keyboard navigation
+- Restore map view and selection when navigating away and returning
+- True fullscreen maps using browser Fullscreen API (not just full-window CSS)
+- Skip QRZ location lookup for portable/mobile callsigns (containing `/`)
+
+### Map Resize
+
+- Clamp map height to 70% of viewport to prevent drag handle going off-screen
+- Reset map to 25% of viewport when toggling map on
+- Fix fullscreen map blocked by inline max-height constraint
+
+### Navigation
+
+- Add `S` keyboard shortcut to navigate to Spots page
+- Escape while focused on search bar blurs the input
+- Consistent Spots/Parks button order across wide, narrow, and hamburger menu
+- Consistent Notifications/Conditions order across all nav modes
+
+### My Parks
+
+- Move stats and map toggle above the map
+- Restore map view and park selection when returning to page
+
 ## v0.1.19
 
 ### Spots Map
