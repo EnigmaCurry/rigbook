@@ -848,7 +848,6 @@
   .main-layout {
     display: flex;
     gap: 1.5rem;
-    align-items: stretch;
     flex: 1;
     min-height: 0;
     overflow: hidden;
@@ -859,6 +858,7 @@
     min-width: 0;
     max-width: 315px;
     overflow-y: auto;
+    align-self: stretch;
   }
 
   .preview-pane {
@@ -867,6 +867,7 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
+    align-self: stretch;
   }
 
   @media (max-width: 900px) {
@@ -1368,6 +1369,10 @@
   }
 
   .empty-preview {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: var(--text-muted);
     font-style: italic;
     padding: 2rem;
