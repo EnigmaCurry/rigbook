@@ -1178,7 +1178,7 @@
             <tr class="clickable" class:editing={editingId === c.id} title={relativeTime(c.timestamp)} on:click={() => editContact(c)}>
               {#each columns as col (col.key)}
                 {#if col.key === "timestamp"}<td>{formatTimestamp(c.timestamp)}</td>
-                {:else if col.key === "call"}<td class="call">{c.call}</td>
+                {:else if col.key === "call"}<td class="call">{c.call}{#if c.pota_park} 🌲{/if}</td>
                 {:else if col.key === "name"}<td class="truncate truncate-wide">{c.name || ""}</td>
                 {:else if col.key === "freq"}<td>{formatFreq(c.freq)} {#if freqToBand(c.freq)}<span class="band-tag" style="background: {bandColor(freqToBand(c.freq))}; color: {bandTextColor(freqToBand(c.freq))}">{freqToBand(c.freq)}</span>{/if}</td>
                 {:else if col.key === "mode"}<td>{c.mode || ""}</td>
