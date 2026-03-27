@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, field_serializer, field_validator, model_validator
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from rigbook.db import Contact, get_session
@@ -266,6 +266,13 @@ async def update_contact(
     await session.commit()
     await session.refresh(contact)
     return contact
+
+
+@router.delete("/all")
+async def delete_all_contacts(session: AsyncSession = Depends(get_session)):
+    result = await session.execute(delete(Contact))
+    await session.commit()
+    return {"deleted": result.rowcount}
 
 
 @router.delete("/{contact_id}", status_code=204)

@@ -144,12 +144,39 @@
   }
 
   // Danger zone
-  let deleteConfirmName = "";
+  let dangerConfirmName = "";
   let deleteError = "";
   let deleting = false;
+  let clearing = false;
+  let clearError = "";
+
+  async function clearAllContacts() {
+    if (dangerConfirmName !== logbookName) {
+      clearError = "Name does not match";
+      return;
+    }
+    if (!confirm(`Are you sure you want to delete ALL QSOs from "${logbookName}"? This cannot be undone.`)) {
+      return;
+    }
+    clearError = "";
+    clearing = true;
+    try {
+      const res = await fetch("/api/contacts/all", { method: "DELETE" });
+      if (res.ok) {
+        const data = await res.json();
+        clearError = `Deleted ${data.deleted} contacts.`;
+      } else {
+        const data = await res.json().catch(() => null);
+        clearError = data?.detail || "Failed to clear contacts";
+      }
+    } catch {
+      clearError = "Failed to clear contacts";
+    }
+    clearing = false;
+  }
 
   async function deleteLogbook() {
-    if (deleteConfirmName !== logbookName) {
+    if (dangerConfirmName !== logbookName) {
       deleteError = "Name does not match";
       return;
     }
@@ -734,16 +761,27 @@
   {#if logbookName}
     <section class="settings-section danger-zone">
       <h3>Danger Zone</h3>
-      <p class="danger-text">Permanently delete the logbook <strong>{logbookName}</strong> and all its data. This cannot be undone.</p>
       <div class="setting-row">
-        <label for="delete-confirm">Type <strong>{logbookName}</strong> to confirm</label>
-        <input id="delete-confirm" type="text" bind:value={deleteConfirmName} placeholder={logbookName} autocomplete="off" />
+        <label for="danger-confirm">Type <strong>{logbookName}</strong> to enable</label>
+        <input id="danger-confirm" type="text" bind:value={dangerConfirmName} placeholder={logbookName} autocomplete="off" />
       </div>
+      <div class="danger-separator"></div>
+      <p class="danger-text">Delete all QSOs from <strong>{logbookName}</strong> but keep the logbook and settings.</p>
+      {#if clearError}
+        <p class="danger-error">{clearError}</p>
+      {/if}
+      <div class="setting-row">
+        <button class="danger-btn" on:click={clearAllContacts} disabled={clearing || dangerConfirmName !== logbookName}>
+          {clearing ? "Clearing..." : "Clear All QSOs"}
+        </button>
+      </div>
+      <div class="danger-separator"></div>
+      <p class="danger-text">Permanently delete the logbook <strong>{logbookName}</strong> and all its data. This cannot be undone.</p>
       {#if deleteError}
         <p class="danger-error">{deleteError}</p>
       {/if}
       <div class="setting-row">
-        <button class="danger-btn" on:click={deleteLogbook} disabled={deleting || deleteConfirmName !== logbookName}>
+        <button class="danger-btn" on:click={deleteLogbook} disabled={deleting || dangerConfirmName !== logbookName}>
           {deleting ? "Deleting..." : "Delete Logbook"}
         </button>
       </div>
