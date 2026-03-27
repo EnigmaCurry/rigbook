@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.1.17
+
+### Import / Export Layout
+
+- Import/Export page no longer scrolls — preview table is the only scrollable element
+- Viewport-filling flex layout: sidebar fixed at 315px, preview fills remaining space
+- Action bar spans full page width at bottom, always visible regardless of horizontal scroll
+- Preview area has minimum height (~5 lines) even when empty
+- Sidebar scrolls independently when content overflows
+- Empty preview states centered in the available space
+- Layout works correctly at all screen widths
+
 ## v0.1.16
 
 ### Import / Export Redesign
