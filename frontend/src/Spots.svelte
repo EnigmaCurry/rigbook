@@ -426,6 +426,7 @@
   }
 
   const spotterIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot spotter"></div>', iconSize: [10, 10], iconAnchor: [5, 5] });
+  const spotterSecondaryIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot spotter-secondary"></div>', iconSize: [10, 10], iconAnchor: [5, 5] });
   const homeLocIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot home-loc"></div>', iconSize: [10, 10], iconAnchor: [5, 5] });
   const myIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot my-pos"></div>', iconSize: [14, 14], iconAnchor: [7, 7] });
 
@@ -723,9 +724,13 @@
 
     // Collect current spotters and home locations
     const currentSpotters = new Map();
+    const closestCalls = new Set();
     const currentHomes = new Map();
     for (const s of spots) {
-      if (s.closest_call && s.closest_grid) currentSpotters.set(s.closest_call, s.closest_grid);
+      if (s.closest_call && s.closest_grid) {
+        currentSpotters.set(s.closest_call, s.closest_grid);
+        closestCalls.add(s.closest_call);
+      }
       // Add all spotters with known grids
       if (s.spotter_grids) {
         for (const [call, grid] of Object.entries(s.spotter_grids)) {
@@ -753,11 +758,15 @@
 
     // Add new spotter markers (normalized to QTH longitude)
     for (const [call, grid] of currentSpotters) {
-      if (spotterMarkers[call]) continue;
+      const icon = closestCalls.has(call) ? spotterIcon : spotterSecondaryIcon;
+      if (spotterMarkers[call]) {
+        spotterMarkers[call].setIcon(icon);
+        continue;
+      }
       const pos = gridToLatLon(grid);
       if (!pos) continue;
       const ll = nearLL(baseLon, [pos.lat, pos.lon]);
-      const m = L.marker(ll, { icon: spotterIcon })
+      const m = L.marker(ll, { icon })
         .bindPopup(`Spotter: ${call}<br>Grid: ${grid}`)
         .addTo(leafletMap);
       m.on("click", () => onMapSpotterClick(call));
@@ -1242,6 +1251,13 @@
     height: 8px;
     background: #00ccff;
     border: 2px solid #006688;
+  }
+
+  :global(.spot-marker-dot.spotter-secondary) {
+    width: 8px;
+    height: 8px;
+    background: #005577;
+    border: 2px solid #003344;
   }
 
   :global(.spot-marker-dot.home-loc) {
