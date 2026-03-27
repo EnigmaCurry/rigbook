@@ -289,159 +289,166 @@
 </script>
 
 <div class="export-import">
-  <h2>Export</h2>
+  <div class="export-layout">
+    <div class="export-form">
+      <h2>Export</h2>
 
-  <div class="title-row">
-    <label>
-      Title
-      <input type="text" bind:value={exportTitle} placeholder="optional — included in filename" />
-    </label>
-  </div>
+      <div class="title-row">
+        <label>
+          Title
+          <input type="text" bind:value={exportTitle} placeholder="optional — included in filename" />
+        </label>
+      </div>
 
-  <div class="filters">
-    <div class="filter-row">
-      <label>
-        Date from
-        <input type="date" bind:value={dateFrom} />
-      </label>
-      <label>
-        Date to
-        <input type="date" bind:value={dateTo} />
-      </label>
-    </div>
-    <div class="filter-row">
-      <label>
-        Comment / Notes
-        <input type="text" bind:value={commentFilter} placeholder="substring search" />
-      </label>
-      <label>
-        Country
-        <Autocomplete bind:value={countryFilter} items={countryItems} on:blur={normalizeCountry} />
-      </label>
-    </div>
-    <div class="filter-row">
-      <label>
-        Mode
-        <input type="text" bind:value={modeFilter} placeholder="e.g. CW, SSB" />
-      </label>
-      <label>
-        Band
-        <select bind:value={bandFilter}>
-          <option value="">All</option>
-          {#each BANDS as b}
-            <option value={b.name}>{b.name}</option>
-          {/each}
-        </select>
-      </label>
-      <label class="checkbox-label">
-        <input type="checkbox" bind:checked={skccValidated} />
-        SKCC Validated
-      </label>
-    </div>
-  </div>
+      <div class="filters">
+        <div class="filter-row">
+          <label>
+            Date from
+            <input type="date" bind:value={dateFrom} />
+          </label>
+          <label>
+            Date to
+            <input type="date" bind:value={dateTo} />
+          </label>
+        </div>
+        <div class="filter-row">
+          <label>
+            Comment / Notes
+            <input type="text" bind:value={commentFilter} placeholder="substring search" />
+          </label>
+          <label>
+            Country
+            <Autocomplete bind:value={countryFilter} items={countryItems} on:blur={normalizeCountry} />
+          </label>
+        </div>
+        <div class="filter-row">
+          <label>
+            Mode
+            <input type="text" bind:value={modeFilter} placeholder="e.g. CW, SSB" />
+          </label>
+          <label>
+            Band
+            <select bind:value={bandFilter}>
+              <option value="">All</option>
+              {#each BANDS as b}
+                <option value={b.name}>{b.name}</option>
+              {/each}
+            </select>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" bind:checked={skccValidated} />
+            SKCC Validated
+          </label>
+        </div>
+      </div>
 
-  {#if preview}
-    <div class="stats-bar">
-      Showing {preview.included} of {preview.total} contacts ({preview.excluded} excluded)
-    </div>
-  {/if}
+      {#if preview}
+        <div class="stats-bar">
+          Showing {preview.included} of {preview.total} contacts ({preview.excluded} excluded)
+        </div>
+      {/if}
 
-  <div class="comment-template-section">
-    <button class="toggle-btn" on:click={() => templateExpanded = !templateExpanded}>
-      {templateExpanded ? "▾" : "▸"} Comment Template {#if commentTemplate.length > 0}<span class="template-count">({commentTemplate.length} field{commentTemplate.length !== 1 ? "s" : ""})</span>{/if}
-    </button>
+      <div class="comment-template-section">
+        <button class="toggle-btn" on:click={() => templateExpanded = !templateExpanded}>
+          {templateExpanded ? "▾" : "▸"} Comment Template {#if commentTemplate.length > 0}<span class="template-count">({commentTemplate.length} field{commentTemplate.length !== 1 ? "s" : ""})</span>{/if}
+        </button>
 
-    {#if templateExpanded}
-      <div class="template-body">
-        <p class="help-text">Selected fields are prepended to COMMENT in exported ADIF. Empty fields are skipped.</p>
+        {#if templateExpanded}
+          <div class="template-body">
+            <p class="help-text">Selected fields are prepended to COMMENT in exported ADIF. Empty fields are skipped.</p>
 
-        {#if commentTemplate.length > 0}
-          <div class="template-list">
-            {#each commentTemplate as entry, i}
-              <div
-                class="template-row"
-                class:drag-over={dropIndex === i && dragIndex !== i}
-                draggable="true"
-                on:dragstart={() => handleDragStart(i)}
-                on:dragover={(e) => handleDragOver(e, i)}
-                on:drop={() => handleDrop(i)}
-                on:dragend={handleDragEnd}
-              >
-                <span class="drag-handle" title="Drag to reorder">⠿</span>
-                <span class="field-name">{entry.field}</span>
+            {#if commentTemplate.length > 0}
+              <div class="template-list">
+                {#each commentTemplate as entry, i}
+                  <div
+                    class="template-row"
+                    class:drag-over={dropIndex === i && dragIndex !== i}
+                    draggable="true"
+                    on:dragstart={() => handleDragStart(i)}
+                    on:dragover={(e) => handleDragOver(e, i)}
+                    on:drop={() => handleDrop(i)}
+                    on:dragend={handleDragEnd}
+                  >
+                    <span class="drag-handle" title="Drag to reorder">⠿</span>
+                    <span class="field-name">{entry.field}</span>
+                    <input
+                      type="text"
+                      class="label-input"
+                      bind:value={entry.label}
+                      on:input={saveCommentTemplate}
+                      placeholder="Label"
+                    />
+                    <button class="remove-btn" on:click={() => removeTemplateField(i)} title="Remove">×</button>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+
+            <div class="template-add-row">
+              <select bind:value={addField} on:change={addTemplateField}>
+                <option value="">Add field…</option>
+                {#each availableFields as f}
+                  <option value={f.field}>{f.label} ({f.field})</option>
+                {/each}
+              </select>
+            </div>
+
+            <div class="separator-row">
+              <label>
+                Separator
                 <input
                   type="text"
-                  class="label-input"
-                  bind:value={entry.label}
+                  class="separator-input"
+                  bind:value={commentSeparator}
                   on:input={saveCommentTemplate}
-                  placeholder="Label"
+                  placeholder="|"
                 />
-                <button class="remove-btn" on:click={() => removeTemplateField(i)} title="Remove">×</button>
-              </div>
-            {/each}
+              </label>
+              {#if commentTemplate.length > 0}
+                <span class="preview-example">
+                  Preview: {commentTemplate.map(e => `${e.label}: …`).join(` ${commentSeparator.trim()} `)}{ commentTemplate.length > 0 ? ` ${commentSeparator.trim()} ` : "" }your comment
+                </span>
+              {/if}
+            </div>
           </div>
         {/if}
+      </div>
 
-        <div class="template-add-row">
-          <select bind:value={addField} on:change={addTemplateField}>
-            <option value="">Add field…</option>
-            {#each availableFields as f}
-              <option value={f.field}>{f.label} ({f.field})</option>
-            {/each}
-          </select>
-        </div>
+      <button on:click={exportAdif}>Download ADIF{preview ? ` (${preview.included})` : ""}</button>
+    </div>
 
-        <div class="separator-row">
-          <label>
-            Separator
-            <input
-              type="text"
-              class="separator-input"
-              bind:value={commentSeparator}
-              on:input={saveCommentTemplate}
-              placeholder="|"
-            />
-          </label>
-          {#if commentTemplate.length > 0}
-            <span class="preview-example">
-              Preview: {commentTemplate.map(e => `${e.label}: …`).join(` ${commentSeparator.trim()} `)}{ commentTemplate.length > 0 ? ` ${commentSeparator.trim()} ` : "" }your comment
-            </span>
-          {/if}
+    {#if preview && preview.contacts.length > 0}
+      <div class="export-preview">
+        <h2>Preview</h2>
+        <div class="preview-table-wrap">
+          <table class="preview-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Callsign</th>
+                <th>Freq</th>
+                <th>Mode</th>
+                <th>Country</th>
+                <th>Comments</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each preview.contacts as c}
+                <tr>
+                  <td>{formatTimestamp(c.timestamp)}</td>
+                  <td class="call">{c.call}</td>
+                  <td class="freq-cell">{formatFreq(c.freq)} {#if freqToBand(c.freq)}<span class="band-tag" style="background: {bandColor(freqToBand(c.freq))}; color: {bandTextColor(freqToBand(c.freq))}">{freqToBand(c.freq)}</span>{/if}</td>
+                  <td>{c.mode || ""}</td>
+                  <td>{c.country || ""}</td>
+                  <td class="truncate">{renderComment(c)}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
         </div>
       </div>
     {/if}
   </div>
-
-  <button on:click={exportAdif}>Download ADIF{preview ? ` (${preview.included})` : ""}</button>
-
-  {#if preview && preview.contacts.length > 0}
-    <div class="preview-table-wrap">
-      <table class="preview-table">
-        <thead>
-          <tr>
-            <th>Timestamp</th>
-            <th>Callsign</th>
-            <th>Freq</th>
-            <th>Mode</th>
-            <th>Country</th>
-            <th>Comments</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each preview.contacts as c}
-            <tr>
-              <td>{formatTimestamp(c.timestamp)}</td>
-              <td class="call">{c.call}</td>
-              <td class="freq-cell">{formatFreq(c.freq)} {#if freqToBand(c.freq)}<span class="band-tag" style="background: {bandColor(freqToBand(c.freq))}; color: {bandTextColor(freqToBand(c.freq))}">{freqToBand(c.freq)}</span>{/if}</td>
-              <td>{c.mode || ""}</td>
-              <td>{c.country || ""}</td>
-              <td class="truncate">{renderComment(c)}</td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
-  {/if}
 
   <h2>Import</h2>
   <p>Import contacts from an ADIF (.adi) file. Duplicates (same callsign + timestamp) are automatically skipped.</p>
@@ -457,7 +464,45 @@
 
 <style>
   .export-import {
-    max-width: 900px;
+    width: 100%;
+  }
+
+  .export-layout {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+  }
+
+  .export-form {
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+
+  .export-preview {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .export-preview .preview-table-wrap {
+    max-height: calc(100vh - 10rem);
+  }
+
+  @media (max-width: 900px) {
+    .export-layout {
+      flex-direction: column;
+    }
+
+    .export-form {
+      width: 100%;
+    }
+
+    .export-preview {
+      width: 100%;
+    }
+
+    .export-preview .preview-table-wrap {
+      max-height: 400px;
+    }
   }
 
   h2 {

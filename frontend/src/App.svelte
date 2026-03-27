@@ -945,7 +945,7 @@
   });
 </script>
 
-<main class:dual-mode={page === "dual"} class:parks-mode={page === "parks"} class:spots-mode={page === "spots"} class:grid-mode={page === "grid"}>
+<main class:dual-mode={page === "dual"} class:parks-mode={page === "parks"} class:spots-mode={page === "spots"} class:grid-mode={page === "grid"} class:export-mode={page === "export"}>
   {#if serverShutdown}
     <header>
       <div class="header-left">
@@ -1271,6 +1271,10 @@
   .page-content {
     max-width: 1100px;
     margin: 0 auto;
+  }
+
+  :global(main.export-mode) .page-content {
+    max-width: 100%;
   }
 
   header {
