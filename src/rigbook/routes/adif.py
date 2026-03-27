@@ -314,11 +314,19 @@ async def preview_adif(
         data["adif_line"] = record_to_adif_line(adif_rec)
         previews.append(data)
 
+    header = {
+        "ADIF_VER": "3.1.4",
+        "PROGRAMID": "Rigbook",
+        "PROGRAMVERSION": "0.1.0",
+    }
+
     return {
         "contacts": previews,
         "total": total,
         "included": included,
         "excluded": total - included,
+        "header": header,
+        "header_adif": record_to_adif_line(header).replace("<eor>", "<eoh>"),
     }
 
 
@@ -473,14 +481,14 @@ async def _classify_import_records(
 async def _parse_adif_upload(file: UploadFile):
     content = (await file.read()).decode("utf-8", errors="replace")
     doc = adi.loads(content)
-    return doc.get("RECORDS", [])
+    return doc.get("RECORDS", []), doc.get("HEADER", {})
 
 
 @router.post("/import/preview")
 async def preview_import_adif(
     file: UploadFile, session: AsyncSession = Depends(get_session)
 ):
-    records = await _parse_adif_upload(file)
+    records, file_header = await _parse_adif_upload(file)
     template, separator = await _fetch_comment_settings(session)
     new_records, duplicate_count, skipped_count = await _classify_import_records(
         records, session, template, separator
@@ -521,12 +529,14 @@ async def preview_import_adif(
         "new_count": len(new_records),
         "duplicate_count": duplicate_count,
         "skipped_count": skipped_count,
+        "header": file_header,
+        "header_adif": record_to_adif_line(file_header).replace("<eor>", "<eoh>"),
     }
 
 
 @router.post("/import")
 async def import_adif(file: UploadFile, session: AsyncSession = Depends(get_session)):
-    records = await _parse_adif_upload(file)
+    records, _header = await _parse_adif_upload(file)
     template, separator = await _fetch_comment_settings(session)
     new_records, duplicates, skipped = await _classify_import_records(
         records, session, template, separator

@@ -249,6 +249,7 @@
   }
 
   let expandedRow = null;
+  let headerExpanded = false;
 
   function toggleRow(index) {
     expandedRow = expandedRow === index ? null : index;
@@ -477,6 +478,33 @@
     </div>
 
     <div class="preview-pane">
+      {#if currentPreview && currentPreview.header}
+        <div class="adif-header-bar" on:click={() => headerExpanded = !headerExpanded}>
+          <span class="adif-header-summary">
+            {#if currentPreview.header.PROGRAMID}
+              <strong>{currentPreview.header.PROGRAMID}</strong>{#if currentPreview.header.PROGRAMVERSION} v{currentPreview.header.PROGRAMVERSION}{/if}
+            {:else}
+              <strong>ADIF</strong>
+            {/if}
+            {#if currentPreview.header.ADIF_VER}
+              <span class="adif-ver">ADIF {currentPreview.header.ADIF_VER}</span>
+            {/if}
+            <span class="expand-hint">{headerExpanded ? "▾" : "▸"}</span>
+          </span>
+        </div>
+        {#if headerExpanded}
+          <div class="adif-header-detail">
+            <div class="adif-header-fields">
+              {#each Object.entries(currentPreview.header) as [key, val]}
+                <span class="adif-field"><strong>{key}:</strong> {val}</span>
+              {/each}
+            </div>
+            {#if currentPreview.header_adif}
+              <code class="adif-header-raw">{currentPreview.header_adif}</code>
+            {/if}
+          </div>
+        {/if}
+      {/if}
       {#if currentPreview && currentPreview.contacts && currentPreview.contacts.length > 0}
         <div class="preview-table-wrap">
           <table class="preview-table">
@@ -806,12 +834,73 @@
     background: var(--accent-hover);
   }
 
+  .adif-header-bar {
+    display: flex;
+    align-items: center;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--border, #555);
+    border-bottom: none;
+    border-radius: 3px 3px 0 0;
+    background: var(--bg-header, var(--bg));
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .adif-header-bar:hover {
+    color: var(--text);
+  }
+
+  .adif-header-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .adif-ver {
+    font-size: 0.7rem;
+    opacity: 0.7;
+  }
+
+  .expand-hint {
+    font-size: 0.7rem;
+    opacity: 0.5;
+  }
+
+  .adif-header-detail {
+    border: 1px solid var(--border, #555);
+    border-bottom: none;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .adif-header-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 1.2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .adif-field strong {
+    color: var(--accent);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+  }
+
+  .adif-header-raw {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    word-break: break-all;
+    white-space: pre-wrap;
+  }
+
   .preview-table-wrap {
     flex: 1;
     max-height: calc(100vh - 12rem);
     overflow: auto;
     border: 1px solid var(--border, #555);
-    border-radius: 3px;
+    border-radius: 0 0 3px 3px;
   }
 
   .preview-table {
