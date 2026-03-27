@@ -412,26 +412,17 @@
     return { lat, lon };
   }
 
-  /** Adjust a pair of [lat, lon] points so polylines take the shortest path across the antimeridian. */
-  function shortPath(a, b) {
-    let [latA, lonA] = a;
-    let [latB, lonB] = b;
-    const diff = lonB - lonA;
-    if (diff > 180) lonB -= 360;
-    else if (diff < -180) lonB += 360;
-    return [[latA, lonA], [latB, lonB]];
+  /** Shift lon to be within ±180 of baseLon so lines take the short path. */
+  function nearLon(baseLon, lon) {
+    let d = lon - baseLon;
+    if (d > 180) lon -= 360;
+    else if (d < -180) lon += 360;
+    return lon;
   }
 
-  /** Normalize a group of [lat, lon] points to use the shortest-path longitudes relative to the first point. */
-  function shortPathGroup(points) {
-    if (points.length === 0) return [];
-    const base = points[0][1];
-    return points.map(([lat, lon]) => {
-      let diff = lon - base;
-      if (diff > 180) lon -= 360;
-      else if (diff < -180) lon += 360;
-      return [lat, lon];
-    });
+  /** Normalize a [lat, lon] point relative to a base longitude. */
+  function nearLL(baseLon, pt) {
+    return [pt[0], nearLon(baseLon, pt[1])];
   }
 
   const spotterIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot spotter"></div>', iconSize: [10, 10], iconAnchor: [5, 5] });
@@ -561,41 +552,43 @@
     const myPos = gridToLatLon(myGrid);
     if (!myPos) return;
     const myLL = [myPos.lat, myPos.lon];
+    const baseLon = myLL[1];
 
     const spotterGrid = spot.closest_grid;
     const homeGrid = spotHomeGrid(spot);
     const spotterPos = spotterGrid ? gridToLatLon(spotterGrid) : null;
     const homePos = homeGrid ? gridToLatLon(homeGrid) : null;
 
+    // Normalize all points relative to my QTH longitude
+    const homeLL = homePos ? nearLL(baseLon, [homePos.lat, homePos.lon]) : null;
+    const spotterLL = spotterPos ? nearLL(baseLon, [spotterPos.lat, spotterPos.lon]) : null;
+
     // Draw dashed cyan lines from secondary spotters first (lower z-order)
-    const homeLL2 = homePos ? [homePos.lat, homePos.lon] : null;
-    if (homeLL2 && spot.spotter_grids) {
+    if (homeLL && spot.spotter_grids) {
       for (const [call, grid] of Object.entries(spot.spotter_grids)) {
         if (call === spot.closest_call) continue;
         const pos = gridToLatLon(grid);
         if (!pos) continue;
         selectionLines.push(
-          L.polyline(shortPath([pos.lat, pos.lon], homeLL2), { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "6 4" }).addTo(leafletMap),
+          L.polyline([nearLL(baseLon, [pos.lat, pos.lon]), homeLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "6 4" }).addTo(leafletMap),
         );
       }
     }
 
     // Primary triangle lines drawn last (higher z-order)
-    if (spotterPos && homePos) {
-      const spotterLL = [spotterPos.lat, spotterPos.lon];
-      const homeLL = [homePos.lat, homePos.lon];
+    if (spotterLL && homeLL) {
       selectionLines.push(
-        L.polyline(shortPath(spotterLL, homeLL), { color: "#00ccff", weight: 2, opacity: 0.6 }).addTo(leafletMap),
-        L.polyline(shortPath(homeLL, myLL), { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
-        L.polyline(shortPath(myLL, spotterLL), { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline([spotterLL, homeLL], { color: "#00ccff", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline([homeLL, myLL], { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
       );
-    } else if (spotterPos) {
+    } else if (spotterLL) {
       selectionLines.push(
-        L.polyline(shortPath(myLL, [spotterPos.lat, spotterPos.lon]), { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
       );
-    } else if (homePos) {
+    } else if (homeLL) {
       selectionLines.push(
-        L.polyline(shortPath(myLL, [homePos.lat, homePos.lon]), { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline([myLL, homeLL], { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
       );
     }
   }
@@ -606,21 +599,22 @@
     const myPos = gridToLatLon(myGrid);
     if (!myPos) return;
     const myLL = [myPos.lat, myPos.lon];
+    const baseLon = myLL[1];
     const spotterMarker = spotterMarkers[call];
     if (!spotterMarker) return;
-    const spotterLL = spotterMarker.getLatLng();
+    const rawLL = spotterMarker.getLatLng();
+    const sLL = nearLL(baseLon, [rawLL.lat, rawLL.lng]);
 
     for (const s of spots) {
       const hg = spotHomeGrid(s);
       if (s.closest_call !== call || !hg) continue;
       const homePos = gridToLatLon(hg);
       if (!homePos) continue;
-      const homeLL = [homePos.lat, homePos.lon];
-      const sLL = [spotterLL.lat, spotterLL.lng];
+      const homeLL = nearLL(baseLon, [homePos.lat, homePos.lon]);
       selectionLines.push(
-        L.polyline(shortPath(sLL, homeLL), { color: "#00ccff", weight: 2, opacity: 0.6 }).addTo(leafletMap),
-        L.polyline(shortPath(homeLL, myLL), { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
-        L.polyline(shortPath(myLL, sLL), { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline([sLL, homeLL], { color: "#00ccff", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline([homeLL, myLL], { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline([myLL, sLL], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
       );
     }
   }
@@ -664,12 +658,12 @@
     const spotterPos = spotterGrid ? gridToLatLon(spotterGrid) : null;
     const homePos = homeGrid ? gridToLatLon(homeGrid) : null;
 
-    if (spotterPos) points.push([spotterPos.lat, spotterPos.lon]);
-    if (homePos) points.push([homePos.lat, homePos.lon]);
+    const baseLon = myPos.lon;
+    if (spotterPos) points.push(nearLL(baseLon, [spotterPos.lat, spotterPos.lon]));
+    if (homePos) points.push(nearLL(baseLon, [homePos.lat, homePos.lon]));
 
     if (points.length > 1) {
-      const adjusted = shortPathGroup(points);
-      leafletMap.fitBounds(L.latLngBounds(adjusted), { padding: [40, 40], maxZoom: 12 });
+      leafletMap.fitBounds(L.latLngBounds(points), { padding: [40, 40], maxZoom: 12 });
     } else {
       leafletMap.setView(points[0], 8);
     }
