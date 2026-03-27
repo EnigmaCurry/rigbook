@@ -49,7 +49,7 @@
   let markersByRef = {};
   let selectedPark = null;
   let activeMarker = null; // temporary marker for activePark from QSO form
-  let lastActivePark = "";
+  let lastActivePark = activePark;
   let fullscreenMap = null; // reference to the map currently fullscreen
   let fullscreenWrap = null; // reference to the wrap element
 
