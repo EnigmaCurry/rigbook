@@ -161,12 +161,52 @@
   $: currentPreview = activeTab === "export" ? exportPreview : importPreview;
   $: warningCount = importPreview ? (importPreview.contacts || []).filter(c => c.warnings && c.warnings.length > 0).length : 0;
 
+  function stripCommentClient(contact) {
+    // Re-strip the comment client-side using current field values and template
+    const original = contact.original_comment || "";
+    if (!original || !commentTemplate.length) {
+      contact.comments = original;
+      return;
+    }
+    const sep = commentSeparator.trim();
+    const padded = ` ${sep} `;
+    if (!original.includes(padded)) {
+      contact.comments = original;
+      return;
+    }
+    const parts = original.split(padded);
+    const fieldMap = {
+      call: contact.call, freq: contact.freq, mode: contact.mode,
+      rst_sent: contact.rst_sent, rst_recv: contact.rst_recv,
+      name: contact.name, qth: contact.qth, state: contact.state,
+      country: contact.country, grid: contact.grid,
+      pota_park: contact.pota_park, skcc: contact.skcc,
+    };
+    // Build expected prefix segments
+    const expected = [];
+    for (const entry of commentTemplate) {
+      const val = fieldMap[entry.field];
+      if (val) expected.push(`${entry.label}: ${val}`);
+    }
+    // Strip matching leading segments
+    let stripCount = 0;
+    for (let i = 0; i < parts.length && i < expected.length; i++) {
+      if (parts[i].trim() === expected[i].trim()) {
+        stripCount++;
+      } else {
+        break;
+      }
+    }
+    contact.comments = stripCount > 0 ? parts.slice(stripCount).join(padded) : original;
+  }
+
   function applyWarningFix(contact, warning, useValue) {
-    // Update the contact's field with the chosen value
     const field = warning.field;
     contact[field] = useValue;
-    // Re-validate client-side: remove this warning
+    // Remove this warning
     contact.warnings = contact.warnings.filter(w => w !== warning);
+    // Re-strip comment with updated field values
+    stripCommentClient(contact);
     // Trigger reactivity
     if (importPreview) importPreview = { ...importPreview };
     // Switch back to all view if no warnings remain
