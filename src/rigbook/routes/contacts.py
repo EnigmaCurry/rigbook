@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -6,6 +7,8 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from rigbook.db import Contact, get_session
+
+logger = logging.getLogger("rigbook")
 
 router = APIRouter(prefix="/api/contacts", tags=["contacts"])
 
@@ -272,6 +275,7 @@ async def update_contact(
 async def delete_all_contacts(session: AsyncSession = Depends(get_session)):
     result = await session.execute(delete(Contact))
     await session.commit()
+    logger.info("Deleted all contacts: %d removed", result.rowcount)
     return {"deleted": result.rowcount}
 
 
