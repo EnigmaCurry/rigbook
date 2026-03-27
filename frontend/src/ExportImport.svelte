@@ -231,8 +231,8 @@
   // Trigger on any filter change
   $: dateFrom, dateTo, commentFilter, skccValidated, countryFilter, modeFilter, bandFilter, schedulePreview();
 
-  function renderComment(c) {
-    if (!commentTemplate.length) return c.comments || c.notes || "";
+  function renderComment(c, template, separator) {
+    if (!template.length) return c.comments || c.notes || "";
     const fieldMap = {
       call: c.call, freq: c.freq, mode: c.mode,
       rst_sent: c.rst_sent, rst_recv: c.rst_recv,
@@ -241,12 +241,12 @@
       pota_park: c.pota_park, skcc: c.skcc,
     };
     const parts = [];
-    for (const entry of commentTemplate) {
+    for (const entry of template) {
       const val = fieldMap[entry.field];
       if (val) parts.push(`${entry.label}: ${val}`);
     }
     if ((c.comments || "").trim()) parts.push(c.comments.trim());
-    const sep = ` ${commentSeparator.trim()} `;
+    const sep = ` ${separator.trim()} `;
     return parts.join(sep);
   }
 
@@ -440,7 +440,7 @@
                   <td class="freq-cell">{formatFreq(c.freq)} {#if freqToBand(c.freq)}<span class="band-tag" style="background: {bandColor(freqToBand(c.freq))}; color: {bandTextColor(freqToBand(c.freq))}">{freqToBand(c.freq)}</span>{/if}</td>
                   <td>{c.mode || ""}</td>
                   <td>{c.country || ""}</td>
-                  <td class="truncate">{renderComment(c)}</td>
+                  <td class="truncate">{renderComment(c, commentTemplate, commentSeparator)}</td>
                 </tr>
               {/each}
             </tbody>
