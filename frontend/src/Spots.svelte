@@ -472,7 +472,7 @@
 
   function filterMarkersForSpot(spot) {
     if (!leafletMap) return;
-    const coWitnesses = new Set(spot.spotters || []);
+    const coWitnesses = new Set(Object.keys(spot.spotter_grids || {}));
     for (const [call, marker] of Object.entries(spotterMarkers)) {
       setMarkerVisible(marker, coWitnesses.has(call));
     }
@@ -520,16 +520,15 @@
       );
     }
 
-    // Draw grey lines from secondary (non-closest) co-witnessing spotters to the station
+    // Draw dashed cyan lines from secondary (non-closest) co-witnessing spotters to the station
     const homeLL2 = homePos ? [homePos.lat, homePos.lon] : null;
-    if (homeLL2 && spot.spotters) {
-      for (const call of spot.spotters) {
+    if (homeLL2 && spot.spotter_grids) {
+      for (const [call, grid] of Object.entries(spot.spotter_grids)) {
         if (call === spot.closest_call) continue;
-        const marker = spotterMarkers[call];
-        if (!marker) continue;
-        const ll = marker.getLatLng();
+        const pos = gridToLatLon(grid);
+        if (!pos) continue;
         selectionLines.push(
-          L.polyline([[ll.lat, ll.lng], homeLL2], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "6 4" }).addTo(leafletMap),
+          L.polyline([[pos.lat, pos.lon], homeLL2], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "6 4" }).addTo(leafletMap),
         );
       }
     }
@@ -664,6 +663,12 @@
     const currentHomes = new Map();
     for (const s of spots) {
       if (s.closest_call && s.closest_grid) currentSpotters.set(s.closest_call, s.closest_grid);
+      // Add all spotters with known grids
+      if (s.spotter_grids) {
+        for (const [call, grid] of Object.entries(s.spotter_grids)) {
+          currentSpotters.set(call, grid);
+        }
+      }
       const hg = spotHomeGrid(s);
       if (s.callsign && hg) currentHomes.set(s.callsign, hg);
     }

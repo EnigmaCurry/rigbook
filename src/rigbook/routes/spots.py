@@ -125,6 +125,13 @@ async def query_spots(
             s["distance_mi"] = dist
             s["closest_snr"] = snr
             s["closest_grid"] = spotter_grids.get(call) if call else None
+            # Include grids for all spotters so the frontend can draw them
+            sg = {}
+            for sp in s.get("spotters", []):
+                g = spotter_grids.get(sp)
+                if g:
+                    sg[sp] = g
+            s["spotter_grids"] = sg
     else:
         for s in spots:
             s.pop("spotter_snrs", None)
