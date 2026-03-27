@@ -45,7 +45,7 @@
   let showMap = storageGet("parksMapEnabled") !== "false";
   const MIN_MAP_HEIGHT = 60;
   const MAX_MAP_FRAC = 0.7;
-  let mapHeight = Math.min(parseInt(storageGet("parksMapHeight")) || 350, Math.floor(window.innerHeight * MAX_MAP_FRAC));
+  let mapHeight = Math.min(parseInt(storageGet("parksMapHeight")) || 350, Math.floor(document.documentElement.clientHeight * MAX_MAP_FRAC));
   let mapEl;
   let leafletMap = null;
   let markersByRef = {};
@@ -386,7 +386,7 @@
         cleanup();
         return;
       }
-      mapHeight = Math.min(newH, Math.floor(window.innerHeight * MAX_MAP_FRAC));
+      mapHeight = Math.min(newH, Math.floor(document.documentElement.clientHeight * MAX_MAP_FRAC));
       if (leafletMap) leafletMap.invalidateSize();
     }
     function cleanup() {
@@ -582,11 +582,11 @@
     window.addEventListener("keydown", onFullscreenKey);
     window.addEventListener("keydown", onParksKeydown);
     window.addEventListener("resize", onWindowResize);
+    if (window.visualViewport) window.visualViewport.addEventListener("resize", onWindowResize);
   });
 
-  let mapResizeObserver;
   function onWindowResize() {
-    const maxH = Math.floor(window.innerHeight * MAX_MAP_FRAC);
+    const maxH = Math.floor(document.documentElement.clientHeight * MAX_MAP_FRAC);
     if (mapHeight > maxH) {
       mapHeight = maxH;
       storageSet("parksMapHeight", String(mapHeight));
@@ -601,6 +601,7 @@
     window.removeEventListener("keydown", onFullscreenKey);
     window.removeEventListener("keydown", onParksKeydown);
     window.removeEventListener("resize", onWindowResize);
+    if (window.visualViewport) window.visualViewport.removeEventListener("resize", onWindowResize);
   });
 </script>
 
