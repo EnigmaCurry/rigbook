@@ -3,6 +3,7 @@
   import L from "leaflet";
   import "leaflet/dist/leaflet.css";
   import { getMapTileConfig } from "./mapTiles.js";
+  import { storageGet, storageSet } from "./storage.js";
   import { parkAward, parkAwardTitle } from "./parkAward.js";
   import { countryFlag, prefixFromRef } from "./countryFlag.js";
   import ParkDetail from "./ParkDetail.svelte";
@@ -41,8 +42,8 @@
     if (mySort === col) mySortAsc = !mySortAsc;
     else { mySort = col; mySortAsc = col === "name" || col === "code"; }
   }
-  let showMap = localStorage.getItem("parksMapEnabled") !== "false";
-  let mapHeight = parseInt(localStorage.getItem("parksMapHeight")) || 350;
+  let showMap = storageGet("parksMapEnabled") !== "false";
+  let mapHeight = parseInt(storageGet("parksMapHeight")) || 350;
   const MIN_MAP_HEIGHT = 60;
   let mapEl;
   let leafletMap = null;
@@ -324,7 +325,7 @@
 
   function toggleMap() {
     showMap = !showMap;
-    localStorage.setItem("parksMapEnabled", String(showMap));
+    storageSet("parksMapEnabled", String(showMap));
     if (showMap && myParks.length > 0 && !leafletMap) {
       tick().then(() => renderMap());
     }
@@ -340,7 +341,7 @@
       const newH = startH + (clientY - startY);
       if (newH < MIN_MAP_HEIGHT) {
         showMap = false;
-        localStorage.setItem("parksMapEnabled", "false");
+        storageSet("parksMapEnabled", "false");
         destroyMap();
         cleanup();
         return;
@@ -353,7 +354,7 @@
       window.removeEventListener("mouseup", cleanup);
       window.removeEventListener("touchmove", onMove);
       window.removeEventListener("touchend", cleanup);
-      localStorage.setItem("parksMapHeight", String(mapHeight));
+      storageSet("parksMapHeight", String(mapHeight));
     }
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", cleanup);

@@ -15,6 +15,7 @@
   import Spots from "./Spots.svelte";
   import LogbookPicker from "./LogbookPicker.svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
+  import { setLogbook, storageGet, storageSet, migrateStorage } from "./storage.js";
 
   const BANDS = [
     { name: "160m", lo: 1800, hi: 2000, segments: [
@@ -129,7 +130,7 @@
   let activePark = "";
   let dualShowForm = !!editId || (page === "dual" && (window.location.hash.slice(1) === "/add"));
   let logbookRight = false;
-  let dualSplit = parseFloat(localStorage.getItem("dualSplit")) || 50;
+  let dualSplit = 50;
   let draggingSplit = false;
 
   function onDividerDown(e) {
@@ -149,7 +150,7 @@
     };
     const onUp = () => {
       draggingSplit = false;
-      localStorage.setItem("dualSplit", String(dualSplit));
+      storageSet("dualSplit", String(dualSplit));
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
       window.removeEventListener("touchmove", onMove);
@@ -288,6 +289,9 @@
 
   async function handleLogbookOpened(e) {
     currentLogbook = e.detail;
+    setLogbook(currentLogbook);
+    dualSplit = parseFloat(storageGet("dualSplit")) || 50;
+    applyTheme();
     logbookOpen = true;
     page = isWide() ? "dual" : "log";
     window.location.hash = "/";
@@ -303,6 +307,9 @@
       if (res.ok) {
         const data = await res.json();
         currentLogbook = data.name;
+        setLogbook(currentLogbook);
+        dualSplit = parseFloat(storageGet("dualSplit")) || 50;
+        applyTheme();
         pendingLogbook = "";
         logbookOpen = true;
         page = isWide() ? "dual" : "log";
@@ -340,13 +347,13 @@
       if (newCount > unreadCount && prevUnreadCount >= 0) {
         if (typeof Notification !== "undefined"
             && Notification.permission === "granted"
-            && localStorage.getItem("desktop_notifications_enabled") === "true") {
+            && storageGet("desktop_notifications_enabled") === "true") {
           if (activeDesktopNotif) activeDesktopNotif.close();
           activeDesktopNotif = new Notification("Rigbook", {
             body: `You have ${newCount} unread notification${newCount > 1 ? "s" : ""}`,
           });
         }
-        if (localStorage.getItem("popup_notifications_enabled") === "true") {
+        if (storageGet("popup_notifications_enabled") === "true") {
           showPopupNotifications();
         }
       } else if (newCount < unreadCount && activeDesktopNotif) {
@@ -409,7 +416,7 @@
     if (typeof Notification !== "undefined" && Notification.permission === "default") {
       Notification.requestPermission().then(perm => {
         if (perm === "granted") {
-          localStorage.setItem("desktop_notifications_enabled", "true");
+          storageSet("desktop_notifications_enabled", "true");
         }
       });
     }
@@ -862,7 +869,7 @@
 
   // Apply theme from localStorage on load
   function applyTheme() {
-    const stored = localStorage.getItem("rigbook-theme");
+    const stored = storageGet("rigbook-theme");
     const theme = stored || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
     document.documentElement.classList.toggle("light", theme === "light");
   }
@@ -903,6 +910,7 @@
   }
 
   onMount(async () => {
+    migrateStorage();
     applyTheme();
     window.addEventListener("storage", applyTheme);
     window.addEventListener("keydown", onGlobalKeydown);
@@ -911,6 +919,9 @@
     window.addEventListener("hashchange", onHashChange);
     window.addEventListener("resize", onResize);
     await checkLogbookMode();
+    setLogbook(currentLogbook);
+    dualSplit = parseFloat(storageGet("dualSplit")) || 50;
+    applyTheme();
     if (logbookOpen) {
       await startAppServices();
       await checkNeedsSetup();

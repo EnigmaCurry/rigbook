@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy, createEventDispatcher, tick } from "svelte";
   import { TILE_THEMES, resolveTileConfig } from "./mapTiles.js";
+  import { storageGet, storageSet } from "./storage.js";
   import L from "leaflet";
   import "leaflet/dist/leaflet.css";
   import GridMap from "./GridMap.svelte";
@@ -27,7 +28,7 @@
   let logbook_right = false;
   let wide_breakpoint = "1200";
   let wide_mode_enabled = true;
-  let theme = localStorage.getItem("rigbook-theme") || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  let theme = storageGet("rigbook-theme") || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
   let map_theme = "natgeo";
   let map_custom_url = "";
   let saving = false;
@@ -80,8 +81,8 @@
 
   // Desktop notifications
   let desktopNotifPermission = typeof Notification !== "undefined" ? Notification.permission : "denied";
-  let desktopNotifEnabled = localStorage.getItem("desktop_notifications_enabled") === "true";
-  let popupNotifEnabled = localStorage.getItem("popup_notifications_enabled") === "true";
+  let desktopNotifEnabled = storageGet("desktop_notifications_enabled") === "true";
+  let popupNotifEnabled = storageGet("popup_notifications_enabled") === "true";
   let testPending = false;
 
   // Map preview
@@ -398,13 +399,13 @@
     desktopNotifPermission = perm;
     if (perm === "granted") {
       desktopNotifEnabled = true;
-      localStorage.setItem("desktop_notifications_enabled", "true");
+      storageSet("desktop_notifications_enabled", "true");
     }
   }
 
   function disableDesktopNotifications() {
     desktopNotifEnabled = false;
-    localStorage.setItem("desktop_notifications_enabled", "false");
+    storageSet("desktop_notifications_enabled", "false");
   }
 
   async function sendTestNotification() {
@@ -414,7 +415,7 @@
       desktopNotifPermission = perm;
       if (perm === "granted") {
         desktopNotifEnabled = true;
-        localStorage.setItem("desktop_notifications_enabled", "true");
+        storageSet("desktop_notifications_enabled", "true");
       }
     }
     testPending = true;
@@ -430,7 +431,7 @@
 
   function toggleTheme() {
     theme = theme === "dark" ? "light" : "dark";
-    localStorage.setItem("rigbook-theme", theme);
+    storageSet("rigbook-theme", theme);
     document.documentElement.classList.toggle("light", theme === "light");
     if (map_theme === "default") updatePreview();
   }
@@ -799,7 +800,7 @@
         <button class="theme-toggle" on:click={disableDesktopNotifications}>Disable</button>
       {:else if desktopNotifPermission === "granted" && !desktopNotifEnabled}
         <span style="font-size:0.85rem; color:var(--text-muted);">Desktop notifications disabled</span>
-        <button class="theme-toggle" on:click={() => { desktopNotifEnabled = true; localStorage.setItem("desktop_notifications_enabled", "true"); }}>Enable</button>
+        <button class="theme-toggle" on:click={() => { desktopNotifEnabled = true; storageSet("desktop_notifications_enabled", "true"); }}>Enable</button>
       {:else}
         <button class="theme-toggle" on:click={enableDesktopNotifications}>Enable Desktop Notifications</button>
       {/if}
@@ -807,7 +808,7 @@
     <p class="hint">In-app notifications are always enabled. Desktop notifications show browser popups when new alerts arrive.</p>
     <div class="setting-row toggle-row" style="margin-top: 0.5rem;">
       <label>
-        <input type="checkbox" bind:checked={popupNotifEnabled} on:change={() => localStorage.setItem("popup_notifications_enabled", popupNotifEnabled ? "true" : "false")} />
+        <input type="checkbox" bind:checked={popupNotifEnabled} on:change={() => storageSet("popup_notifications_enabled", popupNotifEnabled ? "true" : "false")} />
         Popup notifications
       </label>
     </div>

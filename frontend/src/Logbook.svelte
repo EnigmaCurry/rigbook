@@ -6,6 +6,7 @@
   import { bandColor, bandTextColor } from "./bandColors.js";
   import { parkAward, parkAwardTitle } from "./parkAward.js";
   import { countryFlag, prefixFromRef } from "./countryFlag.js";
+  import { storageGet, storageSet } from "./storage.js";
 
   export let editId = null;
   export let prefill = null;
@@ -157,8 +158,8 @@
   $: orig = editingId ? editOriginal : addOriginal;
   $: activePark = showForm ? pota_park.trim().toUpperCase() : "";
 
-  let sortCol = localStorage.getItem("logSortCol") || "timestamp";
-  let sortAsc = localStorage.getItem("logSortAsc") === "true";
+  let sortCol = storageGet("logSortCol") || "timestamp";
+  let sortAsc = storageGet("logSortAsc") === "true";
 
   const defaultColumnOrder = ["timestamp", "call", "name", "freq", "mode", "pota_park", "qth", "rst_sent", "rst_recv", "comments", "updated_at"];
   const flexColumns = new Set(["name", "qth", "comments"]);
@@ -178,7 +179,7 @@
 
   function loadColumnOrder() {
     try {
-      const saved = JSON.parse(localStorage.getItem("logColumnOrder"));
+      const saved = JSON.parse(storageGet("logColumnOrder"));
       if (Array.isArray(saved) && saved.every(k => columnDefs[k])) {
         const missing = defaultColumnOrder.filter(k => !saved.includes(k));
         const merged = [...saved.filter(k => columnDefs[k]), ...missing];
@@ -211,7 +212,7 @@
       newOrder.splice(from, 1);
       newOrder.splice(to, 0, dragCol);
       columnOrder = newOrder;
-      localStorage.setItem("logColumnOrder", JSON.stringify(columnOrder));
+      storageSet("logColumnOrder", JSON.stringify(columnOrder));
     }
     dragCol = null;
     dragOverCol = null;
@@ -229,7 +230,7 @@
 
   function loadColumnWidths() {
     try {
-      return JSON.parse(localStorage.getItem("logColumnWidths")) || {};
+      return JSON.parse(storageGet("logColumnWidths")) || {};
     } catch { return {}; }
   }
 
@@ -257,7 +258,7 @@
   function stopColResize() {
     if (resizeCol && resizeColKey) {
       columnWidths[resizeColKey] = resizeCol.style.width;
-      localStorage.setItem("logColumnWidths", JSON.stringify(columnWidths));
+      storageSet("logColumnWidths", JSON.stringify(columnWidths));
     }
     resizeCol = null;
     resizeColKey = null;
@@ -316,8 +317,8 @@
       sortCol = key;
       sortAsc = key === "timestamp" ? false : true;
     }
-    localStorage.setItem("logSortCol", sortCol);
-    localStorage.setItem("logSortAsc", String(sortAsc));
+    storageSet("logSortCol", sortCol);
+    storageSet("logSortAsc", String(sortAsc));
   }
 
   $: prevContactCount = call.trim() ? contacts.filter(c => c.call?.toUpperCase() === call.trim().toUpperCase()).length : 0;

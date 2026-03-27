@@ -1,3 +1,5 @@
+import { storageGet } from "./storage.js";
+
 /** Normalize uppercase {Z}/{X}/{Y} to lowercase for Leaflet. */
 function normUrl(url) {
   return url.replace(/\{Z\}/g, "{z}").replace(/\{X\}/g, "{x}").replace(/\{Y\}/g, "{y}");
@@ -89,7 +91,7 @@ export function resolveTileConfig(mapTheme, customUrl) {
   if (THEMES[mapTheme]) {
     return THEMES[mapTheme];
   }
-  const stored = localStorage.getItem("rigbook-theme");
+  const stored = storageGet("rigbook-theme");
   const appTheme = stored || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
   return appTheme === "dark" ? THEMES["default-dark"] : THEMES["default-light"];
 }
@@ -122,7 +124,7 @@ export async function getMapTileConfig() {
   }
 
   // "default" — follow app theme
-  const stored = localStorage.getItem("rigbook-theme");
+  const stored = storageGet("rigbook-theme");
   const appTheme = stored || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
   return appTheme === "dark" ? THEMES["default-dark"] : THEMES["default-light"];
 }

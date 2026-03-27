@@ -3,6 +3,7 @@
   import { bandColor, bandTextColor } from "./bandColors.js";
   import { QrzLookup, formatFreq, locationStr } from "./qrzLookup.js";
   import { getMapTileConfig } from "./mapTiles.js";
+  import { storageGet, storageSet } from "./storage.js";
   import L from "leaflet";
   import "leaflet/dist/leaflet.css";
 
@@ -11,8 +12,8 @@
 
   let spots = [];
   let myGrid = "";
-  let showMap = localStorage.getItem("spotsMapEnabled") !== "false";
-  let mapHeight = parseInt(localStorage.getItem("spotsMapHeight")) || 350;
+  let showMap = storageGet("spotsMapEnabled") !== "false";
+  let mapHeight = parseInt(storageGet("spotsMapHeight")) || 350;
   const MIN_MAP_HEIGHT = 60;
   let status = { rbn: { connected: false, enabled: false }, hamalert: { connected: false, enabled: false }, callsigns: 0, entries: 0, total_spots: 0, avg_spots_per_callsign: 0 };
   let bands = {};
@@ -193,7 +194,7 @@
 
   function toggleMap() {
     showMap = !showMap;
-    localStorage.setItem("spotsMapEnabled", String(showMap));
+    storageSet("spotsMapEnabled", String(showMap));
     if (showMap && myGrid && !leafletMap) {
       tick().then(() => { initMap(); updateMap(); });
     }
@@ -209,7 +210,7 @@
       const newH = startH + (clientY - startY);
       if (newH < MIN_MAP_HEIGHT) {
         showMap = false;
-        localStorage.setItem("spotsMapEnabled", "false");
+        storageSet("spotsMapEnabled", "false");
         destroyMap();
         cleanup();
         return;
@@ -222,7 +223,7 @@
       window.removeEventListener("mouseup", cleanup);
       window.removeEventListener("touchmove", onMove);
       window.removeEventListener("touchend", cleanup);
-      localStorage.setItem("spotsMapHeight", String(mapHeight));
+      storageSet("spotsMapHeight", String(mapHeight));
     }
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", cleanup);
