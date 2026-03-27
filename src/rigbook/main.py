@@ -24,7 +24,11 @@ from rigbook.routes.contacts import router as contacts_router
 from rigbook.routes.geo import router as geo_router
 from rigbook.routes.notifications import router as notifications_router
 from rigbook.sse import router as sse_router
-from rigbook.routes.settings import router as settings_router
+from rigbook.routes.settings import (
+    router as settings_router,
+    start_auto_backup,
+    stop_auto_backup,
+)
 from rigbook.routes.solar import router as solar_router
 
 logger = logging.getLogger("rigbook")
@@ -66,7 +70,9 @@ async def lifespan(app: FastAPI):
     await init_db()
     if db_manager.is_open:
         await start_feeds()
+        await start_auto_backup()
     yield
+    await stop_auto_backup()
     await stop_feeds()
     await db_manager.close()
 

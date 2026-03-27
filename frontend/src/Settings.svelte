@@ -148,12 +148,88 @@
   let backupMessageType = "";
   let backingUp = false;
   let dbInfo = null;
+  let backupStatus = null;
+  let autoBackupEnabled = true;
+  let autoBackupHours = 24;
+  let autoBackupMax = 10;
+  let backupSaveTimer = null;
 
   async function loadDbInfo() {
     try {
       const res = await fetch("/api/settings/backup/db-info");
       if (res.ok) dbInfo = await res.json();
     } catch { /* ignore */ }
+  }
+
+  async function loadBackupStatus() {
+    try {
+      const res = await fetch("/api/settings/backup/status");
+      if (res.ok) {
+        backupStatus = await res.json();
+        autoBackupEnabled = backupStatus.auto_enabled;
+        autoBackupHours = backupStatus.interval_hours;
+        autoBackupMax = backupStatus.max_backups;
+      }
+    } catch { /* ignore */ }
+  }
+
+  function formatSize(bytes) {
+    if (!bytes) return "0 B";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function timeAgo(iso) {
+    if (!iso) return "never";
+    const d = new Date(iso);
+    const now = new Date();
+    const mins = Math.floor((now - d) / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+  }
+
+  function formatDue(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    const now = new Date();
+    if (d <= now) return "now";
+    const mins = Math.floor((d - now) / 60000);
+    if (mins < 60) return `in ${mins}m`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `in ${hrs}h`;
+    const days = Math.floor(hrs / 24);
+    return `in ${days}d`;
+  }
+
+  async function saveAutoBackupSettings() {
+    clearTimeout(backupSaveTimer);
+    backupSaveTimer = setTimeout(async () => {
+      try {
+        await Promise.all([
+          fetch("/api/settings/auto_backup_enabled", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ value: autoBackupEnabled ? "true" : "false" }),
+          }),
+          fetch("/api/settings/auto_backup_hours", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ value: String(autoBackupHours) }),
+          }),
+          fetch("/api/settings/auto_backup_max", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ value: String(autoBackupMax) }),
+          }),
+        ]);
+        loadBackupStatus();
+      } catch { /* ignore */ }
+    }, 300);
   }
 
   async function performBackup() {
@@ -533,6 +609,7 @@
     fetchSettings();
     fetchSpotStatus();
     loadDbInfo();
+    loadBackupStatus();
     spotStatusInterval = setInterval(fetchSpotStatus, 5000);
   });
 
@@ -802,7 +879,7 @@
   <section class="settings-section">
     <h3>Backup</h3>
     {#if dbInfo}
-      <p class="hint">Database: {dbInfo.path}</p>
+      <p class="hint">Database: {dbInfo.path} ({formatSize(dbInfo.size)})</p>
       <p class="hint">Backups: {dbInfo.directory}</p>
     {/if}
     <div class="setting-row">
@@ -812,6 +889,36 @@
     </div>
     {#if backupMessage}
       <p class="hint" class:danger-error={backupMessageType === "error"} style={backupMessageType === "success" ? "color: var(--accent)" : ""}>{backupMessage}</p>
+    {/if}
+    <div class="setting-row toggle-row">
+      <label class="toggle-label">
+        <input type="checkbox" bind:checked={autoBackupEnabled} on:change={saveAutoBackupSettings} />
+        Auto-backup
+      </label>
+    </div>
+    {#if autoBackupEnabled}
+      <div class="setting-row">
+        <label>
+          Interval (hours)
+          <input type="number" min="1" max="720" bind:value={autoBackupHours} on:input={saveAutoBackupSettings} style="width: 5rem" />
+        </label>
+        <label>
+          Keep max
+          <input type="number" min="1" max="100" bind:value={autoBackupMax} on:input={saveAutoBackupSettings} style="width: 5rem" />
+        </label>
+      </div>
+    {/if}
+    {#if backupStatus}
+      <p class="hint">
+        {#if backupStatus.auto_enabled}
+          Last auto-backup: {timeAgo(backupStatus.last_backup)} — Next: {formatDue(backupStatus.next_due)}
+        {:else}
+          Auto-backup disabled
+        {/if}
+        {#if backupStatus.auto_backup_count > 0 || backupStatus.manual_backup_count > 0}
+          — {backupStatus.auto_backup_count} auto, {backupStatus.manual_backup_count} manual
+        {/if}
+      </p>
     {/if}
   </section>
 
