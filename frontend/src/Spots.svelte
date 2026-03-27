@@ -1269,7 +1269,6 @@
   .spots-table th.sortable {
     cursor: pointer;
     user-select: none;
-    position: relative;
   }
   .spots-table th.sortable:hover {
     color: var(--accent);
