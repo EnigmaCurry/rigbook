@@ -561,6 +561,99 @@ def _extract_raw_header(content: str) -> str:
     return ""
 
 
+ADIF_FIELD_MAP = {
+    "CALL": "call",
+    "FREQ": "freq",
+    "MODE": "mode",
+    "RST_SENT": "rst_sent",
+    "RST_RCVD": "rst_recv",
+    "NAME": "name",
+    "QTH": "qth",
+    "STATE": "state",
+    "COUNTRY": "country",
+    "GRIDSQUARE": "grid",
+    "POTA_REF": "pota_park",
+    "SKCC": "skcc",
+}
+
+DEFAULT_LABELS = {
+    "call": "Call",
+    "freq": "Freq",
+    "mode": "Mode",
+    "rst_sent": "RST Sent",
+    "rst_recv": "RST Recv",
+    "name": "Name",
+    "qth": "QTH",
+    "state": "State",
+    "country": "Country",
+    "grid": "Grid",
+    "pota_park": "POTA",
+    "skcc": "SKCC",
+}
+
+
+def _suggest_comment_template(records: list[dict]) -> dict:
+    """Analyze comments across records to detect a plausible template and separator."""
+    comments = [r.get("COMMENT", "") for r in records if r.get("COMMENT")]
+    if not comments:
+        return {"separator": "|", "fields": []}
+
+    # Try candidate separators, score each by how well they explain the data
+    candidates = ["|", "-", "/", ",", ";", "~"]
+    best_sep = "|"
+    best_score = -1
+    best_fields = []
+
+    for sep in candidates:
+        padded = f" {sep} "
+        # Count how many comments contain this separator
+        matching = [c for c in comments if padded in c]
+        if not matching:
+            continue
+
+        # For each comment, split and look for "Label: value" patterns
+        # that match known ADIF fields in the same record
+        label_to_field = {}  # maps detected label -> (contact_field, match_count)
+        for record in records:
+            comment = record.get("COMMENT", "")
+            if padded not in comment:
+                continue
+            parts = comment.split(padded)
+            for part in parts:
+                if ": " not in part:
+                    continue
+                label, _, val = part.partition(": ")
+                label = label.strip()
+                val = val.strip()
+                if not val:
+                    continue
+                # Check if this value matches any ADIF field in the record
+                for adif_key, contact_field in ADIF_FIELD_MAP.items():
+                    record_val = record.get(adif_key, "")
+                    if record_val and record_val == val:
+                        key = (label, contact_field)
+                        label_to_field[key] = label_to_field.get(key, 0) + 1
+
+        # Score: number of field matches
+        score = sum(label_to_field.values())
+        if score > best_score:
+            best_score = score
+            best_sep = sep
+            # Deduplicate: pick the best label for each field
+            field_labels = {}
+            for (label, field), count in label_to_field.items():
+                if field not in field_labels or count > field_labels[field][1]:
+                    field_labels[field] = (label, count)
+            best_fields = [
+                {"field": field, "label": label}
+                for field, (label, _count) in sorted(
+                    field_labels.items(), key=lambda x: -x[1][1]
+                )
+            ]
+
+    return {"separator": best_sep, "fields": best_fields}
+
+
 async def _parse_adif_upload(file: UploadFile):
     content = (await file.read()).decode("utf-8", errors="replace")
     raw_header = _extract_raw_header(content)
@@ -617,6 +710,12 @@ async def preview_import_adif(
         "header": file_header,
         "header_raw": raw_header,
     }
+
+
+@router.post("/import/suggest-template")
+async def suggest_template(file: UploadFile):
+    records, _header, _raw = await _parse_adif_upload(file)
+    return _suggest_comment_template(records)
 
 
 @router.post("/import")

@@ -341,6 +341,33 @@
     await fetchImportPreview();
   }
 
+  let suggesting = false;
+
+  async function suggestTemplate() {
+    if (!importFile) return;
+    suggesting = true;
+    try {
+      const formData = new FormData();
+      formData.append("file", importFile);
+      const res = await fetch("/api/adif/import/suggest-template", {
+        method: "POST",
+        body: formData,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.fields && data.fields.length > 0) {
+          commentTemplate = data.fields;
+          commentSeparator = data.separator || "|";
+          saveCommentTemplate();
+        } else {
+          message = "No template pattern detected in comments.";
+          messageType = "error";
+        }
+      }
+    } catch { /* ignore */ }
+    suggesting = false;
+  }
+
   function cancelImport() {
     importFile = null;
     importFileName = "";
@@ -450,7 +477,14 @@
       {/if}
 
       <div class="comment-template-section">
-        <h3>Comment Template</h3>
+        <div class="template-header">
+          <h3>Comment Template</h3>
+          {#if activeTab === "import" && importFile}
+            <button class="suggest-btn" on:click={suggestTemplate} disabled={suggesting}>
+              {suggesting ? "Analyzing..." : "Suggest from file"}
+            </button>
+          {/if}
+        </div>
         <p class="help-text">Fields prepended to COMMENT on export, stripped on import.</p>
 
         {#if commentTemplate.length > 0}
@@ -1303,6 +1337,36 @@
 
   .comment-template-section {
     margin-bottom: 1rem;
+  }
+
+  .template-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .suggest-btn {
+    background: none;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 0.2rem 0.6rem;
+    font-size: 0.7rem;
+    font-weight: bold;
+    border-radius: 3px;
+    cursor: pointer;
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  .suggest-btn:hover:not(:disabled) {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  .suggest-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
   }
 
   .template-controls {
