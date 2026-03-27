@@ -161,6 +161,7 @@
   let sortAsc = localStorage.getItem("logSortAsc") === "true";
 
   const defaultColumnOrder = ["timestamp", "call", "name", "freq", "mode", "pota_park", "qth", "rst_sent", "rst_recv", "comments", "updated_at"];
+  const flexColumns = new Set(["name", "qth", "comments"]);
   const columnDefs = {
     timestamp: { key: "timestamp", label: "UTC" },
     call: { key: "call", label: "Call" },
@@ -1116,7 +1117,7 @@
         <thead>
           <tr>
             {#each columns as col (col.key)}
-              <th class:drag-over={dragOverCol === col.key && dragCol !== col.key} on:dragover={e => onColDragOver(e, col.key)} on:drop={e => onColDrop(e, col.key)} style={columnWidths[col.key] ? `width: ${columnWidths[col.key]}` : ""}>
+              <th class:drag-over={dragOverCol === col.key && dragCol !== col.key} class:col-flex={flexColumns.has(col.key)} on:dragover={e => onColDragOver(e, col.key)} on:drop={e => onColDrop(e, col.key)} style={columnWidths[col.key] ? `width: ${columnWidths[col.key]}` : ""}>
                 <span class="col-label" draggable="true" on:dragstart={e => onColDragStart(e, col.key)} on:dragend={onColDragEnd} on:click={() => toggleSort(col.key)}>{col.label}{#if sortCol === col.key}{sortAsc ? " ▲" : " ▼"}{/if}</span><span class="resize-handle" on:mousedown={e => startColResize(e, col.key)}></span>
               </th>
             {/each}
@@ -1533,7 +1534,6 @@
     border-collapse: separate;
     border-spacing: 0;
     font-size: 0.85rem;
-    table-layout: fixed;
   }
 
   th {
@@ -1547,6 +1547,11 @@
     background: var(--bg);
     z-index: 1;
     overflow: hidden;
+    width: 1px;
+  }
+
+  th.col-flex {
+    width: auto;
   }
 
   .col-label {
