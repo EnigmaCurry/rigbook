@@ -511,6 +511,9 @@
       }
       if (prefillSource === "hunting") {
         if (!name && data.name) name = data.name;
+        // Fill QTH from QRZ if station is not portable
+        const isPortable = !!pota_park || call.includes("/");
+        if (!isPortable && !qth && data.qth) qth = data.qth;
       } else {
         if (!name && data.name) name = data.name;
         if (!qth && data.qth) qth = data.qth;
