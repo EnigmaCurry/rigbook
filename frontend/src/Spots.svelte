@@ -427,7 +427,25 @@
 
   const spotterIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot spotter"></div>', iconSize: [10, 10], iconAnchor: [5, 5] });
   const spotterSecondaryIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot spotter-secondary"></div>', iconSize: [10, 10], iconAnchor: [5, 5] });
-  const homeLocIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot home-loc"></div>', iconSize: [10, 10], iconAnchor: [5, 5] });
+  function homeLocIcon(spotterCount) {
+    const t = Math.min(spotterCount / 10, 1);
+    // Lerp from dim gold (#886600) to bright yellow (#ffee00)
+    const r = Math.round(0x88 + t * (0xff - 0x88));
+    const g = Math.round(0x66 + t * (0xee - 0x66));
+    const b = Math.round(0x00 + t * (0x00 - 0x00));
+    const bg = `rgb(${r},${g},${b})`;
+    const br = Math.round(0x55 + t * (0x99 - 0x55));
+    const bg2 = Math.round(0x33 + t * (0x77 - 0x33));
+    const border = `rgb(${br},${bg2},0)`;
+    const size = spotterCount > 10 ? 15 : Math.round(10 + (spotterCount / 10) * 5);
+    const half = Math.round(size / 2);
+    return L.divIcon({
+      className: "spot-marker",
+      html: `<div class="spot-marker-dot" style="width:${size-2}px;height:${size-2}px;background:${bg};border:2px solid ${border};border-radius:50%"></div>`,
+      iconSize: [size, size],
+      iconAnchor: [half, half],
+    });
+  }
   const myIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot my-pos"></div>', iconSize: [14, 14], iconAnchor: [7, 7] });
 
   function addExpandControl(map, wrapEl) {
@@ -742,6 +760,7 @@
     const currentSpotters = new Map();
     const closestCalls = new Set();
     const currentHomes = new Map();
+    const homeSpotterCounts = new Map();
     for (const s of spots) {
       if (s.closest_call && s.closest_grid) {
         currentSpotters.set(s.closest_call, s.closest_grid);
@@ -754,7 +773,10 @@
         }
       }
       const hg = spotHomeGrid(s);
-      if (s.callsign && hg) currentHomes.set(s.callsign, hg);
+      if (s.callsign && hg) {
+        currentHomes.set(s.callsign, hg);
+        homeSpotterCounts.set(s.callsign, s.spotter_count || 1);
+      }
     }
 
     // Remove stale spotter markers
@@ -789,13 +811,18 @@
       spotterMarkers[call] = m;
     }
 
-    // Add new home location markers (normalized to QTH longitude)
+    // Add/update home location markers (normalized to QTH longitude)
     for (const [call, grid] of currentHomes) {
-      if (homeMarkers[call]) continue;
+      const count = homeSpotterCounts.get(call) || 1;
+      const icon = homeLocIcon(count);
+      if (homeMarkers[call]) {
+        homeMarkers[call].setIcon(icon);
+        continue;
+      }
       const pos = gridToLatLon(grid);
       if (!pos) continue;
       const ll = nearLL(baseLon, [pos.lat, pos.lon]);
-      const hm = L.marker(ll, { icon: homeLocIcon })
+      const hm = L.marker(ll, { icon })
         .bindPopup(`Station: ${call}<br>Grid: ${grid}`)
         .addTo(leafletMap);
       hm.on("click", () => onMapHomeClick(call));
@@ -1276,12 +1303,6 @@
     border: 2px solid #003344;
   }
 
-  :global(.spot-marker-dot.home-loc) {
-    width: 8px;
-    height: 8px;
-    background: #ffaa00;
-    border: 2px solid #885500;
-  }
 
   :global(.spot-marker-dot.my-pos) {
     width: 12px;
