@@ -414,6 +414,62 @@ async def _fetch_comment_settings(session: AsyncSession):
     return template, separator
 
 
+def _validate_import_record(
+    record: dict, template_fields: list[dict], separator: str
+) -> list[str]:
+    """Check for mismatches between comment-parsed values and normalized fields."""
+    comment = record.get("COMMENT", "")
+    if not comment or not template_fields:
+        return []
+
+    sep = (separator or "|").strip()
+    padded = f" {sep} "
+    if padded not in comment:
+        return []
+
+    parts = comment.split(padded)
+    # Parse "Label: value" segments from the comment
+    comment_values = {}
+    for part in parts:
+        if ": " in part:
+            label, _, val = part.partition(": ")
+            comment_values[label.strip()] = val.strip()
+
+    field_to_adif = {
+        "call": "CALL",
+        "freq": "FREQ",
+        "mode": "MODE",
+        "rst_sent": "RST_SENT",
+        "rst_recv": "RST_RCVD",
+        "name": "NAME",
+        "qth": "QTH",
+        "state": "STATE",
+        "country": "COUNTRY",
+        "grid": "GRIDSQUARE",
+        "pota_park": "POTA_REF",
+        "skcc": "SKCC",
+    }
+
+    warnings = []
+    for entry in template_fields:
+        field = entry.get("field", "")
+        label = entry.get("label", field)
+        comment_val = comment_values.get(label, "")
+        if not comment_val:
+            continue
+        adif_key = field_to_adif.get(field, "")
+        adif_val = record.get(adif_key, "") if adif_key else ""
+        if adif_val and comment_val != adif_val:
+            warnings.append(
+                f"{label}: comment has '{comment_val}' but field has '{adif_val}'"
+            )
+        elif not adif_val and comment_val:
+            warnings.append(
+                f"{label}: '{comment_val}' found in comment but no normalized field"
+            )
+    return warnings
+
+
 async def _classify_import_records(
     records: list[dict],
     session: AsyncSession,
@@ -530,6 +586,7 @@ async def preview_import_adif(
             else None,
             "updated_at": None,
             "adif_line": record_to_adif_line(raw_record),
+            "warnings": _validate_import_record(raw_record, template, separator),
         }
         contacts.append(contact_data)
 

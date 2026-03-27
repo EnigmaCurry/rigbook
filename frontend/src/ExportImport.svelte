@@ -154,8 +154,17 @@
   let importPreview = null;
   let loadingImport = false;
 
+  // Import filter
+  let importFilter = "all";
+
   // Unified preview based on active tab
   $: currentPreview = activeTab === "export" ? exportPreview : importPreview;
+  $: warningCount = importPreview ? (importPreview.contacts || []).filter(c => c.warnings && c.warnings.length > 0).length : 0;
+  $: displayContacts = currentPreview && currentPreview.contacts
+    ? (activeTab === "import" && importFilter === "warnings"
+      ? currentPreview.contacts.filter(c => c.warnings && c.warnings.length > 0)
+      : currentPreview.contacts)
+    : [];
 
   const BANDS = [
     { name: "160m", lo: 1800, hi: 2000 },
@@ -518,7 +527,13 @@
           </div>
         {/if}
       {/if}
-      {#if currentPreview && currentPreview.contacts && currentPreview.contacts.length > 0}
+      {#if activeTab === "import" && importPreview && warningCount > 0}
+        <div class="filter-tabs">
+          <button class="filter-tab" class:active={importFilter === "all"} on:click={() => importFilter = "all"}>All ({importPreview.contacts.length})</button>
+          <button class="filter-tab warning-tab" class:active={importFilter === "warnings"} on:click={() => importFilter = "warnings"}>Warnings ({warningCount})</button>
+        </div>
+      {/if}
+      {#if displayContacts.length > 0}
         <div class="preview-table-wrap">
           <table class="preview-table">
             <thead>
@@ -542,8 +557,8 @@
               </tr>
             </thead>
             <tbody>
-              {#each currentPreview.contacts as c, i}
-                <tr class="clickable" class:expanded={expandedRow === i} on:click={() => toggleRow(i)}>
+              {#each displayContacts as c, i}
+                <tr class="clickable" class:expanded={expandedRow === i} class:has-warning={c.warnings && c.warnings.length > 0} on:click={() => toggleRow(i)}>
                   <td>{formatTimestamp(c.timestamp)}</td>
                   <td class="call">{c.call}</td>
                   <td class="freq-cell">{formatFreq(c.freq)} {#if freqToBand(c.freq)}<span class="band-tag" style="background: {bandColor(freqToBand(c.freq))}; color: {bandTextColor(freqToBand(c.freq))}">{freqToBand(c.freq)}</span>{/if}</td>
@@ -564,6 +579,13 @@
                 {#if expandedRow === i}
                   <tr class="detail-row">
                     <td colspan="16">
+                      {#if c.warnings && c.warnings.length > 0}
+                        <div class="warning-list">
+                          {#each c.warnings as w}
+                            <div class="warning-item">⚠ {w}</div>
+                          {/each}
+                        </div>
+                      {/if}
                       <div class="detail-grid">
                         {#if c.timestamp}<div class="detail-field"><span class="detail-label">UTC</span> {formatTimestamp(c.timestamp)}</div>{/if}
                         {#if c.call}<div class="detail-field"><span class="detail-label">Call</span> {c.call}</div>{/if}
@@ -618,6 +640,7 @@
               Importing {importPreview.new_count} new QSOs
               {#if importPreview.duplicate_count > 0}({importPreview.duplicate_count} duplicates skipped){/if}
               {#if importPreview.skipped_count > 0}({importPreview.skipped_count} invalid skipped){/if}
+              {#if warningCount > 0}<span class="action-warning">— {warningCount} warning{warningCount !== 1 ? "s" : ""}</span>{/if}
             {/if}
           </span>
           <button class="action-btn" on:click={executeImport} disabled={!importPreview || importPreview.new_count === 0 || importing}>
@@ -845,6 +868,65 @@
 
   button:hover {
     background: var(--accent-hover);
+  }
+
+  .filter-tabs {
+    display: flex;
+    gap: 0;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid var(--border, #555);
+    border-bottom: none;
+    background: var(--bg-header, var(--bg));
+  }
+
+  .filter-tab {
+    background: none;
+    color: var(--text-muted);
+    border: 1px solid transparent;
+    padding: 0.2rem 0.8rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 3px;
+    margin: 0;
+  }
+
+  .filter-tab:hover {
+    background: none;
+    color: var(--text);
+  }
+
+  .filter-tab.active {
+    background: var(--bg);
+    color: var(--text);
+    border-color: var(--border, #555);
+  }
+
+  .filter-tab.warning-tab {
+    color: #c90;
+  }
+
+  .filter-tab.warning-tab.active {
+    color: #ea0;
+  }
+
+  .has-warning td:first-child {
+    box-shadow: inset 3px 0 0 #c90;
+  }
+
+  .warning-list {
+    padding: 0.4rem 0.75rem;
+    border-bottom: 1px solid var(--border-dim, rgba(255,255,255,0.05));
+  }
+
+  .warning-item {
+    color: #ea0;
+    font-size: 0.8rem;
+    padding: 0.15rem 0;
+  }
+
+  .action-warning {
+    color: #ea0;
   }
 
   .adif-header-bar {
