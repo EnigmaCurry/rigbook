@@ -115,9 +115,7 @@
       const next = cur > 0 ? cur - 1 : 0;
       navigateToParkIndex(next);
     } else if (e.key === "Escape" && selectedPark) {
-      const m = markersByRef[selectedPark];
-      if (m) { m.setIcon(normalIcon); m.closePopup(); }
-      selectedPark = null;
+      deselectPark();
     } else if (e.key === "Enter" && selectedPark) {
       viewPark(selectedPark);
     }
@@ -468,12 +466,18 @@
     if (m) { m.setIcon(normalIcon); m.closePopup(); }
   }
 
+  function deselectPark() {
+    if (selectedPark) {
+      const m = markersByRef[selectedPark];
+      if (m) { m.setIcon(normalIcon); m.closePopup(); }
+      selectedPark = null;
+    }
+  }
+
   function selectPark(ref) {
     // Deselect if clicking the same park
     if (selectedPark === ref) {
-      const m = markersByRef[ref];
-      if (m) { m.setIcon(normalIcon); m.closePopup(); }
-      selectedPark = null;
+      deselectPark();
       return;
     }
     // Unhighlight previous selection
@@ -488,6 +492,17 @@
       m.openPopup();
       leafletMap?.panTo(m.getLatLng());
     }
+    scrollToParkRef(ref);
+  }
+
+  function scrollToParkRef(ref) {
+    if (!myParksListEl) return;
+    const idx = myParksSorted.findIndex(p => p.reference === ref);
+    if (idx < 0) return;
+    tick().then(() => {
+      const row = myParksListEl.querySelector(`.park-row:nth-child(${idx + 1})`);
+      if (row) row.scrollIntoView({ block: "center" });
+    });
   }
 
   let renderingMap = false;
@@ -517,8 +532,10 @@
       const m = L.marker(ll, { icon: normalIcon })
         .bindPopup(`<b>${p.reference}</b><br>${p.name || ""}<br>${p.qso_count} QSO${p.qso_count !== 1 ? "s" : ""} <span title="${parkAwardTitle(p.qso_count)}">${parkAward(p.qso_count)}</span><br><a href="#/parks/park/${encodeURIComponent(p.reference)}">View details</a>`)
         .addTo(leafletMap);
+      m.on("click", () => selectPark(p.reference));
       markersByRef[p.reference] = m;
     }
+    leafletMap.on("click", deselectPark);
     leafletMap.invalidateSize();
     // Pick the initial park to focus on
     const initRef = activePark || (myParksSorted.length > 0 ? myParksSorted[0].reference : null);
