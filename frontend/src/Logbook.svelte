@@ -220,6 +220,35 @@
     dragOverCol = null;
   }
 
+  // Column resize
+  let resizeCol = null;
+  let resizeStartX = 0;
+  let resizeStartW = 0;
+
+  function startColResize(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const th = e.target.parentElement;
+    resizeCol = th;
+    resizeStartX = e.clientX;
+    resizeStartW = th.offsetWidth;
+    window.addEventListener("mousemove", onColResize);
+    window.addEventListener("mouseup", stopColResize);
+  }
+
+  function onColResize(e) {
+    if (!resizeCol) return;
+    const diff = e.clientX - resizeStartX;
+    const newW = Math.max(30, resizeStartW + diff);
+    resizeCol.style.width = newW + "px";
+  }
+
+  function stopColResize() {
+    resizeCol = null;
+    window.removeEventListener("mousemove", onColResize);
+    window.removeEventListener("mouseup", stopColResize);
+  }
+
   function toggleSort(key) {
     if (sortCol === key) {
       sortAsc = !sortAsc;
@@ -1073,7 +1102,7 @@
           <tr>
             {#each columns as col (col.key)}
               <th class="sortable" class:drag-over={dragOverCol === col.key && dragCol !== col.key} draggable="true" on:dragstart={e => onColDragStart(e, col.key)} on:dragover={e => onColDragOver(e, col.key)} on:drop={e => onColDrop(e, col.key)} on:dragend={onColDragEnd} on:click={() => toggleSort(col.key)}>
-                {col.label}{#if sortCol === col.key}{sortAsc ? " ▲" : " ▼"}{/if}
+                {col.label}{#if sortCol === col.key}{sortAsc ? " ▲" : " ▼"}{/if}<span class="resize-handle" on:mousedown={startColResize}></span>
               </th>
             {/each}
           </tr>
@@ -1513,6 +1542,22 @@
   }
   th.drag-over {
     border-left: 2px solid var(--accent);
+  }
+
+  .resize-handle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    cursor: col-resize;
+    background: transparent;
+  }
+
+  .resize-handle:hover,
+  .resize-handle:active {
+    background: var(--accent);
+    opacity: 0.4;
   }
 
   td {
