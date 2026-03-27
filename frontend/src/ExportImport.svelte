@@ -476,12 +476,22 @@
           <table class="preview-table">
             <thead>
               <tr>
-                <th class="col-ts">Timestamp<span class="resize-handle" on:mousedown={e => startResize(e, 0)}></span></th>
-                <th class="col-call">Call<span class="resize-handle" on:mousedown={e => startResize(e, 1)}></span></th>
-                <th class="col-freq">Freq<span class="resize-handle" on:mousedown={e => startResize(e, 2)}></span></th>
-                <th class="col-mode">Mode<span class="resize-handle" on:mousedown={e => startResize(e, 3)}></span></th>
-                <th class="col-country">Country<span class="resize-handle" on:mousedown={e => startResize(e, 4)}></span></th>
-                <th class="col-comments">Comments</th>
+                <th class="col-compact">UTC<span class="resize-handle" on:mousedown={e => startResize(e, 0)}></span></th>
+                <th class="col-compact">Call<span class="resize-handle" on:mousedown={e => startResize(e, 1)}></span></th>
+                <th class="col-compact">Freq<span class="resize-handle" on:mousedown={e => startResize(e, 2)}></span></th>
+                <th class="col-compact">Mode<span class="resize-handle" on:mousedown={e => startResize(e, 3)}></span></th>
+                <th class="col-compact">RST S<span class="resize-handle" on:mousedown={e => startResize(e, 4)}></span></th>
+                <th class="col-compact">RST R<span class="resize-handle" on:mousedown={e => startResize(e, 5)}></span></th>
+                <th class="col-flex">Name<span class="resize-handle" on:mousedown={e => startResize(e, 6)}></span></th>
+                <th class="col-compact">POTA<span class="resize-handle" on:mousedown={e => startResize(e, 7)}></span></th>
+                <th class="col-compact">Grid<span class="resize-handle" on:mousedown={e => startResize(e, 8)}></span></th>
+                <th class="col-flex">QTH<span class="resize-handle" on:mousedown={e => startResize(e, 9)}></span></th>
+                <th class="col-compact">State<span class="resize-handle" on:mousedown={e => startResize(e, 10)}></span></th>
+                <th class="col-compact">Country<span class="resize-handle" on:mousedown={e => startResize(e, 11)}></span></th>
+                <th class="col-compact">SKCC<span class="resize-handle" on:mousedown={e => startResize(e, 12)}></span></th>
+                <th class="col-compact">Exch<span class="resize-handle" on:mousedown={e => startResize(e, 13)}></span></th>
+                <th class="col-flex">Comments</th>
+                <th class="col-flex">Notes<span class="resize-handle" on:mousedown={e => startResize(e, 15)}></span></th>
               </tr>
             </thead>
             <tbody>
@@ -491,8 +501,18 @@
                   <td class="call">{c.call}</td>
                   <td class="freq-cell">{formatFreq(c.freq)} {#if freqToBand(c.freq)}<span class="band-tag" style="background: {bandColor(freqToBand(c.freq))}; color: {bandTextColor(freqToBand(c.freq))}">{freqToBand(c.freq)}</span>{/if}</td>
                   <td>{c.mode || ""}</td>
+                  <td>{c.rst_sent || ""}</td>
+                  <td>{c.rst_recv || ""}</td>
+                  <td>{c.name || ""}</td>
+                  <td>{c.pota_park || ""}</td>
+                  <td>{c.grid || ""}</td>
+                  <td>{c.qth || ""}</td>
+                  <td>{c.state || ""}</td>
                   <td>{c.country || ""}</td>
+                  <td>{c.skcc || ""}</td>
+                  <td>{c.skcc_exch ? "Y" : ""}</td>
                   <td class="truncate">{activeTab === "export" ? renderComment(c, commentTemplate, commentSeparator) : (c.comments || "")}</td>
+                  <td class="truncate">{c.notes || ""}</td>
                 </tr>
               {/each}
             </tbody>
@@ -753,16 +773,16 @@
   .preview-table-wrap {
     flex: 1;
     max-height: calc(100vh - 12rem);
-    overflow-y: auto;
+    overflow: auto;
     border: 1px solid var(--border, #555);
     border-radius: 3px;
   }
 
   .preview-table {
-    width: 100%;
+    width: max-content;
+    min-width: 100%;
     border-collapse: collapse;
     font-size: 0.8rem;
-    table-layout: fixed;
   }
 
   .preview-table th {
@@ -808,12 +828,8 @@
     color: var(--accent);
   }
 
-  .preview-table .col-ts { width: 11rem; }
-  .preview-table .col-call { width: 6rem; }
-  .preview-table .col-freq { width: 9rem; }
-  .preview-table .col-mode { width: 3.5rem; }
-  .preview-table .col-country { width: 6rem; }
-  .preview-table .col-comments { width: auto; }
+  .preview-table .col-compact { width: 1px; white-space: nowrap; }
+  .preview-table .col-flex { width: auto; }
 
   .preview-table .truncate {
     overflow: hidden;
