@@ -573,7 +573,10 @@ def _validate_import_record(
                 continue
             adif_key = field_to_adif.get(field, "")
             adif_val = record.get(adif_key, "") if adif_key else ""
-            if adif_val and val != adif_val:
+            vals_match = val == adif_val
+            if not vals_match and field == "freq":
+                vals_match = _normalize_freq(val, adif_val)
+            if adif_val and not vals_match:
                 warnings.append({
                     "field": field,
                     "label": label,
