@@ -1,7 +1,5 @@
 import shutil
 from datetime import datetime, timezone
-from pathlib import Path
-
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -63,21 +61,19 @@ async def upsert_setting(
     return setting
 
 
-class BackupRequest(BaseModel):
-    directory: str
-
-
 @router.post("/backup")
-async def backup_database(data: BackupRequest):
+async def backup_database():
     db_path = db_manager.db_path
     if not db_path or not db_path.exists():
         raise HTTPException(status_code=400, detail="No database is open")
 
-    backup_dir = Path(data.directory).expanduser().resolve()
-    if not backup_dir.is_dir():
+    backup_dir = db_path.parent / "backups"
+    try:
+        backup_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
         raise HTTPException(
-            status_code=400, detail=f"Directory does not exist: {backup_dir}"
-        )
+            status_code=400, detail=f"Cannot create directory: {backup_dir}: {e}"
+        ) from e
 
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M%Sz")
     backup_name = f"{db_path.stem}_backup_{ts}{db_path.suffix}"
@@ -99,5 +95,5 @@ async def get_db_info():
     return {
         "path": str(db_path),
         "size": db_path.stat().st_size,
-        "directory": str(db_path.parent),
+        "directory": str(db_path.parent / "backups"),
     }

@@ -144,7 +144,6 @@
   }
 
   // Backup
-  let backupDir = "";
   let backupMessage = "";
   let backupMessageType = "";
   let backingUp = false;
@@ -153,53 +152,20 @@
   async function loadDbInfo() {
     try {
       const res = await fetch("/api/settings/backup/db-info");
-      if (res.ok) {
-        dbInfo = await res.json();
-        if (!backupDir && dbInfo.directory) backupDir = dbInfo.directory;
-      }
-    } catch { /* ignore */ }
-  }
-
-  async function loadBackupDir() {
-    try {
-      const res = await fetch("/api/settings/backup_directory");
-      if (res.ok) {
-        const data = await res.json();
-        if (data.value) backupDir = data.value;
-      }
-    } catch { /* ignore */ }
-  }
-
-  async function saveBackupDir() {
-    try {
-      await fetch("/api/settings/backup_directory", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: backupDir }),
-      });
+      if (res.ok) dbInfo = await res.json();
     } catch { /* ignore */ }
   }
 
   async function performBackup() {
-    if (!backupDir.trim()) {
-      backupMessage = "Please enter a backup directory.";
-      backupMessageType = "error";
-      return;
-    }
     backingUp = true;
     backupMessage = "";
     try {
-      const res = await fetch("/api/settings/backup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ directory: backupDir }),
-      });
+      const res = await fetch("/api/settings/backup", { method: "POST" });
       if (res.ok) {
         const data = await res.json();
         const sizeKB = (data.size / 1024).toFixed(1);
         backupMessage = `Saved to ${data.path} (${sizeKB} KB)`;
         backupMessageType = "success";
-        saveBackupDir();
       } else {
         const data = await res.json().catch(() => null);
         backupMessage = data?.detail || "Backup failed";
@@ -562,7 +528,6 @@
     fetchSettings();
     fetchSpotStatus();
     loadDbInfo();
-    loadBackupDir();
     spotStatusInterval = setInterval(fetchSpotStatus, 5000);
   });
 
@@ -833,13 +798,10 @@
     <h3>Backup</h3>
     {#if dbInfo}
       <p class="hint">Database: {dbInfo.path}</p>
+      <p class="hint">Backups: {dbInfo.directory}</p>
     {/if}
     <div class="setting-row">
-      <label for="backup-dir">Backup directory</label>
-      <input id="backup-dir" type="text" bind:value={backupDir} placeholder="/path/to/backup/folder" />
-    </div>
-    <div class="setting-row">
-      <button on:click={performBackup} disabled={backingUp || !backupDir.trim()}>
+      <button on:click={performBackup} disabled={backingUp}>
         {backingUp ? "Backing up..." : "Backup Now"}
       </button>
     </div>
