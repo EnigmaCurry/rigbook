@@ -636,6 +636,8 @@
     border-bottom: 1px solid var(--border, #555);
     font-size: 0.75rem;
     text-transform: uppercase;
+    overflow: hidden;
+    resize: horizontal;
   }
 
   .preview-table td {
