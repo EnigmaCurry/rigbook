@@ -1518,6 +1518,7 @@
     border-collapse: separate;
     border-spacing: 0;
     font-size: 0.85rem;
+    table-layout: fixed;
   }
 
   th {
@@ -1530,6 +1531,7 @@
     top: 0;
     background: var(--bg);
     z-index: 1;
+    overflow: hidden;
   }
 
   .col-label {
@@ -1564,6 +1566,8 @@
     padding: 0.3rem 0.5rem;
     border-bottom: 1px solid var(--bg-card);
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   td.call {
