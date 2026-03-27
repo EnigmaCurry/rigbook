@@ -1,3 +1,7 @@
+<script context="module">
+  let _savedMapView = null;   // { center, zoom }
+  let _savedParkRef = null;   // selectedPark reference
+</script>
 <script>
   import { onMount, onDestroy, tick, createEventDispatcher } from "svelte";
   import L from "leaflet";
@@ -544,20 +548,30 @@
     }
     leafletMap.on("click", deselectPark);
     leafletMap.invalidateSize();
-    // Pick the initial park to focus on
-    const initRef = activePark || (myParksSorted.length > 0 ? myParksSorted[0].reference : null);
-    const initMarker = initRef ? markersByRef[initRef] : null;
-    if (initMarker) {
-      leafletMap.setView(initMarker.getLatLng(), 7);
+
+    // Restore saved view from previous mount, or pick initial park
+    if (_savedMapView) {
+      leafletMap.setView(_savedMapView.center, _savedMapView.zoom);
+      _savedMapView = null;
+      if (_savedParkRef && markersByRef[_savedParkRef]) {
+        selectPark(_savedParkRef);
+      }
+      _savedParkRef = null;
     } else {
-      leafletMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 8 });
-      if (leafletMap.getZoom() < 5) leafletMap.setZoom(5);
+      const initRef = activePark || (myParksSorted.length > 0 ? myParksSorted[0].reference : null);
+      const initMarker = initRef ? markersByRef[initRef] : null;
+      if (initMarker) {
+        leafletMap.setView(initMarker.getLatLng(), 7);
+      } else {
+        leafletMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 8 });
+        if (leafletMap.getZoom() < 5) leafletMap.setZoom(5);
+      }
+      if (activePark) showActivePark(activePark);
+      else if (initRef) selectPark(initRef);
     }
     addExpandControl(leafletMap, mapEl.parentElement);
     mapResizeObserver = new ResizeObserver(() => { leafletMap?.invalidateSize(); });
     mapResizeObserver.observe(mapEl);
-    if (activePark) showActivePark(activePark);
-    else if (initRef) selectPark(initRef);
     renderingMap = false;
   }
 
@@ -602,6 +616,10 @@
   }
 
   onDestroy(() => {
+    if (leafletMap) {
+      _savedMapView = { center: leafletMap.getCenter(), zoom: leafletMap.getZoom() };
+    }
+    _savedParkRef = selectedPark;
     exitFullscreen();
     destroyMap();
     window.removeEventListener("hashchange", onHashChange);

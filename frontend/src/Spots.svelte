@@ -1,3 +1,7 @@
+<script context="module">
+  let _savedMapView = null;   // { center, zoom }
+  let _savedSpotKey = null;   // spotKey of locked spot
+</script>
 <script>
   import { onMount, onDestroy, tick, createEventDispatcher } from "svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
@@ -482,7 +486,19 @@
     fetchPotaSpots();
     await loadFilters();
     await fetchSpots();
-    if (myGrid && showMap) { await initMap(); updateMap(); }
+    if (myGrid && showMap) {
+      await initMap();
+      updateMap();
+      if (_savedMapView && leafletMap) {
+        leafletMap.setView(_savedMapView.center, _savedMapView.zoom);
+        _savedMapView = null;
+      }
+      if (_savedSpotKey && sortedSpots) {
+        const match = sortedSpots.find(s => spotKey(s) === _savedSpotKey);
+        if (match) onSpotClick(match);
+        _savedSpotKey = null;
+      }
+    }
     statusInterval = setInterval(() => { fetchStatus(); fetchBands(); fetchModes(); fetchWorkedToday(); fetchPotaSpots(); }, 5000);
     spotsInterval = setInterval(fetchSpots, 3000);
     window.addEventListener("keydown", onFullscreenKey);
@@ -502,6 +518,10 @@
   }
 
   onDestroy(() => {
+    if (leafletMap) {
+      _savedMapView = { center: leafletMap.getCenter(), zoom: leafletMap.getZoom() };
+    }
+    _savedSpotKey = lockedSpot ? spotKey(lockedSpot) : null;
     clearInterval(statusInterval);
     clearInterval(spotsInterval);
     qrz.destroy();
