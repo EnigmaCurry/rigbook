@@ -179,7 +179,7 @@
   let sortCol = storageGet("spotsSortCol") || "distance";
   let sortDir = storageGet("spotsSortDir") === "-1" ? -1 : 1;
 
-  const defaultSpotColumns = ["time", "callsign", "skcc", "frequency", "band", "mode", "spotters", "snr", "wpm", "country", "source", "distance", "info"];
+  const defaultSpotColumns = ["time", "callsign", "skcc", "frequency", "band", "mode", "spotters", "snr", "wpm", "location", "source", "distance", "info"];
   const spotColumnDefs = {
     time:      { key: "time",      label: "Time" },
     callsign:  { key: "callsign",  label: "Callsign" },
@@ -190,7 +190,7 @@
     spotters:  { key: "spotters",  label: "Spotters" },
     snr:       { key: "snr",       label: "Best SNR" },
     wpm:       { key: "wpm",       label: "WPM" },
-    country:   { key: "country",   label: "Location" },
+    location:  { key: "location",   label: "Location" },
     source:    { key: "source",    label: "Source" },
     distance:  { key: "distance",  label: "Closest Spot" },
     info:      { key: "info",      label: "Info" },
@@ -1018,7 +1018,7 @@
       case "spotters":    va = a.spotter_count || 0; vb = b.spotter_count || 0; break;
       case "snr":         va = a.best_snr ?? -999; vb = b.best_snr ?? -999; break;
       case "wpm":         va = a.wpm ?? 0; vb = b.wpm ?? 0; break;
-      case "country":     va = (a.country || "") + (a.qrz_state || ""); vb = (b.country || "") + (b.qrz_state || ""); break;
+      case "location":     va = (a.country || "") + (a.qrz_state || ""); vb = (b.country || "") + (b.qrz_state || ""); break;
       case "source":      va = a.source || ""; vb = b.source || ""; break;
       case "distance":    va = a.distance_mi ?? 99999; vb = b.distance_mi ?? 99999; break;
       default:            va = a.callsign || ""; vb = b.callsign || "";
@@ -1139,7 +1139,7 @@
               {:else if col.key === "spotters"}<td class="mono" title={spot.spotters ? spot.spotters.join(", ") : ""}>{spot.spotter_count}</td>
               {:else if col.key === "snr"}<td class="mono">{spot.best_snr ?? ""}</td>
               {:else if col.key === "wpm"}<td class="mono">{spot.wpm ?? ""}</td>
-              {:else if col.key === "country"}<td class="location">{#if isPotaActivator(spot)}{@const pota = getPotaSpot(spot)}<!-- svelte-ignore a11y-click-events-have-key-events --><!-- svelte-ignore a11y-no-static-element-interactions --><span class="pota-loc clickable" on:click|stopPropagation={() => openParkModal(spotHomeLabel(spot))}>{spotHomeLabel(spot)}</span>{#if pota?.name}<span class="pota-name">{pota.name}</span>{/if}{:else if spot.country || spot.qrz_state}{locationStr(spot)}{:else if !qrzConfigured}<span class="fetch-hint">(Configure QRZ account)</span>{:else if qrz.skipped}<span class="fetch-hint">(filter more to fetch)</span>{:else if qrz.pending > 0}<span class="fetch-hint">(fetching... {qrz.pending} left)</span>{/if}</td>
+              {:else if col.key === "location"}<td class="location">{#if isPotaActivator(spot)}{@const pota = getPotaSpot(spot)}<!-- svelte-ignore a11y-click-events-have-key-events --><!-- svelte-ignore a11y-no-static-element-interactions --><span class="pota-loc clickable" on:click|stopPropagation={() => openParkModal(spotHomeLabel(spot))}>{spotHomeLabel(spot)}</span>{#if pota?.name}<span class="pota-name">{pota.name}</span>{/if}{:else if spot.country || spot.qrz_state}{locationStr(spot)}{:else if !qrzConfigured}<span class="fetch-hint">(Configure QRZ account)</span>{:else if qrz.skipped}<span class="fetch-hint">(filter more to fetch)</span>{:else if qrz.pending > 0}<span class="fetch-hint">(fetching... {qrz.pending} left)</span>{/if}</td>
               {:else if col.key === "source"}<td class="source-tag {spot.source}">{spot.source}</td>
               {:else if col.key === "distance"}<td class="mono">{spot.closest_call || ""}{spot.distance_mi != null ? ` ${spot.distance_mi}mi` : ""}{spot.closest_snr != null ? ` ${spot.closest_snr}dB` : ""}</td>
               {:else if col.key === "info"}<td class="info">{spot.state}{spot.wwff_ref ? ` ${spot.wwff_ref}` : ""}{spot.comment ? ` ${spot.comment}` : ""}</td>
