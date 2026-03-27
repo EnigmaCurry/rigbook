@@ -771,35 +771,36 @@
         <div class="empty-preview">No contacts match filters</div>
       {/if}
 
-      <div class="action-bar">
-        {#if activeTab === "export"}
-          <span class="action-summary">
-            {#if exportPreview}
-              Exporting {exportPreview.included} of {exportPreview.total} contacts
-              {#if exportPreview.excluded > 0}({exportPreview.excluded} excluded by filters){/if}
-            {/if}
-          </span>
-          <button class="action-btn" on:click={exportAdif} disabled={!exportPreview || exportPreview.included === 0}>
-            Download ADIF
-          </button>
-        {:else}
-          <span class="action-summary">
-            {#if importPreview}
-              Importing {importPreview.new_count} new QSOs
-              {#if importPreview.duplicate_count > 0}({importPreview.duplicate_count} duplicates skipped){/if}
-              {#if importPreview.skipped_count > 0}({importPreview.skipped_count} invalid skipped){/if}
-              {#if warningCount > 0}<span class="action-error">— {warningCount} error{warningCount !== 1 ? "s" : ""} must be resolved</span>{/if}
-            {/if}
-          </span>
-          {#if importPreview}
-            <button class="action-btn cancel-btn" on:click={cancelImport}>Cancel</button>
-          {/if}
-          <button class="action-btn" on:click={executeImport} disabled={!importPreview || importPreview.new_count === 0 || importing || warningCount > 0}>
-            {importing ? "Importing..." : "Import"}
-          </button>
-        {/if}
-      </div>
     </div>
+  </div>
+
+  <div class="action-bar">
+    {#if activeTab === "export"}
+      <span class="action-summary">
+        {#if exportPreview}
+          Exporting {exportPreview.included} of {exportPreview.total} contacts
+          {#if exportPreview.excluded > 0}({exportPreview.excluded} excluded by filters){/if}
+        {/if}
+      </span>
+      <button class="action-btn" on:click={exportAdif} disabled={!exportPreview || exportPreview.included === 0}>
+        Download ADIF
+      </button>
+    {:else}
+      <span class="action-summary">
+        {#if importPreview}
+          Importing {importPreview.new_count} new QSOs
+          {#if importPreview.duplicate_count > 0}({importPreview.duplicate_count} duplicates skipped){/if}
+          {#if importPreview.skipped_count > 0}({importPreview.skipped_count} invalid skipped){/if}
+          {#if warningCount > 0}<span class="action-error">— {warningCount} error{warningCount !== 1 ? "s" : ""} must be resolved</span>{/if}
+        {/if}
+      </span>
+      {#if importPreview}
+        <button class="action-btn cancel-btn" on:click={cancelImport}>Cancel</button>
+      {/if}
+      <button class="action-btn" on:click={executeImport} disabled={!importPreview || importPreview.new_count === 0 || importing || warningCount > 0}>
+        {importing ? "Importing..." : "Import"}
+      </button>
+    {/if}
   </div>
 </div>
 
@@ -971,10 +972,7 @@
     border: 1px solid var(--border, #555);
     border-radius: 3px;
     background: var(--bg-header, var(--bg));
-    margin-top: 0.5rem;
-    position: sticky;
-    left: 0;
-    max-width: calc(100vw - 315px - 3rem);
+    flex-shrink: 0;
     gap: 1rem;
   }
 
