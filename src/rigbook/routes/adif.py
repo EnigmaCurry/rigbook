@@ -468,59 +468,86 @@ def _validate_import_record(
         "skcc": "SKCC",
     }
 
-    # Build the set of expected labels from the template
-    template_labels = {
-        entry.get("label", entry.get("field", "")) for entry in template_fields
-    }
-
     sep = (separator or "|").strip()
     padded = f" {sep} "
 
-    # Determine which segments to check: only leading "Label: value" segments
-    # that match a template label
+    # Build expected "Label: value" for each template field from normalized fields
+    expected = []
+    for entry in template_fields:
+        f = entry.get("field", "")
+        adif_key = field_to_adif.get(f, "")
+        val = record.get(adif_key, "") if adif_key else ""
+        label = entry.get("label", f)
+        if val:
+            expected.append({"label": label, "field": f, "val": val})
+
+    # Parse comment into segments (same way strip does)
     if padded in comment:
         parts = comment.split(padded)
     else:
         parts = [comment]
 
-    # Only check leading segments that look like "Label: value" for a template label
+    # Walk through parts in parallel with expected entries.
+    # Only validate segments that align with expected prefix positions.
     prefix_values = {}
-    for part in parts:
+    for i, exp in enumerate(expected):
+        if i >= len(parts):
+            break
+        part = parts[i].strip()
         if ": " not in part:
             break
         lbl, _, val = part.partition(": ")
-        lbl = lbl.strip()
-        if lbl not in template_labels:
+        if lbl.strip() != exp["label"]:
             break
-        prefix_values[lbl] = val.strip()
+        # This segment aligns with expected position — check if value matches
+        if val.strip() != exp["val"]:
+            prefix_values[exp["label"]] = {
+                "field": exp["field"],
+                "comment_val": val.strip(),
+                "field_val": exp["val"],
+            }
 
     warnings = []
-    for entry in template_fields:
-        field = entry.get("field", "")
-        label = entry.get("label", field)
-        comment_val = prefix_values.get(label, "")
-        if not comment_val:
-            continue
-        adif_key = field_to_adif.get(field, "")
-        adif_val = record.get(adif_key, "") if adif_key else ""
-        if adif_val and comment_val != adif_val:
-            warnings.append({
-                "field": field,
-                "label": label,
-                "comment_val": comment_val,
-                "field_val": adif_val,
-                "message": f"{label}: comment has '{comment_val}'"
-                f" but field has '{adif_val}'",
-            })
-        elif not adif_val and comment_val:
-            warnings.append({
-                "field": field,
-                "label": label,
-                "comment_val": comment_val,
-                "field_val": "",
-                "message": f"{label}: '{comment_val}' found in comment"
-                " but no normalized field",
-            })
+    for label, info in prefix_values.items():
+        warnings.append({
+            "field": info["field"],
+            "label": label,
+            "comment_val": info["comment_val"],
+            "field_val": info["field_val"],
+            "message": f"{label}: comment has '{info['comment_val']}'"
+            f" but field has '{info['field_val']}'",
+        })
+
+    # Also check for single-segment comments (no separator) that match a template
+    if not warnings and len(parts) == 1 and ": " in comment:
+        lbl, _, val = comment.partition(": ")
+        lbl = lbl.strip()
+        val = val.strip()
+        for entry in template_fields:
+            label = entry.get("label", entry.get("field", ""))
+            field = entry.get("field", "")
+            if lbl != label:
+                continue
+            adif_key = field_to_adif.get(field, "")
+            adif_val = record.get(adif_key, "") if adif_key else ""
+            if adif_val and val != adif_val:
+                warnings.append({
+                    "field": field,
+                    "label": label,
+                    "comment_val": val,
+                    "field_val": adif_val,
+                    "message": f"{label}: comment has '{val}'"
+                    f" but field has '{adif_val}'",
+                })
+            elif not adif_val and val:
+                warnings.append({
+                    "field": field,
+                    "label": label,
+                    "comment_val": val,
+                    "field_val": "",
+                    "message": f"{label}: '{val}' found in comment"
+                    " but no normalized field",
+                })
     return warnings
 
 
