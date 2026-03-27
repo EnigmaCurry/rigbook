@@ -759,8 +759,6 @@ def _suggest_comment_template(records: list[dict]) -> dict:
                 part = part.strip()
                 if ": " in part:
                     label, _, val = part.partition(": ")
-                elif " " in part:
-                    label, _, val = part.partition(" ")
                 else:
                     continue
                 label = label.strip()
