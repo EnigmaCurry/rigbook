@@ -28,6 +28,7 @@
       <tr><td class="key">N</td><td>New QSO</td></tr>
       <tr><td class="key">H</td><td>Hunting (home)</td></tr>
       <tr><td class="key">L</td><td>Logbook</td></tr>
+      <tr><td class="key">S</td><td>Spots</td></tr>
       <tr><td class="key">P</td><td>My Parks</td></tr>
       <tr><td class="key">T</td><td>Tune radio</td></tr>
       <tr><td class="key">M</td><td>Cycle radio mode</td></tr>

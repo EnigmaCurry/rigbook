@@ -894,6 +894,9 @@
     } else if (e.key === "l" || e.key === "L") {
       e.preventDefault();
       navigate("log");
+    } else if (e.key === "s" || e.key === "S") {
+      e.preventDefault();
+      navigate("spots");
     } else if (e.key === "p" || e.key === "P") {
       e.preventDefault();
       navigate("parks");
