@@ -898,14 +898,12 @@
     </div>
     {#if autoBackupEnabled}
       <div class="setting-row">
-        <label>
-          Interval (hours)
-          <input type="number" min="1" max="720" bind:value={autoBackupHours} on:input={saveAutoBackupSettings} style="width: 5rem" />
-        </label>
-        <label>
-          Keep max
-          <input type="number" min="1" max="100" bind:value={autoBackupMax} on:input={saveAutoBackupSettings} style="width: 5rem" />
-        </label>
+        <label>Interval (hours)</label>
+        <input type="number" min="1" max="720" bind:value={autoBackupHours} on:input={saveAutoBackupSettings} style="width: 5rem" />
+      </div>
+      <div class="setting-row">
+        <label>Keep max</label>
+        <input type="number" min="1" max="100" bind:value={autoBackupMax} on:input={saveAutoBackupSettings} style="width: 5rem" />
       </div>
     {/if}
     {#if backupStatus}
