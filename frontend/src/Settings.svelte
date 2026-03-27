@@ -702,6 +702,15 @@
     <p class="save-reminder">You have unsaved changes. Click Save when finished.</p>
   {/if}
 
+  <div class="setting-row save-row">
+    <button class:btn-dirty={dirty} on:click={save} disabled={saving}>
+      {saving ? "Saving..." : "Save"}
+    </button>
+    {#if message}
+      <span class="message">{message}</span>
+    {/if}
+  </div>
+
   {#if needsSetup}
     <p class="setup-hint">Enter your callsign and grid square to get started.</p>
   {/if}
@@ -945,15 +954,6 @@
       <button class="theme-toggle" on:click={clearCache}>Clear Cache</button>
     </div>
   </section>
-
-  <div class="setting-row">
-    <button class:btn-dirty={dirty} on:click={save} disabled={saving}>
-      {saving ? "Saving..." : "Save"}
-    </button>
-    {#if message}
-      <span class="message">{message}</span>
-    {/if}
-  </div>
 
   <section class="settings-section">
     <h3>Authentication</h3>
