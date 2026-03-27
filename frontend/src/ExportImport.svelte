@@ -161,8 +161,12 @@
   $: currentPreview = activeTab === "export" ? exportPreview : importPreview;
   $: warningCount = importPreview ? (importPreview.contacts || []).filter(c => c.warnings && c.warnings.length > 0).length : 0;
 
+  function segmentMatches(seg, label, value) {
+    const s = seg.trim();
+    return s === `${label}: ${value}` || s === `${label} ${value}`;
+  }
+
   function stripCommentClient(contact) {
-    // Re-strip the comment client-side using current field values and template
     const original = contact.original_comment || "";
     if (!original || !commentTemplate.length) {
       contact.comments = original;
@@ -177,14 +181,13 @@
       country: contact.country, grid: contact.grid,
       pota_park: contact.pota_park, skcc: contact.skcc,
     };
-    // Build expected prefix segments
     const expected = [];
     for (const entry of commentTemplate) {
       const val = fieldMap[entry.field];
-      if (val) expected.push(`${entry.label}: ${val}`);
+      if (val) expected.push({ label: entry.label, val });
     }
     // Check if entire comment matches a single expected segment
-    if (expected.some(e => original.trim() === e.trim())) {
+    if (expected.some(e => segmentMatches(original, e.label, e.val))) {
       contact.comments = "";
       return;
     }
@@ -193,10 +196,9 @@
       return;
     }
     const parts = original.split(padded);
-    // Strip matching leading segments
     let stripCount = 0;
     for (let i = 0; i < parts.length && i < expected.length; i++) {
-      if (parts[i].trim() === expected[i].trim()) {
+      if (segmentMatches(parts[i], expected[i].label, expected[i].val)) {
         stripCount++;
       } else {
         break;

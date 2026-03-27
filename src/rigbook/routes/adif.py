@@ -168,6 +168,18 @@ def contact_to_adif_record(
     return record
 
 
+def _segment_matches(segment: str, label: str, value: str) -> bool:
+    """Check if a comment segment matches 'Label: value' or 'Label value'."""
+    s = segment.strip()
+    # Try with colon first
+    if s == f"{label}: {value}":
+        return True
+    # Try without colon
+    if s == f"{label} {value}":
+        return True
+    return False
+
+
 def strip_comment_prefix(
     comment: str,
     record: dict,
@@ -203,10 +215,13 @@ def strip_comment_prefix(
     for entry in template_fields:
         val = field_values.get(entry.get("field"), "")
         if val:
-            expected.append(f"{entry.get('label', entry['field'])}: {val}")
+            label = entry.get("label", entry["field"])
+            expected.append({"label": label, "val": val})
 
     # Check if entire comment matches a single expected segment (no separator)
-    if expected and comment.strip() in [e.strip() for e in expected]:
+    if expected and any(
+        _segment_matches(comment, e["label"], e["val"]) for e in expected
+    ):
         return ""
 
     if padded not in comment:
@@ -219,7 +234,9 @@ def strip_comment_prefix(
     # Strip matching leading segments
     strip_count = 0
     for i, seg in enumerate(parts):
-        if i < len(expected) and seg.strip() == expected[i].strip():
+        if i < len(expected) and _segment_matches(
+            seg, expected[i]["label"], expected[i]["val"]
+        ):
             strip_count += 1
         else:
             break
@@ -494,12 +511,19 @@ def _validate_import_record(
         if i >= len(parts):
             break
         part = parts[i].strip()
-        if ": " not in part:
+        # Parse "Label: value" or "Label value"
+        if ": " in part:
+            lbl, _, val = part.partition(": ")
+        elif part.startswith(exp["label"] + " "):
+            lbl = exp["label"]
+            val = part[len(exp["label"]) + 1:]
+        else:
             break
-        lbl, _, val = part.partition(": ")
         if lbl.strip() != exp["label"]:
             break
         # This segment aligns with expected position — check if value matches
+        if _segment_matches(part, exp["label"], exp["val"]):
+            continue  # clean match
         if val.strip() != exp["val"]:
             prefix_values[exp["label"]] = {
                 "field": exp["field"],
@@ -519,14 +543,20 @@ def _validate_import_record(
         })
 
     # Also check for single-segment comments (no separator) that match a template
-    if not warnings and len(parts) == 1 and ": " in comment:
-        lbl, _, val = comment.partition(": ")
-        lbl = lbl.strip()
-        val = val.strip()
+    if not warnings and len(parts) == 1:
+        lbl = None
+        val = None
+        if ": " in comment:
+            lbl, _, val = comment.partition(": ")
         for entry in template_fields:
             label = entry.get("label", entry.get("field", ""))
             field = entry.get("field", "")
-            if lbl != label:
+            # Try "Label: value" or "Label value"
+            if lbl and lbl.strip() == label:
+                val = val.strip() if val else ""
+            elif comment.strip().startswith(label + " "):
+                val = comment.strip()[len(label) + 1:]
+            else:
                 continue
             adif_key = field_to_adif.get(field, "")
             adif_val = record.get(adif_key, "") if adif_key else ""
