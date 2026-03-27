@@ -1,5 +1,50 @@
 # Changelog
 
+## v0.1.19
+
+### Spots Map
+
+- Draw triangle lines between station, spotter, and QTH on the map
+- Show all spotters with known grids and draw dashed lines for co-witnesses
+- Scale station markers from dim gold to bright yellow based on spotter count
+- Show closest spotter in bright blue, non-closest in darker blue
+- Hide non-co-witnessing markers when a spot is selected
+- Draw map lines via shortest path across antimeridian
+- Place markers on same world copy as QTH for correct rendering
+- Click spot row to zoom map to fit triangle points
+- Click map markers to scroll to and select spot row
+- Click park markers to select and scroll park list, click map background to deselect
+- Fix My Parks map showing prime meridian / wrong location on initial load
+- Default map theme follows app theme (Canvas Dark Grey for dark mode)
+
+### Spots Table
+
+- Reorderable, resizable columns with sort indicators
+- Up/down arrow keyboard navigation for Spots and My Parks lists
+- Make POTA park references clickable with park detail modal
+- Show park name next to clickable POTA reference
+- Confine callsign and frequency click targets to text span instead of full cell
+- Fix sticky header positioning on sortable columns
+
+### Logbook
+
+- Show tree emoji next to callsigns with POTA park
+- Rename Home Location column to Location
+
+### Settings
+
+- Move Save button to top of settings page below reminder
+- Add QRZ Logout button to clear saved password
+- Show 'unset' placeholder for QRZ password when not configured
+- Key all localStorage settings by logbook name for per-logbook preferences
+- Style hamqsl.com link to match Links page
+
+### Bug Fixes
+
+- Fix ADIF import crash ("_original_comment is an invalid keyword argument for Contact")
+- Fix marker positions not updating when grid data changes
+- Fix double-highlight in keyboard navigation
+
 ## v0.1.18
 
 ### QSO Form
