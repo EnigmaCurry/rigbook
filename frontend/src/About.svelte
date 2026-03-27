@@ -37,7 +37,9 @@
       <tr><td class="key">Home</td><td>Scroll logbook to top</td></tr>
       <tr><td class="key">End</td><td>Scroll logbook to bottom</td></tr>
       <tr><td class="key">Shift + Scroll</td><td>Scroll logbook horizontally</td></tr>
-      <tr><td class="key">Esc</td><td>Close search / menu</td></tr>
+      <tr><td class="key">Up/Down</td><td>Navigate rows (Spots, My Parks)</td></tr>
+      <tr><td class="key">Enter</td><td>Log QSO (Spots) / View park (My Parks)</td></tr>
+      <tr><td class="key">Esc</td><td>Close search / menu / deselect row</td></tr>
     </tbody>
   </table>
 

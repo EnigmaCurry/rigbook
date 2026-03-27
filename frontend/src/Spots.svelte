@@ -351,6 +351,7 @@
     statusInterval = setInterval(() => { fetchStatus(); fetchBands(); fetchModes(); fetchWorkedToday(); fetchPotaSpots(); }, 5000);
     spotsInterval = setInterval(fetchSpots, 3000);
     window.addEventListener("keydown", onFullscreenKey);
+    window.addEventListener("keydown", onSpotsKeydown);
     window.addEventListener("resize", onWindowResize);
   });
 
@@ -365,6 +366,7 @@
     qrz.destroy();
     destroyMap();
     window.removeEventListener("keydown", onFullscreenKey);
+    window.removeEventListener("keydown", onSpotsKeydown);
     window.removeEventListener("resize", onWindowResize);
   });
 
@@ -387,6 +389,8 @@
   let hoveredSpot = null;    // spot hovered in table (temporary triangle)
   let lockedSpot = null;     // spot clicked in table (persistent triangle)
   let selectedSpotter = null; // spotter clicked on map (highlights table rows)
+  let selectedIndex = -1; // keyboard-navigated row index
+  let tableWrapEl;
   let mapInitialFitDone = false;
   let fullscreenMap = null;
   let fullscreenWrap = null;
@@ -451,6 +455,44 @@
 
   function onFullscreenKey(e) {
     if (e.key === "Escape" && fullscreenMap) exitFullscreen();
+  }
+
+  function onSpotsKeydown(e) {
+    const tag = e.target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (selectedIndex < sortedSpots.length - 1) {
+        selectedIndex++;
+        selectSpotByIndex(selectedIndex);
+      }
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (selectedIndex > 0) {
+        selectedIndex--;
+        selectSpotByIndex(selectedIndex);
+      } else if (selectedIndex === -1 && sortedSpots.length > 0) {
+        selectedIndex = 0;
+        selectSpotByIndex(selectedIndex);
+      }
+    } else if (e.key === "Escape" && selectedIndex >= 0) {
+      selectedIndex = -1;
+      clearAll();
+    } else if (e.key === "Enter" && selectedIndex >= 0) {
+      const spot = sortedSpots[selectedIndex];
+      if (spot && !isWorkedToday(spot)) addQsoWithPota(spot);
+    }
+  }
+
+  function selectSpotByIndex(idx) {
+    const spot = sortedSpots[idx];
+    if (!spot) return;
+    onSpotClick(spot);
+    tick().then(() => {
+      if (!tableWrapEl) return;
+      const row = tableWrapEl.querySelector(`tbody tr:nth-child(${idx + 1})`);
+      if (row) row.scrollIntoView({ block: "nearest" });
+    });
   }
 
   function clearLines() {
@@ -837,7 +879,7 @@
     </div>
   {/if}
 
-  <div class="spots-table-wrap">
+  <div class="spots-table-wrap" bind:this={tableWrapEl}>
     <table class="spots-table">
       <thead>
         <tr>
@@ -857,14 +899,15 @@
         </tr>
       </thead>
       <tbody>
-        {#each sortedSpots as spot (spot.callsign + spot.frequency + spot.mode)}
+        {#each sortedSpots as spot, i (spot.callsign + spot.frequency + spot.mode)}
           <!-- svelte-ignore a11y-no-static-element-interactions -->
           <tr class:worked={isWorkedToday(spot)}
               class:spot-highlighted={selectedSpotter && spot.closest_call === selectedSpotter}
               class:spot-locked={lockedSpot && spotKey(lockedSpot) === spotKey(spot)}
+              class:spot-selected={i === selectedIndex}
               on:mouseenter={() => onSpotHover(spot)}
               on:mouseleave={onSpotLeave}
-              on:click|stopPropagation={() => onSpotClick(spot)}>
+              on:click|stopPropagation={() => { selectedIndex = i; onSpotClick(spot); }}>
             <td class="mono">{formatTime(spot)}</td>
             {#if isWorkedToday(spot)}
               <td class="mono call worked-call" title="Already worked today">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</td>
@@ -1065,6 +1108,10 @@
     background: rgba(0, 204, 255, 0.15);
   }
   tr.spot-locked {
+    background: rgba(0, 204, 255, 0.25);
+    outline: 1px solid rgba(0, 204, 255, 0.4);
+  }
+  tr.spot-selected {
     background: rgba(0, 204, 255, 0.25);
     outline: 1px solid rgba(0, 204, 255, 0.4);
   }
