@@ -135,6 +135,8 @@ class DatabaseManager:
         self._db_override: str | None = None
         self.pending_name: str | None = None
         self._lock_file = None
+        self._host: str | None = None
+        self._port: int | None = None
 
     def configure(self, db_name: str | None = None, picker: bool = False) -> None:
         cli_name = db_name
@@ -210,13 +212,23 @@ class DatabaseManager:
         info = self.read_lock_info(db_path)
         return info["pid"] if info else None
 
-    def write_lock_info(self, host: str, port: int) -> None:
-        """Write host:port to the current lock file (call after acquiring lock)."""
-        if self._lock_file:
-            self._lock_file.seek(0)
-            self._lock_file.truncate()
-            self._lock_file.write(f"{os.getpid()} {host}:{port}")
-            self._lock_file.flush()
+    def set_listen_addr(self, host: str, port: int) -> None:
+        """Store and write host:port to the lock file."""
+        self._host = host
+        self._port = port
+        self._write_lock_content()
+
+    def _write_lock_content(self) -> None:
+        """Write current pid and optional host:port to the lock file."""
+        if not self._lock_file:
+            return
+        self._lock_file.seek(0)
+        self._lock_file.truncate()
+        content = str(os.getpid())
+        if self._host is not None and self._port is not None:
+            content += f" {self._host}:{self._port}"
+        self._lock_file.write(content)
+        self._lock_file.flush()
 
     def _acquire_lock(self, db_path: Path) -> None:
         """Acquire an exclusive file lock to prevent concurrent access."""
@@ -226,8 +238,7 @@ class DatabaseManager:
         self._lock_file = open(lock_path, "w")
         try:
             fcntl.flock(self._lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            self._lock_file.write(str(os.getpid()))
-            self._lock_file.flush()
+            self._write_lock_content()
         except OSError:
             self._lock_file.close()
             self._lock_file = None

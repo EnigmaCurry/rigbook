@@ -308,7 +308,7 @@ def run() -> None:
     else:
         port = _find_free_port(host, default_port)
 
-    db_manager.write_lock_info(host, port)
+    db_manager.set_listen_addr(host, port)
 
     import threading
     import webbrowser
