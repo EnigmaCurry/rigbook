@@ -43,7 +43,7 @@ def _list_logbooks(quiet_if_empty: bool = False) -> None:
     """List all running rigbook processes."""
     from rigbook.db import DB_DIR
 
-    found = False
+    rows = []
     for lock_path in sorted(DB_DIR.glob("*.lock")):
         db_path = lock_path.with_suffix(".db")
         info = db_manager.read_lock_info(db_path)
@@ -57,13 +57,15 @@ def _list_logbooks(quiet_if_empty: bool = False) -> None:
             continue
         except PermissionError:
             pass
-        if not found:
-            print("Running logbooks:")
         name = db_path.stem
         addr = f"{info.get('host', '?')}:{info.get('port', '?')}" if "port" in info else "?"
-        print(f"  {name}\tpid={pid}\t{addr}")
-        found = True
-    if not found and not quiet_if_empty:
+        rows.append((name, str(pid), addr))
+    if rows:
+        widths = [max(len(r[i]) for r in rows) for i in range(3)]
+        print("Running logbooks:")
+        for name, pid, addr in rows:
+            print(f"  {name:<{widths[0]}}  {pid:>{widths[1]}}  {addr}")
+    elif not quiet_if_empty:
         print("No running rigbook processes")
 
 
