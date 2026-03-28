@@ -87,11 +87,7 @@ async def lifespan(app: FastAPI):
     import signal
 
     signal.signal(signal.SIGINT, _handle_sigint)
-    try:
-        await init_db()
-    except DatabaseLockError as e:
-        logger.error("%s", e)
-        sys.exit(1)
+    await init_db()
     if db_manager.is_open:
         await start_feeds()
         await start_auto_backup()
@@ -216,6 +212,15 @@ def run() -> None:
     _no_auth = args.no_auth
 
     db_manager.configure(db_name=args.name, picker=args.pick)
+
+    if not db_manager.picker_mode:
+        db_path = db_manager.default_db_path
+        if db_path.exists() or not db_manager._db_override:
+            try:
+                db_manager.check_lock(db_path)
+            except DatabaseLockError as e:
+                print(f"Error: {e}", file=sys.stderr)
+                sys.exit(1)
 
     log_level = "DEBUG" if args.verbose else "INFO"
     logging.basicConfig(

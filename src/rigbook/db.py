@@ -173,6 +173,22 @@ class DatabaseManager:
             return DB_DIR / f"{self._db_override}.db"
         return DB_DIR / "rigbook.db"
 
+    def check_lock(self, db_path: Path) -> None:
+        """Raise DatabaseLockError if the database is locked by another process."""
+        import fcntl
+
+        lock_path = db_path.with_suffix(".lock")
+        if not lock_path.exists():
+            return
+        try:
+            with open(lock_path, "r+") as f:
+                fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                fcntl.flock(f, fcntl.LOCK_UN)
+        except OSError:
+            raise DatabaseLockError(
+                f"Logbook '{db_path.stem}' is already open in another process"
+            )
+
     def _acquire_lock(self, db_path: Path) -> None:
         """Acquire an exclusive file lock to prevent concurrent access."""
         import fcntl
