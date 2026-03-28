@@ -375,10 +375,17 @@
     });
   }
 
-  const debounceTimers = {};
-  function debounceSave(key, value, delay = 500) {
-    clearTimeout(debounceTimers[key]);
-    debounceTimers[key] = setTimeout(() => saveSetting(key, value), delay);
+  const dirtyFields = new Set();
+
+  function markDirty(key) {
+    dirtyFields.add(key);
+  }
+
+  async function flushPending() {
+    for (const key of dirtyFields) {
+      if (fieldSavers[key]) await fieldSavers[key]();
+    }
+    dirtyFields.clear();
   }
 
   async function restartFeeds() {
@@ -387,37 +394,92 @@
   }
 
   function dispatchSetupIfReady() {
-    if (my_callsign.trim() && my_grid.trim()) {
+    if (needsSetup && my_callsign.trim() && my_grid.trim()) {
       dispatch("setupcomplete");
     }
   }
 
   // --- Per-field auto-save handlers ---
 
-  function onCallsignInput() {
-    stripCallsign();
-    const val = my_callsign.trim().toUpperCase();
-    clearTimeout(debounceTimers["my_callsign"]);
-    debounceTimers["my_callsign"] = setTimeout(async () => {
-      await saveSetting("my_callsign", val);
+  const fieldSavers = {
+    my_callsign: async () => {
+      await saveSetting("my_callsign", my_callsign.trim().toUpperCase());
       dispatch("saved");
       dispatchSetupIfReady();
-    }, 500);
+    },
+    my_grid: async () => {
+      await saveSetting("my_grid", my_grid.trim().toUpperCase());
+      dispatch("saved");
+      dispatchSetupIfReady();
+    },
+    default_rst: async () => {
+      await saveSetting("default_rst", default_rst.trim());
+    },
+    flrig_host: async () => {
+      if (flrig_enabled && flrig_host.trim() && flrig_port.trim()) {
+        await saveSetting("flrig_host", flrig_host.trim());
+        dispatch("saved");
+      }
+    },
+    flrig_port: async () => {
+      if (flrig_enabled && flrig_host.trim() && flrig_port.trim()) {
+        await saveSetting("flrig_port", flrig_port.trim());
+        dispatch("saved");
+      }
+    },
+    wide_breakpoint: async () => {
+      await saveSetting("wide_breakpoint", wide_mode_enabled ? String(wide_breakpoint) : "0");
+      dispatch("saved");
+    },
+    map_custom_url: async () => {
+      await saveSetting("map_custom_url", map_custom_url.trim());
+      dispatch("saved");
+    },
+    rbn_host: async () => {
+      await saveSetting("rbn_host", rbn_host.trim());
+      await restartFeeds();
+      dispatch("saved");
+    },
+    skcc_skimmer_distance: async () => {
+      await saveSetting("skcc_skimmer_distance", skcc_skimmer_distance.trim() || "500");
+      dispatch("saved");
+    },
+    hamalert_host: async () => {
+      await saveSetting("hamalert_host", hamalert_host.trim());
+      if (hamalert_enabled && hamalertFieldsFilled()) await restartFeeds();
+      dispatch("saved");
+    },
+    hamalert_port: async () => {
+      await saveSetting("hamalert_port", hamalert_port.trim());
+      if (hamalert_enabled && hamalertFieldsFilled()) await restartFeeds();
+      dispatch("saved");
+    },
+    hamalert_username: async () => {
+      await saveSetting("hamalert_username", hamalert_username.trim());
+      if (hamalert_enabled && hamalertFieldsFilled()) await restartFeeds();
+      dispatch("saved");
+    },
+  };
+
+  function onCallsignInput() {
+    stripCallsign();
+    markDirty("my_callsign");
   }
 
   function onGridInput() {
     stripGrid();
-    const val = my_grid.trim().toUpperCase();
-    clearTimeout(debounceTimers["my_grid"]);
-    debounceTimers["my_grid"] = setTimeout(async () => {
-      await saveSetting("my_grid", val);
-      dispatch("saved");
-      dispatchSetupIfReady();
-    }, 500);
+    markDirty("my_grid");
   }
 
   function onDefaultRstInput() {
-    debounceSave("default_rst", default_rst.trim());
+    markDirty("default_rst");
+  }
+
+  async function onFieldBlur(key) {
+    if (dirtyFields.has(key) && fieldSavers[key]) {
+      dirtyFields.delete(key);
+      await fieldSavers[key]();
+    }
   }
 
   async function onPotaEnabledChange() {
@@ -446,23 +508,11 @@
   }
 
   function onFlrigHostInput() {
-    clearTimeout(debounceTimers["flrig_host"]);
-    debounceTimers["flrig_host"] = setTimeout(async () => {
-      if (flrig_enabled && flrig_host.trim() && flrig_port.trim()) {
-        await saveSetting("flrig_host", flrig_host.trim());
-        dispatch("saved");
-      }
-    }, 500);
+    markDirty("flrig_host");
   }
 
   function onFlrigPortInput() {
-    clearTimeout(debounceTimers["flrig_port"]);
-    debounceTimers["flrig_port"] = setTimeout(async () => {
-      if (flrig_enabled && flrig_host.trim() && flrig_port.trim()) {
-        await saveSetting("flrig_port", flrig_port.trim());
-        dispatch("saved");
-      }
-    }, 500);
+    markDirty("flrig_port");
   }
 
   async function onLogbookRightChange() {
@@ -480,11 +530,7 @@
   }
 
   function onWideBreakpointInput() {
-    clearTimeout(debounceTimers["wide_breakpoint"]);
-    debounceTimers["wide_breakpoint"] = setTimeout(async () => {
-      await saveSetting("wide_breakpoint", wide_mode_enabled ? String(wide_breakpoint) : "0");
-      dispatch("saved");
-    }, 500);
+    markDirty("wide_breakpoint");
   }
 
   async function onMapThemeChange() {
@@ -493,11 +539,7 @@
   }
 
   function onMapCustomUrlInput() {
-    clearTimeout(debounceTimers["map_custom_url"]);
-    debounceTimers["map_custom_url"] = setTimeout(async () => {
-      await saveSetting("map_custom_url", map_custom_url.trim());
-      dispatch("saved");
-    }, 500);
+    markDirty("map_custom_url");
   }
 
   async function onRbnEnabledChange() {
@@ -521,12 +563,7 @@
   }
 
   function onRbnHostInput() {
-    clearTimeout(debounceTimers["rbn_host"]);
-    debounceTimers["rbn_host"] = setTimeout(async () => {
-      await saveSetting("rbn_host", rbn_host.trim());
-      await restartFeeds();
-      dispatch("saved");
-    }, 500);
+    markDirty("rbn_host");
   }
 
   async function onSkccSkimmerEnabledChange() {
@@ -536,11 +573,7 @@
   }
 
   function onSkccSkimmerDistanceInput() {
-    clearTimeout(debounceTimers["skcc_skimmer_distance"]);
-    debounceTimers["skcc_skimmer_distance"] = setTimeout(async () => {
-      await saveSetting("skcc_skimmer_distance", skcc_skimmer_distance.trim() || "500");
-      dispatch("saved");
-    }, 500);
+    markDirty("skcc_skimmer_distance");
   }
 
   function hamalertFieldsFilled() {
@@ -556,36 +589,15 @@
   }
 
   function onHamalertHostInput() {
-    clearTimeout(debounceTimers["hamalert_host"]);
-    debounceTimers["hamalert_host"] = setTimeout(async () => {
-      await saveSetting("hamalert_host", hamalert_host.trim());
-      if (hamalert_enabled && hamalertFieldsFilled()) {
-        await restartFeeds();
-      }
-      dispatch("saved");
-    }, 500);
+    markDirty("hamalert_host");
   }
 
   function onHamalertPortInput() {
-    clearTimeout(debounceTimers["hamalert_port"]);
-    debounceTimers["hamalert_port"] = setTimeout(async () => {
-      await saveSetting("hamalert_port", hamalert_port.trim());
-      if (hamalert_enabled && hamalertFieldsFilled()) {
-        await restartFeeds();
-      }
-      dispatch("saved");
-    }, 500);
+    markDirty("hamalert_port");
   }
 
   function onHamalertUsernameInput() {
-    clearTimeout(debounceTimers["hamalert_username"]);
-    debounceTimers["hamalert_username"] = setTimeout(async () => {
-      await saveSetting("hamalert_username", hamalert_username.trim());
-      if (hamalert_enabled && hamalertFieldsFilled()) {
-        await restartFeeds();
-      }
-      dispatch("saved");
-    }, 500);
+    markDirty("hamalert_username");
   }
 
   async function loginQrz() {
@@ -723,6 +735,7 @@
 
   onDestroy(() => {
     clearInterval(spotStatusInterval);
+    flushPending();
   });
 </script>
 
@@ -737,12 +750,12 @@
     <h3>Station</h3>
     <div class="setting-row">
       <label for="my_callsign">My Callsign{#if needsSetup && !my_callsign.trim()} <span class="required">*</span>{/if}</label>
-      <input id="my_callsign" type="text" bind:value={my_callsign} on:input={onCallsignInput} maxlength="10" autocomplete="off" style="text-transform: uppercase" class:input-required={needsSetup && !my_callsign.trim()} />
+      <input id="my_callsign" type="text" bind:value={my_callsign} on:input={onCallsignInput} on:blur={() => onFieldBlur("my_callsign")} maxlength="10" autocomplete="off" style="text-transform: uppercase" class:input-required={needsSetup && !my_callsign.trim()} />
     </div>
     <div class="setting-row">
       <label for="my_grid">My Grid Square{#if needsSetup && !my_grid.trim()} <span class="required">*</span>{/if}</label>
       <div class="grid-input-row">
-        <input id="my_grid" type="text" bind:value={my_grid} on:input={onGridInput} autocomplete="off" style="text-transform: uppercase" class:input-required={needsSetup && !my_grid.trim()} />
+        <input id="my_grid" type="text" bind:value={my_grid} on:input={onGridInput} on:blur={() => onFieldBlur("my_grid")} autocomplete="off" style="text-transform: uppercase" class:input-required={needsSetup && !my_grid.trim()} />
         <button type="button" class="grid-picker-btn" on:click={() => showGridPicker = !showGridPicker} title="Pick from map">🌍</button>
       </div>
       {#if showGridPicker}
@@ -762,7 +775,7 @@
     </div>
     <div class="setting-row">
       <label for="default_rst">Default RST</label>
-      <input id="default_rst" type="text" bind:value={default_rst} on:input={onDefaultRstInput} autocomplete="off" />
+      <input id="default_rst" type="text" bind:value={default_rst} on:input={onDefaultRstInput} on:blur={() => onFieldBlur("default_rst")} autocomplete="off" />
     </div>
   </section>
 
@@ -812,7 +825,7 @@
     {#if map_theme === "custom"}
       <div class="setting-row">
         <label for="map_custom_url">Tile URL</label>
-        <input id="map_custom_url" type="text" bind:value={map_custom_url} on:input={onMapCustomUrlInput} placeholder="https://&#123;s&#125;.tile.example.com/&#123;z&#125;/&#123;x&#125;/&#123;y&#125;.png" />
+        <input id="map_custom_url" type="text" bind:value={map_custom_url} on:input={onMapCustomUrlInput} on:blur={() => onFieldBlur("map_custom_url")} placeholder="https://&#123;s&#125;.tile.example.com/&#123;z&#125;/&#123;x&#125;/&#123;y&#125;.png" />
       </div>
     {/if}
     <div class="map-preview" bind:this={previewEl}></div>
@@ -824,7 +837,7 @@
     </div>
     <div class="setting-row">
       <label for="wide_breakpoint">Breakpoint: {wide_breakpoint}px</label>
-      <input id="wide_breakpoint" type="range" min="1200" max="2500" step="50" bind:value={wide_breakpoint} on:input={onWideBreakpointInput} disabled={!wide_mode_enabled} />
+      <input id="wide_breakpoint" type="range" min="1200" max="2500" step="50" bind:value={wide_breakpoint} on:input={onWideBreakpointInput} on:change={() => onFieldBlur("wide_breakpoint")} disabled={!wide_mode_enabled} />
     </div>
     <div class="setting-row toggle-row">
       <label>
@@ -930,11 +943,11 @@
     </div>
     <div class="setting-row">
       <label for="flrig_host">flrig Host</label>
-      <input id="flrig_host" type="text" bind:value={flrig_host} on:input={onFlrigHostInput} autocomplete="off" disabled={!flrig_enabled || flrig_simulate} />
+      <input id="flrig_host" type="text" bind:value={flrig_host} on:input={onFlrigHostInput} on:blur={() => onFieldBlur("flrig_host")} autocomplete="off" disabled={!flrig_enabled || flrig_simulate} />
     </div>
     <div class="setting-row">
       <label for="flrig_port">flrig Port</label>
-      <input id="flrig_port" type="text" bind:value={flrig_port} on:input={onFlrigPortInput} autocomplete="off" inputmode="numeric" disabled={!flrig_enabled || flrig_simulate} />
+      <input id="flrig_port" type="text" bind:value={flrig_port} on:input={onFlrigPortInput} on:blur={() => onFieldBlur("flrig_port")} autocomplete="off" inputmode="numeric" disabled={!flrig_enabled || flrig_simulate} />
     </div>
   </section>
 
@@ -956,14 +969,14 @@
     </div>
     <div class="setting-row">
       <label for="rbn_host">RBN Host</label>
-      <input id="rbn_host" type="text" bind:value={rbn_host} on:input={onRbnHostInput} autocomplete="off" disabled={!rbn_enabled} />
+      <input id="rbn_host" type="text" bind:value={rbn_host} on:input={onRbnHostInput} on:blur={() => onFieldBlur("rbn_host")} autocomplete="off" disabled={!rbn_enabled} />
     </div>
     <div class="setting-row toggle-row">
       <label><input type="checkbox" bind:checked={skcc_skimmer_enabled} on:change={onSkccSkimmerEnabledChange} disabled={!rbn_enabled} /> Show SKCC Skimmer on Hunting page</label>
     </div>
     <div class="setting-row">
       <label for="skcc_distance">SKCC Skimmer max distance (miles)</label>
-      <input id="skcc_distance" type="text" bind:value={skcc_skimmer_distance} on:input={onSkccSkimmerDistanceInput} autocomplete="off" inputmode="numeric" disabled={!rbn_enabled || !skcc_skimmer_enabled} />
+      <input id="skcc_distance" type="text" bind:value={skcc_skimmer_distance} on:input={onSkccSkimmerDistanceInput} on:blur={() => onFieldBlur("skcc_skimmer_distance")} autocomplete="off" inputmode="numeric" disabled={!rbn_enabled || !skcc_skimmer_enabled} />
     </div>
     <p class="hint">Uses your My Callsign to authenticate.</p>
   </section>
@@ -982,15 +995,15 @@
     </div>
     <div class="setting-row">
       <label for="hamalert_host">Host</label>
-      <input id="hamalert_host" type="text" bind:value={hamalert_host} on:input={onHamalertHostInput} autocomplete="off" disabled={!hamalert_enabled} />
+      <input id="hamalert_host" type="text" bind:value={hamalert_host} on:input={onHamalertHostInput} on:blur={() => onFieldBlur("hamalert_host")} autocomplete="off" disabled={!hamalert_enabled} />
     </div>
     <div class="setting-row">
       <label for="hamalert_port">Port</label>
-      <input id="hamalert_port" type="text" bind:value={hamalert_port} on:input={onHamalertPortInput} autocomplete="off" inputmode="numeric" disabled={!hamalert_enabled} />
+      <input id="hamalert_port" type="text" bind:value={hamalert_port} on:input={onHamalertPortInput} on:blur={() => onFieldBlur("hamalert_port")} autocomplete="off" inputmode="numeric" disabled={!hamalert_enabled} />
     </div>
     <div class="setting-row">
       <label for="hamalert_username">Telnet Username</label>
-      <input id="hamalert_username" type="text" bind:value={hamalert_username} on:input={onHamalertUsernameInput} autocomplete="off" disabled={!hamalert_enabled} />
+      <input id="hamalert_username" type="text" bind:value={hamalert_username} on:input={onHamalertUsernameInput} on:blur={() => onFieldBlur("hamalert_username")} autocomplete="off" disabled={!hamalert_enabled} />
     </div>
     <div class="setting-row">
       <label for="hamalert_password">{hasHamalertPassword ? "Change Telnet Password" : "Telnet Password"}</label>
