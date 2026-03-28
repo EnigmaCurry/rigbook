@@ -23,6 +23,7 @@
   let solar_enabled = false;
   let update_check_enabled = true;
   let updateCheckResult = null;
+  let updateChecking = false;
   let flrig_enabled = false;
   let flrig_simulate = false;
   let flrig_host = "127.0.0.1";
@@ -454,10 +455,21 @@
   }
 
   async function fetchUpdateCheck() {
+    updateChecking = true;
     try {
       const res = await fetch("/api/update-check?bust=true");
       if (res.ok) updateCheckResult = await res.json();
     } catch {}
+    updateChecking = false;
+  }
+
+  function formatTimeAgo(epochSecs) {
+    const diff = Math.floor(Date.now() / 1000 - epochSecs);
+    if (diff < 5) return "just now";
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
   }
 
   async function save() {
@@ -838,6 +850,14 @@
         {:else}
           — Unable to check for updates
         {/if}
+      </div>
+      <div class="update-check-meta">
+        {#if updateCheckResult.checked_at}
+          Checked {formatTimeAgo(updateCheckResult.checked_at)}
+        {/if}
+        <button class="check-now-btn" on:click={fetchUpdateCheck} disabled={updateChecking}>
+          {updateChecking ? "Checking…" : "Check now"}
+        </button>
       </div>
     {/if}
   </section>
@@ -1327,5 +1347,26 @@
   }
   .update-available:hover {
     text-decoration: underline;
+  }
+  .update-check-meta {
+    margin-top: 0.3rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .check-now-btn {
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-input, transparent);
+    color: var(--text);
+  }
+  .check-now-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
   }
 </style>

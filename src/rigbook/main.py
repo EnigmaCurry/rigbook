@@ -156,6 +156,7 @@ async def check_for_update(
         data = json.loads(cached.value)
         latest = data["latest"]
         url = data["url"]
+        checked_at = data.get("checked_at", time.time())
     else:
         # Fetch from GitHub
         try:
@@ -173,6 +174,8 @@ async def check_for_update(
             logger.debug("Update check failed")
             return {"current": current, "latest": None, "update_available": False}
 
+        checked_at = time.time()
+
         # Store in cache
         await session.execute(
             delete(Cache).where(
@@ -184,7 +187,9 @@ async def check_for_update(
             Cache(
                 namespace=UPDATE_CACHE_NS,
                 key=UPDATE_CACHE_KEY,
-                value=json.dumps({"latest": latest, "url": url}),
+                value=json.dumps(
+                    {"latest": latest, "url": url, "checked_at": checked_at}
+                ),
                 expires_at=time.time() + UPDATE_CACHE_TTL,
             )
         )
@@ -200,6 +205,7 @@ async def check_for_update(
         "latest": latest,
         "update_available": update_available,
         "url": url if update_available else None,
+        "checked_at": checked_at,
     }
 
 
