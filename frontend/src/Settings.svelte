@@ -498,7 +498,7 @@
   async function onUpdateCheckEnabledChange() {
     await saveSetting("update_check_enabled", update_check_enabled ? "true" : "false");
     if (update_check_enabled) {
-      await loadUpdateCheck();
+      await fetchUpdateCheck();
     } else {
       updateCheckResult = null;
     }
