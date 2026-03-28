@@ -53,7 +53,10 @@
   let hamalert_password = "";
   let hasHamalertPassword = false;
 
+  let activeTab = "station";
   let settingsLoaded = false;
+
+  $: if (needsSetup) activeTab = "station";
 
   let updateCheckLoaded = false;
   $: if (settingsLoaded && !updateCheckLoaded) {
@@ -391,6 +394,11 @@
       if (fieldSavers[key]) await fieldSavers[key]();
     }
     dirtyFields.clear();
+  }
+
+  function switchTab(tab) {
+    flushPending();
+    activeTab = tab;
   }
 
   async function restartFeeds() {
@@ -758,6 +766,14 @@
     <p class="setup-hint">Enter your callsign and grid square to get started.</p>
   {/if}
 
+  <div class="tab-bar">
+    <button class="tab" class:active={activeTab === "station"} on:click={() => switchTab("station")}>Station</button>
+    <button class="tab" class:active={activeTab === "features"} on:click={() => switchTab("features")}>Features</button>
+    <button class="tab" class:active={activeTab === "appearance"} on:click={() => switchTab("appearance")}>Appearance</button>
+    <button class="tab" class:active={activeTab === "system"} on:click={() => switchTab("system")}>System</button>
+  </div>
+
+  {#if activeTab === "station"}
   <section class="settings-section">
     <h3>Station</h3>
     <div class="setting-row">
@@ -819,76 +835,31 @@
   </section>
 
   <section class="settings-section">
-    <h3>Appearance</h3>
-    <div class="setting-row toggle-row">
-      <label>Theme</label>
-      <button class="theme-toggle" on:click={toggleTheme}>
-        {theme === "dark" ? "Dark" : "Light"}
-      </button>
-    </div>
-    <div class="setting-row">
-      <label for="map_theme">Map Tiles</label>
-      <select id="map_theme" bind:value={map_theme} on:change={onMapThemeChange}>
-        {#each TILE_THEMES as t}
-          <option value={t.value}>{t.label}</option>
-        {/each}
-      </select>
-    </div>
-    {#if map_theme === "custom"}
-      <div class="setting-row">
-        <label for="map_custom_url">Tile URL</label>
-        <input id="map_custom_url" type="text" bind:value={map_custom_url} on:input={onMapCustomUrlInput} on:blur={() => onFieldBlur("map_custom_url")} placeholder="https://&#123;s&#125;.tile.example.com/&#123;z&#125;/&#123;x&#125;/&#123;y&#125;.png" />
-      </div>
-    {/if}
-    <div class="map-preview" bind:this={previewEl}></div>
+    <h3>flrig Connection</h3>
     <div class="setting-row toggle-row">
       <label>
-        <input type="checkbox" bind:checked={wide_mode_enabled} on:change={onWideModeEnabledChange} />
-        Wide Mode
+        <input type="checkbox" bind:checked={flrig_enabled} on:change={onFlrigEnabledChange} />
+        Enable flrig
+      </label>
+    </div>
+    <div class="setting-row toggle-row">
+      <label>
+        <input type="checkbox" bind:checked={flrig_simulate} on:change={onFlrigSimulateChange} disabled={!flrig_enabled} />
+        Simulate flrig (no real radio)
       </label>
     </div>
     <div class="setting-row">
-      <label for="wide_breakpoint">Breakpoint: {wide_breakpoint}px</label>
-      <input id="wide_breakpoint" type="range" min="1200" max="2500" step="50" bind:value={wide_breakpoint} on:input={onWideBreakpointInput} on:change={() => onFieldBlur("wide_breakpoint")} disabled={!wide_mode_enabled} />
+      <label for="flrig_host">flrig Host</label>
+      <input id="flrig_host" type="text" bind:value={flrig_host} on:input={onFlrigHostInput} on:blur={() => onFieldBlur("flrig_host")} autocomplete="off" disabled={!flrig_enabled || flrig_simulate} />
     </div>
-    <div class="setting-row toggle-row">
-      <label>
-        <input type="checkbox" bind:checked={logbook_right} on:change={onLogbookRightChange} disabled={!wide_mode_enabled} />
-        Logbook on right side
-      </label>
+    <div class="setting-row">
+      <label for="flrig_port">flrig Port</label>
+      <input id="flrig_port" type="text" bind:value={flrig_port} on:input={onFlrigPortInput} on:blur={() => onFieldBlur("flrig_port")} autocomplete="off" inputmode="numeric" disabled={!flrig_enabled || flrig_simulate} />
     </div>
   </section>
+  {/if}
 
-  <section class="settings-section">
-    <h3>Notifications</h3>
-    <div class="setting-row toggle-row">
-      {#if desktopNotifPermission === "denied"}
-        <span class="hint">Desktop notifications blocked by browser. Allow notifications for this site in your browser settings.</span>
-      {:else if desktopNotifPermission === "granted" && desktopNotifEnabled}
-        <span style="font-size:0.85rem; color:var(--accent);">Desktop notifications enabled</span>
-        <button class="theme-toggle" on:click={disableDesktopNotifications}>Disable</button>
-      {:else if desktopNotifPermission === "granted" && !desktopNotifEnabled}
-        <span style="font-size:0.85rem; color:var(--text-muted);">Desktop notifications disabled</span>
-        <button class="theme-toggle" on:click={() => { desktopNotifEnabled = true; storageSet("desktop_notifications_enabled", "true"); }}>Enable</button>
-      {:else}
-        <button class="theme-toggle" on:click={enableDesktopNotifications}>Enable Desktop Notifications</button>
-      {/if}
-    </div>
-    <p class="hint">In-app notifications are always enabled. Desktop notifications show browser popups when new alerts arrive.</p>
-    <div class="setting-row toggle-row" style="margin-top: 0.5rem;">
-      <label>
-        <input type="checkbox" bind:checked={popupNotifEnabled} on:change={async () => { await saveSetting("popup_notifications_enabled", popupNotifEnabled ? "true" : "false"); dispatch("saved"); }} />
-        Popup notifications
-      </label>
-    </div>
-    <p class="hint">Show a modal dialog immediately when new notifications arrive. Harder to miss, but more intrusive.</p>
-    <div class="setting-row toggle-row" style="margin-top: 0.5rem;">
-      <button class="theme-toggle" on:click={sendTestNotification} disabled={testPending}>
-        {testPending ? "Sending in 5s..." : "Send Test Notification"}
-      </button>
-    </div>
-  </section>
-
+  {#if activeTab === "features"}
   <section class="settings-section">
     <h3>Parks on the Air (POTA)</h3>
     <div class="setting-row toggle-row">
@@ -944,26 +915,32 @@
   </section>
 
   <section class="settings-section">
-    <h3>flrig Connection</h3>
+    <h3>Notifications</h3>
     <div class="setting-row toggle-row">
+      {#if desktopNotifPermission === "denied"}
+        <span class="hint">Desktop notifications blocked by browser. Allow notifications for this site in your browser settings.</span>
+      {:else if desktopNotifPermission === "granted" && desktopNotifEnabled}
+        <span style="font-size:0.85rem; color:var(--accent);">Desktop notifications enabled</span>
+        <button class="theme-toggle" on:click={disableDesktopNotifications}>Disable</button>
+      {:else if desktopNotifPermission === "granted" && !desktopNotifEnabled}
+        <span style="font-size:0.85rem; color:var(--text-muted);">Desktop notifications disabled</span>
+        <button class="theme-toggle" on:click={() => { desktopNotifEnabled = true; storageSet("desktop_notifications_enabled", "true"); }}>Enable</button>
+      {:else}
+        <button class="theme-toggle" on:click={enableDesktopNotifications}>Enable Desktop Notifications</button>
+      {/if}
+    </div>
+    <p class="hint">In-app notifications are always enabled. Desktop notifications show browser popups when new alerts arrive.</p>
+    <div class="setting-row toggle-row" style="margin-top: 0.5rem;">
       <label>
-        <input type="checkbox" bind:checked={flrig_enabled} on:change={onFlrigEnabledChange} />
-        Enable flrig
+        <input type="checkbox" bind:checked={popupNotifEnabled} on:change={async () => { await saveSetting("popup_notifications_enabled", popupNotifEnabled ? "true" : "false"); dispatch("saved"); }} />
+        Popup notifications
       </label>
     </div>
-    <div class="setting-row toggle-row">
-      <label>
-        <input type="checkbox" bind:checked={flrig_simulate} on:change={onFlrigSimulateChange} disabled={!flrig_enabled} />
-        Simulate flrig (no real radio)
-      </label>
-    </div>
-    <div class="setting-row">
-      <label for="flrig_host">flrig Host</label>
-      <input id="flrig_host" type="text" bind:value={flrig_host} on:input={onFlrigHostInput} on:blur={() => onFieldBlur("flrig_host")} autocomplete="off" disabled={!flrig_enabled || flrig_simulate} />
-    </div>
-    <div class="setting-row">
-      <label for="flrig_port">flrig Port</label>
-      <input id="flrig_port" type="text" bind:value={flrig_port} on:input={onFlrigPortInput} on:blur={() => onFieldBlur("flrig_port")} autocomplete="off" inputmode="numeric" disabled={!flrig_enabled || flrig_simulate} />
+    <p class="hint">Show a modal dialog immediately when new notifications arrive. Harder to miss, but more intrusive.</p>
+    <div class="setting-row toggle-row" style="margin-top: 0.5rem;">
+      <button class="theme-toggle" on:click={sendTestNotification} disabled={testPending}>
+        {testPending ? "Sending in 5s..." : "Send Test Notification"}
+      </button>
     </div>
   </section>
 
@@ -1029,7 +1006,52 @@
       </div>
     </div>
   </section>
+  {/if}
 
+  {#if activeTab === "appearance"}
+  <section class="settings-section">
+    <h3>Appearance</h3>
+    <div class="setting-row toggle-row">
+      <label>Theme</label>
+      <button class="theme-toggle" on:click={toggleTheme}>
+        {theme === "dark" ? "Dark" : "Light"}
+      </button>
+    </div>
+    <div class="setting-row">
+      <label for="map_theme">Map Tiles</label>
+      <select id="map_theme" bind:value={map_theme} on:change={onMapThemeChange}>
+        {#each TILE_THEMES as t}
+          <option value={t.value}>{t.label}</option>
+        {/each}
+      </select>
+    </div>
+    {#if map_theme === "custom"}
+      <div class="setting-row">
+        <label for="map_custom_url">Tile URL</label>
+        <input id="map_custom_url" type="text" bind:value={map_custom_url} on:input={onMapCustomUrlInput} on:blur={() => onFieldBlur("map_custom_url")} placeholder="https://&#123;s&#125;.tile.example.com/&#123;z&#125;/&#123;x&#125;/&#123;y&#125;.png" />
+      </div>
+    {/if}
+    <div class="map-preview" bind:this={previewEl}></div>
+    <div class="setting-row toggle-row">
+      <label>
+        <input type="checkbox" bind:checked={wide_mode_enabled} on:change={onWideModeEnabledChange} />
+        Wide Mode
+      </label>
+    </div>
+    <div class="setting-row">
+      <label for="wide_breakpoint">Breakpoint: {wide_breakpoint}px</label>
+      <input id="wide_breakpoint" type="range" min="1200" max="2500" step="50" bind:value={wide_breakpoint} on:input={onWideBreakpointInput} on:change={() => onFieldBlur("wide_breakpoint")} disabled={!wide_mode_enabled} />
+    </div>
+    <div class="setting-row toggle-row">
+      <label>
+        <input type="checkbox" bind:checked={logbook_right} on:change={onLogbookRightChange} disabled={!wide_mode_enabled} />
+        Logbook on right side
+      </label>
+    </div>
+  </section>
+  {/if}
+
+  {#if activeTab === "system"}
   <section class="settings-section">
     <h3>Cache</h3>
     <p class="hint">Cached data: QRZ callsign lookups, SKCC member list. Clearing forces fresh lookups on next use.</p>
@@ -1115,12 +1137,39 @@
       </div>
     </section>
   {/if}
+  {/if}
 </div>
 
 <style>
   .settings {
-    columns: 320px;
-    column-gap: 1rem;
+  }
+
+  .tab-bar {
+    display: flex;
+    gap: 0;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .tab:hover {
+    color: var(--text);
+  }
+
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
   }
 
   h2 {
