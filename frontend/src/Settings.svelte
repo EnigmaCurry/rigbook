@@ -84,7 +84,7 @@
     Object.keys(currentSnap).map(k => [k, savedSnapshot[k] !== currentSnap[k]])
   ) : {};
 
-  $: if (settingsLoaded && update_check_enabled) fetchUpdateCheck();
+  $: if (settingsLoaded && update_check_enabled) loadUpdateCheck();
   $: if (settingsLoaded && !update_check_enabled) updateCheckResult = null;
 
   // Desktop notifications
@@ -451,6 +451,13 @@
       }
       savedSnapshot = settingsSnapshot();
       settingsLoaded = true;
+    } catch {}
+  }
+
+  async function loadUpdateCheck() {
+    try {
+      const res = await fetch("/api/update-check");
+      if (res.ok) updateCheckResult = await res.json();
     } catch {}
   }
 
