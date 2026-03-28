@@ -1495,6 +1495,7 @@
     font-size: 0.65rem;
     font-weight: bold;
     color: #4caf50;
+    margin-left: 0.3em;
     animation: pulse-live 1.5s infinite;
   }
 
