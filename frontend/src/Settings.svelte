@@ -34,8 +34,6 @@
   let theme = storageGet("rigbook-theme") || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
   let map_theme = "natgeo";
   let map_custom_url = "";
-  let saving = false;
-  let message = "";
   let qrzStatus = null; // { ok, error?, username? }
   let qrzChecking = false;
 
@@ -56,33 +54,6 @@
   let hasHamalertPassword = false;
 
   let settingsLoaded = false;
-  let savedSnapshot = null;
-
-  function settingsSnapshot() {
-    return {
-      my_callsign, my_grid, default_rst, pota_enabled, solar_enabled,
-      update_check_enabled,
-      flrig_enabled, flrig_simulate, flrig_host, flrig_port,
-      logbook_right, wide_breakpoint, wide_mode_enabled, map_theme, map_custom_url,
-      rbn_enabled, rbn_host, rbn_feed_cw, rbn_feed_digital,
-      skcc_skimmer_enabled, skcc_skimmer_distance,
-      hamalert_enabled, hamalert_host, hamalert_port, hamalert_username,
-    };
-  }
-
-  $: currentSnap = {
-    my_callsign, my_grid, default_rst, pota_enabled, solar_enabled,
-    update_check_enabled,
-    flrig_enabled, flrig_simulate, flrig_host, flrig_port,
-    logbook_right, wide_breakpoint, wide_mode_enabled, map_theme, map_custom_url,
-    rbn_enabled, rbn_host, rbn_feed_cw, rbn_feed_digital,
-    skcc_skimmer_enabled, skcc_skimmer_distance,
-    hamalert_enabled, hamalert_host, hamalert_port, hamalert_username,
-  };
-  $: dirty = savedSnapshot !== null && JSON.stringify(currentSnap) !== JSON.stringify(savedSnapshot);
-  $: changed = savedSnapshot ? Object.fromEntries(
-    Object.keys(currentSnap).map(k => [k, savedSnapshot[k] !== currentSnap[k]])
-  ) : {};
 
   $: if (settingsLoaded && update_check_enabled) loadUpdateCheck();
   $: if (settingsLoaded && !update_check_enabled) updateCheckResult = null;
@@ -388,14 +359,253 @@
         fetch("/api/qrz/cache", { method: "DELETE" }),
         fetch("/api/skcc/cache", { method: "DELETE" }),
       ]);
-      message = "Cache cleared.";
-    } catch {
-      message = "Failed to clear cache.";
-    }
+    } catch {}
   }
 
   $: stripCallsign = () => { my_callsign = my_callsign.replace(/\s/g, ""); };
   $: stripGrid = () => { my_grid = my_grid.replace(/[^A-Za-z0-9]/g, ""); };
+
+  // --- Auto-save helpers ---
+
+  async function saveSetting(key, value) {
+    await fetch(`/api/settings/${key}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ value }),
+    });
+  }
+
+  const debounceTimers = {};
+  function debounceSave(key, value, delay = 500) {
+    clearTimeout(debounceTimers[key]);
+    debounceTimers[key] = setTimeout(() => saveSetting(key, value), delay);
+  }
+
+  async function restartFeeds() {
+    await fetch("/api/spots/restart", { method: "POST" });
+    setTimeout(fetchSpotStatus, 2000);
+  }
+
+  function dispatchSetupIfReady() {
+    if (my_callsign.trim() && my_grid.trim()) {
+      dispatch("setupcomplete");
+    }
+  }
+
+  // --- Per-field auto-save handlers ---
+
+  function onCallsignInput() {
+    stripCallsign();
+    const val = my_callsign.trim().toUpperCase();
+    clearTimeout(debounceTimers["my_callsign"]);
+    debounceTimers["my_callsign"] = setTimeout(async () => {
+      await saveSetting("my_callsign", val);
+      dispatch("saved");
+      dispatchSetupIfReady();
+    }, 500);
+  }
+
+  function onGridInput() {
+    stripGrid();
+    const val = my_grid.trim().toUpperCase();
+    clearTimeout(debounceTimers["my_grid"]);
+    debounceTimers["my_grid"] = setTimeout(async () => {
+      await saveSetting("my_grid", val);
+      dispatch("saved");
+      dispatchSetupIfReady();
+    }, 500);
+  }
+
+  function onDefaultRstInput() {
+    debounceSave("default_rst", default_rst.trim());
+  }
+
+  async function onPotaEnabledChange() {
+    await saveSetting("pota_enabled", pota_enabled ? "true" : "false");
+    dispatch("saved");
+  }
+
+  async function onSolarEnabledChange() {
+    await saveSetting("solar_enabled", solar_enabled ? "true" : "false");
+    dispatch("saved");
+  }
+
+  async function onUpdateCheckEnabledChange() {
+    await saveSetting("update_check_enabled", update_check_enabled ? "true" : "false");
+    dispatch("saved");
+  }
+
+  async function onFlrigEnabledChange() {
+    await saveSetting("flrig_enabled", flrig_enabled ? "true" : "false");
+    dispatch("saved");
+  }
+
+  async function onFlrigSimulateChange() {
+    await saveSetting("flrig_simulate", flrig_simulate ? "true" : "false");
+    dispatch("saved");
+  }
+
+  function onFlrigHostInput() {
+    clearTimeout(debounceTimers["flrig_host"]);
+    debounceTimers["flrig_host"] = setTimeout(async () => {
+      if (flrig_enabled && flrig_host.trim() && flrig_port.trim()) {
+        await saveSetting("flrig_host", flrig_host.trim());
+        dispatch("saved");
+      }
+    }, 500);
+  }
+
+  function onFlrigPortInput() {
+    clearTimeout(debounceTimers["flrig_port"]);
+    debounceTimers["flrig_port"] = setTimeout(async () => {
+      if (flrig_enabled && flrig_host.trim() && flrig_port.trim()) {
+        await saveSetting("flrig_port", flrig_port.trim());
+        dispatch("saved");
+      }
+    }, 500);
+  }
+
+  async function onLogbookRightChange() {
+    await saveSetting("logbook_right", logbook_right ? "true" : "false");
+    dispatch("saved");
+  }
+
+  async function onWideModeEnabledChange() {
+    if (wide_mode_enabled) {
+      await saveSetting("wide_breakpoint", String(wide_breakpoint));
+    } else {
+      await saveSetting("wide_breakpoint", "0");
+    }
+    dispatch("saved");
+  }
+
+  function onWideBreakpointInput() {
+    clearTimeout(debounceTimers["wide_breakpoint"]);
+    debounceTimers["wide_breakpoint"] = setTimeout(async () => {
+      await saveSetting("wide_breakpoint", wide_mode_enabled ? String(wide_breakpoint) : "0");
+      dispatch("saved");
+    }, 500);
+  }
+
+  async function onMapThemeChange() {
+    await saveSetting("map_theme", map_theme);
+    dispatch("saved");
+  }
+
+  function onMapCustomUrlInput() {
+    clearTimeout(debounceTimers["map_custom_url"]);
+    debounceTimers["map_custom_url"] = setTimeout(async () => {
+      await saveSetting("map_custom_url", map_custom_url.trim());
+      dispatch("saved");
+    }, 500);
+  }
+
+  async function onRbnEnabledChange() {
+    await saveSetting("rbn_enabled", rbn_enabled ? "true" : "false");
+    await restartFeeds();
+    dispatch("saved");
+  }
+
+  async function onRbnFeedCwChange() {
+    const rbnFeeds = [rbn_feed_cw ? "cw" : "", rbn_feed_digital ? "digital" : ""].filter(Boolean).join(",");
+    await saveSetting("rbn_feeds", rbnFeeds || "cw");
+    await restartFeeds();
+    dispatch("saved");
+  }
+
+  async function onRbnFeedDigitalChange() {
+    const rbnFeeds = [rbn_feed_cw ? "cw" : "", rbn_feed_digital ? "digital" : ""].filter(Boolean).join(",");
+    await saveSetting("rbn_feeds", rbnFeeds || "cw");
+    await restartFeeds();
+    dispatch("saved");
+  }
+
+  function onRbnHostInput() {
+    clearTimeout(debounceTimers["rbn_host"]);
+    debounceTimers["rbn_host"] = setTimeout(async () => {
+      await saveSetting("rbn_host", rbn_host.trim());
+      await restartFeeds();
+      dispatch("saved");
+    }, 500);
+  }
+
+  async function onSkccSkimmerEnabledChange() {
+    await saveSetting("skcc_skimmer_enabled", skcc_skimmer_enabled ? "true" : "false");
+    await restartFeeds();
+    dispatch("saved");
+  }
+
+  function onSkccSkimmerDistanceInput() {
+    clearTimeout(debounceTimers["skcc_skimmer_distance"]);
+    debounceTimers["skcc_skimmer_distance"] = setTimeout(async () => {
+      await saveSetting("skcc_skimmer_distance", skcc_skimmer_distance.trim() || "500");
+      dispatch("saved");
+    }, 500);
+  }
+
+  function hamalertFieldsFilled() {
+    return hamalert_host.trim() && hamalert_port.trim() && hamalert_username.trim() && hasHamalertPassword;
+  }
+
+  async function onHamalertEnabledChange() {
+    await saveSetting("hamalert_enabled", hamalert_enabled ? "true" : "false");
+    if (hamalertFieldsFilled()) {
+      await restartFeeds();
+    }
+    dispatch("saved");
+  }
+
+  function onHamalertHostInput() {
+    clearTimeout(debounceTimers["hamalert_host"]);
+    debounceTimers["hamalert_host"] = setTimeout(async () => {
+      await saveSetting("hamalert_host", hamalert_host.trim());
+      if (hamalert_enabled && hamalertFieldsFilled()) {
+        await restartFeeds();
+      }
+      dispatch("saved");
+    }, 500);
+  }
+
+  function onHamalertPortInput() {
+    clearTimeout(debounceTimers["hamalert_port"]);
+    debounceTimers["hamalert_port"] = setTimeout(async () => {
+      await saveSetting("hamalert_port", hamalert_port.trim());
+      if (hamalert_enabled && hamalertFieldsFilled()) {
+        await restartFeeds();
+      }
+      dispatch("saved");
+    }, 500);
+  }
+
+  function onHamalertUsernameInput() {
+    clearTimeout(debounceTimers["hamalert_username"]);
+    debounceTimers["hamalert_username"] = setTimeout(async () => {
+      await saveSetting("hamalert_username", hamalert_username.trim());
+      if (hamalert_enabled && hamalertFieldsFilled()) {
+        await restartFeeds();
+      }
+      dispatch("saved");
+    }, 500);
+  }
+
+  async function loginQrz() {
+    if (!qrz_password.trim()) return;
+    await saveSetting("qrz_password", qrz_password.trim());
+    hasQrzPassword = true;
+    qrz_password = "";
+    await checkQrz();
+  }
+
+  async function loginHamalert() {
+    if (!hamalert_password.trim()) return;
+    await saveSetting("hamalert_password", hamalert_password.trim());
+    hasHamalertPassword = true;
+    hamalert_password = "";
+    if (hamalert_enabled && hamalertFieldsFilled()) {
+      await restartFeeds();
+    }
+    dispatch("saved");
+  }
 
   async function fetchSpotStatus() {
     try {
@@ -449,7 +659,6 @@
           if (s.key === "map_custom_url") map_custom_url = s.value || "";
         }
       }
-      savedSnapshot = settingsSnapshot();
       settingsLoaded = true;
     } catch {}
   }
@@ -477,161 +686,6 @@
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
     return `${Math.floor(diff / 86400)}d ago`;
-  }
-
-  async function save() {
-    saving = true;
-    message = "";
-    try {
-      await fetch("/api/settings/my_callsign", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: my_callsign.trim().toUpperCase() }),
-      });
-      await fetch("/api/settings/my_grid", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: my_grid.trim().toUpperCase() }),
-      });
-      await fetch("/api/settings/default_rst", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: default_rst.trim() }),
-      });
-      if (qrz_password.trim()) {
-        await fetch("/api/settings/qrz_password", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ value: qrz_password.trim() }),
-        });
-        hasQrzPassword = true;
-        qrz_password = "";
-      }
-      await fetch("/api/settings/pota_enabled", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: pota_enabled ? "true" : "false" }),
-      });
-      await fetch("/api/settings/solar_enabled", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: solar_enabled ? "true" : "false" }),
-      });
-      await fetch("/api/settings/update_check_enabled", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: update_check_enabled ? "true" : "false" }),
-      });
-      await fetch("/api/settings/flrig_enabled", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: flrig_enabled ? "true" : "false" }),
-      });
-      await fetch("/api/settings/flrig_simulate", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: flrig_simulate ? "true" : "false" }),
-      });
-      await fetch("/api/settings/flrig_host", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: flrig_host.trim() }),
-      });
-      await fetch("/api/settings/flrig_port", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: flrig_port.trim() }),
-      });
-      await fetch("/api/settings/wide_breakpoint", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: wide_mode_enabled ? String(wide_breakpoint) : "0" }),
-      });
-      await fetch("/api/settings/logbook_right", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: logbook_right ? "true" : "false" }),
-      });
-      await fetch("/api/settings/map_theme", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: map_theme }),
-      });
-      await fetch("/api/settings/map_custom_url", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: map_custom_url.trim() }),
-      });
-      // RBN settings
-      await fetch("/api/settings/rbn_enabled", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: rbn_enabled ? "true" : "false" }),
-      });
-      await fetch("/api/settings/rbn_host", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: rbn_host.trim() }),
-      });
-      const rbnFeeds = [rbn_feed_cw ? "cw" : "", rbn_feed_digital ? "digital" : ""].filter(Boolean).join(",");
-      await fetch("/api/settings/rbn_feeds", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: rbnFeeds || "cw" }),
-      });
-      await fetch("/api/settings/skcc_skimmer_enabled", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: skcc_skimmer_enabled ? "true" : "false" }),
-      });
-      await fetch("/api/settings/skcc_skimmer_distance", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: skcc_skimmer_distance.trim() || "500" }),
-      });
-      // HamAlert settings
-      await fetch("/api/settings/hamalert_enabled", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: hamalert_enabled ? "true" : "false" }),
-      });
-      await fetch("/api/settings/hamalert_host", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: hamalert_host.trim() }),
-      });
-      await fetch("/api/settings/hamalert_port", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: hamalert_port.trim() }),
-      });
-      await fetch("/api/settings/hamalert_username", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: hamalert_username.trim() }),
-      });
-      if (hamalert_password.trim()) {
-        await fetch("/api/settings/hamalert_password", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ value: hamalert_password.trim() }),
-        });
-        hasHamalertPassword = true;
-        hamalert_password = "";
-      }
-      // Restart feeds to apply changes
-      await fetch("/api/spots/restart", { method: "POST" });
-      setTimeout(fetchSpotStatus, 2000);
-      dispatch("saved");
-      savedSnapshot = settingsSnapshot();
-      message = "Settings saved.";
-      if (my_callsign.trim() && my_grid.trim()) {
-        dispatch("setupcomplete");
-      }
-    } catch (e) {
-      message = `Error: ${e.message}`;
-    }
-    saving = false;
   }
 
   async function logoutQrz() {
@@ -674,33 +728,21 @@
 
 <div class="settings">
   <h2>Settings</h2>
-  {#if dirty}
-    <p class="save-reminder">You have unsaved changes. Click Save when finished.</p>
-  {/if}
-
-  <div class="setting-row save-row">
-    <button class:btn-dirty={dirty} on:click={save} disabled={saving}>
-      {saving ? "Saving..." : "Save"}
-    </button>
-    {#if message}
-      <span class="message">{message}</span>
-    {/if}
-  </div>
 
   {#if needsSetup}
     <p class="setup-hint">Enter your callsign and grid square to get started.</p>
   {/if}
 
-  <section class="settings-section" class:section-changed={changed.my_callsign || changed.my_grid || changed.default_rst}>
+  <section class="settings-section">
     <h3>Station</h3>
     <div class="setting-row">
       <label for="my_callsign">My Callsign{#if needsSetup && !my_callsign.trim()} <span class="required">*</span>{/if}</label>
-      <input id="my_callsign" type="text" bind:value={my_callsign} on:input={stripCallsign} maxlength="10" autocomplete="off" style="text-transform: uppercase" class:input-required={needsSetup && !my_callsign.trim()} />
+      <input id="my_callsign" type="text" bind:value={my_callsign} on:input={onCallsignInput} maxlength="10" autocomplete="off" style="text-transform: uppercase" class:input-required={needsSetup && !my_callsign.trim()} />
     </div>
     <div class="setting-row">
       <label for="my_grid">My Grid Square{#if needsSetup && !my_grid.trim()} <span class="required">*</span>{/if}</label>
       <div class="grid-input-row">
-        <input id="my_grid" type="text" bind:value={my_grid} on:input={stripGrid} autocomplete="off" style="text-transform: uppercase" class:input-required={needsSetup && !my_grid.trim()} />
+        <input id="my_grid" type="text" bind:value={my_grid} on:input={onGridInput} autocomplete="off" style="text-transform: uppercase" class:input-required={needsSetup && !my_grid.trim()} />
         <button type="button" class="grid-picker-btn" on:click={() => showGridPicker = !showGridPicker} title="Pick from map">🌍</button>
       </div>
       {#if showGridPicker}
@@ -720,7 +762,7 @@
     </div>
     <div class="setting-row">
       <label for="default_rst">Default RST</label>
-      <input id="default_rst" type="text" bind:value={default_rst} autocomplete="off" />
+      <input id="default_rst" type="text" bind:value={default_rst} on:input={onDefaultRstInput} autocomplete="off" />
     </div>
   </section>
 
@@ -728,7 +770,10 @@
     <h3>QRZ</h3>
     <div class="setting-row">
       <label for="qrz_password">{hasQrzPassword ? "Change QRZ Password" : "QRZ Password"}</label>
-      <input id="qrz_password" type="password" bind:value={qrz_password} autocomplete="off" disabled={!my_callsign.trim()} placeholder={hasQrzPassword ? "Leave blank to keep current" : "unset"} />
+      <div class="grid-input-row">
+        <input id="qrz_password" type="password" bind:value={qrz_password} autocomplete="off" disabled={!my_callsign.trim()} placeholder={hasQrzPassword ? "Leave blank to keep current" : "unset"} />
+        <button type="button" class="theme-toggle" on:click={loginQrz} disabled={!qrz_password.trim()}>Login</button>
+      </div>
       <span class="hint">{#if !my_callsign.trim()}Set My Callsign first{:else if hasQrzPassword}Leave blank to remain unchanged{:else}Your QRZ account password (uses My Callsign as username){/if}</span>
     </div>
     {#if hasQrzPassword}
@@ -748,7 +793,7 @@
     {/if}
   </section>
 
-  <section class="settings-section" class:section-changed={changed.wide_mode_enabled || changed.wide_breakpoint || changed.logbook_right || changed.map_theme || changed.map_custom_url}>
+  <section class="settings-section">
     <h3>Appearance</h3>
     <div class="setting-row toggle-row">
       <label>Theme</label>
@@ -758,7 +803,7 @@
     </div>
     <div class="setting-row">
       <label for="map_theme">Map Tiles</label>
-      <select id="map_theme" bind:value={map_theme}>
+      <select id="map_theme" bind:value={map_theme} on:change={onMapThemeChange}>
         {#each TILE_THEMES as t}
           <option value={t.value}>{t.label}</option>
         {/each}
@@ -767,23 +812,23 @@
     {#if map_theme === "custom"}
       <div class="setting-row">
         <label for="map_custom_url">Tile URL</label>
-        <input id="map_custom_url" type="text" bind:value={map_custom_url} placeholder="https://&#123;s&#125;.tile.example.com/&#123;z&#125;/&#123;x&#125;/&#123;y&#125;.png" />
+        <input id="map_custom_url" type="text" bind:value={map_custom_url} on:input={onMapCustomUrlInput} placeholder="https://&#123;s&#125;.tile.example.com/&#123;z&#125;/&#123;x&#125;/&#123;y&#125;.png" />
       </div>
     {/if}
     <div class="map-preview" bind:this={previewEl}></div>
     <div class="setting-row toggle-row">
       <label>
-        <input type="checkbox" bind:checked={wide_mode_enabled} />
+        <input type="checkbox" bind:checked={wide_mode_enabled} on:change={onWideModeEnabledChange} />
         Wide Mode
       </label>
     </div>
     <div class="setting-row">
       <label for="wide_breakpoint">Breakpoint: {wide_breakpoint}px</label>
-      <input id="wide_breakpoint" type="range" min="1200" max="2500" step="50" bind:value={wide_breakpoint} disabled={!wide_mode_enabled} />
+      <input id="wide_breakpoint" type="range" min="1200" max="2500" step="50" bind:value={wide_breakpoint} on:input={onWideBreakpointInput} disabled={!wide_mode_enabled} />
     </div>
     <div class="setting-row toggle-row">
       <label>
-        <input type="checkbox" bind:checked={logbook_right} disabled={!wide_mode_enabled} />
+        <input type="checkbox" bind:checked={logbook_right} on:change={onLogbookRightChange} disabled={!wide_mode_enabled} />
         Logbook on right side
       </label>
     </div>
@@ -819,31 +864,31 @@
     </div>
   </section>
 
-  <section class="settings-section" class:section-changed={changed.pota_enabled}>
+  <section class="settings-section">
     <h3>Parks on the Air (POTA)</h3>
     <div class="setting-row toggle-row">
       <label>
-        <input type="checkbox" bind:checked={pota_enabled} />
+        <input type="checkbox" bind:checked={pota_enabled} on:change={onPotaEnabledChange} />
         Enable POTA
       </label>
     </div>
   </section>
 
-  <section class="settings-section" class:section-changed={changed.solar_enabled}>
+  <section class="settings-section">
     <h3>Solar / Band Conditions</h3>
     <div class="setting-row toggle-row">
       <label>
-        <input type="checkbox" bind:checked={solar_enabled} />
+        <input type="checkbox" bind:checked={solar_enabled} on:change={onSolarEnabledChange} />
         Enable band conditions (N0NBH / hamqsl.com)
       </label>
     </div>
   </section>
 
-  <section class="settings-section" class:section-changed={changed.update_check_enabled}>
+  <section class="settings-section">
     <h3>Update Checker</h3>
     <div class="setting-row toggle-row">
       <label>
-        <input type="checkbox" bind:checked={update_check_enabled} />
+        <input type="checkbox" bind:checked={update_check_enabled} on:change={onUpdateCheckEnabledChange} />
         Check for new Rigbook releases on GitHub
       </label>
     </div>
@@ -869,35 +914,35 @@
     {/if}
   </section>
 
-  <section class="settings-section" class:section-changed={changed.flrig_enabled || changed.flrig_simulate || changed.flrig_host || changed.flrig_port}>
+  <section class="settings-section">
     <h3>flrig Connection</h3>
     <div class="setting-row toggle-row">
       <label>
-        <input type="checkbox" bind:checked={flrig_enabled} />
+        <input type="checkbox" bind:checked={flrig_enabled} on:change={onFlrigEnabledChange} />
         Enable flrig
       </label>
     </div>
     <div class="setting-row toggle-row">
       <label>
-        <input type="checkbox" bind:checked={flrig_simulate} disabled={!flrig_enabled} />
+        <input type="checkbox" bind:checked={flrig_simulate} on:change={onFlrigSimulateChange} disabled={!flrig_enabled} />
         Simulate flrig (no real radio)
       </label>
     </div>
     <div class="setting-row">
       <label for="flrig_host">flrig Host</label>
-      <input id="flrig_host" type="text" bind:value={flrig_host} autocomplete="off" disabled={!flrig_enabled || flrig_simulate} />
+      <input id="flrig_host" type="text" bind:value={flrig_host} on:input={onFlrigHostInput} autocomplete="off" disabled={!flrig_enabled || flrig_simulate} />
     </div>
     <div class="setting-row">
       <label for="flrig_port">flrig Port</label>
-      <input id="flrig_port" type="text" bind:value={flrig_port} autocomplete="off" inputmode="numeric" disabled={!flrig_enabled || flrig_simulate} />
+      <input id="flrig_port" type="text" bind:value={flrig_port} on:input={onFlrigPortInput} autocomplete="off" inputmode="numeric" disabled={!flrig_enabled || flrig_simulate} />
     </div>
   </section>
 
-  <section class="settings-section" class:section-changed={changed.rbn_enabled || changed.rbn_host || changed.rbn_feed_cw || changed.rbn_feed_digital || changed.skcc_skimmer_enabled || changed.skcc_skimmer_distance}>
+  <section class="settings-section">
     <h3>Reverse Beacon Network (RBN)</h3>
     <div class="setting-row toggle-row">
       <label>
-        <input type="checkbox" bind:checked={rbn_enabled} />
+        <input type="checkbox" bind:checked={rbn_enabled} on:change={onRbnEnabledChange} />
         Enable RBN Feed
       </label>
       <span class="conn-status">
@@ -906,28 +951,28 @@
       </span>
     </div>
     <div class="setting-row toggle-row">
-      <label><input type="checkbox" bind:checked={rbn_feed_cw} disabled={!rbn_enabled} /> CW (port 7000)</label>
-      <label><input type="checkbox" bind:checked={rbn_feed_digital} disabled={!rbn_enabled} /> Digital (port 7001)</label>
+      <label><input type="checkbox" bind:checked={rbn_feed_cw} on:change={onRbnFeedCwChange} disabled={!rbn_enabled} /> CW (port 7000)</label>
+      <label><input type="checkbox" bind:checked={rbn_feed_digital} on:change={onRbnFeedDigitalChange} disabled={!rbn_enabled} /> Digital (port 7001)</label>
     </div>
     <div class="setting-row">
       <label for="rbn_host">RBN Host</label>
-      <input id="rbn_host" type="text" bind:value={rbn_host} autocomplete="off" disabled={!rbn_enabled} />
+      <input id="rbn_host" type="text" bind:value={rbn_host} on:input={onRbnHostInput} autocomplete="off" disabled={!rbn_enabled} />
     </div>
     <div class="setting-row toggle-row">
-      <label><input type="checkbox" bind:checked={skcc_skimmer_enabled} disabled={!rbn_enabled} /> Show SKCC Skimmer on Hunting page</label>
+      <label><input type="checkbox" bind:checked={skcc_skimmer_enabled} on:change={onSkccSkimmerEnabledChange} disabled={!rbn_enabled} /> Show SKCC Skimmer on Hunting page</label>
     </div>
     <div class="setting-row">
       <label for="skcc_distance">SKCC Skimmer max distance (miles)</label>
-      <input id="skcc_distance" type="text" bind:value={skcc_skimmer_distance} autocomplete="off" inputmode="numeric" disabled={!rbn_enabled || !skcc_skimmer_enabled} />
+      <input id="skcc_distance" type="text" bind:value={skcc_skimmer_distance} on:input={onSkccSkimmerDistanceInput} autocomplete="off" inputmode="numeric" disabled={!rbn_enabled || !skcc_skimmer_enabled} />
     </div>
     <p class="hint">Uses your My Callsign to authenticate.</p>
   </section>
 
-  <section class="settings-section" class:section-changed={changed.hamalert_enabled || changed.hamalert_host || changed.hamalert_port || changed.hamalert_username}>
+  <section class="settings-section">
     <h3>HamAlert</h3>
     <div class="setting-row toggle-row">
       <label>
-        <input type="checkbox" bind:checked={hamalert_enabled} />
+        <input type="checkbox" bind:checked={hamalert_enabled} on:change={onHamalertEnabledChange} />
         Enable HamAlert Feed
       </label>
       <span class="conn-status">
@@ -937,19 +982,22 @@
     </div>
     <div class="setting-row">
       <label for="hamalert_host">Host</label>
-      <input id="hamalert_host" type="text" bind:value={hamalert_host} autocomplete="off" disabled={!hamalert_enabled} />
+      <input id="hamalert_host" type="text" bind:value={hamalert_host} on:input={onHamalertHostInput} autocomplete="off" disabled={!hamalert_enabled} />
     </div>
     <div class="setting-row">
       <label for="hamalert_port">Port</label>
-      <input id="hamalert_port" type="text" bind:value={hamalert_port} autocomplete="off" inputmode="numeric" disabled={!hamalert_enabled} />
+      <input id="hamalert_port" type="text" bind:value={hamalert_port} on:input={onHamalertPortInput} autocomplete="off" inputmode="numeric" disabled={!hamalert_enabled} />
     </div>
     <div class="setting-row">
       <label for="hamalert_username">Telnet Username</label>
-      <input id="hamalert_username" type="text" bind:value={hamalert_username} autocomplete="off" disabled={!hamalert_enabled} />
+      <input id="hamalert_username" type="text" bind:value={hamalert_username} on:input={onHamalertUsernameInput} autocomplete="off" disabled={!hamalert_enabled} />
     </div>
     <div class="setting-row">
       <label for="hamalert_password">{hasHamalertPassword ? "Change Telnet Password" : "Telnet Password"}</label>
-      <input id="hamalert_password" type="password" bind:value={hamalert_password} autocomplete="off" disabled={!hamalert_enabled} placeholder={hasHamalertPassword ? "Leave blank to keep current" : ""} />
+      <div class="grid-input-row">
+        <input id="hamalert_password" type="password" bind:value={hamalert_password} autocomplete="off" disabled={!hamalert_enabled} placeholder={hasHamalertPassword ? "Leave blank to keep current" : ""} />
+        <button type="button" class="theme-toggle" on:click={loginHamalert} disabled={!hamalert_password.trim()}>Login</button>
+      </div>
     </div>
   </section>
 
@@ -1066,26 +1114,6 @@
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
     break-inside: avoid;
-  }
-  .settings-section.section-changed {
-    border-color: var(--accent);
-  }
-
-  .save-reminder {
-    color: var(--accent);
-    font-size: 0.85rem;
-    font-style: italic;
-    margin-bottom: 0.5rem;
-  }
-
-  .btn-dirty {
-    background: var(--accent) !important;
-    color: var(--bg) !important;
-    animation: pulse 1.5s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
   }
 
   h3 {
@@ -1219,12 +1247,6 @@
   .hint {
     font-size: 0.7rem;
     color: var(--text-dim);
-  }
-
-  .message {
-    color: var(--accent);
-    font-size: 0.85rem;
-    margin-left: 0.5rem;
   }
 
   .toggle-row {
