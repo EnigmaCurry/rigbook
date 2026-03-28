@@ -67,9 +67,17 @@ Pre-built binaries are available from the
 Linux, macOS, and Windows.
 
 ```bash
-# Download, make executable, and run:
 chmod +x rigbook-linux-amd64
-./rigbook-linux-amd64
+sudo mv rigbook-linux-amd64 /usr/local/bin/rigbook
+```
+
+**macOS:** Remove the quarantine attribute first:
+`xattr -d com.apple.quarantine rigbook-macos-arm64`
+
+## Run
+
+```bash
+rigbook
 ```
 
 Rigbook starts a background server and opens your browser automatically.
@@ -77,25 +85,39 @@ Run it again to reopen the browser. The same logbook is never opened
 twice — if a newer version is installed, the old server is restarted
 automatically.
 
-**macOS:** Remove the quarantine attribute first:
-`xattr -d com.apple.quarantine rigbook-macos-arm64`
-
 Rigbook binds to `127.0.0.1` (localhost) with no authentication. It is
 only accessible from your own machine.
 
-### CLI usage
+```bash
+rigbook --quit               # Stop the default logbook
+```
+
+Open additional logbooks on different ports:
+
+```bash
+rigbook field-day --port 9000
+rigbook field-day --quit     # Stop it
+```
+
+Stop everything:
+
+```bash
+rigbook --quit-all
+```
+
+### All CLI options
 
 ```
-rigbook                     # Open default logbook (background server + browser)
-rigbook field-day            # Open a named logbook
-rigbook --port 9000          # Use a specific port (default: 8073)
-rigbook --list               # List running logbook processes
-rigbook --quit               # Stop the default logbook
-rigbook --quit field-day     # Stop a named logbook
-rigbook --quit-all           # Stop all running logbooks
-rigbook --server             # Run in the foreground (for debugging)
-rigbook --server field-day   # Foreground server with a named logbook
-rigbook --pick               # Foreground server with logbook picker UI
+rigbook                      # Open default logbook (background server + browser)
+rigbook field-day             # Open a named logbook
+rigbook --port 9000           # Use a specific port (default: 8073)
+rigbook --list                # List running logbook processes
+rigbook --quit                # Stop the default logbook
+rigbook --quit field-day      # Stop a named logbook
+rigbook --quit-all            # Stop all running logbooks
+rigbook --server              # Run in the foreground (for debugging)
+rigbook --server field-day    # Foreground server with a named logbook
+rigbook --pick                # Foreground server with logbook picker UI
 ```
 
 ### Container
