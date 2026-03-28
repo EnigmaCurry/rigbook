@@ -1466,7 +1466,7 @@
     min-width: 0;
   }
 
-  .time-with-btn > label {
+  .field.time-with-btn > label {
     white-space: normal;
     overflow: visible;
     text-overflow: clip;
