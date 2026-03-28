@@ -193,6 +193,7 @@
   let prevUnreadCount = -1;
   let eventSource = null;
   let popupNotifications = [];
+  let popupNotifEnabled = false;
   let showPopup = false;
   let activeDesktopNotif = null;
   let pickerMode = false;
@@ -246,6 +247,7 @@
     fetchVersion();
     fetchUpdateCheck();
     fetchCallsign();
+    fetchPopupNotifEnabled();
     await fetchLogbookRight();
     await fetchSolarEnabled();
     await fetchSpotsEnabled();
@@ -362,7 +364,7 @@
             body: `You have ${newCount} unread notification${newCount > 1 ? "s" : ""}`,
           });
         }
-        if (storageGet("popup_notifications_enabled") === "true") {
+        if (popupNotifEnabled) {
           showPopupNotifications();
         }
       } else if (newCount < unreadCount && activeDesktopNotif) {
@@ -583,6 +585,16 @@
         updateExact = data.is_exact || false;
         updateLatest = data.latest || "";
         updateUrl = data.url || "";
+      }
+    } catch {}
+  }
+
+  async function fetchPopupNotifEnabled() {
+    try {
+      const res = await fetch("/api/settings/popup_notifications_enabled");
+      if (res.ok) {
+        const data = await res.json();
+        popupNotifEnabled = data.value === "true";
       }
     } catch {}
   }
@@ -902,10 +914,19 @@
   }
 
   // Apply theme from localStorage on load
-  function applyTheme() {
-    const stored = storageGet("rigbook-theme");
-    const theme = stored || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
-    document.documentElement.classList.toggle("light", theme === "light");
+  async function applyTheme() {
+    try {
+      const res = await fetch("/api/settings/theme");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.value) {
+          document.documentElement.classList.toggle("light", data.value === "light");
+          return;
+        }
+      }
+    } catch {}
+    const fallback = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    document.documentElement.classList.toggle("light", fallback === "light");
   }
 
   let searchComponent;
@@ -950,7 +971,6 @@
     migrateStorage();
     fetchVersion();
     applyTheme();
-    window.addEventListener("storage", applyTheme);
     window.addEventListener("keydown", onGlobalKeydown);
     fetchWideBreakpoint();
     clockInterval = setInterval(() => { utcNow = new Date().toISOString().slice(0, 19).replace("T", " ") + "z"; }, 1000);
@@ -989,7 +1009,6 @@
     if (eventSource) eventSource.close();
     window.removeEventListener("hashchange", onHashChange);
     window.removeEventListener("resize", onResize);
-    window.removeEventListener("storage", applyTheme);
     window.removeEventListener("keydown", onGlobalKeydown);
   });
 </script>
@@ -1183,7 +1202,7 @@
     {:else if page === "notifications"}
       <Notifications on:countchange={() => fetchUnreadCount()} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
     {:else if page === "settings"}
-      <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); fetchUpdateCheck(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { setShutdownState(); }} />
+      <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { fetchCallsign(); applyTheme(); fetchPopupNotifEnabled(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); fetchUpdateCheck(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { setShutdownState(); }} />
     {:else if page === "links"}
       <Links />
     {:else if page === "conditions"}

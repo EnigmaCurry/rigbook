@@ -31,7 +31,7 @@
   let logbook_right = false;
   let wide_breakpoint = "1200";
   let wide_mode_enabled = true;
-  let theme = storageGet("rigbook-theme") || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  let theme = "dark";
   let map_theme = "natgeo";
   let map_custom_url = "";
   let qrzStatus = null; // { ok, error?, username? }
@@ -64,7 +64,7 @@
   // Desktop notifications
   let desktopNotifPermission = typeof Notification !== "undefined" ? Notification.permission : "denied";
   let desktopNotifEnabled = storageGet("desktop_notifications_enabled") === "true";
-  let popupNotifEnabled = storageGet("popup_notifications_enabled") === "true";
+  let popupNotifEnabled = false;
   let testPending = false;
 
   // Map preview
@@ -349,10 +349,11 @@
   let spotStatus = { rbn: { connected: false, enabled: false }, hamalert: { connected: false, enabled: false } };
   let spotStatusInterval;
 
-  function toggleTheme() {
+  async function toggleTheme() {
     theme = theme === "dark" ? "light" : "dark";
-    storageSet("rigbook-theme", theme);
     document.documentElement.classList.toggle("light", theme === "light");
+    await saveSetting("theme", theme);
+    dispatch("saved");
     if (map_theme === "default") updatePreview();
   }
 
@@ -677,6 +678,8 @@
           if (s.key === "logbook_right") logbook_right = s.value === "true";
           if (s.key === "map_theme") map_theme = s.value || "default";
           if (s.key === "map_custom_url") map_custom_url = s.value || "";
+          if (s.key === "theme") theme = s.value || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+          if (s.key === "popup_notifications_enabled") popupNotifEnabled = s.value === "true";
         }
       }
       settingsLoaded = true;
@@ -873,7 +876,7 @@
     <p class="hint">In-app notifications are always enabled. Desktop notifications show browser popups when new alerts arrive.</p>
     <div class="setting-row toggle-row" style="margin-top: 0.5rem;">
       <label>
-        <input type="checkbox" bind:checked={popupNotifEnabled} on:change={() => storageSet("popup_notifications_enabled", popupNotifEnabled ? "true" : "false")} />
+        <input type="checkbox" bind:checked={popupNotifEnabled} on:change={async () => { await saveSetting("popup_notifications_enabled", popupNotifEnabled ? "true" : "false"); dispatch("saved"); }} />
         Popup notifications
       </label>
     </div>
