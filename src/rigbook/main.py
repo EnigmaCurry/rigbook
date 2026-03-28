@@ -98,7 +98,7 @@ def _open_logbook(name: str | None, port: int | None = None) -> None:
                 ver = f" v{running_version}" if running_version else ""
                 print(f"Logbook '{db_name}'{ver} already running at {url}")
                 print("Opening in browser ...")
-                print(f"To stop: {Path(sys.argv[0]).name} --close{'' if db_name == 'rigbook' else ' ' + db_name}")
+                print(f"To stop: {Path(sys.argv[0]).name} --quit{'' if db_name == 'rigbook' else ' ' + db_name}")
                 webbrowser.open(url)
                 return
         except ProcessLookupError:
@@ -135,7 +135,7 @@ def _open_logbook(name: str | None, port: int | None = None) -> None:
         url = f"http://{info['host']}:{info['port']}"
         print(f"Logbook '{db_name}' running at {url}")
         print("Opening in browser ...")
-        print(f"To stop: {Path(sys.argv[0]).name} --close{'' if db_name == 'rigbook' else ' ' + db_name}")
+        print(f"To stop: {Path(sys.argv[0]).name} --quit{'' if db_name == 'rigbook' else ' ' + db_name}")
         webbrowser.open(url)
     else:
         print(f"Error: logbook '{db_name}' did not start", file=sys.stderr)
@@ -347,14 +347,14 @@ def run() -> None:
         help="Port to listen on (default: auto-select starting from 8073)",
     )
     parser.add_argument(
-        "--close",
+        "--quit",
         nargs="?",
         const="rigbook",
         metavar="NAME",
         help="Send SIGTERM to the process holding logbook NAME and exit (default: rigbook)",
     )
     parser.add_argument(
-        "--close-all",
+        "--quit-all",
         action="store_true",
         help="Send SIGTERM to all running rigbook processes and exit",
     )
@@ -370,12 +370,12 @@ def run() -> None:
         _list_logbooks()
         return
 
-    if args.close_all:
+    if args.quit_all:
         _close_all_logbooks()
         return
 
-    if args.close:
-        _close_logbook(args.close)
+    if args.quit:
+        _close_logbook(args.quit)
         return
 
     if not args.server and not args.pick:
