@@ -123,9 +123,14 @@ def _open_logbook(name: str | None, port: int | None = None) -> None:
 
     if proc.poll() is not None:
         log_output = log_path.read_text().strip()
-        print(f"Error: logbook '{db_name}' failed to start", file=sys.stderr)
-        if log_output:
-            print(log_output, file=sys.stderr)
+        if "address already in use" in log_output:
+            used_port = port or int(os.environ.get("RIGBOOK_PORT", "8073"))
+            print(f"Error: port {used_port} is already in use.", file=sys.stderr)
+            print(f"Try: {Path(sys.argv[0]).name} {db_name} --port <PORT>", file=sys.stderr)
+        else:
+            print(f"Error: logbook '{db_name}' failed to start", file=sys.stderr)
+            if log_output:
+                print(log_output, file=sys.stderr)
         log_path.unlink(missing_ok=True)
         sys.exit(1)
 
