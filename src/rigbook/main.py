@@ -91,7 +91,8 @@ def _open_logbook(name: str | None) -> None:
                 time.sleep(1)
             else:
                 url = f"http://{info['host']}:{info['port']}"
-                print(f"Logbook '{db_name}' already running at {url}")
+                ver = f" v{running_version}" if running_version else ""
+                print(f"Logbook '{db_name}'{ver} already running at {url}")
                 print("Opening in browser ...")
                 print(f"To stop: {sys.argv[0]} --close{'' if db_name == 'rigbook' else ' ' + db_name}")
                 webbrowser.open(url)
