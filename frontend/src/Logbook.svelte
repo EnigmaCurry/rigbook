@@ -1494,7 +1494,7 @@
     border-radius: 4px;
     cursor: pointer;
   }
-  .btn-clock:hover:not(:disabled) {
+  .btn-clock:hover:not(:disabled):not(.btn-clock-green):not(.btn-clock-red) {
     background: var(--accent, #f0c040);
     color: var(--bg);
   }
