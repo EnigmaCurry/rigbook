@@ -59,7 +59,6 @@ line. Copy a logbook file to use it as a template for new ones.
 
 **Layout** — Dual-pane mode on wide screens with a draggable divider.
 Light and dark themes. Keyboard shortcuts for all major actions.
-Optional HTTP Basic Authentication.
 
 ## Install
 
@@ -74,8 +73,8 @@ chmod +x rigbook-linux-amd64
 ```
 
 Rigbook opens your browser automatically. Use `--no-browser` to disable.
-The server binds to localhost only (no built-in authentication by
-default). Set `RIGBOOK_HOST` and `RIGBOOK_PORT` to change.
+The server binds to localhost only. Set `RIGBOOK_HOST` and `RIGBOOK_PORT`
+to change.
 
 **macOS:** Remove the quarantine attribute first:
 `xattr -d com.apple.quarantine rigbook-macos-arm64`
