@@ -923,10 +923,10 @@
       {#if desktopNotifPermission === "denied"}
         <span class="hint">Desktop notifications blocked by browser. Allow notifications for this site in your browser settings.</span>
       {:else if desktopNotifPermission === "granted" && desktopNotifEnabled}
-        <span style="font-size:0.85rem; color:var(--accent);">Desktop notifications enabled</span>
+        <span style="font-size:0.85rem; color:var(--accent);">Desktop notifications are enabled</span>
         <button class="theme-toggle" on:click={disableDesktopNotifications}>Disable</button>
       {:else if desktopNotifPermission === "granted" && !desktopNotifEnabled}
-        <span style="font-size:0.85rem; color:var(--text-muted);">Desktop notifications disabled</span>
+        <span style="font-size:0.85rem; color:var(--text-muted);">Desktop notifications are disabled</span>
         <button class="theme-toggle" on:click={() => { desktopNotifEnabled = true; storageSet("desktop_notifications_enabled", "true"); }}>Enable</button>
       {:else}
         <button class="theme-toggle" on:click={enableDesktopNotifications}>Enable Desktop Notifications</button>
