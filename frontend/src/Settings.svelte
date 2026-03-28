@@ -774,6 +774,7 @@
   </div>
 
   {#if activeTab === "station"}
+  <div class="tab-content">
   <section class="settings-section">
     <h3>Station</h3>
     <div class="setting-row">
@@ -857,9 +858,11 @@
       <input id="flrig_port" type="text" bind:value={flrig_port} on:input={onFlrigPortInput} on:blur={() => onFieldBlur("flrig_port")} autocomplete="off" inputmode="numeric" disabled={!flrig_enabled || flrig_simulate} />
     </div>
   </section>
+  </div>
   {/if}
 
   {#if activeTab === "features"}
+  <div class="tab-content">
   <section class="settings-section">
     <h3>Parks on the Air (POTA)</h3>
     <div class="setting-row toggle-row">
@@ -1006,9 +1009,11 @@
       </div>
     </div>
   </section>
+  </div>
   {/if}
 
   {#if activeTab === "appearance"}
+  <div class="tab-content">
   <section class="settings-section">
     <h3>Appearance</h3>
     <div class="setting-row toggle-row">
@@ -1049,9 +1054,11 @@
       </label>
     </div>
   </section>
+  </div>
   {/if}
 
   {#if activeTab === "system"}
+  <div class="tab-content">
   <section class="settings-section">
     <h3>Cache</h3>
     <p class="hint">Cached data: QRZ callsign lookups, SKCC member list. Clearing forces fresh lookups on next use.</p>
@@ -1137,6 +1144,7 @@
       </div>
     </section>
   {/if}
+  </div>
   {/if}
 </div>
 
@@ -1170,6 +1178,11 @@
   .tab.active {
     color: var(--accent);
     border-bottom-color: var(--accent);
+  }
+
+  .tab-content {
+    columns: 320px 2;
+    column-gap: 1rem;
   }
 
   h2 {
