@@ -120,7 +120,9 @@
     }).addTo(previewMap);
     if (previewMarker) previewMap.removeLayer(previewMarker);
     if (pos) {
+      const label = [my_callsign.trim().toUpperCase(), my_grid.trim().toUpperCase()].filter(Boolean).join(" · ");
       previewMarker = L.marker([pos.lat, pos.lon], { icon: qthIcon }).addTo(previewMap);
+      if (label) previewMarker.bindTooltip(label, { permanent: true, direction: "right", offset: [8, 0], className: "qth-label" });
     }
   }
 
@@ -1202,6 +1204,20 @@
     border-radius: 4px;
     border: 1px solid var(--border);
     margin-bottom: 0.75rem;
+  }
+
+  :global(.qth-label) {
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    border: none;
+    font-size: 0.7rem;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 3px;
+    box-shadow: none;
+  }
+  :global(.qth-label::before) {
+    display: none;
   }
 
   .settings-section {
