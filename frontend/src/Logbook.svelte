@@ -1269,7 +1269,7 @@
           <input id="time_off" type="text" bind:value={timePartOff} on:blur={normalizeTimeOff} on:focus={onEndFocus} placeholder="HH:MM:SS" maxlength="8" disabled={!editingId && clockState === "ROLLING_START"} />
           {#if !editingId}
             <button type="button" class="btn-clock" class:btn-clock-red={clockState === "ROLLING_END"} on:click={onStopClick} disabled={clockState === "ROLLING_START"} title={clockState === "ROLLING_END" ? "Freeze end time" : "Reset end to now"}>
-              {clockState === "ROLLING_END" ? "Stop" : "End Now"}
+              {clockState === "ROLLING_END" ? "Stop" : "Set End"}
             </button>
           {/if}
         </div>
@@ -1494,6 +1494,10 @@
     border-radius: 4px;
     cursor: pointer;
   }
+  .btn-clock:hover:not(:disabled) {
+    background: var(--accent, #f0c040);
+    color: var(--bg);
+  }
   .btn-clock.btn-clock-green {
     background: #4caf50;
     border-color: #4caf50;
@@ -1502,6 +1506,7 @@
   .btn-clock.btn-clock-green:hover {
     background: #43a047;
     border-color: #43a047;
+    color: #fff;
   }
   .btn-clock.btn-clock-red {
     background: #e53935;
@@ -1511,13 +1516,6 @@
   .btn-clock.btn-clock-red:hover {
     background: #d32f2f;
     border-color: #d32f2f;
-  }
-  .btn-clock:hover:not(:disabled) {
-    background: var(--accent, #f0c040);
-    color: var(--bg);
-  }
-  .btn-clock.btn-clock-green:hover,
-  .btn-clock.btn-clock-red:hover {
     color: #fff;
   }
   .btn-clock:disabled {
