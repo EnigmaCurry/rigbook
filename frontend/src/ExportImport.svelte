@@ -160,6 +160,8 @@
   // Unified preview based on active tab
   $: currentPreview = activeTab === "export" ? exportPreview : importPreview;
   $: warningCount = importPreview ? (importPreview.contacts || []).filter(c => c.warnings && c.warnings.length > 0).length : 0;
+  $: fixedCount = importPreview ? (importPreview.contacts || []).filter(c => c._fixed).length : 0;
+  $: mergedCount = importPreview ? (importPreview.contacts || []).filter(c => c.merged).length : 0;
 
   function parseSegmentValue(seg, label) {
     const s = seg.trim();
@@ -251,18 +253,24 @@
     contact[field] = useValue;
     // Remove this warning
     contact.warnings = contact.warnings.filter(w => w !== warning);
+    // Mark as fixed once all warnings are resolved
+    if (!contact.warnings.length) contact._fixed = true;
     // Re-strip comment with updated field values
     stripCommentClient(contact);
     // Trigger reactivity
     if (importPreview) importPreview = { ...importPreview };
-    // Switch back to all view if no warnings remain
+    // Switch to fixed view when no warnings remain
     const remaining = (importPreview?.contacts || []).filter(c => c.warnings && c.warnings.length > 0).length;
-    if (remaining === 0) importFilter = "all";
+    if (remaining === 0) importFilter = "fixed";
   }
   $: displayContacts = currentPreview && currentPreview.contacts
     ? (activeTab === "import" && importFilter === "warnings"
       ? currentPreview.contacts.filter(c => c.warnings && c.warnings.length > 0)
-      : currentPreview.contacts)
+      : activeTab === "import" && importFilter === "fixed"
+        ? currentPreview.contacts.filter(c => c._fixed)
+        : activeTab === "import" && importFilter === "merged"
+          ? currentPreview.contacts.filter(c => c.merged)
+          : currentPreview.contacts)
     : [];
 
   const BANDS = [
@@ -679,10 +687,18 @@
           </div>
         {/if}
       {/if}
-      {#if activeTab === "import" && importPreview && warningCount > 0}
+      {#if activeTab === "import" && importPreview}
         <div class="filter-tabs">
           <button class="filter-tab" class:active={importFilter === "all"} on:click={() => importFilter = "all"}>All ({importPreview.contacts.length})</button>
-          <button class="filter-tab error-tab" class:active={importFilter === "warnings"} on:click={() => importFilter = "warnings"}>Errors ({warningCount})</button>
+          {#if warningCount > 0}
+            <button class="filter-tab error-tab" class:active={importFilter === "warnings"} on:click={() => importFilter = "warnings"}>Errors ({warningCount})</button>
+          {/if}
+          {#if fixedCount > 0}
+            <button class="filter-tab fixed-tab" class:active={importFilter === "fixed"} on:click={() => importFilter = "fixed"}>Fixed ({fixedCount})</button>
+          {/if}
+          {#if mergedCount > 0}
+            <button class="filter-tab merged-tab" class:active={importFilter === "merged"} on:click={() => importFilter = "merged"}>Merged ({mergedCount})</button>
+          {/if}
         </div>
       {/if}
       {#if displayContacts.length > 0}
@@ -1107,6 +1123,22 @@
 
   .filter-tab.error-tab.active {
     color: #ea0;
+  }
+
+  .filter-tab.fixed-tab {
+    color: #4a4;
+  }
+
+  .filter-tab.fixed-tab.active {
+    color: #5c5;
+  }
+
+  .filter-tab.merged-tab {
+    color: #39f;
+  }
+
+  .filter-tab.merged-tab.active {
+    color: #5bf;
   }
 
   .has-warning td:first-child {
