@@ -80,6 +80,9 @@ automatically.
 **macOS:** Remove the quarantine attribute first:
 `xattr -d com.apple.quarantine rigbook-macos-arm64`
 
+Rigbook binds to `127.0.0.1` (localhost) with no authentication. It is
+only accessible from your own machine.
+
 ### CLI usage
 
 ```
