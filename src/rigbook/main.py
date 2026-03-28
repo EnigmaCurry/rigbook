@@ -10,7 +10,7 @@ import uvicorn
 from fastapi import FastAPI, Request, Response
 from fastapi.staticfiles import StaticFiles
 
-from rigbook.db import db_manager, init_db
+from rigbook.db import DatabaseLockError, db_manager, init_db
 from rigbook.flrig import router as flrig_router
 from rigbook.routes.logbooks import router as logbooks_router
 from rigbook.routes.spots import router as spots_router
@@ -37,6 +37,21 @@ from rigbook.routes.solar import router as solar_router
 logger = logging.getLogger("rigbook")
 
 _no_auth = False
+
+
+def _find_free_port(host: str, start: int, max_tries: int = 100) -> int:
+    """Find a free port starting from *start*, trying up to *max_tries* ports."""
+    import socket
+
+    for offset in range(max_tries):
+        port = start + offset
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind((host, port))
+                return port
+        except OSError:
+            continue
+    raise RuntimeError(f"No free port found in range {start}-{start + max_tries - 1}")
 
 
 def _resource_path(relative: str) -> Path:
@@ -72,7 +87,11 @@ async def lifespan(app: FastAPI):
     import signal
 
     signal.signal(signal.SIGINT, _handle_sigint)
-    await init_db()
+    try:
+        await init_db()
+    except DatabaseLockError as e:
+        logger.error("%s", e)
+        sys.exit(1)
     if db_manager.is_open:
         await start_feeds()
         await start_auto_backup()
@@ -184,6 +203,13 @@ def run() -> None:
         action="store_true",
         help="Disable authentication even if configured",
     )
+    parser.add_argument(
+        "-p",
+        "--port",
+        type=int,
+        default=None,
+        help="Port to listen on (default: auto-select starting from 8073)",
+    )
     args = parser.parse_args()
 
     global _no_auth
@@ -202,7 +228,11 @@ def run() -> None:
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
     host = os.environ.get("RIGBOOK_HOST", "127.0.0.1")
-    port = int(os.environ.get("RIGBOOK_PORT", "8073"))
+    default_port = int(os.environ.get("RIGBOOK_PORT", "8073"))
+    if args.port is not None:
+        port = args.port
+    else:
+        port = _find_free_port(host, default_port)
 
     import threading
     import webbrowser

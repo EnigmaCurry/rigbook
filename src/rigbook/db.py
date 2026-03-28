@@ -120,6 +120,12 @@ class PotaPark(Base):
     fetched_at: Mapped[float] = mapped_column(Float, nullable=False)
 
 
+class DatabaseLockError(Exception):
+    """Raised when the database is already locked by another process."""
+
+    pass
+
+
 class DatabaseManager:
     def __init__(self):
         self.engine = None
@@ -128,6 +134,7 @@ class DatabaseManager:
         self.picker_mode: bool = False
         self._db_override: str | None = None
         self.pending_name: str | None = None
+        self._lock_file = None
 
     def configure(self, db_name: str | None = None, picker: bool = False) -> None:
         cli_name = db_name
@@ -166,10 +173,42 @@ class DatabaseManager:
             return DB_DIR / f"{self._db_override}.db"
         return DB_DIR / "rigbook.db"
 
+    def _acquire_lock(self, db_path: Path) -> None:
+        """Acquire an exclusive file lock to prevent concurrent access."""
+        import fcntl
+
+        lock_path = db_path.with_suffix(".lock")
+        self._lock_file = open(lock_path, "w")
+        try:
+            fcntl.flock(self._lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            self._lock_file.write(str(os.getpid()))
+            self._lock_file.flush()
+        except OSError:
+            self._lock_file.close()
+            self._lock_file = None
+            raise DatabaseLockError(
+                f"Logbook '{db_path.stem}' is already open in another process"
+            )
+
+    def _release_lock(self) -> None:
+        """Release the file lock."""
+        import fcntl
+
+        if self._lock_file:
+            try:
+                fcntl.flock(self._lock_file, fcntl.LOCK_UN)
+                lock_path = Path(self._lock_file.name)
+                self._lock_file.close()
+                lock_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            self._lock_file = None
+
     async def open(self, db_path: str | Path) -> None:
         await self.close()
         db_path = Path(db_path)
         db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._acquire_lock(db_path)
         self.db_path = db_path
         self.engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}")
         self._session_factory = async_sessionmaker(self.engine, expire_on_commit=False)
@@ -194,6 +233,7 @@ class DatabaseManager:
         self.engine = None
         self._session_factory = None
         self.db_path = None
+        self._release_lock()
 
 
 db_manager = DatabaseManager()

@@ -5,7 +5,7 @@ import signal
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from rigbook.db import DB_DIR, db_manager
+from rigbook.db import DB_DIR, DatabaseLockError, db_manager
 from rigbook.spots import start_feeds, stop_feeds
 from rigbook.sse import notify_shutdown
 
@@ -35,11 +35,31 @@ async def get_mode():
     }
 
 
+def _is_locked(db_path) -> bool:
+    """Check if a logbook database is locked by another process."""
+    import fcntl
+
+    lock_path = db_path.with_suffix(".lock")
+    if not lock_path.exists():
+        return False
+    try:
+        with open(lock_path, "r+") as f:
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            fcntl.flock(f, fcntl.LOCK_UN)
+        return False
+    except OSError:
+        return True
+
+
 @router.get("/")
 async def list_logbooks():
     dbs = []
     for f in sorted(DB_DIR.glob("*.db")):
-        dbs.append({"name": f.stem, "size_bytes": f.stat().st_size})
+        dbs.append({
+            "name": f.stem,
+            "size_bytes": f.stat().st_size,
+            "locked": _is_locked(f),
+        })
     return dbs
 
 
@@ -59,7 +79,10 @@ async def confirm_create():
     name = db_manager.pending_name
     db_manager.pending_name = None
     db_path = DB_DIR / f"{name}.db"
-    await db_manager.open(db_path)
+    try:
+        await db_manager.open(db_path)
+    except DatabaseLockError as e:
+        raise HTTPException(status_code=409, detail=str(e))
     await start_feeds()
     return {"name": name, "is_open": True}
 
@@ -101,7 +124,10 @@ async def open_logbook(body: LogbookName):
     db_path = DB_DIR / f"{body.name}.db"
     if not db_path.exists():
         raise HTTPException(status_code=404, detail="Logbook not found")
-    await db_manager.open(db_path)
+    try:
+        await db_manager.open(db_path)
+    except DatabaseLockError as e:
+        raise HTTPException(status_code=409, detail=str(e))
     await start_feeds()
     return {"name": body.name, "is_open": True}
 
@@ -143,6 +169,9 @@ async def create_logbook(body: LogbookName):
     db_path = DB_DIR / f"{body.name}.db"
     if db_path.exists():
         raise HTTPException(status_code=409, detail="Logbook already exists")
-    await db_manager.open(db_path)
+    try:
+        await db_manager.open(db_path)
+    except DatabaseLockError as e:
+        raise HTTPException(status_code=409, detail=str(e))
     await start_feeds()
     return {"name": body.name, "is_open": True}
