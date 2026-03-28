@@ -180,18 +180,49 @@ def _normalize_freq(khz_val: str, mhz_val: str) -> bool:
         return False
 
 
-def _segment_matches(segment: str, label: str, value: str, field: str = "") -> bool:
-    """Check if a comment segment matches 'Label: value' or 'Label value'."""
+def _parse_segment_value(segment: str, label: str) -> tuple[str, str] | None:
+    """Parse 'Label: first_word remainder' from a segment.
+
+    Returns (first_word, remainder) or None if the segment doesn't match the label.
+    Only the first word is treated as the field value; any trailing text is remainder.
+    """
     s = segment.strip()
     for fmt in (f"{label}: ", f"{label} "):
         if s.startswith(fmt):
-            seg_val = s[len(fmt) :]
-            if seg_val == value:
-                return True
-            # Frequency: comment has KHz, ADIF field has MHz
-            if field == "freq" and _normalize_freq(seg_val, value):
-                return True
+            rest = s[len(fmt) :]
+            parts = rest.split(None, 1)
+            if not parts:
+                return None
+            return (parts[0], parts[1] if len(parts) > 1 else "")
+    return None
+
+
+def _segment_matches(segment: str, label: str, value: str, field: str = "") -> bool:
+    """Check if a comment segment's first word matches the expected value."""
+    parsed = _parse_segment_value(segment, label)
+    if not parsed:
+        return False
+    seg_val, _ = parsed
+    if seg_val == value:
+        return True
+    if field == "freq" and _normalize_freq(seg_val, value):
+        return True
     return False
+
+
+def _segment_match_remainder(
+    segment: str, label: str, value: str, field: str = ""
+) -> str | None:
+    """If segment's first word matches value, return the remainder text. Else None."""
+    parsed = _parse_segment_value(segment, label)
+    if not parsed:
+        return None
+    seg_val, remainder = parsed
+    if seg_val == value:
+        return remainder
+    if field == "freq" and _normalize_freq(seg_val, value):
+        return remainder
+    return None
 
 
 def strip_comment_prefix(
@@ -234,10 +265,10 @@ def strip_comment_prefix(
             expected.append({"label": label, "val": val, "field": f})
 
     # Check if entire comment matches a single expected segment (no separator)
-    if expected and any(
-        _segment_matches(comment, e["label"], e["val"], e["field"]) for e in expected
-    ):
-        return ""
+    for e in expected:
+        rem = _segment_match_remainder(comment, e["label"], e["val"], e["field"])
+        if rem is not None:
+            return rem.strip()
 
     if padded not in comment:
         return comment
@@ -246,18 +277,26 @@ def strip_comment_prefix(
     if len(parts) <= 1:
         return comment
 
-    # Strip matching leading segments
+    # Strip matching leading segments, preserving remainder text
     strip_count = 0
+    remainders = []
     for i, seg in enumerate(parts):
-        if i < len(expected) and _segment_matches(
-            seg, expected[i]["label"], expected[i]["val"], expected[i]["field"]
-        ):
-            strip_count += 1
+        if i < len(expected):
+            rem = _segment_match_remainder(
+                seg, expected[i]["label"], expected[i]["val"], expected[i]["field"]
+            )
+            if rem is not None:
+                strip_count += 1
+                if rem.strip():
+                    remainders.append(rem.strip())
+            else:
+                break
         else:
             break
 
     if strip_count > 0:
-        return padded.join(parts[strip_count:])
+        kept = remainders + parts[strip_count:]
+        return padded.join(kept) if kept else ""
     return comment
 
 
@@ -544,12 +583,14 @@ def _validate_import_record(
         if i >= len(parts):
             break
         part = parts[i].strip()
-        # Parse "Label: value" or "Label value"
+        # Parse "Label: value" or "Label value" (first word only)
         if ": " in part:
-            lbl, _, val = part.partition(": ")
+            lbl, _, rest = part.partition(": ")
+            val = rest.strip().split(None, 1)[0] if rest.strip() else ""
         elif part.startswith(exp["label"] + " "):
             lbl = exp["label"]
-            val = part[len(exp["label"]) + 1 :]
+            rest = part[len(exp["label"]) + 1 :]
+            val = rest.strip().split(None, 1)[0] if rest.strip() else ""
         else:
             break
         if lbl.strip() != exp["label"]:
@@ -557,7 +598,7 @@ def _validate_import_record(
         # This segment aligns with expected position — check if value matches
         if _segment_matches(part, exp["label"], exp["val"], exp["field"]):
             continue  # clean match
-        if val.strip() != exp["val"]:
+        if val != exp["val"]:
             prefix_values[exp["label"]] = {
                 "field": exp["field"],
                 "comment_val": val.strip(),
@@ -582,15 +623,16 @@ def _validate_import_record(
         lbl = None
         val = None
         if ": " in comment:
-            lbl, _, val = comment.partition(": ")
+            lbl, _, rest = comment.partition(": ")
         for entry in template_fields:
             label = entry.get("label", entry.get("field", ""))
             field = entry.get("field", "")
-            # Try "Label: value" or "Label value"
+            # Try "Label: value" or "Label value" (first word only)
             if lbl and lbl.strip() == label:
-                val = val.strip() if val else ""
+                val = rest.strip().split(None, 1)[0] if rest.strip() else ""
             elif comment.strip().startswith(label + " "):
-                val = comment.strip()[len(label) + 1 :]
+                rest = comment.strip()[len(label) + 1 :]
+                val = rest.strip().split(None, 1)[0] if rest.strip() else ""
             else:
                 continue
             adif_key = field_to_adif.get(field, "")
@@ -907,7 +949,7 @@ def _suggest_comment_template(records: list[dict]) -> dict:
                 else:
                     continue
                 label = label.strip()
-                val = val.strip()
+                val = val.strip().split(None, 1)[0] if val.strip() else ""
                 if not val:
                     continue
                 # Check if this value matches any ADIF field in the record

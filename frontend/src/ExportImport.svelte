@@ -161,19 +161,37 @@
   $: currentPreview = activeTab === "export" ? exportPreview : importPreview;
   $: warningCount = importPreview ? (importPreview.contacts || []).filter(c => c.warnings && c.warnings.length > 0).length : 0;
 
-  function segmentMatches(seg, label, value, field) {
+  function parseSegmentValue(seg, label) {
     const s = seg.trim();
     for (const fmt of [`${label}: `, `${label} `]) {
       if (s.startsWith(fmt)) {
-        const segVal = s.slice(fmt.length);
-        if (segVal === value) return true;
-        // Freq: comment has KHz, field may have MHz
-        if (field === "freq") {
-          try { if (Math.abs(parseFloat(segVal) - parseFloat(value) * 1000) < 0.1) return true; } catch {}
-        }
+        const rest = s.slice(fmt.length);
+        const parts = rest.split(/\s+/);
+        if (!parts.length || !parts[0]) return null;
+        return { value: parts[0], remainder: parts.slice(1).join(" ") };
       }
     }
+    return null;
+  }
+
+  function segmentMatches(seg, label, value, field) {
+    const parsed = parseSegmentValue(seg, label);
+    if (!parsed) return false;
+    if (parsed.value === value) return true;
+    if (field === "freq") {
+      try { if (Math.abs(parseFloat(parsed.value) - parseFloat(value) * 1000) < 0.1) return true; } catch {}
+    }
     return false;
+  }
+
+  function segmentMatchRemainder(seg, label, value, field) {
+    const parsed = parseSegmentValue(seg, label);
+    if (!parsed) return null;
+    if (parsed.value === value) return parsed.remainder;
+    if (field === "freq") {
+      try { if (Math.abs(parseFloat(parsed.value) - parseFloat(value) * 1000) < 0.1) return parsed.remainder; } catch {}
+    }
+    return null;
   }
 
   function stripCommentClient(contact) {
@@ -197,9 +215,12 @@
       if (val) expected.push({ label: entry.label, val, field: entry.field });
     }
     // Check if entire comment matches a single expected segment
-    if (expected.some(e => segmentMatches(original, e.label, e.val, e.field))) {
-      contact.comments = "";
-      return;
+    for (const e of expected) {
+      const rem = segmentMatchRemainder(original, e.label, e.val, e.field);
+      if (rem !== null) {
+        contact.comments = rem.trim();
+        return;
+      }
     }
     if (!original.includes(padded)) {
       contact.comments = original;
@@ -207,14 +228,22 @@
     }
     const parts = original.split(padded);
     let stripCount = 0;
+    const remainders = [];
     for (let i = 0; i < parts.length && i < expected.length; i++) {
-      if (segmentMatches(parts[i], expected[i].label, expected[i].val, expected[i].field)) {
+      const rem = segmentMatchRemainder(parts[i], expected[i].label, expected[i].val, expected[i].field);
+      if (rem !== null) {
         stripCount++;
+        if (rem.trim()) remainders.push(rem.trim());
       } else {
         break;
       }
     }
-    contact.comments = stripCount > 0 ? parts.slice(stripCount).join(padded) : original;
+    if (stripCount > 0) {
+      const kept = [...remainders, ...parts.slice(stripCount)];
+      contact.comments = kept.length ? kept.join(padded) : "";
+    } else {
+      contact.comments = original;
+    }
   }
 
   function applyWarningFix(contact, warning, useValue) {
