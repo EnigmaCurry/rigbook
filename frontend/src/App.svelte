@@ -992,7 +992,7 @@
   {:else if pickerMode && !logbookOpen}
     <header>
       <div class="header-left">
-        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if currentLogbook && currentLogbook !== "rigbook"}<span class="logbook-name">{currentLogbook}</span>{/if}</h1>
+        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>
       </div>
       <span class="utc-clock">{utcNow}</span>
     </header>
@@ -1004,11 +1004,11 @@
       <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-      <h1 class="app-title" on:click={goHome} style="cursor: pointer"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if currentLogbook && currentLogbook !== "rigbook"}<span class="logbook-name">{currentLogbook}</span>{/if}</h1>
+      <h1 class="app-title" on:click={goHome} style="cursor: pointer"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>
       {#if myCallsign}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="callsign" on:click={() => navigate("settings")} style="cursor: pointer">{myCallsign}</span>
+        <span class="callsign" on:click={() => navigate("settings")} style="cursor: pointer">{myCallsign}{#if currentLogbook && currentLogbook !== "rigbook"}<span class="logbook-name">{currentLogbook}</span>{/if}</span>
       {/if}
       {#if vfoEditing}
         <span class="vfo-edit">
@@ -1337,10 +1337,10 @@
   .logbook-name {
     display: block;
     color: var(--text-muted);
-    font-size: 0.55rem;
+    font-size: 0.65rem;
     font-weight: normal;
     line-height: 1;
-    margin-top: -0.15rem;
+    margin-top: 0.1rem;
   }
 
   .vfo-bezel {
