@@ -1504,9 +1504,9 @@
     color: #fff;
   }
   .btn-clock.btn-clock-green:hover {
-    background: #43a047;
-    border-color: #43a047;
-    color: #fff;
+    background: #43a047 !important;
+    border-color: #43a047 !important;
+    color: #fff !important;
   }
   .btn-clock.btn-clock-red {
     background: #e53935;
@@ -1514,9 +1514,9 @@
     color: #fff;
   }
   .btn-clock.btn-clock-red:hover {
-    background: #d32f2f;
-    border-color: #d32f2f;
-    color: #fff;
+    background: #d32f2f !important;
+    border-color: #d32f2f !important;
+    color: #fff !important;
   }
   .btn-clock:disabled {
     opacity: 0.4;
