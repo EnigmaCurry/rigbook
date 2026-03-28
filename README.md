@@ -89,6 +89,8 @@ and press Enter, then drag the exe into that folder and rename it to
 
 ## Run
 
+Open your terminal and type:
+
 ```bash
 rigbook
 ```
