@@ -82,6 +82,8 @@ def _open_logbook(name: str | None) -> None:
             os.kill(pid, 0)
             url = f"http://{info['host']}:{info['port']}"
             print(f"Logbook '{db_name}' already running at {url}")
+            print("Opening in browser ...")
+            print(f"To stop: {sys.argv[0]} --close{'' if db_name == 'rigbook' else ' ' + db_name}")
             webbrowser.open(url)
             return
         except ProcessLookupError:
@@ -103,6 +105,8 @@ def _open_logbook(name: str | None) -> None:
     if info and "port" in info:
         url = f"http://{info['host']}:{info['port']}"
         print(f"Logbook '{db_name}' running at {url}")
+        print("Opening in browser ...")
+        print(f"To stop: {sys.argv[0]} --close{'' if db_name == 'rigbook' else ' ' + db_name}")
         webbrowser.open(url)
     else:
         print(f"Error: logbook '{db_name}' did not start", file=sys.stderr)
