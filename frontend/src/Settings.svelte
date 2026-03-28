@@ -781,12 +781,12 @@
     <h3>Station</h3>
     <div class="setting-row">
       <label for="my_callsign">My Callsign{#if needsSetup && !my_callsign.trim()} <span class="required">*</span>{/if}</label>
-      <input id="my_callsign" type="text" bind:value={my_callsign} on:input={onCallsignInput} on:blur={() => onFieldBlur("my_callsign")} maxlength="10" autocomplete="off" style="text-transform: uppercase" class:input-required={needsSetup && !my_callsign.trim()} />
+      <input id="my_callsign" type="text" bind:value={my_callsign} on:input={onCallsignInput} on:blur={() => onFieldBlur("my_callsign")} maxlength="10" autocomplete="off" style="text-transform: uppercase; max-width: 7rem" class:input-required={needsSetup && !my_callsign.trim()} />
     </div>
     <div class="setting-row">
       <label for="my_grid">My Grid Square{#if needsSetup && !my_grid.trim()} <span class="required">*</span>{/if}</label>
       <div class="grid-input-row">
-        <input id="my_grid" type="text" bind:value={my_grid} on:input={onGridInput} on:blur={() => onFieldBlur("my_grid")} autocomplete="off" style="text-transform: uppercase" class:input-required={needsSetup && !my_grid.trim()} />
+        <input id="my_grid" type="text" bind:value={my_grid} on:input={onGridInput} on:blur={() => onFieldBlur("my_grid")} autocomplete="off" style="text-transform: uppercase; max-width: 7rem" class:input-required={needsSetup && !my_grid.trim()} />
         <button type="button" class="grid-picker-btn" on:click={() => showGridPicker = !showGridPicker} title="Pick from map">🌍</button>
       </div>
       {#if showGridPicker}
@@ -806,7 +806,7 @@
     </div>
     <div class="setting-row">
       <label for="default_rst">Default RST</label>
-      <input id="default_rst" type="text" bind:value={default_rst} on:input={onDefaultRstInput} on:blur={() => onFieldBlur("default_rst")} autocomplete="off" />
+      <input id="default_rst" type="text" bind:value={default_rst} on:input={onDefaultRstInput} on:blur={() => onFieldBlur("default_rst")} autocomplete="off" style="max-width: 7rem" />
     </div>
   </section>
 
@@ -853,11 +853,11 @@
     </div>
     <div class="setting-row">
       <label for="flrig_host">flrig Host</label>
-      <input id="flrig_host" type="text" bind:value={flrig_host} on:input={onFlrigHostInput} on:blur={() => onFieldBlur("flrig_host")} autocomplete="off" disabled={!flrig_enabled || flrig_simulate} />
+      <input id="flrig_host" type="text" bind:value={flrig_host} on:input={onFlrigHostInput} on:blur={() => onFieldBlur("flrig_host")} autocomplete="off" disabled={!flrig_enabled || flrig_simulate} style="max-width: 7rem" />
     </div>
     <div class="setting-row">
       <label for="flrig_port">flrig Port</label>
-      <input id="flrig_port" type="text" bind:value={flrig_port} on:input={onFlrigPortInput} on:blur={() => onFieldBlur("flrig_port")} autocomplete="off" inputmode="numeric" disabled={!flrig_enabled || flrig_simulate} />
+      <input id="flrig_port" type="text" bind:value={flrig_port} on:input={onFlrigPortInput} on:blur={() => onFieldBlur("flrig_port")} autocomplete="off" inputmode="numeric" disabled={!flrig_enabled || flrig_simulate} style="max-width: 7rem" />
     </div>
   </section>
   </div>
@@ -974,7 +974,7 @@
     </div>
     <div class="setting-row">
       <label for="skcc_distance">SKCC Skimmer max distance (miles)</label>
-      <input id="skcc_distance" type="text" bind:value={skcc_skimmer_distance} on:input={onSkccSkimmerDistanceInput} on:blur={() => onFieldBlur("skcc_skimmer_distance")} autocomplete="off" inputmode="numeric" disabled={!rbn_enabled || !skcc_skimmer_enabled} />
+      <input id="skcc_distance" type="text" bind:value={skcc_skimmer_distance} on:input={onSkccSkimmerDistanceInput} on:blur={() => onFieldBlur("skcc_skimmer_distance")} autocomplete="off" inputmode="numeric" disabled={!rbn_enabled || !skcc_skimmer_enabled} style="max-width: 7rem" />
     </div>
     <p class="hint">Uses {my_callsign.trim().toUpperCase() || "your callsign"} to authenticate.</p>
   </section>
