@@ -1246,34 +1246,34 @@
         <label for="date">Start Date (UTC)</label>
         <input id="date" type="date" bind:value={datePart} on:focus={onStartFocus} />
       </div>
-      <div class="field" class:changed={orig && timePart !== orig.timePart}>
-        <label for="time" class="label-nowrap-off">Start Time{#if !editingId && clockState === "ROLLING_START"} <span class="clock-rolling">CLICK START</span>{/if}</label>
-        <input id="time" type="text" bind:value={timePart} on:blur={normalizeTime} on:focus={onStartFocus} placeholder="HH:MM:SS" maxlength="8" />
-      </div>
-      {#if !editingId}
-        <div class="field field-clock-btn">
-          <button type="button" class="btn-clock" on:click={onStartClick} title={clockState === "ROLLING_START" ? "Freeze start time" : "Reset start to now"}>
-            Start
-          </button>
+      <div class="field time-with-btn" class:changed={orig && timePart !== orig.timePart}>
+        <label for="time">Start Time{#if !editingId && clockState === "ROLLING_START"} <span class="clock-rolling">CLICK START</span>{/if}</label>
+        <div class="time-input-row">
+          <input id="time" type="text" bind:value={timePart} on:blur={normalizeTime} on:focus={onStartFocus} placeholder="HH:MM:SS" maxlength="8" />
+          {#if !editingId}
+            <button type="button" class="btn-clock" on:click={onStartClick} title={clockState === "ROLLING_START" ? "Freeze start time" : "Reset start to now"}>
+              Start
+            </button>
+          {/if}
         </div>
-      {/if}
+      </div>
     </div>
     <div class="time-btn-group">
       <div class="field" class:changed={orig && datePartOff !== orig.datePartOff}>
         <label for="date_off">End Date (UTC)</label>
         <input id="date_off" type="date" bind:value={datePartOff} on:focus={onEndFocus} disabled={!editingId && clockState === "ROLLING_START"} />
       </div>
-      <div class="field" class:changed={orig && timePartOff !== orig.timePartOff}>
-        <label for="time_off" class="label-nowrap-off">End Time{#if !editingId && clockState === "ROLLING_END"} <span class="clock-rolling">LIVE</span>{/if}</label>
-        <input id="time_off" type="text" bind:value={timePartOff} on:blur={normalizeTimeOff} on:focus={onEndFocus} placeholder="HH:MM:SS" maxlength="8" disabled={!editingId && clockState === "ROLLING_START"} />
-      </div>
-      {#if !editingId}
-        <div class="field field-clock-btn">
-          <button type="button" class="btn-clock" on:click={onStopClick} disabled={clockState === "ROLLING_START"} title={clockState === "ROLLING_END" ? "Freeze end time" : "Reset end to now"}>
-            Stop
-          </button>
+      <div class="field time-with-btn" class:changed={orig && timePartOff !== orig.timePartOff}>
+        <label for="time_off">End Time{#if !editingId && clockState === "ROLLING_END"} <span class="clock-rolling">LIVE</span>{/if}</label>
+        <div class="time-input-row">
+          <input id="time_off" type="text" bind:value={timePartOff} on:blur={normalizeTimeOff} on:focus={onEndFocus} placeholder="HH:MM:SS" maxlength="8" disabled={!editingId && clockState === "ROLLING_START"} />
+          {#if !editingId}
+            <button type="button" class="btn-clock" on:click={onStopClick} disabled={clockState === "ROLLING_START"} title={clockState === "ROLLING_END" ? "Freeze end time" : "Reset end to now"}>
+              Stop
+            </button>
+          {/if}
         </div>
-      {/if}
+      </div>
     </div>
   </div>
 
@@ -1466,10 +1466,15 @@
     min-width: 0;
   }
 
-  .field-clock-btn {
-    flex: 0 0 auto;
-    min-width: auto;
-    justify-content: flex-end;
+  .time-input-row {
+    display: flex;
+    gap: 0.25rem;
+    align-items: stretch;
+  }
+
+  .time-input-row input {
+    flex: 1;
+    min-width: 0;
   }
 
   .btn-clock {
@@ -1515,11 +1520,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-  .field label.label-nowrap-off {
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
   }
 
   .field-pota label {
