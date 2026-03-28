@@ -62,7 +62,7 @@ def _list_logbooks(quiet_if_empty: bool = False) -> None:
         rows.append((name, str(pid), addr))
     if rows:
         widths = [max(len(r[i]) for r in rows) for i in range(3)]
-        print("Running logbooks:")
+        print("Running logbooks (each logbook runs on a unique port):")
         for name, pid, addr in rows:
             print(f"  {name:<{widths[0]}}  {pid:>{widths[1]}}  {addr}")
     elif not quiet_if_empty:
