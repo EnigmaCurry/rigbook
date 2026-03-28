@@ -107,12 +107,14 @@ def _open_logbook(name: str | None, port: int | None = None) -> None:
         cmd.extend(["--port", str(port)])
     log_path = db_path.with_suffix(".log")
     log_fh = open(log_path, "w")
-    proc = subprocess.Popen(
-        cmd,
-        start_new_session=True,
-        stdout=log_fh,
-        stderr=log_fh,
-    )
+    popen_kwargs = {"stdout": log_fh, "stderr": log_fh}
+    if sys.platform == "win32":
+        popen_kwargs["creationflags"] = (
+            subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+        )
+    else:
+        popen_kwargs["start_new_session"] = True
+    proc = subprocess.Popen(cmd, **popen_kwargs)
     time.sleep(1)
     log_fh.close()
 
@@ -211,7 +213,8 @@ def _handle_shutdown_signal(sig, frame):
     notify_shutdown()
     # Restore default handlers so a second signal force-quits
     signal.signal(signal.SIGINT, signal.SIG_DFL)
-    signal.signal(signal.SIGTERM, signal.SIG_DFL)
+    if sys.platform != "win32":
+        signal.signal(signal.SIGTERM, signal.SIG_DFL)
 
     # Delay the actual shutdown so the event loop can flush SSE to clients
     def deferred_shutdown():
@@ -226,7 +229,8 @@ async def lifespan(app: FastAPI):
     import signal
 
     signal.signal(signal.SIGINT, _handle_shutdown_signal)
-    signal.signal(signal.SIGTERM, _handle_shutdown_signal)
+    if sys.platform != "win32":
+        signal.signal(signal.SIGTERM, _handle_shutdown_signal)
     await init_db()
     if db_manager.is_open:
         await start_feeds()

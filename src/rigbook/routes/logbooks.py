@@ -37,15 +37,15 @@ async def get_mode():
 
 def _is_locked(db_path) -> bool:
     """Check if a logbook database is locked by another process."""
-    import fcntl
+    from rigbook.db import _try_lock, _unlock
 
     lock_path = db_path.with_suffix(".lock")
     if not lock_path.exists():
         return False
     try:
         with open(lock_path, "r+") as f:
-            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            fcntl.flock(f, fcntl.LOCK_UN)
+            _try_lock(f)
+            _unlock(f)
         return False
     except OSError:
         return True

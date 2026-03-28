@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 import uuid as _uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,6 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 logger = logging.getLogger("rigbook")
+
+_WIN = sys.platform == "win32"
 
 DB_DIR = Path.home() / ".local" / "rigbook"
 
@@ -120,6 +123,34 @@ class PotaPark(Base):
     fetched_at: Mapped[float] = mapped_column(Float, nullable=False)
 
 
+def _try_lock(f) -> None:
+    """Acquire a non-blocking exclusive lock on an open file."""
+    if _WIN:
+        import msvcrt
+
+        msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+    else:
+        import fcntl
+
+        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+
+def _unlock(f) -> None:
+    """Release a file lock."""
+    if _WIN:
+        import msvcrt
+
+        try:
+            f.seek(0)
+            msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+        except OSError:
+            pass
+    else:
+        import fcntl
+
+        fcntl.flock(f, fcntl.LOCK_UN)
+
+
 class DatabaseLockError(Exception):
     """Raised when the database is already locked by another process."""
 
@@ -177,15 +208,13 @@ class DatabaseManager:
 
     def check_lock(self, db_path: Path) -> None:
         """Raise DatabaseLockError if the database is locked by another process."""
-        import fcntl
-
         lock_path = db_path.with_suffix(".lock")
         if not lock_path.exists():
             return
         try:
             with open(lock_path, "r+") as f:
-                fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                fcntl.flock(f, fcntl.LOCK_UN)
+                _try_lock(f)
+                _unlock(f)
         except OSError:
             raise DatabaseLockError(
                 f"Logbook '{db_path.stem}' is already open in another process"
@@ -240,12 +269,10 @@ class DatabaseManager:
 
     def _acquire_lock(self, db_path: Path) -> None:
         """Acquire an exclusive file lock to prevent concurrent access."""
-        import fcntl
-
         lock_path = db_path.with_suffix(".lock")
         self._lock_file = open(lock_path, "w")
         try:
-            fcntl.flock(self._lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            _try_lock(self._lock_file)
             self._write_lock_content()
         except OSError:
             self._lock_file.close()
@@ -256,11 +283,9 @@ class DatabaseManager:
 
     def _release_lock(self) -> None:
         """Release the file lock."""
-        import fcntl
-
         if self._lock_file:
             try:
-                fcntl.flock(self._lock_file, fcntl.LOCK_UN)
+                _unlock(self._lock_file)
                 lock_path = Path(self._lock_file.name)
                 self._lock_file.close()
                 lock_path.unlink(missing_ok=True)
