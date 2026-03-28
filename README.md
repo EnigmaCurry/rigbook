@@ -62,7 +62,7 @@ Light and dark themes. Keyboard shortcuts for all major actions.
 
 ## Install
 
-Pre-built binaries are available from the
+Pre-built binaries are available for download from the
 [Releases](https://github.com/EnigmaCurry/rigbook/releases) page for
 Linux, macOS, and Windows.
 
