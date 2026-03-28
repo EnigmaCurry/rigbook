@@ -302,8 +302,10 @@ def run() -> None:
     )
     parser.add_argument(
         "--close",
+        nargs="?",
+        const="rigbook",
         metavar="NAME",
-        help="Send SIGTERM to the process holding logbook NAME and exit",
+        help="Send SIGTERM to the process holding logbook NAME and exit (default: rigbook)",
     )
     parser.add_argument(
         "-l",
