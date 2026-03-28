@@ -203,6 +203,8 @@ class DatabaseManager:
                 host, _, port = parts[1].rpartition(":")
                 info["host"] = host
                 info["port"] = int(port)
+            if len(parts) > 2:
+                info["version"] = parts[2]
             return info
         except (ValueError, OSError, IndexError):
             return None
@@ -219,14 +221,20 @@ class DatabaseManager:
         self._write_lock_content()
 
     def _write_lock_content(self) -> None:
-        """Write current pid and optional host:port to the lock file."""
+        """Write current pid, optional host:port, and version to the lock file."""
         if not self._lock_file:
             return
+        from importlib.metadata import version
+
         self._lock_file.seek(0)
         self._lock_file.truncate()
         content = str(os.getpid())
         if self._host is not None and self._port is not None:
             content += f" {self._host}:{self._port}"
+        try:
+            content += f" {version('rigbook')}"
+        except Exception:
+            pass
         self._lock_file.write(content)
         self._lock_file.flush()
 

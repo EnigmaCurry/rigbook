@@ -67,25 +67,35 @@ def _list_logbooks() -> None:
 
 def _open_logbook(name: str | None) -> None:
     """Open a logbook in the browser, starting a background server if needed."""
+    import signal
     import subprocess
     import time
     import webbrowser
+
+    from importlib.metadata import version
 
     from rigbook.db import DB_DIR
 
     db_name = name or "rigbook"
     db_path = DB_DIR / f"{db_name}.db"
+    my_version = version("rigbook")
     info = db_manager.read_lock_info(db_path)
     if info and "port" in info:
         pid = info["pid"]
         try:
             os.kill(pid, 0)
-            url = f"http://{info['host']}:{info['port']}"
-            print(f"Logbook '{db_name}' already running at {url}")
-            print("Opening in browser ...")
-            print(f"To stop: {sys.argv[0]} --close{'' if db_name == 'rigbook' else ' ' + db_name}")
-            webbrowser.open(url)
-            return
+            running_version = info.get("version")
+            if running_version and running_version != my_version:
+                print(f"Logbook '{db_name}' is running v{running_version}, current is v{my_version}. Restarting ...")
+                os.kill(pid, signal.SIGTERM)
+                time.sleep(1)
+            else:
+                url = f"http://{info['host']}:{info['port']}"
+                print(f"Logbook '{db_name}' already running at {url}")
+                print("Opening in browser ...")
+                print(f"To stop: {sys.argv[0]} --close{'' if db_name == 'rigbook' else ' ' + db_name}")
+                webbrowser.open(url)
+                return
         except ProcessLookupError:
             db_path.with_suffix(".lock").unlink(missing_ok=True)
 
