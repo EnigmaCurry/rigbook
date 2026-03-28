@@ -79,10 +79,11 @@ chmod +x rigbook-macos-arm64
 sudo mv rigbook-macos-arm64 /usr/local/bin/rigbook
 ```
 
-**Windows:**
-```powershell
-Move-Item rigbook-windows-amd64.exe "$env:LOCALAPPDATA\Microsoft\WindowsApps\rigbook.exe"
-```
+**Windows:** Press `Win+R`, type `%LOCALAPPDATA%\Microsoft\WindowsApps`
+and press Enter. Drag `rigbook-windows-amd64.exe` from your Downloads
+folder into the Explorer window that opens, and rename it to
+`rigbook.exe`. Windows SmartScreen may warn that the app is unrecognized
+because it is not code-signed — click **More info** then **Run anyway**.
 
 ## Run
 
