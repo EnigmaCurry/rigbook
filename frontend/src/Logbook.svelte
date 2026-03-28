@@ -1466,6 +1466,12 @@
     min-width: 0;
   }
 
+  .time-with-btn > label {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
   .time-input-row {
     display: flex;
     gap: 0.25rem;
