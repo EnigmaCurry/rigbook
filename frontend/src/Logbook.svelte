@@ -1247,7 +1247,7 @@
         <input id="date" type="date" bind:value={datePart} on:focus={onStartFocus} />
       </div>
       <div class="field" class:changed={orig && timePart !== orig.timePart}>
-        <label for="time">Start Time{#if !editingId && clockState === "ROLLING_START"} <span class="clock-rolling">LIVE</span>{/if}</label>
+        <label for="time">Start Time{#if !editingId && clockState === "ROLLING_START"} <span class="clock-rolling">CLICK START</span>{/if}</label>
         <input id="time" type="text" bind:value={timePart} on:blur={normalizeTime} on:focus={onStartFocus} placeholder="HH:MM:SS" maxlength="8" />
       </div>
       {#if !editingId}
