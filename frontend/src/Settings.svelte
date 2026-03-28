@@ -108,7 +108,7 @@
     if (!previewMap) {
       previewMap = L.map(previewEl, {
         scrollWheelZoom: false, zoomControl: false,
-        dragging: false, doubleClickZoom: false,
+        dragging: true, doubleClickZoom: false,
         attributionControl: false,
       });
       previewMap.setView(pos ? [pos.lat, pos.lon] : [39, -98], 4);
