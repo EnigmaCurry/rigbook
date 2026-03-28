@@ -760,7 +760,7 @@
 </script>
 
 <div class="settings">
-  <h2>Settings <span class="autosave-hint">(all settings automatically saved on change)</span></h2>
+  <h2>Settings <span class="autosave-hint">(are automatically saved on change)</span></h2>
 
   {#if needsSetup}
     <p class="setup-hint">Enter your callsign and grid square to get started.</p>
