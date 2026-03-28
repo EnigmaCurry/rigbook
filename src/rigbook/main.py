@@ -67,7 +67,7 @@ def _list_logbooks(quiet_if_empty: bool = False) -> None:
         print("No running rigbook processes")
 
 
-def _open_logbook(name: str | None) -> None:
+def _open_logbook(name: str | None, port: int | None = None) -> None:
     """Open a logbook in the browser, starting a background server if needed."""
     import signal
     import subprocess
@@ -106,6 +106,8 @@ def _open_logbook(name: str | None) -> None:
     cmd = [sys.argv[0], "--server"]
     if name:
         cmd.append(name)
+    if port:
+        cmd.extend(["--port", str(port)])
     log_path = db_path.with_suffix(".log")
     log_fh = open(log_path, "w")
     proc = subprocess.Popen(
@@ -340,7 +342,7 @@ def run() -> None:
         return
 
     if not args.server and not args.pick:
-        _open_logbook(args.name)
+        _open_logbook(args.name, port=args.port)
         return
 
     # --- foreground server mode ---
