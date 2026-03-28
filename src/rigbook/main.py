@@ -116,17 +116,30 @@ UPDATE_CACHE_TTL = 3600  # 1 hour
 
 
 @app.get("/api/update-check")
-async def check_for_update(session: AsyncSession = Depends(get_session)):
+async def check_for_update(
+    session: AsyncSession = Depends(get_session), bust: bool = False
+):
     current = version("rigbook")
 
-    # Check if update checking is disabled
-    row = (
+    # Check if update checking is disabled (skip when bust=True so settings page can force-check)
+    if not bust:
+        row = (
+            await session.execute(
+                select(Setting).where(Setting.key == "update_check_enabled")
+            )
+        ).scalar_one_or_none()
+        if row and row.value == "false":
+            return {"current": current, "latest": None, "update_available": False}
+
+    # Bust cache if requested
+    if bust:
         await session.execute(
-            select(Setting).where(Setting.key == "update_check_enabled")
+            delete(Cache).where(
+                Cache.namespace == UPDATE_CACHE_NS,
+                Cache.key == UPDATE_CACHE_KEY,
+            )
         )
-    ).scalar_one_or_none()
-    if row and row.value == "false":
-        return {"current": current, "latest": None, "update_available": False}
+        await session.commit()
 
     # Check cache
     cached = (

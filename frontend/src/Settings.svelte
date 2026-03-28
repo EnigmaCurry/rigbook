@@ -22,6 +22,7 @@
   let pota_enabled = true;
   let solar_enabled = false;
   let update_check_enabled = true;
+  let updateCheckResult = null;
   let flrig_enabled = false;
   let flrig_simulate = false;
   let flrig_host = "127.0.0.1";
@@ -81,6 +82,9 @@
   $: changed = savedSnapshot ? Object.fromEntries(
     Object.keys(currentSnap).map(k => [k, savedSnapshot[k] !== currentSnap[k]])
   ) : {};
+
+  $: if (settingsLoaded && update_check_enabled) fetchUpdateCheck();
+  $: if (settingsLoaded && !update_check_enabled) updateCheckResult = null;
 
   // Desktop notifications
   let desktopNotifPermission = typeof Notification !== "undefined" ? Notification.permission : "denied";
@@ -446,6 +450,13 @@
       }
       savedSnapshot = settingsSnapshot();
       settingsLoaded = true;
+    } catch {}
+  }
+
+  async function fetchUpdateCheck() {
+    try {
+      const res = await fetch("/api/update-check?bust=true");
+      if (res.ok) updateCheckResult = await res.json();
     } catch {}
   }
 
@@ -817,6 +828,18 @@
         Check for new Rigbook releases on GitHub
       </label>
     </div>
+    {#if update_check_enabled && updateCheckResult}
+      <div class="update-status">
+        Current version: <strong>v{updateCheckResult.current}</strong>
+        {#if updateCheckResult.update_available}
+          — <a href={updateCheckResult.url} target="_blank" rel="noopener" class="update-available">Update available: v{updateCheckResult.latest}</a>
+        {:else if updateCheckResult.latest}
+          — You're running the latest version
+        {:else}
+          — Unable to check for updates
+        {/if}
+      </div>
+    {/if}
   </section>
 
   <section class="settings-section" class:section-changed={changed.flrig_enabled || changed.flrig_simulate || changed.flrig_host || changed.flrig_port}>
@@ -1291,5 +1314,18 @@
   .danger-btn:disabled {
     background: #ff4444;
     opacity: 0.4;
+  }
+  .update-status {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+  .update-available {
+    color: #2ecc40;
+    font-weight: bold;
+    text-decoration: none;
+  }
+  .update-available:hover {
+    text-decoration: underline;
   }
 </style>
