@@ -760,7 +760,7 @@
 </script>
 
 <div class="settings">
-  <h2>Settings</h2>
+  <h2>Settings <span class="autosave-hint">(all settings automatically saved on change)</span></h2>
 
   {#if needsSetup}
     <p class="setup-hint">Enter your callsign and grid square to get started.</p>
@@ -1176,6 +1176,12 @@
     color: var(--accent);
     font-size: 1.2rem;
     margin: 0 0 1rem 0;
+  }
+
+  .autosave-hint {
+    font-size: 0.7rem;
+    font-weight: normal;
+    color: var(--text-muted);
   }
 
   .map-preview {
