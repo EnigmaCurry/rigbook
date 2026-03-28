@@ -55,8 +55,11 @@
 
   let settingsLoaded = false;
 
-  $: if (settingsLoaded && update_check_enabled) loadUpdateCheck();
-  $: if (settingsLoaded && !update_check_enabled) updateCheckResult = null;
+  let updateCheckLoaded = false;
+  $: if (settingsLoaded && !updateCheckLoaded) {
+    updateCheckLoaded = true;
+    if (update_check_enabled) loadUpdateCheck();
+  }
 
   // Desktop notifications
   let desktopNotifPermission = typeof Notification !== "undefined" ? Notification.permission : "denied";
@@ -494,6 +497,11 @@
 
   async function onUpdateCheckEnabledChange() {
     await saveSetting("update_check_enabled", update_check_enabled ? "true" : "false");
+    if (update_check_enabled) {
+      await loadUpdateCheck();
+    } else {
+      updateCheckResult = null;
+    }
     dispatch("saved");
   }
 
