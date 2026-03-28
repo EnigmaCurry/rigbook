@@ -54,6 +54,10 @@ async def _sse_generator(queue: asyncio.Queue[str]):
             )
             for t in pending:
                 t.cancel()
+                try:
+                    await t
+                except asyncio.CancelledError:
+                    pass
             if get_task in done:
                 yield get_task.result()
             if shutdown_evt.is_set():
