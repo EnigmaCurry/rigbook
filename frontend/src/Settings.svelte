@@ -1198,7 +1198,7 @@
   }
 
   .map-preview {
-    height: 120px;
+    height: 240px;
     border-radius: 4px;
     border: 1px solid var(--border);
     margin-bottom: 0.75rem;
