@@ -974,7 +974,7 @@
       <label for="skcc_distance">SKCC Skimmer max distance (miles)</label>
       <input id="skcc_distance" type="text" bind:value={skcc_skimmer_distance} on:input={onSkccSkimmerDistanceInput} on:blur={() => onFieldBlur("skcc_skimmer_distance")} autocomplete="off" inputmode="numeric" disabled={!rbn_enabled || !skcc_skimmer_enabled} />
     </div>
-    <p class="hint">Uses your My Callsign to authenticate.</p>
+    <p class="hint">Uses {my_callsign.trim().toUpperCase() || "your callsign"} to authenticate.</p>
   </section>
 
   <section class="settings-section">
