@@ -695,11 +695,10 @@ def _auto_merge(
                         "is_merge_conflict": True,
                     }
                 )
-    # Merge raw ADIF records for display (show both lines)
-    base_data["_merge_adif_lines"] = [
-        record_to_adif_line(base_raw),
-        record_to_adif_line(other_raw),
-    ]
+    # Accumulate raw ADIF lines for display
+    if "_merge_adif_lines" not in base_data:
+        base_data["_merge_adif_lines"] = [record_to_adif_line(base_raw)]
+    base_data["_merge_adif_lines"].append(record_to_adif_line(other_raw))
     return conflicts
 
 
