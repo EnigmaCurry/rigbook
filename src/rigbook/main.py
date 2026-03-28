@@ -131,20 +131,6 @@ def _close_logbook(name: str) -> None:
         sys.exit(1)
 
 
-def _find_free_port(host: str, preferred: int) -> int:
-    """Return *preferred* if available, otherwise ask the OS for a random free port."""
-    import socket
-
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind((host, preferred))
-            return preferred
-    except OSError:
-        pass
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind((host, 0))
-        return s.getsockname()[1]
-
 
 def _resource_path(relative: str) -> Path:
     """Resolve path to bundled resource (works in both dev and PyInstaller)."""
@@ -353,11 +339,7 @@ def run() -> None:
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
     host = os.environ.get("RIGBOOK_HOST", "127.0.0.1")
-    default_port = int(os.environ.get("RIGBOOK_PORT", "8073"))
-    if args.port is not None:
-        port = args.port
-    else:
-        port = _find_free_port(host, default_port)
+    port = args.port or int(os.environ.get("RIGBOOK_PORT", "8073"))
 
     db_manager.set_listen_addr(host, port)
 
