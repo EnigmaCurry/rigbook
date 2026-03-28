@@ -681,7 +681,7 @@
             </thead>
             <tbody>
               {#each displayContacts as c, i}
-                <tr class="clickable" class:expanded={expandedRow === i} class:has-warning={c.warnings && c.warnings.length > 0} on:click={() => toggleRow(i)}>
+                <tr class="clickable" class:expanded={expandedRow === i} class:has-warning={c.warnings && c.warnings.length > 0} class:has-merged={c.merged} on:click={() => toggleRow(i)}>
                   <td>{formatTimestamp(c.timestamp)}</td>
                   <td class="call">{c.call}</td>
                   <td class="truncate">{#if activeTab === "import" && c.original_comment && c.original_comment !== (c.comments || "")}<span class="comment-modified" title="Original: {c.original_comment}">* </span>{/if}{activeTab === "export" ? renderComment(c, commentTemplate, commentSeparator) : (c.comments || "")}</td>
@@ -706,7 +706,7 @@
                         <div class="warning-list">
                           {#each c.warnings as w}
                             <div class="warning-item">
-                              <div class="warning-message">⚠ {w.message}</div>
+                              <div class="warning-message">{w.is_merge_conflict ? "🔀" : "⚠"} {w.message}</div>
                               <div class="warning-actions">
                                 <span class="warning-label">Use:</span>
                                 <button class="warning-fix-btn" on:click|stopPropagation={() => applyWarningFix(c, w, w.comment_val)} title="Use value from comment">
@@ -754,7 +754,11 @@
                             <div class="detail-field detail-full"><span class="detail-label">Comments</span> {c.comments}</div>
                           {/if}
                         {/if}
-                        {#if c.adif_line}
+                        {#if c.adif_lines}
+                          {#each c.adif_lines as line, li}
+                            <div class="detail-field detail-full detail-adif"><span class="detail-label">ADIF {li + 1}</span><code>{line}</code></div>
+                          {/each}
+                        {:else if c.adif_line}
                           <div class="detail-field detail-full detail-adif"><span class="detail-label">ADIF</span><code>{c.adif_line}</code></div>
                         {/if}
                       </div>
@@ -789,6 +793,7 @@
       <span class="action-summary">
         {#if importPreview}
           Importing {importPreview.new_count} new QSOs
+          {#if importPreview.merged_count > 0}({importPreview.merged_count} merged){/if}
           {#if importPreview.duplicate_count > 0}({importPreview.duplicate_count} duplicates skipped){/if}
           {#if importPreview.skipped_count > 0}({importPreview.skipped_count} invalid skipped){/if}
           {#if warningCount > 0}<span class="action-error">— {warningCount} error{warningCount !== 1 ? "s" : ""} must be resolved</span>{/if}
@@ -1076,6 +1081,12 @@
   }
 
   .has-warning td:first-child {
+    box-shadow: inset 3px 0 0 #c90;
+  }
+  .has-merged td:first-child {
+    box-shadow: inset 3px 0 0 #39f;
+  }
+  .has-merged.has-warning td:first-child {
     box-shadow: inset 3px 0 0 #c90;
   }
 

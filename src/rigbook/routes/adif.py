@@ -635,23 +635,93 @@ def _validate_import_record(
     return warnings
 
 
+MERGE_FIELDS = [
+    ("call", "Call"),
+    ("freq", "Freq"),
+    ("mode", "Mode"),
+    ("rst_sent", "RST Sent"),
+    ("rst_recv", "RST Recv"),
+    ("name", "Name"),
+    ("qth", "QTH"),
+    ("state", "State"),
+    ("country", "Country"),
+    ("dxcc", "DXCC"),
+    ("grid", "Grid"),
+    ("pota_park", "POTA"),
+    ("skcc", "SKCC"),
+    ("skcc_exch", "SKCC Exch"),
+    ("comments", "Comments"),
+    ("notes", "Notes"),
+]
+
+
+def _auto_merge(
+    base_data: dict,
+    base_raw: dict,
+    other_data: dict,
+    other_raw: dict,
+) -> list[dict]:
+    """Merge other record into base, returning list of conflict warnings.
+
+    Modifies base_data in place. For each field:
+    - If base is empty and other has a value: take other's value.
+    - If both have the same value (case-insensitive for strings): keep base.
+    - If both have different non-empty values: keep base, add conflict warning.
+    """
+    conflicts = []
+    for field, label in MERGE_FIELDS:
+        base_val = base_data.get(field)
+        other_val = other_data.get(field)
+        # Normalize empties
+        if base_val is None or base_val == "":
+            base_val = None
+        if other_val is None or other_val == "":
+            other_val = None
+        if base_val is None and other_val is not None:
+            base_data[field] = other_val
+        elif base_val is not None and other_val is not None:
+            # Check if they're effectively the same
+            b = str(base_val).strip().lower() if base_val else ""
+            o = str(other_val).strip().lower() if other_val else ""
+            if b != o:
+                conflicts.append(
+                    {
+                        "field": field,
+                        "label": label,
+                        "comment_val": str(base_val),
+                        "field_val": str(other_val),
+                        "message": f"Merge conflict: {label} — "
+                        f"'{base_val}' vs '{other_val}'",
+                        "is_merge_conflict": True,
+                    }
+                )
+    # Merge raw ADIF records for display (show both lines)
+    base_data["_merge_adif_lines"] = [
+        record_to_adif_line(base_raw),
+        record_to_adif_line(other_raw),
+    ]
+    return conflicts
+
+
 async def _classify_import_records(
     records: list[dict],
     session: AsyncSession,
     template: list[dict],
     separator: str,
 ):
-    """Classify ADIF records into new, duplicate, and skipped without committing.
+    """Classify ADIF records into new, duplicate, merged, and skipped.
 
-    Returns (new_records, duplicates, skipped) where new_records is a list
-    of (contact_dict, raw_adif_record) tuples.
+    Returns (new_records, duplicates, skipped, template_matches, merged_count)
+    where new_records is a list of (contact_dict, raw_adif_record) tuples.
+    Intra-batch duplicates are auto-merged; DB duplicates are discarded.
     """
-    new_records = []
+    new_records: list[tuple[dict, dict]] = []
     skipped = 0
     duplicates = 0
+    merged_count = 0
     template_matches = 0
-    seen_uuids: set[str] = set()
-    seen_call_minute: set[tuple[str, str]] = set()
+    seen_uuids: dict[str, int] = {}  # uuid -> index in new_records
+    seen_call_minute: dict[tuple[str, str], int] = {}  # key -> index
     for record in records:
         data = adif_record_to_contact_dict(record)
         data["_original_comment"] = data.get("comments")
@@ -668,12 +738,15 @@ async def _classify_import_records(
         if not data.get("call"):
             skipped += 1
             continue
+
         record_uuid = data.get("uuid")
-        is_dup = False
+        batch_idx = None  # index of matching record in new_records
+        db_dup = False
+
         # Check UUID against DB and batch
         if record_uuid:
             if record_uuid in seen_uuids:
-                is_dup = True
+                batch_idx = seen_uuids[record_uuid]
             else:
                 existing = (
                     await session.execute(
@@ -681,9 +754,10 @@ async def _classify_import_records(
                     )
                 ).scalar_one_or_none()
                 if existing:
-                    is_dup = True
+                    db_dup = True
+
         # Fall back to call + timestamp dedup (ignore seconds)
-        if not is_dup:
+        if batch_idx is None and not db_dup:
             ts = data.get("timestamp")
             if ts:
                 check_ts = (
@@ -696,7 +770,7 @@ async def _classify_import_records(
                     check_ts.strftime("%Y%m%d%H%M"),
                 )
                 if call_minute_key in seen_call_minute:
-                    is_dup = True
+                    batch_idx = seen_call_minute[call_minute_key]
                 else:
                     minute_start = check_ts
                     minute_end = check_ts.replace(second=59)
@@ -712,12 +786,25 @@ async def _classify_import_records(
                         )
                     ).scalar_one_or_none()
                     if existing:
-                        is_dup = True
-        if is_dup:
+                        db_dup = True
+
+        if db_dup:
             duplicates += 1
+        elif batch_idx is not None:
+            # Merge into the existing batch record
+            base_data, base_raw = new_records[batch_idx]
+            conflicts = _auto_merge(base_data, base_raw, data, record)
+            if "_merge_conflicts" not in base_data:
+                base_data["_merge_conflicts"] = []
+            base_data["_merge_conflicts"].extend(conflicts)
+            base_data["_merged"] = True
+            base_data["_merge_sources"] = base_data.get("_merge_sources", 1) + 1
+            merged_count += 1
         else:
+            # New record — track it
+            idx = len(new_records)
             if record_uuid:
-                seen_uuids.add(record_uuid)
+                seen_uuids[record_uuid] = idx
             ts = data.get("timestamp")
             if ts:
                 check_ts = (
@@ -725,13 +812,13 @@ async def _classify_import_records(
                     if ts.tzinfo
                     else ts.replace(second=0)
                 )
-                seen_call_minute.add(
+                seen_call_minute[
                     (data["call"].upper(), check_ts.strftime("%Y%m%d%H%M"))
-                )
+                ] = idx
             if data.get("_comment_stripped"):
                 template_matches += 1
             new_records.append((data, record))
-    return new_records, duplicates, skipped, template_matches
+    return new_records, duplicates, skipped, template_matches, merged_count
 
 
 def _extract_raw_header(content: str) -> str:
@@ -861,10 +948,15 @@ async def preview_import_adif(
         duplicate_count,
         skipped_count,
         tpl_matches,
+        merged_count,
     ) = await _classify_import_records(records, session, template, separator)
 
     contacts = []
     for data, raw_record in new_records:
+        warnings = _validate_import_record(raw_record, template, separator)
+        # Append merge conflict warnings
+        warnings.extend(data.get("_merge_conflicts", []))
+        adif_lines = data.get("_merge_adif_lines")
         contact_data = {
             "id": 0,
             "uuid": data.get("uuid"),
@@ -890,7 +982,10 @@ async def preview_import_adif(
             else None,
             "updated_at": None,
             "adif_line": record_to_adif_line(raw_record),
-            "warnings": _validate_import_record(raw_record, template, separator),
+            "adif_lines": adif_lines,
+            "warnings": warnings,
+            "merged": data.get("_merged", False),
+            "merge_sources": data.get("_merge_sources", 1),
         }
         contacts.append(contact_data)
 
@@ -899,6 +994,7 @@ async def preview_import_adif(
         "total": len(records),
         "new_count": len(new_records),
         "duplicate_count": duplicate_count,
+        "merged_count": merged_count,
         "skipped_count": skipped_count,
         "template_matches": tpl_matches,
         "header": file_header,
@@ -916,7 +1012,7 @@ async def suggest_template(file: UploadFile):
 async def import_adif(file: UploadFile, session: AsyncSession = Depends(get_session)):
     records, _header, _raw = await _parse_adif_upload(file)
     template, separator = await _fetch_comment_settings(session)
-    new_records, duplicates, skipped, _tpl = await _classify_import_records(
+    new_records, duplicates, skipped, _tpl, _merged = await _classify_import_records(
         records, session, template, separator
     )
 
