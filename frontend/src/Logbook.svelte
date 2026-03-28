@@ -1247,7 +1247,7 @@
         <input id="date" type="date" bind:value={datePart} on:focus={onStartFocus} />
       </div>
       <div class="field" class:changed={orig && timePart !== orig.timePart}>
-        <label for="time">Start Time{#if !editingId && clockState === "ROLLING_START"} <span class="clock-rolling">CLICK START</span>{/if}</label>
+        <label for="time" class="label-nowrap-off">Start Time{#if !editingId && clockState === "ROLLING_START"} <span class="clock-rolling">CLICK START</span>{/if}</label>
         <input id="time" type="text" bind:value={timePart} on:blur={normalizeTime} on:focus={onStartFocus} placeholder="HH:MM:SS" maxlength="8" />
       </div>
       {#if !editingId}
@@ -1264,7 +1264,7 @@
         <input id="date_off" type="date" bind:value={datePartOff} on:focus={onEndFocus} disabled={!editingId && clockState === "ROLLING_START"} />
       </div>
       <div class="field" class:changed={orig && timePartOff !== orig.timePartOff}>
-        <label for="time_off">End Time{#if !editingId && clockState === "ROLLING_END"} <span class="clock-rolling">LIVE</span>{/if}</label>
+        <label for="time_off" class="label-nowrap-off">End Time{#if !editingId && clockState === "ROLLING_END"} <span class="clock-rolling">LIVE</span>{/if}</label>
         <input id="time_off" type="text" bind:value={timePartOff} on:blur={normalizeTimeOff} on:focus={onEndFocus} placeholder="HH:MM:SS" maxlength="8" disabled={!editingId && clockState === "ROLLING_START"} />
       </div>
       {#if !editingId}
@@ -1515,6 +1515,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .field label.label-nowrap-off {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
   }
 
   .field-pota label {
