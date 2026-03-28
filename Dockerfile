@@ -18,4 +18,4 @@ WORKDIR /app
 COPY --from=backend /app /app
 COPY --from=frontend /app/src/rigbook/static src/rigbook/static
 EXPOSE 8073
-CMD [".venv/bin/rigbook"]
+CMD [".venv/bin/rigbook", "--server"]

@@ -72,14 +72,32 @@ chmod +x rigbook-linux-amd64
 ./rigbook-linux-amd64
 ```
 
-Rigbook opens your browser automatically. Use `--no-browser` to disable.
-The server binds to localhost only. Set `RIGBOOK_HOST` and `RIGBOOK_PORT`
-to change.
+Rigbook starts a background server and opens your browser automatically.
+Run it again to reopen the browser. The same logbook is never opened
+twice — if a newer version is installed, the old server is restarted
+automatically.
 
 **macOS:** Remove the quarantine attribute first:
 `xattr -d com.apple.quarantine rigbook-macos-arm64`
 
+### CLI usage
+
+```
+rigbook                     # Open default logbook (background server + browser)
+rigbook field-day            # Open a named logbook
+rigbook --port 9000          # Use a specific port (default: 8073)
+rigbook --list               # List running logbook processes
+rigbook --quit               # Stop the default logbook
+rigbook --quit field-day     # Stop a named logbook
+rigbook --quit-all           # Stop all running logbooks
+rigbook --server             # Run in the foreground (for debugging)
+rigbook --server field-day   # Foreground server with a named logbook
+rigbook --pick               # Foreground server with logbook picker UI
+```
+
 ### Container
+
+The container runs in foreground server mode (`--server`):
 
 ```bash
 mkdir -p ${HOME}/.local/rigbook && \
@@ -95,13 +113,12 @@ podman run --rm -it --name rigbook \
 |---|---|
 | `RIGBOOK_DB` | Logbook name (e.g. `field-day` opens `~/.local/rigbook/field-day.db`) |
 | `RIGBOOK_PICKER` | `true` to start in logbook picker mode |
-| `RIGBOOK_NO_BROWSER` | `true` to skip opening the browser |
 | `RIGBOOK_HOST` | Bind address (default: `127.0.0.1`) |
 | `RIGBOOK_PORT` | Port (default: `8073`) |
 
 ## Getting started
 
-1. Open http://localhost:8073
+1. Run `rigbook` — your browser opens automatically
 2. Go to **Settings** — enter your callsign and grid square
 3. Optionally configure flrig, QRZ, RBN, and HamAlert connections
 4. Click **+** to log your first QSO
