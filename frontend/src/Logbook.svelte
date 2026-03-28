@@ -1485,6 +1485,8 @@
 
   .btn-clock {
     padding: 0.35rem 0.6rem;
+    min-width: 3.5rem;
+    text-align: center;
     font-size: 0.75rem;
     background: var(--bg-card);
     border: 1px solid var(--border);
