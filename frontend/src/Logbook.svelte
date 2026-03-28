@@ -1245,32 +1245,36 @@
       <label for="date">Start Date (UTC)</label>
       <input id="date" type="date" bind:value={datePart} on:focus={onStartFocus} />
     </div>
-    <div class="field" class:changed={orig && timePart !== orig.timePart}>
-      <label for="time">Start Time{#if !editingId && clockState === "ROLLING_START"} <span class="clock-rolling">LIVE</span>{/if}</label>
-      <input id="time" type="text" bind:value={timePart} on:blur={normalizeTime} on:focus={onStartFocus} placeholder="HH:MM:SS" maxlength="8" />
-    </div>
-    {#if !editingId}
-      <div class="field field-clock-btn">
-        <button type="button" class="btn-clock" on:click={onStartClick} title={clockState === "ROLLING_START" ? "Freeze start time" : "Reset start to now"}>
-          {clockState === "ROLLING_START" ? "Stop" : "Start"}
-        </button>
+    <div class="time-btn-group">
+      <div class="field" class:changed={orig && timePart !== orig.timePart}>
+        <label for="time">Start Time{#if !editingId && clockState === "ROLLING_START"} <span class="clock-rolling">LIVE</span>{/if}</label>
+        <input id="time" type="text" bind:value={timePart} on:blur={normalizeTime} on:focus={onStartFocus} placeholder="HH:MM:SS" maxlength="8" />
       </div>
-    {/if}
+      {#if !editingId}
+        <div class="field field-clock-btn">
+          <button type="button" class="btn-clock" on:click={onStartClick} title={clockState === "ROLLING_START" ? "Freeze start time" : "Reset start to now"}>
+            Start
+          </button>
+        </div>
+      {/if}
+    </div>
     <div class="field" class:changed={orig && datePartOff !== orig.datePartOff}>
       <label for="date_off">End Date (UTC)</label>
       <input id="date_off" type="date" bind:value={datePartOff} on:focus={onEndFocus} disabled={!editingId && clockState === "ROLLING_START"} />
     </div>
-    <div class="field" class:changed={orig && timePartOff !== orig.timePartOff}>
-      <label for="time_off">End Time{#if !editingId && clockState === "ROLLING_END"} <span class="clock-rolling">LIVE</span>{/if}</label>
-      <input id="time_off" type="text" bind:value={timePartOff} on:blur={normalizeTimeOff} on:focus={onEndFocus} placeholder="HH:MM:SS" maxlength="8" disabled={!editingId && clockState === "ROLLING_START"} />
-    </div>
-    {#if !editingId}
-      <div class="field field-clock-btn">
-        <button type="button" class="btn-clock" on:click={onStopClick} disabled={clockState === "ROLLING_START"} title={clockState === "ROLLING_END" ? "Freeze end time" : "Reset end to now"}>
-          {clockState === "ROLLING_END" ? "Stop" : "Now"}
-        </button>
+    <div class="time-btn-group">
+      <div class="field" class:changed={orig && timePartOff !== orig.timePartOff}>
+        <label for="time_off">End Time{#if !editingId && clockState === "ROLLING_END"} <span class="clock-rolling">LIVE</span>{/if}</label>
+        <input id="time_off" type="text" bind:value={timePartOff} on:blur={normalizeTimeOff} on:focus={onEndFocus} placeholder="HH:MM:SS" maxlength="8" disabled={!editingId && clockState === "ROLLING_START"} />
       </div>
-    {/if}
+      {#if !editingId}
+        <div class="field field-clock-btn">
+          <button type="button" class="btn-clock" on:click={onStopClick} disabled={clockState === "ROLLING_START"} title={clockState === "ROLLING_END" ? "Freeze end time" : "Reset end to now"}>
+            Stop
+          </button>
+        </div>
+      {/if}
+    </div>
   </div>
 
   <div class="form-row">
@@ -1448,9 +1452,22 @@
     min-width: 240px;
   }
 
+  .time-btn-group {
+    display: flex;
+    gap: 0.25rem;
+    align-items: flex-end;
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .time-btn-group .field {
+    flex: 1;
+    min-width: 0;
+  }
+
   .field-clock-btn {
     flex: 0 0 auto;
-    min-width: 50px;
+    min-width: auto;
     justify-content: flex-end;
   }
 
