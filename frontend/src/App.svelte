@@ -1027,11 +1027,12 @@
   {:else}
   <header>
     <div class="header-left">
-      <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-      <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-      <h1 class="app-title" on:click={goHome} style="cursor: pointer"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>{#if appVersion}<span class="app-version">v{appVersion}{#if updateAvailable} <a href={updateUrl} target="_blank" rel="noopener" class="update-link">Update Available</a>{/if}</span>{/if}
+      <div class="title-group">
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+        <h1 class="app-title" on:click={goHome} style="cursor: pointer"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>
+        {#if appVersion}<span class="app-version">v{appVersion}{#if updateAvailable} <a href={updateUrl} target="_blank" rel="noopener" class="update-link">Update Available</a>{/if}</span>{/if}
+      </div>
       {#if myCallsign}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
