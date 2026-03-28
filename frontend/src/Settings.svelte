@@ -794,7 +794,7 @@
       <input id="qrz_password" type="password" bind:value={qrz_password} autocomplete="off" disabled={!my_callsign.trim()} placeholder={hasQrzPassword ? "Leave blank to keep current" : "unset"} style="min-width: 8ch" />
     </div>
     <div class="setting-row">
-      <button type="button" class="theme-toggle" on:click={loginQrz} disabled={!qrz_password.trim()}>Login</button>
+      {#if qrz_password.trim()}<button type="button" class="theme-toggle" on:click={loginQrz}>Login</button>{/if}
       <span class="hint">{#if !my_callsign.trim()}Set My Callsign first{:else if hasQrzPassword}Leave blank to remain unchanged{:else}Your QRZ account password (uses My Callsign as username){/if}</span>
     </div>
     {#if hasQrzPassword}
