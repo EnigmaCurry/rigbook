@@ -163,6 +163,32 @@ def _close_logbook(name: str) -> None:
         sys.exit(1)
 
 
+def _close_all_logbooks() -> None:
+    """Send SIGTERM to all running rigbook processes."""
+    import signal
+
+    from rigbook.db import DB_DIR
+
+    found = False
+    for lock_path in sorted(DB_DIR.glob("*.lock")):
+        db_path = lock_path.with_suffix(".db")
+        info = db_manager.read_lock_info(db_path)
+        if info is None:
+            continue
+        pid = info["pid"]
+        name = db_path.stem
+        try:
+            os.kill(pid, signal.SIGTERM)
+            print(f"Sent SIGTERM to logbook '{name}' (pid {pid})")
+            found = True
+        except ProcessLookupError:
+            lock_path.unlink(missing_ok=True)
+        except PermissionError:
+            print(f"Error: no permission to signal '{name}' (pid {pid})", file=sys.stderr)
+    if not found:
+        print("No running rigbook processes")
+
+
 
 def _resource_path(relative: str) -> Path:
     """Resolve path to bundled resource (works in both dev and PyInstaller)."""
@@ -326,6 +352,11 @@ def run() -> None:
         help="Send SIGTERM to the process holding logbook NAME and exit (default: rigbook)",
     )
     parser.add_argument(
+        "--close-all",
+        action="store_true",
+        help="Send SIGTERM to all running rigbook processes and exit",
+    )
+    parser.add_argument(
         "-l",
         "--list",
         action="store_true",
@@ -335,6 +366,10 @@ def run() -> None:
 
     if args.list:
         _list_logbooks()
+        return
+
+    if args.close_all:
+        _close_all_logbooks()
         return
 
     if args.close:
