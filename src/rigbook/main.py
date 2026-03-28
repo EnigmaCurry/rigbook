@@ -65,7 +65,7 @@ def _list_logbooks() -> None:
         print("No running rigbook processes")
 
 
-def _open_logbook(name: str) -> None:
+def _open_logbook(name: str | None) -> None:
     """Open a logbook in the browser, starting a background server if needed."""
     import subprocess
     import time
@@ -73,33 +73,34 @@ def _open_logbook(name: str) -> None:
 
     from rigbook.db import DB_DIR
 
-    db_path = DB_DIR / f"{name}.db"
+    db_name = name or "rigbook"
+    db_path = DB_DIR / f"{db_name}.db"
     info = db_manager.read_lock_info(db_path)
     if info and "port" in info:
         pid = info["pid"]
         try:
             os.kill(pid, 0)
             url = f"http://{info['host']}:{info['port']}"
-            print(f"Logbook '{name}' already running at {url}")
+            print(f"Logbook '{db_name}' already running at {url}")
             webbrowser.open(url)
             return
         except ProcessLookupError:
             db_path.with_suffix(".lock").unlink(missing_ok=True)
 
-    print(f"Starting logbook '{name}' ...")
-    subprocess.Popen(
-        [sys.argv[0], name, "--no-browser"],
-        start_new_session=True,
-    )
+    print(f"Starting logbook '{db_name}' ...")
+    cmd = [sys.argv[0], "--server"]
+    if name:
+        cmd.append(name)
+    subprocess.Popen(cmd, start_new_session=True)
     time.sleep(1)
 
     info = db_manager.read_lock_info(db_path)
     if info and "port" in info:
         url = f"http://{info['host']}:{info['port']}"
-        print(f"Logbook '{name}' running at {url}")
+        print(f"Logbook '{db_name}' running at {url}")
         webbrowser.open(url)
     else:
-        print(f"Error: logbook '{name}' did not start", file=sys.stderr)
+        print(f"Error: logbook '{db_name}' did not start", file=sys.stderr)
         sys.exit(1)
 
 
@@ -264,23 +265,23 @@ def run() -> None:
 
     parser = argparse.ArgumentParser(description="Rigbook - Ham Radio Logbook")
     parser.add_argument(
-        "-v", "--verbose", action="store_true", help="Enable verbose/debug logging"
-    )
-    parser.add_argument(
         "name",
         nargs="?",
         default=None,
-        help="Logbook name to open (e.g. field-day, default: rigbook)",
+        help="Logbook name (e.g. field-day, default: rigbook)",
+    )
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Enable verbose/debug logging"
+    )
+    parser.add_argument(
+        "--server",
+        action="store_true",
+        help="Run the server in the foreground",
     )
     parser.add_argument(
         "--pick",
         action="store_true",
-        help="Enable database picker mode",
-    )
-    parser.add_argument(
-        "--no-browser",
-        action="store_true",
-        help="Do not open the browser automatically",
+        help="Enable database picker mode (implies --server)",
     )
     parser.add_argument(
         "--no-auth",
@@ -305,11 +306,6 @@ def run() -> None:
         action="store_true",
         help="List running rigbook processes and exit",
     )
-    parser.add_argument(
-        "--open",
-        metavar="NAME",
-        help="Open logbook in browser, starting a background server if needed",
-    )
     args = parser.parse_args()
 
     if args.list:
@@ -320,10 +316,11 @@ def run() -> None:
         _close_logbook(args.close)
         return
 
-    if args.open:
-        _open_logbook(args.open)
+    if not args.server and not args.pick:
+        _open_logbook(args.name)
         return
 
+    # --- foreground server mode ---
     global _no_auth
     _no_auth = args.no_auth
 
@@ -356,22 +353,5 @@ def run() -> None:
         port = _find_free_port(host, default_port)
 
     db_manager.set_listen_addr(host, port)
-
-    import threading
-    import webbrowser
-
-    no_browser = args.no_browser or os.environ.get(
-        "RIGBOOK_NO_BROWSER", ""
-    ).lower() in ("1", "true", "yes")
-    if not no_browser:
-        url = f"http://{host}:{port}"
-
-        def open_browser():
-            import time
-
-            time.sleep(1)
-            webbrowser.open(url)
-
-        threading.Thread(target=open_browser, daemon=True).start()
 
     uvicorn.run(app, host=host, port=port, access_log=False)
