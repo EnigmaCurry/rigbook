@@ -39,7 +39,7 @@ logger = logging.getLogger("rigbook")
 _no_auth = False
 
 
-def _list_logbooks() -> None:
+def _list_logbooks(quiet_if_empty: bool = False) -> None:
     """List all running rigbook processes."""
     from rigbook.db import DB_DIR
 
@@ -57,11 +57,13 @@ def _list_logbooks() -> None:
             continue
         except PermissionError:
             pass
+        if not found:
+            print("Running logbooks:")
         name = db_path.stem
         addr = f"{info.get('host', '?')}:{info.get('port', '?')}" if "port" in info else "?"
-        print(f"{name}\tpid={pid}\t{addr}")
+        print(f"  {name}\tpid={pid}\t{addr}")
         found = True
-    if not found:
+    if not found and not quiet_if_empty:
         print("No running rigbook processes")
 
 
@@ -146,6 +148,7 @@ def _close_logbook(name: str) -> None:
     pid = db_manager.read_lock_pid(db_path)
     if pid is None:
         print(f"Logbook '{name}' is not running")
+        _list_logbooks(quiet_if_empty=True)
         return
     try:
         os.kill(pid, signal.SIGTERM)
