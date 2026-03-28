@@ -104,14 +104,26 @@ def _open_logbook(name: str | None) -> None:
     cmd = [sys.argv[0], "--server"]
     if name:
         cmd.append(name)
-    subprocess.Popen(
+    log_path = db_path.with_suffix(".log")
+    log_fh = open(log_path, "w")
+    proc = subprocess.Popen(
         cmd,
         start_new_session=True,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stdout=log_fh,
+        stderr=log_fh,
     )
     time.sleep(1)
+    log_fh.close()
 
+    if proc.poll() is not None:
+        log_output = log_path.read_text().strip()
+        print(f"Error: logbook '{db_name}' failed to start", file=sys.stderr)
+        if log_output:
+            print(log_output, file=sys.stderr)
+        log_path.unlink(missing_ok=True)
+        sys.exit(1)
+
+    log_path.unlink(missing_ok=True)
     info = db_manager.read_lock_info(db_path)
     if info and "port" in info:
         url = f"http://{info['host']}:{info['port']}"
