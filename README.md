@@ -80,12 +80,12 @@ sudo mv rigbook-macos-arm64 /usr/local/bin/rigbook
 ```
 
 **Windows:** Double-click `rigbook-windows-amd64.exe` to run it directly
-from your Downloads folder or Desktop. To make it available as `rigbook`
-on the terminal, press `Win+R`, type
-`%LOCALAPPDATA%\Microsoft\WindowsApps` and press Enter, then drag the
-exe into that folder and rename it to `rigbook.exe`. Windows SmartScreen
-may warn that the app is unrecognized because it is not code-signed —
-click **More info** then **Run anyway**.
+from your Downloads folder or Desktop. Windows SmartScreen may warn that
+the app is unrecognized because it is not code-signed — click **More
+info** then **Run anyway**. To make it available as `rigbook` on the
+terminal, press `Win+R`, type `%LOCALAPPDATA%\Microsoft\WindowsApps`
+and press Enter, then drag the exe into that folder and rename it to
+`rigbook.exe`.
 
 ## Run
 
