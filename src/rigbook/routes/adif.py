@@ -650,6 +650,8 @@ async def _classify_import_records(
     skipped = 0
     duplicates = 0
     template_matches = 0
+    seen_uuids: set[str] = set()
+    seen_call_minute: set[tuple[str, str]] = set()
     for record in records:
         data = adif_record_to_contact_dict(record)
         data["_original_comment"] = data.get("comments")
@@ -668,14 +670,19 @@ async def _classify_import_records(
             continue
         record_uuid = data.get("uuid")
         is_dup = False
+        # Check UUID against DB and batch
         if record_uuid:
-            existing = (
-                await session.execute(
-                    select(Contact).where(Contact.uuid == record_uuid)
-                )
-            ).scalar_one_or_none()
-            if existing:
+            if record_uuid in seen_uuids:
                 is_dup = True
+            else:
+                existing = (
+                    await session.execute(
+                        select(Contact).where(Contact.uuid == record_uuid)
+                    )
+                ).scalar_one_or_none()
+                if existing:
+                    is_dup = True
+        # Fall back to call + timestamp dedup (ignore seconds)
         if not is_dup:
             ts = data.get("timestamp")
             if ts:
@@ -684,24 +691,43 @@ async def _classify_import_records(
                     if ts.tzinfo
                     else ts.replace(second=0)
                 )
-                minute_start = check_ts
-                minute_end = check_ts.replace(second=59)
-                existing = (
-                    await session.execute(
-                        select(Contact).where(
-                            and_(
-                                Contact.call == data["call"].upper(),
-                                Contact.timestamp >= minute_start,
-                                Contact.timestamp <= minute_end,
+                call_minute_key = (
+                    data["call"].upper(),
+                    check_ts.strftime("%Y%m%d%H%M"),
+                )
+                if call_minute_key in seen_call_minute:
+                    is_dup = True
+                else:
+                    minute_start = check_ts
+                    minute_end = check_ts.replace(second=59)
+                    existing = (
+                        await session.execute(
+                            select(Contact).where(
+                                and_(
+                                    Contact.call == data["call"].upper(),
+                                    Contact.timestamp >= minute_start,
+                                    Contact.timestamp <= minute_end,
+                                )
                             )
                         )
-                    )
-                ).scalar_one_or_none()
-                if existing:
-                    is_dup = True
+                    ).scalar_one_or_none()
+                    if existing:
+                        is_dup = True
         if is_dup:
             duplicates += 1
         else:
+            if record_uuid:
+                seen_uuids.add(record_uuid)
+            ts = data.get("timestamp")
+            if ts:
+                check_ts = (
+                    ts.replace(second=0, tzinfo=None)
+                    if ts.tzinfo
+                    else ts.replace(second=0)
+                )
+                seen_call_minute.add(
+                    (data["call"].upper(), check_ts.strftime("%Y%m%d%H%M"))
+                )
             if data.get("_comment_stripped"):
                 template_matches += 1
             new_records.append((data, record))
@@ -937,6 +963,8 @@ async def import_confirmed(
     """Import pre-validated contacts with user corrections applied."""
     imported = 0
     duplicates = 0
+    seen_uuids: set[str] = set()
+    seen_call_minute: set[tuple[str, str]] = set()
     for c in contacts:
         data = {}
         for key in IMPORT_FIELDS:
@@ -954,17 +982,20 @@ async def import_confirmed(
                 data["timestamp"] = ts
             except (ValueError, TypeError):
                 pass
-        # Dedup by UUID
+        # Dedup by UUID against DB and batch
         is_dup = False
         record_uuid = c.get("uuid")
         if record_uuid:
-            existing = (
-                await session.execute(
-                    select(Contact).where(Contact.uuid == record_uuid)
-                )
-            ).scalar_one_or_none()
-            if existing:
+            if record_uuid in seen_uuids:
                 is_dup = True
+            else:
+                existing = (
+                    await session.execute(
+                        select(Contact).where(Contact.uuid == record_uuid)
+                    )
+                ).scalar_one_or_none()
+                if existing:
+                    is_dup = True
         # Fall back to call + timestamp dedup (ignore seconds)
         if not is_dup:
             ts = data.get("timestamp")
@@ -974,22 +1005,39 @@ async def import_confirmed(
                     if ts.tzinfo
                     else ts.replace(second=0)
                 )
-                existing = (
-                    await session.execute(
-                        select(Contact).where(
-                            and_(
-                                Contact.call == data["call"].upper(),
-                                Contact.timestamp >= check_ts,
-                                Contact.timestamp <= check_ts.replace(second=59),
+                call_minute_key = (
+                    data["call"].upper(),
+                    check_ts.strftime("%Y%m%d%H%M"),
+                )
+                if call_minute_key in seen_call_minute:
+                    is_dup = True
+                else:
+                    existing = (
+                        await session.execute(
+                            select(Contact).where(
+                                and_(
+                                    Contact.call == data["call"].upper(),
+                                    Contact.timestamp >= check_ts,
+                                    Contact.timestamp <= check_ts.replace(second=59),
+                                )
                             )
                         )
-                    )
-                ).scalar_one_or_none()
-                if existing:
-                    is_dup = True
+                    ).scalar_one_or_none()
+                    if existing:
+                        is_dup = True
         if is_dup:
             duplicates += 1
             continue
+        if record_uuid:
+            seen_uuids.add(record_uuid)
+        ts = data.get("timestamp")
+        if ts:
+            check_ts = (
+                ts.replace(second=0, tzinfo=None) if ts.tzinfo else ts.replace(second=0)
+            )
+            seen_call_minute.add(
+                (data["call"].upper(), check_ts.strftime("%Y%m%d%H%M"))
+            )
         contact = Contact(**data)
         session.add(contact)
         imported += 1
