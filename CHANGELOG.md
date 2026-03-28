@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.21
+
+- Remove authentication feature (HTTP Basic auth middleware, settings UI, and `--no-auth` flag)
+- Add `--port` flag and `RIGBOOK_PORT` env var to change the listening port
+- Add database file locking to prevent opening the same logbook twice
+- Handle SIGTERM same as SIGINT to flush SSE shutdown event to browser clients
+- Fix pending async task warning on shutdown
+- Rewrite README with concise feature overview
+
 ## v0.1.20
 
 ### Spots Map
