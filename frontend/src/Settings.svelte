@@ -1281,6 +1281,7 @@
     font-size: 0.9rem;
     border-radius: 3px;
     width: 100%;
+    max-width: 20rem;
   }
 
   input:not([type="range"]):not([type="checkbox"]):focus {
@@ -1290,6 +1291,7 @@
 
   input[type="range"] {
     width: 100%;
+    max-width: 20rem;
     accent-color: var(--accent);
   }
 
