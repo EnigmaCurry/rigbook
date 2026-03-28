@@ -170,8 +170,9 @@ async def check_for_update(
                 release = resp.json()
                 latest = release["tag_name"].lstrip("v")
                 url = release["html_url"]
+                logger.info("Update check: current=%s, latest=%s", current, latest)
         except Exception:
-            logger.debug("Update check failed")
+            logger.info("Update check failed: could not reach GitHub")
             return {"current": current, "latest": None, "update_available": False}
 
         checked_at = time.time()
