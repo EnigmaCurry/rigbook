@@ -791,10 +791,10 @@
     <h3>QRZ</h3>
     <div class="setting-row">
       <label for="qrz_password">{hasQrzPassword ? "Change QRZ Password" : "QRZ Password"}</label>
-      <div class="grid-input-row">
-        <input id="qrz_password" type="password" bind:value={qrz_password} autocomplete="off" disabled={!my_callsign.trim()} placeholder={hasQrzPassword ? "Leave blank to keep current" : "unset"} />
-        <button type="button" class="theme-toggle" on:click={loginQrz} disabled={!qrz_password.trim()}>Login</button>
-      </div>
+      <input id="qrz_password" type="password" bind:value={qrz_password} autocomplete="off" disabled={!my_callsign.trim()} placeholder={hasQrzPassword ? "Leave blank to keep current" : "unset"} />
+    </div>
+    <div class="setting-row">
+      <button type="button" class="theme-toggle" on:click={loginQrz} disabled={!qrz_password.trim()}>Login</button>
       <span class="hint">{#if !my_callsign.trim()}Set My Callsign first{:else if hasQrzPassword}Leave blank to remain unchanged{:else}Your QRZ account password (uses My Callsign as username){/if}</span>
     </div>
     {#if hasQrzPassword}
