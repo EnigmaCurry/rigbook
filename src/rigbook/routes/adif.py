@@ -156,9 +156,7 @@ def contact_to_adif_record(
     if c.skcc_exch:
         record["APP_RIGBOOK_SKCC_EXCH"] = "Y"
     if comment_template:
-        comment = render_comment_with_template(
-            comment_template, c, comment_separator
-        )
+        comment = render_comment_with_template(comment_template, c, comment_separator)
         if comment:
             record["COMMENT"] = comment
         record["APP_RIGBOOK_COMMENT_FMT"] = comment_separator.strip()
@@ -184,7 +182,7 @@ def _segment_matches(segment: str, label: str, value: str, field: str = "") -> b
     s = segment.strip()
     for fmt in (f"{label}: ", f"{label} "):
         if s.startswith(fmt):
-            seg_val = s[len(fmt):]
+            seg_val = s[len(fmt) :]
             if seg_val == value:
                 return True
             # Frequency: comment has KHz, ADIF field has MHz
@@ -234,8 +232,7 @@ def strip_comment_prefix(
 
     # Check if entire comment matches a single expected segment (no separator)
     if expected and any(
-        _segment_matches(comment, e["label"], e["val"], e["field"])
-        for e in expected
+        _segment_matches(comment, e["label"], e["val"], e["field"]) for e in expected
     ):
         return ""
 
@@ -347,8 +344,18 @@ async def preview_adif(
     previews = []
     template_matches = 0
     field_map_keys = {
-        "call", "freq", "mode", "rst_sent", "rst_recv", "name",
-        "qth", "state", "country", "grid", "pota_park", "skcc",
+        "call",
+        "freq",
+        "mode",
+        "rst_sent",
+        "rst_recv",
+        "name",
+        "qth",
+        "state",
+        "country",
+        "grid",
+        "pota_park",
+        "skcc",
     }
     for c in contacts:
         data = ContactResponse.model_validate(c).model_dump()
@@ -447,9 +454,7 @@ async def _fetch_comment_settings(session: AsyncSession):
     template = []
     separator = "|"
     tpl_row = (
-        await session.execute(
-            select(Setting).where(Setting.key == "comment_template")
-        )
+        await session.execute(select(Setting).where(Setting.key == "comment_template"))
     ).scalar_one_or_none()
     if tpl_row and tpl_row.value:
         try:
@@ -457,9 +462,7 @@ async def _fetch_comment_settings(session: AsyncSession):
         except (json.JSONDecodeError, TypeError):
             template = []
     sep_row = (
-        await session.execute(
-            select(Setting).where(Setting.key == "comment_separator")
-        )
+        await session.execute(select(Setting).where(Setting.key == "comment_separator"))
     ).scalar_one_or_none()
     if sep_row and sep_row.value:
         separator = sep_row.value
@@ -532,7 +535,7 @@ def _validate_import_record(
             lbl, _, val = part.partition(": ")
         elif part.startswith(exp["label"] + " "):
             lbl = exp["label"]
-            val = part[len(exp["label"]) + 1:]
+            val = part[len(exp["label"]) + 1 :]
         else:
             break
         if lbl.strip() != exp["label"]:
@@ -549,14 +552,16 @@ def _validate_import_record(
 
     warnings = []
     for label, info in prefix_values.items():
-        warnings.append({
-            "field": info["field"],
-            "label": label,
-            "comment_val": info["comment_val"],
-            "field_val": info["field_val"],
-            "message": f"{label}: comment has '{info['comment_val']}'"
-            f" but field has '{info['field_val']}'",
-        })
+        warnings.append(
+            {
+                "field": info["field"],
+                "label": label,
+                "comment_val": info["comment_val"],
+                "field_val": info["field_val"],
+                "message": f"{label}: comment has '{info['comment_val']}'"
+                f" but field has '{info['field_val']}'",
+            }
+        )
 
     # Also check for single-segment comments (no separator) that match a template
     if not warnings and len(parts) == 1:
@@ -571,7 +576,7 @@ def _validate_import_record(
             if lbl and lbl.strip() == label:
                 val = val.strip() if val else ""
             elif comment.strip().startswith(label + " "):
-                val = comment.strip()[len(label) + 1:]
+                val = comment.strip()[len(label) + 1 :]
             else:
                 continue
             adif_key = field_to_adif.get(field, "")
@@ -580,44 +585,52 @@ def _validate_import_record(
             if not vals_match and field == "freq":
                 vals_match = _normalize_freq(val, adif_val)
             if adif_val and not vals_match:
-                warnings.append({
-                    "field": field,
-                    "label": label,
-                    "comment_val": val,
-                    "field_val": adif_val,
-                    "message": f"{label}: comment has '{val}'"
-                    f" but field has '{adif_val}'",
-                })
+                warnings.append(
+                    {
+                        "field": field,
+                        "label": label,
+                        "comment_val": val,
+                        "field_val": adif_val,
+                        "message": f"{label}: comment has '{val}'"
+                        f" but field has '{adif_val}'",
+                    }
+                )
             elif not adif_val and val:
-                warnings.append({
-                    "field": field,
-                    "label": label,
-                    "comment_val": val,
-                    "field_val": "",
-                    "message": f"{label}: '{val}' found in comment"
-                    " but no normalized field",
-                })
+                warnings.append(
+                    {
+                        "field": field,
+                        "label": label,
+                        "comment_val": val,
+                        "field_val": "",
+                        "message": f"{label}: '{val}' found in comment"
+                        " but no normalized field",
+                    }
+                )
     # Field-specific validations
     skcc_val = record.get("SKCC", "")
     if skcc_val:
         if " " in skcc_val.strip():
-            warnings.append({
-                "field": "skcc",
-                "label": "SKCC",
-                "comment_val": "",
-                "field_val": skcc_val,
-                "message": f"SKCC: '{skcc_val}' contains spaces"
-                " — should be a single value like '2240S'",
-            })
+            warnings.append(
+                {
+                    "field": "skcc",
+                    "label": "SKCC",
+                    "comment_val": "",
+                    "field_val": skcc_val,
+                    "message": f"SKCC: '{skcc_val}' contains spaces"
+                    " — should be a single value like '2240S'",
+                }
+            )
         elif not skcc_val.strip()[0].isdigit():
-            warnings.append({
-                "field": "skcc",
-                "label": "SKCC",
-                "comment_val": "",
-                "field_val": skcc_val,
-                "message": f"SKCC: '{skcc_val}' does not start with a digit"
-                " — should be a number like '2240S'",
-            })
+            warnings.append(
+                {
+                    "field": "skcc",
+                    "label": "SKCC",
+                    "comment_val": "",
+                    "field_val": skcc_val,
+                    "message": f"SKCC: '{skcc_val}' does not start with a digit"
+                    " — should be a number like '2240S'",
+                }
+            )
 
     return warnings
 
@@ -663,7 +676,7 @@ async def _classify_import_records(
             ).scalar_one_or_none()
             if existing:
                 is_dup = True
-        else:
+        if not is_dup:
             ts = data.get("timestamp")
             if ts:
                 check_ts = (
@@ -817,9 +830,12 @@ async def preview_import_adif(
 ):
     records, file_header, raw_header = await _parse_adif_upload(file)
     template, separator = await _fetch_comment_settings(session)
-    new_records, duplicate_count, skipped_count, tpl_matches = (
-        await _classify_import_records(records, session, template, separator)
-    )
+    (
+        new_records,
+        duplicate_count,
+        skipped_count,
+        tpl_matches,
+    ) = await _classify_import_records(records, session, template, separator)
 
     contacts = []
     for data, raw_record in new_records:
@@ -886,15 +902,31 @@ async def import_adif(file: UploadFile, session: AsyncSession = Depends(get_sess
     await session.commit()
     logger.info(
         "ADIF import: %d imported, %d duplicates, %d skipped",
-        len(new_records), duplicates, skipped,
+        len(new_records),
+        duplicates,
+        skipped,
     )
     return {"imported": len(new_records), "skipped": skipped, "duplicates": duplicates}
 
 
 IMPORT_FIELDS = {
-    "uuid", "call", "freq", "mode", "rst_sent", "rst_recv", "name", "qth",
-    "state", "country", "dxcc", "grid", "pota_park", "skcc", "skcc_exch",
-    "comments", "notes",
+    "uuid",
+    "call",
+    "freq",
+    "mode",
+    "rst_sent",
+    "rst_recv",
+    "name",
+    "qth",
+    "state",
+    "country",
+    "dxcc",
+    "grid",
+    "pota_park",
+    "skcc",
+    "skcc_exch",
+    "comments",
+    "notes",
 }
 
 
@@ -923,6 +955,7 @@ async def import_confirmed(
             except (ValueError, TypeError):
                 pass
         # Dedup by UUID
+        is_dup = False
         record_uuid = c.get("uuid")
         if record_uuid:
             existing = (
@@ -931,10 +964,9 @@ async def import_confirmed(
                 )
             ).scalar_one_or_none()
             if existing:
-                duplicates += 1
-                continue
-        else:
-            # Fall back to call + timestamp dedup (ignore seconds)
+                is_dup = True
+        # Fall back to call + timestamp dedup (ignore seconds)
+        if not is_dup:
             ts = data.get("timestamp")
             if ts:
                 check_ts = (
@@ -954,8 +986,10 @@ async def import_confirmed(
                     )
                 ).scalar_one_or_none()
                 if existing:
-                    duplicates += 1
-                    continue
+                    is_dup = True
+        if is_dup:
+            duplicates += 1
+            continue
         contact = Contact(**data)
         session.add(contact)
         imported += 1
@@ -963,6 +997,7 @@ async def import_confirmed(
     await session.commit()
     logger.info(
         "ADIF confirmed import: %d imported, %d duplicates",
-        imported, duplicates,
+        imported,
+        duplicates,
     )
     return {"imported": imported, "duplicates": duplicates}
