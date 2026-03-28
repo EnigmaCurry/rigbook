@@ -144,68 +144,6 @@
     updatePreview();
   }
 
-  // Authentication
-  let authStatus = null;
-  let authPassword = "";
-  let authConfirm = "";
-  let authMessage = "";
-  let authMessageType = "";
-  let authSaving = false;
-
-  async function loadAuthStatus() {
-    try {
-      const res = await fetch("/api/settings/auth/status");
-      if (res.ok) authStatus = await res.json();
-    } catch { /* ignore */ }
-  }
-
-  async function enableAuth() {
-    if (authPassword !== authConfirm) {
-      authMessage = "Passwords do not match";
-      authMessageType = "error";
-      return;
-    }
-    if (!authPassword) {
-      authMessage = "Password cannot be empty";
-      authMessageType = "error";
-      return;
-    }
-    authSaving = true;
-    authMessage = "";
-    try {
-      const res = await fetch("/api/settings/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: authPassword, confirm: authConfirm }),
-      });
-      if (res.ok) {
-        authMessage = "Authentication enabled. Refresh the page to log in.";
-        authMessageType = "success";
-        authPassword = "";
-        authConfirm = "";
-        loadAuthStatus();
-      } else {
-        const data = await res.json().catch(() => null);
-        authMessage = data?.detail || "Failed to enable auth";
-        authMessageType = "error";
-      }
-    } catch (e) {
-      authMessage = `Error: ${e.message}`;
-      authMessageType = "error";
-    }
-    authSaving = false;
-  }
-
-  async function disableAuth() {
-    try {
-      const res = await fetch("/api/settings/auth/disable", { method: "POST" });
-      if (res.ok) {
-        authMessage = "Authentication disabled.";
-        authMessageType = "success";
-        loadAuthStatus();
-      }
-    } catch { /* ignore */ }
-  }
 
   // Backup
   let backupMessage = "";
@@ -685,7 +623,6 @@
   onMount(() => {
     fetchSettings();
     fetchSpotStatus();
-    loadAuthStatus();
     loadDbInfo();
     loadBackupStatus();
     spotStatusInterval = setInterval(fetchSpotStatus, 5000);
@@ -1004,37 +941,6 @@
       <details>
         <summary><h3>Advanced</h3></summary>
 
-        <h4>Authentication</h4>
-        <p class="hint">HTTP Basic auth. Username is your callsign. Use <code>--no-auth</code> to bypass.</p>
-        {#if authStatus}
-          {#if authStatus.enabled}
-            <p class="hint" style="color: var(--accent)">Enabled{#if my_callsign} (username: {my_callsign}){/if}</p>
-            <div class="setting-row">
-              <button on:click={disableAuth}>Disable Authentication</button>
-            </div>
-          {:else}
-            <p class="hint">Disabled</p>
-            <div class="setting-row">
-              <label>Password</label>
-              <input type="password" bind:value={authPassword} placeholder="Enter password" autocomplete="new-password" />
-            </div>
-            <div class="setting-row">
-              <label>Confirm</label>
-              <input type="password" bind:value={authConfirm} placeholder="Confirm password" autocomplete="new-password"
-                on:keydown={e => { if (e.key === "Enter") enableAuth(); }} />
-            </div>
-            <div class="setting-row">
-              <button on:click={enableAuth} disabled={authSaving || !authPassword || authPassword !== authConfirm}>
-                {authSaving ? "Saving..." : "Enable Authentication"}
-              </button>
-            </div>
-          {/if}
-        {/if}
-        {#if authMessage}
-          <p class="hint" class:danger-error={authMessageType === "error"} style={authMessageType === "success" ? "color: var(--accent)" : ""}>{authMessage}</p>
-        {/if}
-
-        <div class="danger-separator"></div>
         <h4 class="danger-heading">Danger Zone</h4>
         <div class="setting-row">
           <label for="danger-confirm">Type <strong>{logbookName}</strong> to enable</label>

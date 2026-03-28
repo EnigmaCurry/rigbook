@@ -1,5 +1,4 @@
 import asyncio
-import hashlib
 import logging
 import shutil
 from datetime import datetime, timedelta, timezone
@@ -27,7 +26,7 @@ class SettingResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-HIDDEN_KEYS = {"qrz_password", "hamalert_password", "auth_password"}
+HIDDEN_KEYS = {"qrz_password", "hamalert_password"}
 
 
 def _redact(setting: Setting) -> SettingResponse:
@@ -154,120 +153,6 @@ async def backup_status(session: AsyncSession = Depends(get_session)):
         "manual_backup_count": manual_count,
     }
 
-
-# --- Authentication ---
-
-
-def _hash_password(plain: str, salt: str) -> str:
-    """Hash password with a per-database salt."""
-    h = hashlib.sha256(f"{salt}:{plain}".encode()).hexdigest()
-    return f"sha256:{h}"
-
-
-def _verify_password(plain: str, stored: str, salt: str) -> bool:
-    if not stored or not stored.startswith("sha256:"):
-        return False
-    return _hash_password(plain, salt) == stored
-
-
-def _get_auth_salt() -> str:
-    """Use the database filename as a unique per-database salt."""
-    db_path = db_manager.db_path
-    return db_path.stem if db_path else "rigbook"
-
-
-class AuthRequest(BaseModel):
-    password: str
-    confirm: str
-
-
-@router.get("/auth/status")
-async def auth_status(session: AsyncSession = Depends(get_session)):
-    enabled_row = (
-        await session.execute(select(Setting).where(Setting.key == "auth_enabled"))
-    ).scalar_one_or_none()
-    pw_row = (
-        await session.execute(select(Setting).where(Setting.key == "auth_password"))
-    ).scalar_one_or_none()
-    enabled = (
-        enabled_row.value.lower() == "true"
-        if enabled_row and enabled_row.value
-        else False
-    )
-    has_password = bool(pw_row and pw_row.value)
-    return {"enabled": enabled, "has_password": has_password}
-
-
-@router.post("/auth")
-async def enable_auth(data: AuthRequest, session: AsyncSession = Depends(get_session)):
-    if data.password != data.confirm:
-        raise HTTPException(status_code=400, detail="Passwords do not match")
-    if not data.password:
-        raise HTTPException(status_code=400, detail="Password cannot be empty")
-
-    salt = _get_auth_salt()
-    hashed = _hash_password(data.password, salt)
-
-    for key, value in [("auth_password", hashed), ("auth_enabled", "true")]:
-        row = (
-            await session.execute(select(Setting).where(Setting.key == key))
-        ).scalar_one_or_none()
-        if row:
-            row.value = value
-        else:
-            session.add(Setting(key=key, value=value))
-
-    await session.commit()
-    # Clear auth cache so middleware picks up the change
-    _auth_cache.clear()
-    logger.info("Authentication enabled")
-    return {"enabled": True}
-
-
-@router.post("/auth/disable")
-async def disable_auth(session: AsyncSession = Depends(get_session)):
-    row = (
-        await session.execute(
-            select(Setting).where(Setting.key == "auth_enabled")
-        )
-    ).scalar_one_or_none()
-    if row:
-        row.value = "false"
-    else:
-        session.add(Setting(key="auth_enabled", value="false"))
-    await session.commit()
-    _auth_cache.clear()
-    logger.info("Authentication disabled")
-    return {"enabled": False}
-
-
-# Auth cache for middleware (avoids DB query on every request)
-_auth_cache: dict = {}
-
-
-async def get_auth_settings() -> dict:
-    """Get cached auth settings. Called by middleware."""
-    if _auth_cache:
-        return _auth_cache
-    try:
-        async for session in get_session():
-            result = await session.execute(
-                select(Setting).where(
-                    Setting.key.in_(
-                        ["auth_enabled", "auth_password", "my_callsign"]
-                    )
-                )
-            )
-            settings = {s.key: s.value for s in result.scalars().all()}
-            _auth_cache.update({
-                "enabled": settings.get("auth_enabled", "false").lower() == "true",
-                "password": settings.get("auth_password", ""),
-                "callsign": settings.get("my_callsign", ""),
-                "salt": _get_auth_salt(),
-            })
-            return _auth_cache
-    except Exception:
-        return {"enabled": False, "password": "", "callsign": "", "salt": ""}
 
 
 # --- Auto-backup background task ---
