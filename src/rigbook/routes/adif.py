@@ -264,13 +264,12 @@ def strip_comment_prefix(
             label = entry.get("label", entry["field"])
             expected.append({"label": label, "val": val, "field": f})
 
-    # Check if entire comment matches a single expected segment (no separator)
-    for e in expected:
-        rem = _segment_match_remainder(comment, e["label"], e["val"], e["field"])
-        if rem is not None:
-            return rem.strip()
-
     if padded not in comment:
+        # No separator found — check if entire comment matches a single segment
+        for e in expected:
+            rem = _segment_match_remainder(comment, e["label"], e["val"], e["field"])
+            if rem is not None:
+                return rem.strip()
         return comment
 
     parts = comment.split(padded)
@@ -538,8 +537,7 @@ def _validate_import_record(
     - message: human-readable warning text
     """
     comment = record.get("COMMENT", "")
-    if not comment or not template_fields:
-        return []
+    warnings = []
 
     field_to_adif = {
         "call": "CALL",
@@ -560,108 +558,108 @@ def _validate_import_record(
     sep = (fmt_sep or separator or "|").strip()
     padded = f" {sep} "
 
-    # Build expected "Label: value" for each template field from normalized fields
-    expected = []
-    for entry in template_fields:
-        f = entry.get("field", "")
-        adif_key = field_to_adif.get(f, "")
-        val = record.get(adif_key, "") if adif_key else ""
-        label = entry.get("label", f)
-        if val:
-            expected.append({"label": label, "field": f, "val": val})
-
-    # Parse comment into segments (same way strip does)
-    if padded in comment:
-        parts = comment.split(padded)
-    else:
-        parts = [comment]
-
-    # Walk through parts in parallel with expected entries.
-    # Only validate segments that align with expected prefix positions.
-    prefix_values = {}
-    for i, exp in enumerate(expected):
-        if i >= len(parts):
-            break
-        part = parts[i].strip()
-        # Parse "Label: value" or "Label value" (first word only)
-        if ": " in part:
-            lbl, _, rest = part.partition(": ")
-            val = rest.strip().split(None, 1)[0] if rest.strip() else ""
-        elif part.startswith(exp["label"] + " "):
-            lbl = exp["label"]
-            rest = part[len(exp["label"]) + 1 :]
-            val = rest.strip().split(None, 1)[0] if rest.strip() else ""
-        else:
-            break
-        if lbl.strip() != exp["label"]:
-            break
-        # This segment aligns with expected position — check if value matches
-        if _segment_matches(part, exp["label"], exp["val"], exp["field"]):
-            continue  # clean match
-        if val != exp["val"]:
-            prefix_values[exp["label"]] = {
-                "field": exp["field"],
-                "comment_val": val.strip(),
-                "field_val": exp["val"],
-            }
-
-    warnings = []
-    for label, info in prefix_values.items():
-        warnings.append(
-            {
-                "field": info["field"],
-                "label": label,
-                "comment_val": info["comment_val"],
-                "field_val": info["field_val"],
-                "message": f"{label}: comment has '{info['comment_val']}'"
-                f" but field has '{info['field_val']}'",
-            }
-        )
-
-    # Also check for single-segment comments (no separator) that match a template
-    if not warnings and len(parts) == 1:
-        lbl = None
-        val = None
-        if ": " in comment:
-            lbl, _, rest = comment.partition(": ")
+    if comment and template_fields:
+        # Build expected "Label: value" for each template field from normalized fields
+        expected = []
         for entry in template_fields:
-            label = entry.get("label", entry.get("field", ""))
-            field = entry.get("field", "")
-            # Try "Label: value" or "Label value" (first word only)
-            if lbl and lbl.strip() == label:
+            f = entry.get("field", "")
+            adif_key = field_to_adif.get(f, "")
+            val = record.get(adif_key, "") if adif_key else ""
+            label = entry.get("label", f)
+            if val:
+                expected.append({"label": label, "field": f, "val": val})
+
+        # Parse comment into segments (same way strip does)
+        if padded in comment:
+            parts = comment.split(padded)
+        else:
+            parts = [comment]
+
+        # Walk through parts in parallel with expected entries.
+        # Only validate segments that align with expected prefix positions.
+        prefix_values = {}
+        for i, exp in enumerate(expected):
+            if i >= len(parts):
+                break
+            part = parts[i].strip()
+            # Parse "Label: value" or "Label value" (first word only)
+            if ": " in part:
+                lbl, _, rest = part.partition(": ")
                 val = rest.strip().split(None, 1)[0] if rest.strip() else ""
-            elif comment.strip().startswith(label + " "):
-                rest = comment.strip()[len(label) + 1 :]
+            elif part.startswith(exp["label"] + " "):
+                lbl = exp["label"]
+                rest = part[len(exp["label"]) + 1 :]
                 val = rest.strip().split(None, 1)[0] if rest.strip() else ""
             else:
-                continue
-            adif_key = field_to_adif.get(field, "")
-            adif_val = record.get(adif_key, "") if adif_key else ""
-            vals_match = val == adif_val
-            if not vals_match and field == "freq":
-                vals_match = _normalize_freq(val, adif_val)
-            if adif_val and not vals_match:
-                warnings.append(
-                    {
-                        "field": field,
-                        "label": label,
-                        "comment_val": val,
-                        "field_val": adif_val,
-                        "message": f"{label}: comment has '{val}'"
-                        f" but field has '{adif_val}'",
-                    }
-                )
-            elif not adif_val and val:
-                warnings.append(
-                    {
-                        "field": field,
-                        "label": label,
-                        "comment_val": val,
-                        "field_val": "",
-                        "message": f"{label}: '{val}' found in comment"
-                        " but no normalized field",
-                    }
-                )
+                break
+            if lbl.strip() != exp["label"]:
+                break
+            # This segment aligns with expected position — check if value matches
+            if _segment_matches(part, exp["label"], exp["val"], exp["field"]):
+                continue  # clean match
+            if val != exp["val"]:
+                prefix_values[exp["label"]] = {
+                    "field": exp["field"],
+                    "comment_val": val.strip(),
+                    "field_val": exp["val"],
+                }
+
+        for label, info in prefix_values.items():
+            warnings.append(
+                {
+                    "field": info["field"],
+                    "label": label,
+                    "comment_val": info["comment_val"],
+                    "field_val": info["field_val"],
+                    "message": f"{label}: comment has '{info['comment_val']}'"
+                    f" but field has '{info['field_val']}'",
+                }
+            )
+
+        # Also check for single-segment comments (no separator)
+        if not warnings and len(parts) == 1:
+            lbl = None
+            val = None
+            if ": " in comment:
+                lbl, _, rest = comment.partition(": ")
+            for entry in template_fields:
+                label = entry.get("label", entry.get("field", ""))
+                field = entry.get("field", "")
+                # Try "Label: value" or "Label value" (first word only)
+                if lbl and lbl.strip() == label:
+                    val = rest.strip().split(None, 1)[0] if rest.strip() else ""
+                elif comment.strip().startswith(label + " "):
+                    rest = comment.strip()[len(label) + 1 :]
+                    val = rest.strip().split(None, 1)[0] if rest.strip() else ""
+                else:
+                    continue
+                adif_key = field_to_adif.get(field, "")
+                adif_val = record.get(adif_key, "") if adif_key else ""
+                vals_match = val == adif_val
+                if not vals_match and field == "freq":
+                    vals_match = _normalize_freq(val, adif_val)
+                if adif_val and not vals_match:
+                    warnings.append(
+                        {
+                            "field": field,
+                            "label": label,
+                            "comment_val": val,
+                            "field_val": adif_val,
+                            "message": f"{label}: comment has '{val}'"
+                            f" but field has '{adif_val}'",
+                        }
+                    )
+                elif not adif_val and val:
+                    warnings.append(
+                        {
+                            "field": field,
+                            "label": label,
+                            "comment_val": val,
+                            "field_val": "",
+                            "message": f"{label}: '{val}' found in comment"
+                            " but no normalized field",
+                        }
+                    )
     # Field-specific validations
     skcc_val = record.get("SKCC", "")
     if skcc_val:
