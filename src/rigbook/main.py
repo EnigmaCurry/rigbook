@@ -91,7 +91,7 @@ app = FastAPI(title="Rigbook", lifespan=lifespan)
 
 
 @app.middleware("http")
-async def no_cache_static(request: Request, call_next):
+async def log_errors(request: Request, call_next):
     response: Response = await call_next(request)
     if not request.url.path.startswith("/api/"):
         response.headers["Cache-Control"] = "no-cache"
