@@ -956,38 +956,6 @@
   </section>
 
   <section class="settings-section">
-    <h3>Authentication</h3>
-    <p class="hint">HTTP Basic auth. Username is your callsign. Use <code>--no-auth</code> to bypass.</p>
-    {#if authStatus}
-      {#if authStatus.enabled}
-        <p class="hint" style="color: var(--accent)">Enabled{#if my_callsign} (username: {my_callsign}){/if}</p>
-        <div class="setting-row">
-          <button on:click={disableAuth}>Disable Authentication</button>
-        </div>
-      {:else}
-        <p class="hint">Disabled</p>
-        <div class="setting-row">
-          <label>Password</label>
-          <input type="password" bind:value={authPassword} placeholder="Enter password" autocomplete="new-password" />
-        </div>
-        <div class="setting-row">
-          <label>Confirm</label>
-          <input type="password" bind:value={authConfirm} placeholder="Confirm password" autocomplete="new-password"
-            on:keydown={e => { if (e.key === "Enter") enableAuth(); }} />
-        </div>
-        <div class="setting-row">
-          <button on:click={enableAuth} disabled={authSaving || !authPassword || authPassword !== authConfirm}>
-            {authSaving ? "Saving..." : "Enable Authentication"}
-          </button>
-        </div>
-      {/if}
-    {/if}
-    {#if authMessage}
-      <p class="hint" class:danger-error={authMessageType === "error"} style={authMessageType === "success" ? "color: var(--accent)" : ""}>{authMessage}</p>
-    {/if}
-  </section>
-
-  <section class="settings-section">
     <h3>Backup</h3>
     {#if dbInfo}
       <p class="hint">Database: {dbInfo.path} ({formatSize(dbInfo.size)})</p>
@@ -1032,36 +1000,71 @@
   </section>
 
   {#if logbookName}
-    <section class="settings-section danger-zone">
-      <h3>Danger Zone</h3>
-      <div class="setting-row">
-        <label for="danger-confirm">Type <strong>{logbookName}</strong> to enable</label>
-        <input id="danger-confirm" type="text" bind:value={dangerConfirmName} placeholder={logbookName} autocomplete="off" />
-      </div>
-      <div class="danger-separator"></div>
-      <p class="danger-text">Delete all QSOs from <strong>{logbookName}</strong> but keep the logbook and settings.</p>
-      {#if clearError}
-        <p class="danger-error">{clearError}</p>
-      {/if}
-      <div class="setting-row">
-        <button class="danger-btn" on:click={clearAllContacts} disabled={clearing || dangerConfirmName !== logbookName}>
-          {clearing ? "Clearing..." : "Clear All QSOs"}
-        </button>
-      </div>
-      <div class="danger-separator"></div>
-      <p class="danger-text">Permanently delete the logbook <strong>{logbookName}</strong> and all its data. This cannot be undone.</p>
-      {#if deleteError}
-        <p class="danger-error">{deleteError}</p>
-      {/if}
-      <div class="setting-row">
-        <button class="danger-btn" on:click={deleteLogbook} disabled={deleting || dangerConfirmName !== logbookName}>
-          {deleting ? "Deleting..." : "Delete Logbook"}
-        </button>
-      </div>
-      <div class="danger-separator"></div>
-      <div class="setting-row">
-        <button class="danger-btn" on:click={shutdownServer}>Shutdown Server</button>
-      </div>
+    <section class="settings-section advanced-section">
+      <details>
+        <summary><h3>Advanced</h3></summary>
+
+        <h4>Authentication</h4>
+        <p class="hint">HTTP Basic auth. Username is your callsign. Use <code>--no-auth</code> to bypass.</p>
+        {#if authStatus}
+          {#if authStatus.enabled}
+            <p class="hint" style="color: var(--accent)">Enabled{#if my_callsign} (username: {my_callsign}){/if}</p>
+            <div class="setting-row">
+              <button on:click={disableAuth}>Disable Authentication</button>
+            </div>
+          {:else}
+            <p class="hint">Disabled</p>
+            <div class="setting-row">
+              <label>Password</label>
+              <input type="password" bind:value={authPassword} placeholder="Enter password" autocomplete="new-password" />
+            </div>
+            <div class="setting-row">
+              <label>Confirm</label>
+              <input type="password" bind:value={authConfirm} placeholder="Confirm password" autocomplete="new-password"
+                on:keydown={e => { if (e.key === "Enter") enableAuth(); }} />
+            </div>
+            <div class="setting-row">
+              <button on:click={enableAuth} disabled={authSaving || !authPassword || authPassword !== authConfirm}>
+                {authSaving ? "Saving..." : "Enable Authentication"}
+              </button>
+            </div>
+          {/if}
+        {/if}
+        {#if authMessage}
+          <p class="hint" class:danger-error={authMessageType === "error"} style={authMessageType === "success" ? "color: var(--accent)" : ""}>{authMessage}</p>
+        {/if}
+
+        <div class="danger-separator"></div>
+        <h4 class="danger-heading">Danger Zone</h4>
+        <div class="setting-row">
+          <label for="danger-confirm">Type <strong>{logbookName}</strong> to enable</label>
+          <input id="danger-confirm" type="text" bind:value={dangerConfirmName} placeholder={logbookName} autocomplete="off" />
+        </div>
+        <div class="danger-separator"></div>
+        <p class="danger-text">Delete all QSOs from <strong>{logbookName}</strong> but keep the logbook and settings.</p>
+        {#if clearError}
+          <p class="danger-error">{clearError}</p>
+        {/if}
+        <div class="setting-row">
+          <button class="danger-btn" on:click={clearAllContacts} disabled={clearing || dangerConfirmName !== logbookName}>
+            {clearing ? "Clearing..." : "Clear All QSOs"}
+          </button>
+        </div>
+        <div class="danger-separator"></div>
+        <p class="danger-text">Permanently delete the logbook <strong>{logbookName}</strong> and all its data. This cannot be undone.</p>
+        {#if deleteError}
+          <p class="danger-error">{deleteError}</p>
+        {/if}
+        <div class="setting-row">
+          <button class="danger-btn" on:click={deleteLogbook} disabled={deleting || dangerConfirmName !== logbookName}>
+            {deleting ? "Deleting..." : "Delete Logbook"}
+          </button>
+        </div>
+        <div class="danger-separator"></div>
+        <div class="setting-row">
+          <button class="danger-btn" on:click={shutdownServer}>Shutdown Server</button>
+        </div>
+      </details>
     </section>
   {/if}
 </div>
@@ -1328,13 +1331,36 @@
     border-color: #ff4444 !important;
   }
 
-  .danger-zone {
-    border-color: #ff4444;
+  .advanced-section {
     margin-top: 2rem;
   }
 
-  .danger-zone h3 {
-    color: #ff4444;
+  .advanced-section summary {
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .advanced-section summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .advanced-section summary h3::before {
+    content: "▶ ";
+    font-size: 0.7em;
+  }
+
+  .advanced-section details[open] summary h3::before {
+    content: "▼ ";
+  }
+
+  .advanced-section h4 {
+    margin: 0.75rem 0 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  .danger-heading {
+    color: #ff4444 !important;
   }
 
   .danger-text {
