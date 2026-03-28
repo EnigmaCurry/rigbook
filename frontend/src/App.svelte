@@ -1376,7 +1376,7 @@
 
   .up-to-date-check {
     margin-left: 0.2rem;
-    opacity: 0.3;
+    opacity: 0.7;
     font-size: 0.5rem;
   }
 
