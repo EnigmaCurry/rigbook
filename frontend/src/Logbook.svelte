@@ -1248,7 +1248,7 @@
       </div>
       <div class="field" class:changed={orig && timePart !== orig.timePart}>
         <label for="time">Start Time{#if !editingId && clockState === "ROLLING_START"} <span class="clock-rolling">LIVE</span>{/if}</label>
-        <input id="time" type="time" step="1" bind:value={timePart} on:focus={onStartFocus} />
+        <input id="time" type="text" bind:value={timePart} on:blur={normalizeTime} on:focus={onStartFocus} placeholder="HH:MM:SS" maxlength="8" />
       </div>
       {#if !editingId}
         <div class="field field-clock-btn">
@@ -1265,7 +1265,7 @@
       </div>
       <div class="field" class:changed={orig && timePartOff !== orig.timePartOff}>
         <label for="time_off">End Time{#if !editingId && clockState === "ROLLING_END"} <span class="clock-rolling">LIVE</span>{/if}</label>
-        <input id="time_off" type="time" step="1" bind:value={timePartOff} on:focus={onEndFocus} disabled={!editingId && clockState === "ROLLING_START"} />
+        <input id="time_off" type="text" bind:value={timePartOff} on:blur={normalizeTimeOff} on:focus={onEndFocus} placeholder="HH:MM:SS" maxlength="8" disabled={!editingId && clockState === "ROLLING_START"} />
       </div>
       {#if !editingId}
         <div class="field field-clock-btn">
