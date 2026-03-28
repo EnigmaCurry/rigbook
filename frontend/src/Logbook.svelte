@@ -1,5 +1,5 @@
 <script>
-  import { onMount, tick, createEventDispatcher } from "svelte";
+  import { onMount, onDestroy, tick, createEventDispatcher } from "svelte";
   import Autocomplete from "./Autocomplete.svelte";
   import GridMap from "./GridMap.svelte";
   import ParkDetail from "./ParkDetail.svelte";
@@ -55,6 +55,102 @@
 
   let datePart = "";
   let timePart = "";
+  let datePartOff = "";
+  let timePartOff = "";
+  // Clock state machine: ROLLING_START -> ROLLING_END -> STATIC
+  let clockState = "ROLLING_START";
+  let clockInterval = null;
+
+  function normalizeTimeOff() {
+    const stripped = timePartOff.trim();
+    if (/^\d{2}:\d{2}$/.test(stripped)) {
+      timePartOff = `${stripped}:00`;
+      return;
+    }
+    const digits = stripped.replace(/\D/g, "");
+    if (digits.length >= 4 && !stripped.includes(":")) {
+      const h = digits.slice(0, 2);
+      const m = digits.slice(2, 4);
+      const s = digits.slice(4, 6) || "00";
+      timePartOff = `${h}:${m}:${s}`;
+    }
+  }
+
+  function startRollingClock() {
+    stopRollingClock();
+    clockState = "ROLLING_START";
+    datePartOff = "";
+    timePartOff = "";
+    clockInterval = setInterval(() => {
+      if (clockState === "ROLLING_START") {
+        datePart = utcNowDate();
+        timePart = utcNowTime();
+      } else if (clockState === "ROLLING_END") {
+        datePartOff = utcNowDate();
+        timePartOff = utcNowTime();
+      }
+    }, 1000);
+    // Set initial values immediately
+    datePart = utcNowDate();
+    timePart = utcNowTime();
+  }
+
+  function stopRollingClock() {
+    if (clockInterval) {
+      clearInterval(clockInterval);
+      clockInterval = null;
+    }
+  }
+
+  function onStartClick() {
+    if (clockState === "ROLLING_START") {
+      // Freeze start time, begin rolling end
+      clockState = "ROLLING_END";
+      datePartOff = utcNowDate();
+      timePartOff = utcNowTime();
+    } else {
+      // Override start time to now, restart end rolling
+      datePart = utcNowDate();
+      timePart = utcNowTime();
+      clockState = "ROLLING_END";
+      datePartOff = utcNowDate();
+      timePartOff = utcNowTime();
+      if (!clockInterval) {
+        clockInterval = setInterval(() => {
+          if (clockState === "ROLLING_END") {
+            datePartOff = utcNowDate();
+            timePartOff = utcNowTime();
+          }
+        }, 1000);
+      }
+    }
+  }
+
+  function onStopClick() {
+    if (clockState === "ROLLING_END") {
+      // Freeze end time
+      clockState = "STATIC";
+    } else if (clockState === "STATIC") {
+      // Override end time to now
+      datePartOff = utcNowDate();
+      timePartOff = utcNowTime();
+    }
+  }
+
+  function onStartFocus() {
+    if (clockState === "ROLLING_START") {
+      clockState = "ROLLING_END";
+      datePartOff = utcNowDate();
+      timePartOff = utcNowTime();
+    }
+  }
+
+  function onEndFocus() {
+    if (clockState === "ROLLING_END") {
+      clockState = "STATIC";
+    }
+  }
+
   let comments = "";
   let notes = "";
 
@@ -106,7 +202,7 @@
   export let activePark = "";
 
   function formSnapshot() {
-    return { call, freq, mode, rst_sent, rst_recv, pota_park, name, qth, state, country, grid, skcc, skcc_exch, comments, notes, datePart, timePart };
+    return { call, freq, mode, rst_sent, rst_recv, pota_park, name, qth, state, country, grid, skcc, skcc_exch, comments, notes, datePart, timePart, datePartOff, timePartOff };
   }
 
   $: editHasChanges = !editingId || !editOriginal || (
@@ -126,7 +222,9 @@
     comments !== editOriginal.comments ||
     notes !== editOriginal.notes ||
     datePart !== editOriginal.datePart ||
-    timePart !== editOriginal.timePart
+    timePart !== editOriginal.timePart ||
+    datePartOff !== editOriginal.datePartOff ||
+    timePartOff !== editOriginal.timePartOff
   );
   $: missingFields = [
     !call.trim() && "Call",
@@ -150,8 +248,10 @@
     skcc_exch !== addOriginal.skcc_exch ||
     comments !== addOriginal.comments ||
     notes !== addOriginal.notes ||
-    datePart !== addOriginal.datePart ||
-    timePart !== addOriginal.timePart
+    (clockState === "STATIC" && datePart !== addOriginal.datePart) ||
+    (clockState === "STATIC" && timePart !== addOriginal.timePart) ||
+    (clockState === "STATIC" && datePartOff !== addOriginal.datePartOff) ||
+    (clockState === "STATIC" && timePartOff !== addOriginal.timePartOff)
   );
 
   $: formDirty = editingId ? editHasChanges : addHasChanges;
@@ -442,8 +542,11 @@
     notes = "";
     datePart = "";
     timePart = "";
+    datePartOff = "";
+    timePartOff = "";
     subdivisions = [];
 
+    startRollingClock();
     prefillSource = "hunting";
     if (prefill.call) call = prefill.call;
     if (prefill.freq) freq = prefill.freq;
@@ -719,10 +822,21 @@
       datePart = "";
       timePart = "";
     }
+    if (c.timestamp_off) {
+      const isoOff = new Date(c.timestamp_off).toISOString();
+      datePartOff = isoOff.slice(0, 10);
+      timePartOff = isoOff.slice(11, 19);
+    } else {
+      datePartOff = "";
+      timePartOff = "";
+    }
+    stopRollingClock();
+    clockState = "STATIC";
     errorMsg = "";
     editOriginal = {
       call, freq, mode, rst_sent, rst_recv, pota_park, name, qth,
       state, country, grid, skcc, skcc_exch, comments, notes, datePart, timePart,
+      datePartOff, timePartOff,
     };
     const match = countries.find(co => co.name === country);
     fetchSubdivisions(match ? match.code : "");
@@ -780,6 +894,7 @@
         comments: comments || null,
         notes: notes || null,
         timestamp: `${datePart}T${timePart || "00:00:00"}Z`,
+        timestamp_off: (datePartOff.trim() && timePartOff.trim()) ? `${datePartOff}T${timePartOff}Z` : null,
       };
       const res = await fetch(`/api/contacts/${editingId}`, {
         method: "PUT",
@@ -829,8 +944,11 @@
     notes = "";
     datePart = "";
     timePart = "";
+    datePartOff = "";
+    timePartOff = "";
     subdivisions = [];
     userTouched = false;
+    startRollingClock();
     addOriginal = formSnapshot();
   }
 
@@ -843,6 +961,8 @@
     }
     if (!datePart.trim()) datePart = utcNowDate();
     if (!timePart.trim()) timePart = utcNowTime();
+    if (!datePartOff.trim()) datePartOff = utcNowDate();
+    if (!timePartOff.trim()) timePartOff = utcNowTime();
     submitting = true;
     errorMsg = "";
     try {
@@ -864,6 +984,7 @@
         comments: comments || null,
         notes: notes || null,
         timestamp: `${datePart}T${timePart || "00:00:00"}Z`,
+        timestamp_off: (datePartOff && timePartOff) ? `${datePartOff}T${timePartOff}Z` : null,
       };
       const res = await fetch("/api/contacts/", {
         method: "POST",
@@ -885,6 +1006,9 @@
         notes = "";
         datePart = "";
         timePart = "";
+        datePartOff = "";
+        timePartOff = "";
+        startRollingClock();
         addOriginal = formSnapshot();
         await fetchContacts();
         dispatch("parkschanged");
@@ -931,6 +1055,11 @@
     fetchDefaultRst();
     fetchCountries();
     fetchModes();
+    if (!editingId) startRollingClock();
+  });
+
+  onDestroy(() => {
+    stopRollingClock();
   });
 
   const BANDS = [
@@ -1112,14 +1241,43 @@
   </div>
 
   <div class="form-row">
-    <div class="field" class:changed={orig && datePart !== orig.datePart}>
-      <label for="date">Date (UTC)</label>
-      <input id="date" type="date" bind:value={datePart} />
+    <div class="time-btn-group">
+      <div class="field" class:changed={orig && datePart !== orig.datePart}>
+        <label for="date">Start Date (UTC)</label>
+        <input id="date" type="date" bind:value={datePart} on:focus={onStartFocus} />
+      </div>
+      <div class="field time-with-btn" class:changed={orig && timePart !== orig.timePart}>
+        <label for="time">Start Time{#if !editingId && clockState === "ROLLING_START"} <span class="clock-rolling">CLICK START</span>{/if}</label>
+        <div class="time-input-row">
+          <input id="time" type="text" bind:value={timePart} on:blur={normalizeTime} on:focus={onStartFocus} placeholder="HH:MM:SS" maxlength="8" />
+          {#if !editingId}
+            <button type="button" class="btn-clock" class:btn-clock-green={clockState === "ROLLING_START"} on:click={onStartClick} title={clockState === "ROLLING_START" ? "Freeze start time" : "Reset start to now"}>
+              {clockState === "ROLLING_START" ? "Start" : "Restart"}
+            </button>
+          {/if}
+        </div>
+      </div>
     </div>
-    <div class="field" class:changed={orig && timePart !== orig.timePart}>
-      <label for="time">Time (UTC)</label>
-      <input id="time" type="text" bind:value={timePart} on:blur={normalizeTime} placeholder="HH:MM:SS" maxlength="8" />
+    <div class="time-btn-group">
+      <div class="field" class:changed={orig && datePartOff !== orig.datePartOff}>
+        <label for="date_off">End Date (UTC)</label>
+        <input id="date_off" type="date" bind:value={datePartOff} on:focus={onEndFocus} disabled={!editingId && clockState === "ROLLING_START"} />
+      </div>
+      <div class="field time-with-btn" class:changed={orig && timePartOff !== orig.timePartOff}>
+        <label for="time_off">End Time{#if !editingId && clockState === "ROLLING_END"} <span class="clock-rolling">LIVE</span>{/if}</label>
+        <div class="time-input-row">
+          <input id="time_off" type="text" bind:value={timePartOff} on:blur={normalizeTimeOff} on:focus={onEndFocus} placeholder="HH:MM:SS" maxlength="8" disabled={!editingId && clockState === "ROLLING_START"} />
+          {#if !editingId}
+            <button type="button" class="btn-clock" class:btn-clock-red={clockState === "ROLLING_END"} on:click={onStopClick} disabled={clockState === "ROLLING_START"} title={clockState === "ROLLING_END" ? "Freeze end time" : "Reset end to now"}>
+              {clockState === "ROLLING_END" ? "Stop" : "Set End"}
+            </button>
+          {/if}
+        </div>
+      </div>
     </div>
+  </div>
+
+  <div class="form-row">
     <div class="field wide" class:changed={orig && notes !== orig.notes}>
       <label for="notes">Notes (private)</label>
       <textarea id="notes" bind:value={notes} rows="2"></textarea>
@@ -1292,6 +1450,91 @@
   .field.wide {
     flex: 2;
     min-width: 240px;
+  }
+
+  .time-btn-group {
+    display: flex;
+    gap: 0.25rem;
+    align-items: flex-end;
+    flex: 1;
+    min-width: 250px;
+    flex-wrap: nowrap;
+  }
+
+  .time-btn-group .field {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .field.time-with-btn > label {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .time-input-row {
+    display: flex;
+    gap: 0.25rem;
+    align-items: stretch;
+  }
+
+  .time-input-row input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .btn-clock {
+    padding: 0.35rem 0.6rem;
+    min-width: 4.5rem;
+    text-align: center;
+    font-size: 0.75rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .btn-clock:hover:not(:disabled):not(.btn-clock-green):not(.btn-clock-red) {
+    background: var(--accent, #f0c040);
+    color: var(--bg);
+  }
+  .btn-clock.btn-clock-green {
+    background: #4caf50;
+    border-color: #4caf50;
+    color: #fff;
+  }
+  .btn-clock.btn-clock-green:hover {
+    background: #43a047 !important;
+    border-color: #43a047 !important;
+    color: #fff !important;
+  }
+  .btn-clock.btn-clock-red {
+    background: #e53935;
+    border-color: #e53935;
+    color: #fff;
+  }
+  .btn-clock.btn-clock-red:hover {
+    background: #d32f2f !important;
+    border-color: #d32f2f !important;
+    color: #fff !important;
+  }
+  .btn-clock:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .clock-rolling {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: bold;
+    color: #4caf50;
+    margin-left: 0.3em;
+    animation: pulse-live 1.5s infinite;
+  }
+
+  @keyframes pulse-live {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
   }
 
   .field-name {

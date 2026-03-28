@@ -164,6 +164,9 @@ def contact_to_adif_record(
         record["COMMENT"] = c.comments
     if c.notes:
         record["NOTES"] = c.notes
+    if c.timestamp_off:
+        record["QSO_DATE_OFF"] = c.timestamp_off.strftime("%Y%m%d")
+        record["TIME_OFF"] = c.timestamp_off.strftime("%H%M%S")
     if c.uuid:
         record["APP_RIGBOOK_UUID"] = c.uuid
     return record
@@ -311,6 +314,17 @@ def adif_record_to_contact_dict(record: dict) -> dict:
         try:
             data["timestamp"] = datetime.strptime(
                 f"{qso_date}{time_str}", "%Y%m%d%H%M%S"
+            ).replace(tzinfo=timezone.utc)
+        except ValueError:
+            pass
+
+    qso_date_off = record.get("QSO_DATE_OFF", "")
+    time_off = record.get("TIME_OFF", "")
+    if qso_date_off:
+        time_off_str = time_off.ljust(6, "0") if time_off else "000000"
+        try:
+            data["timestamp_off"] = datetime.strptime(
+                f"{qso_date_off}{time_off_str}", "%Y%m%d%H%M%S"
             ).replace(tzinfo=timezone.utc)
         except ValueError:
             pass
@@ -979,6 +993,9 @@ async def preview_import_adif(
             "timestamp": data.get("timestamp", datetime.now(timezone.utc)).isoformat()
             if data.get("timestamp")
             else None,
+            "timestamp_off": data.get("timestamp_off").isoformat()
+            if data.get("timestamp_off")
+            else None,
             "updated_at": None,
             "adif_line": record_to_adif_line(raw_record),
             "adif_lines": adif_lines,
@@ -1048,6 +1065,7 @@ IMPORT_FIELDS = {
     "skcc_exch",
     "comments",
     "notes",
+    "timestamp_off",
 }
 
 
@@ -1075,6 +1093,16 @@ async def import_confirmed(
                 if ts.tzinfo is not None:
                     ts = ts.replace(tzinfo=None)
                 data["timestamp"] = ts
+            except (ValueError, TypeError):
+                pass
+        if c.get("timestamp_off"):
+            try:
+                ts_off = c["timestamp_off"]
+                if isinstance(ts_off, str):
+                    ts_off = datetime.fromisoformat(ts_off.replace("Z", "+00:00"))
+                if ts_off.tzinfo is not None:
+                    ts_off = ts_off.replace(tzinfo=None)
+                data["timestamp_off"] = ts_off
             except (ValueError, TypeError):
                 pass
         # Dedup by UUID against DB and batch
