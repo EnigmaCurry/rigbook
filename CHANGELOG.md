@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.1.22
+
+### ADIF Import
+
+- Fix dedup: fall through to call+timestamp check when UUID doesn't match an existing record
+- Add intra-batch dedup to catch duplicates within the same import file
+- Auto-merge intra-batch duplicate records with conflict resolution UI
+- Accumulate all ADIF source lines when merging 3+ duplicate records
+
+### QSO Form
+
+- Add TIME_ON / TIME_OFF support with `timestamp_off` field for QSO end time
+- Rolling clock state machine: start time rolls until Start is clicked, then end time rolls until Stop is clicked
+- Start button (solid green) freezes start time; Stop button (solid red) freezes end time
+- Restart and Set End buttons available after times are frozen
+- Date, time, and button grouped together so they never split on reflow
+- Flashing "CLICK START" prompt on start time label while clock is rolling
+
+### ADIF Export
+
+- Export `QSO_DATE_OFF` and `TIME_OFF` fields when end time is present
+- Import `QSO_DATE_OFF` and `TIME_OFF` from ADIF files into `timestamp_off`
+
 ## v0.1.21
 
 - Remove authentication feature (HTTP Basic auth middleware, settings UI, and `--no-auth` flag)
