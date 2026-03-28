@@ -21,6 +21,7 @@
   let hasQrzPassword = false;
   let pota_enabled = true;
   let solar_enabled = false;
+  let update_check_enabled = true;
   let flrig_enabled = false;
   let flrig_simulate = false;
   let flrig_host = "127.0.0.1";
@@ -58,6 +59,7 @@
   function settingsSnapshot() {
     return {
       my_callsign, my_grid, default_rst, pota_enabled, solar_enabled,
+      update_check_enabled,
       flrig_enabled, flrig_simulate, flrig_host, flrig_port,
       logbook_right, wide_breakpoint, wide_mode_enabled, map_theme, map_custom_url,
       rbn_enabled, rbn_host, rbn_feed_cw, rbn_feed_digital,
@@ -68,6 +70,7 @@
 
   $: currentSnap = {
     my_callsign, my_grid, default_rst, pota_enabled, solar_enabled,
+    update_check_enabled,
     flrig_enabled, flrig_simulate, flrig_host, flrig_port,
     logbook_right, wide_breakpoint, wide_mode_enabled, map_theme, map_custom_url,
     rbn_enabled, rbn_host, rbn_feed_cw, rbn_feed_digital,
@@ -408,6 +411,7 @@
           if (s.key === "qrz_password") hasQrzPassword = !!s.value && s.value !== "";
           if (s.key === "pota_enabled") pota_enabled = s.value !== "false";
           if (s.key === "solar_enabled") solar_enabled = s.value === "true";
+          if (s.key === "update_check_enabled") update_check_enabled = s.value !== "false";
           if (s.key === "flrig_enabled") flrig_enabled = s.value === "true";
           if (s.key === "flrig_simulate") flrig_simulate = s.value === "true";
           if (s.key === "flrig_host") flrig_host = s.value || "127.0.0.1";
@@ -482,6 +486,11 @@
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value: solar_enabled ? "true" : "false" }),
+      });
+      await fetch("/api/settings/update_check_enabled", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: update_check_enabled ? "true" : "false" }),
       });
       await fetch("/api/settings/flrig_enabled", {
         method: "PUT",
@@ -796,6 +805,16 @@
       <label>
         <input type="checkbox" bind:checked={solar_enabled} />
         Enable band conditions (N0NBH / hamqsl.com)
+      </label>
+    </div>
+  </section>
+
+  <section class="settings-section" class:section-changed={changed.update_check_enabled}>
+    <h3>Update Checker</h3>
+    <div class="setting-row toggle-row">
+      <label>
+        <input type="checkbox" bind:checked={update_check_enabled} />
+        Check for new Rigbook releases on GitHub
       </label>
     </div>
   </section>

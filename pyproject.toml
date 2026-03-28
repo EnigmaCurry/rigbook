@@ -12,6 +12,7 @@ dependencies = [
     "pyadif-file>=1.4",
     "python-multipart>=0.0.22",
     "httpx",
+    "packaging",
 ]
 
 [project.scripts]

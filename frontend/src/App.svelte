@@ -167,6 +167,8 @@
   let menuOpen = false;
   let myCallsign = "";
   let appVersion = "";
+  let updateAvailable = false;
+  let updateUrl = "";
   let vfoFreq = "";
   let vfoMode = "";
   let vfoConnected = false;
@@ -238,6 +240,7 @@
 
   async function startAppServices() {
     fetchVersion();
+    fetchUpdateCheck();
     fetchCallsign();
     await fetchLogbookRight();
     await fetchSolarEnabled();
@@ -561,6 +564,17 @@
       if (res.ok) {
         const data = await res.json();
         appVersion = data.version || "";
+      }
+    } catch {}
+  }
+
+  async function fetchUpdateCheck() {
+    try {
+      const res = await fetch("/api/update-check");
+      if (res.ok) {
+        const data = await res.json();
+        updateAvailable = data.update_available || false;
+        updateUrl = data.url || "";
       }
     } catch {}
   }
@@ -976,7 +990,7 @@
   {#if serverShutdown}
     <header>
       <div class="header-left">
-        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version">v{appVersion}</span>{/if}</h1>
+        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version">v{appVersion}{#if updateAvailable} <a href={updateUrl} target="_blank" rel="noopener" class="update-link">Update Available</a>{/if}</span>{/if}</h1>
       </div>
     </header>
     <div class="welcome-container">
@@ -988,7 +1002,7 @@
   {:else if pendingLogbook}
     <header>
       <div class="header-left">
-        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version">v{appVersion}</span>{/if}</h1>
+        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version">v{appVersion}{#if updateAvailable} <a href={updateUrl} target="_blank" rel="noopener" class="update-link">Update Available</a>{/if}</span>{/if}</h1>
       </div>
       <span class="utc-clock">{utcNow}</span>
     </header>
@@ -1005,7 +1019,7 @@
   {:else if pickerMode && !logbookOpen}
     <header>
       <div class="header-left">
-        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version">v{appVersion}</span>{/if}</h1>
+        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version">v{appVersion}{#if updateAvailable} <a href={updateUrl} target="_blank" rel="noopener" class="update-link">Update Available</a>{/if}</span>{/if}</h1>
       </div>
       <span class="utc-clock">{utcNow}</span>
     </header>
@@ -1017,7 +1031,7 @@
       <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-      <h1 class="app-title" on:click={goHome} style="cursor: pointer"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version">v{appVersion}</span>{/if}</h1>
+      <h1 class="app-title" on:click={goHome} style="cursor: pointer"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version">v{appVersion}{#if updateAvailable} <a href={updateUrl} target="_blank" rel="noopener" class="update-link">Update Available</a>{/if}</span>{/if}</h1>
       {#if myCallsign}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -1355,6 +1369,16 @@
     font-weight: normal;
     line-height: 1;
     margin-top: 0.05rem;
+  }
+
+  .update-link {
+    color: #2ecc40;
+    text-decoration: none;
+    font-weight: bold;
+    margin-left: 0.3rem;
+  }
+  .update-link:hover {
+    text-decoration: underline;
   }
 
   .vfo-bezel {
