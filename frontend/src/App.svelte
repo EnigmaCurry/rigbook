@@ -1347,22 +1347,14 @@
     font-weight: bold;
   }
 
-  .app-version {
-    display: block;
-    color: var(--text-muted);
-    font-size: 0.55rem;
-    font-weight: normal;
-    line-height: 1;
-    margin-top: -0.15rem;
-  }
-
+  .app-version,
   .logbook-name {
     display: block;
     color: var(--text-muted);
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     font-weight: normal;
     line-height: 1;
-    margin-top: 0.1rem;
+    margin-top: 0.05rem;
   }
 
   .vfo-bezel {
