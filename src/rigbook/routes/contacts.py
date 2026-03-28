@@ -31,6 +31,7 @@ class ContactCreate(BaseModel):
     comments: str | None = None
     notes: str | None = None
     timestamp: datetime | None = None
+    timestamp_off: datetime | None = None
 
     @field_validator("call")
     @classmethod
@@ -62,7 +63,7 @@ class ContactCreate(BaseModel):
             raise ValueError("grid must be alphanumeric with no spaces")
         return v.upper()
 
-    @field_validator("timestamp")
+    @field_validator("timestamp", "timestamp_off")
     @classmethod
     def normalize_timestamp(cls, v: datetime | None) -> datetime | None:
         if v is None:
@@ -90,8 +91,9 @@ class ContactUpdate(BaseModel):
     comments: str | None = None
     notes: str | None = None
     timestamp: datetime | None = None
+    timestamp_off: datetime | None = None
 
-    @field_validator("timestamp")
+    @field_validator("timestamp", "timestamp_off")
     @classmethod
     def normalize_timestamp(cls, v: datetime | None) -> datetime | None:
         if v is None:
@@ -121,6 +123,7 @@ class ContactResponse(BaseModel):
     comments: str | None
     notes: str | None
     timestamp: datetime
+    timestamp_off: datetime | None = None
     updated_at: datetime | None = None
 
     @model_validator(mode="before")
@@ -136,6 +139,12 @@ class ContactResponse(BaseModel):
 
     @field_serializer("timestamp")
     def serialize_timestamp(self, v: datetime) -> str:
+        return v.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    @field_serializer("timestamp_off")
+    def serialize_timestamp_off(self, v: datetime | None) -> str | None:
+        if v is None:
+            return None
         return v.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     @field_serializer("updated_at")
@@ -182,10 +191,7 @@ async def today_cw_contacts(session: AsyncSession = Depends(get_session)):
             .where(Contact.timestamp >= today_start)
         )
     ).all()
-    return [
-        {"call": call, "freq": freq, "mode": mode}
-        for call, freq, mode in rows
-    ]
+    return [{"call": call, "freq": freq, "mode": mode} for call, freq, mode in rows]
 
 
 @router.get("/today")
@@ -197,14 +203,12 @@ async def today_contacts(session: AsyncSession = Depends(get_session)):
     )
     rows = (
         await session.execute(
-            select(Contact.call, Contact.freq, Contact.mode)
-            .where(Contact.timestamp >= today_start)
+            select(Contact.call, Contact.freq, Contact.mode).where(
+                Contact.timestamp >= today_start
+            )
         )
     ).all()
-    return [
-        {"call": call, "freq": freq, "mode": mode}
-        for call, freq, mode in rows
-    ]
+    return [{"call": call, "freq": freq, "mode": mode} for call, freq, mode in rows]
 
 
 @router.get("/callsign-counts")
