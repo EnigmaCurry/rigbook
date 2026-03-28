@@ -916,10 +916,14 @@
     {#if update_check_enabled && updateCheckResult}
       <div class="update-status">
         Current version: <strong>v{updateCheckResult.current}</strong>
-        {#if updateCheckResult.update_available}
+        {#if updateCheckResult.is_dev}
+          — 🚧 Development version — update checker is essentially disabled
+        {:else if updateCheckResult.update_available}
           — <a href={updateCheckResult.url} target="_blank" rel="noopener" class="update-available">Update available: v{updateCheckResult.latest}</a>
-        {:else if updateCheckResult.latest}
+        {:else if updateCheckResult.is_exact}
           — You're running the latest version
+        {:else if updateCheckResult.latest}
+          — 🚧 Development version — update checker is essentially disabled
         {:else}
           — Unable to check for updates
         {/if}

@@ -198,15 +198,21 @@ async def check_for_update(
         )
         await session.commit()
 
+    dev_suffixes = ("-dev", "-alpha", "-beta", "-rc")
+    is_dev = any(s in current for s in dev_suffixes)
+    is_exact = current == latest
+
     try:
-        update_available = Version(latest) > Version(current)
+        update_available = not is_dev and Version(latest) > Version(current)
     except Exception:
-        update_available = latest != current
+        update_available = not is_dev and latest != current
 
     return {
         "current": current,
         "latest": latest,
         "update_available": update_available,
+        "is_dev": is_dev,
+        "is_exact": is_exact,
         "url": url if update_available else None,
         "checked_at": checked_at,
     }
