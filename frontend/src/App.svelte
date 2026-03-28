@@ -170,6 +170,7 @@
   let updateAvailable = false;
   let updateChecked = false;
   let updateUrl = "";
+  let updateLatest = "";
   let vfoFreq = "";
   let vfoMode = "";
   let vfoConnected = false;
@@ -576,6 +577,7 @@
         const data = await res.json();
         updateAvailable = data.update_available || false;
         updateChecked = !!data.latest;
+        updateLatest = data.latest || "";
         updateUrl = data.url || "";
       }
     } catch {}
@@ -992,7 +994,7 @@
   {#if serverShutdown}
     <header>
       <div class="header-left">
-        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version" title={updateChecked && !updateAvailable ? "Up to date" : !updateChecked ? "Enable update checker in the settings" : ""}>v{appVersion}{#if updateChecked && !updateAvailable}<span class="up-to-date-check">✔</span>{/if}{#if updateAvailable} <a href={updateUrl} target="_blank" rel="noopener" class="update-link">Update Available</a>{/if}</span>{/if}</h1>
+        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version" title={updateChecked && !updateAvailable ? "Up to date" : !updateChecked ? "Enable update checker in the settings" : ""}>v{appVersion}{#if updateChecked && !updateAvailable}<span class="up-to-date-check">✔</span>{/if}{#if updateAvailable} <a href={updateUrl} target="_blank" rel="noopener" class="update-link" title={"v" + updateLatest + " available — you can disable this update checker in the settings"}>Update Available</a>{/if}</span>{/if}</h1>
       </div>
     </header>
     <div class="welcome-container">
@@ -1004,7 +1006,7 @@
   {:else if pendingLogbook}
     <header>
       <div class="header-left">
-        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version" title={updateChecked && !updateAvailable ? "Up to date" : !updateChecked ? "Enable update checker in the settings" : ""}>v{appVersion}{#if updateChecked && !updateAvailable}<span class="up-to-date-check">✔</span>{/if}{#if updateAvailable} <a href={updateUrl} target="_blank" rel="noopener" class="update-link">Update Available</a>{/if}</span>{/if}</h1>
+        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version" title={updateChecked && !updateAvailable ? "Up to date" : !updateChecked ? "Enable update checker in the settings" : ""}>v{appVersion}{#if updateChecked && !updateAvailable}<span class="up-to-date-check">✔</span>{/if}{#if updateAvailable} <a href={updateUrl} target="_blank" rel="noopener" class="update-link" title={"v" + updateLatest + " available — you can disable this update checker in the settings"}>Update Available</a>{/if}</span>{/if}</h1>
       </div>
       <span class="utc-clock">{utcNow}</span>
     </header>
@@ -1021,7 +1023,7 @@
   {:else if pickerMode && !logbookOpen}
     <header>
       <div class="header-left">
-        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version" title={updateChecked && !updateAvailable ? "Up to date" : !updateChecked ? "Enable update checker in the settings" : ""}>v{appVersion}{#if updateChecked && !updateAvailable}<span class="up-to-date-check">✔</span>{/if}{#if updateAvailable} <a href={updateUrl} target="_blank" rel="noopener" class="update-link">Update Available</a>{/if}</span>{/if}</h1>
+        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version" title={updateChecked && !updateAvailable ? "Up to date" : !updateChecked ? "Enable update checker in the settings" : ""}>v{appVersion}{#if updateChecked && !updateAvailable}<span class="up-to-date-check">✔</span>{/if}{#if updateAvailable} <a href={updateUrl} target="_blank" rel="noopener" class="update-link" title={"v" + updateLatest + " available — you can disable this update checker in the settings"}>Update Available</a>{/if}</span>{/if}</h1>
       </div>
       <span class="utc-clock">{utcNow}</span>
     </header>
@@ -1033,7 +1035,7 @@
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
         <h1 class="app-title" on:click={goHome} style="cursor: pointer"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>
-        {#if appVersion}<span class="app-version" title={updateChecked && !updateAvailable ? "Up to date" : !updateChecked ? "Enable update checker in the settings" : ""}>v{appVersion}{#if updateChecked && !updateAvailable}<span class="up-to-date-check">✔</span>{/if}{#if updateAvailable} <a href={updateUrl} target="_blank" rel="noopener" class="update-link">Update Available</a>{/if}</span>{/if}
+        {#if appVersion}<span class="app-version" title={updateChecked && !updateAvailable ? "Up to date" : !updateChecked ? "Enable update checker in the settings" : ""}>v{appVersion}{#if updateChecked && !updateAvailable}<span class="up-to-date-check">✔</span>{/if}{#if updateAvailable} <a href={updateUrl} target="_blank" rel="noopener" class="update-link" title={"v" + updateLatest + " available — you can disable this update checker in the settings"}>Update Available</a>{/if}</span>{/if}
       </div>
       {#if myCallsign}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
