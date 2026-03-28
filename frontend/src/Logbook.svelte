@@ -1241,11 +1241,11 @@
   </div>
 
   <div class="form-row">
-    <div class="field" class:changed={orig && datePart !== orig.datePart}>
-      <label for="date">Start Date (UTC)</label>
-      <input id="date" type="date" bind:value={datePart} on:focus={onStartFocus} />
-    </div>
     <div class="time-btn-group">
+      <div class="field" class:changed={orig && datePart !== orig.datePart}>
+        <label for="date">Start Date (UTC)</label>
+        <input id="date" type="date" bind:value={datePart} on:focus={onStartFocus} />
+      </div>
       <div class="field" class:changed={orig && timePart !== orig.timePart}>
         <label for="time">Start Time{#if !editingId && clockState === "ROLLING_START"} <span class="clock-rolling">LIVE</span>{/if}</label>
         <input id="time" type="text" bind:value={timePart} on:blur={normalizeTime} on:focus={onStartFocus} placeholder="HH:MM:SS" maxlength="8" />
@@ -1258,11 +1258,11 @@
         </div>
       {/if}
     </div>
-    <div class="field" class:changed={orig && datePartOff !== orig.datePartOff}>
-      <label for="date_off">End Date (UTC)</label>
-      <input id="date_off" type="date" bind:value={datePartOff} on:focus={onEndFocus} disabled={!editingId && clockState === "ROLLING_START"} />
-    </div>
     <div class="time-btn-group">
+      <div class="field" class:changed={orig && datePartOff !== orig.datePartOff}>
+        <label for="date_off">End Date (UTC)</label>
+        <input id="date_off" type="date" bind:value={datePartOff} on:focus={onEndFocus} disabled={!editingId && clockState === "ROLLING_START"} />
+      </div>
       <div class="field" class:changed={orig && timePartOff !== orig.timePartOff}>
         <label for="time_off">End Time{#if !editingId && clockState === "ROLLING_END"} <span class="clock-rolling">LIVE</span>{/if}</label>
         <input id="time_off" type="text" bind:value={timePartOff} on:blur={normalizeTimeOff} on:focus={onEndFocus} placeholder="HH:MM:SS" maxlength="8" disabled={!editingId && clockState === "ROLLING_START"} />
@@ -1457,7 +1457,8 @@
     gap: 0.25rem;
     align-items: flex-end;
     flex: 1;
-    min-width: 120px;
+    min-width: 250px;
+    flex-wrap: nowrap;
   }
 
   .time-btn-group .field {
