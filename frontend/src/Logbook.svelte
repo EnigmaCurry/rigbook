@@ -1251,8 +1251,8 @@
         <div class="time-input-row">
           <input id="time" type="text" bind:value={timePart} on:blur={normalizeTime} on:focus={onStartFocus} placeholder="HH:MM:SS" maxlength="8" />
           {#if !editingId}
-            <button type="button" class="btn-clock" on:click={onStartClick} title={clockState === "ROLLING_START" ? "Freeze start time" : "Reset start to now"}>
-              Start
+            <button type="button" class="btn-clock" class:btn-clock-green={clockState === "ROLLING_START"} on:click={onStartClick} title={clockState === "ROLLING_START" ? "Freeze start time" : "Reset start to now"}>
+              {clockState === "ROLLING_START" ? "Start" : "Restart"}
             </button>
           {/if}
         </div>
@@ -1268,8 +1268,8 @@
         <div class="time-input-row">
           <input id="time_off" type="text" bind:value={timePartOff} on:blur={normalizeTimeOff} on:focus={onEndFocus} placeholder="HH:MM:SS" maxlength="8" disabled={!editingId && clockState === "ROLLING_START"} />
           {#if !editingId}
-            <button type="button" class="btn-clock" on:click={onStopClick} disabled={clockState === "ROLLING_START"} title={clockState === "ROLLING_END" ? "Freeze end time" : "Reset end to now"}>
-              Stop
+            <button type="button" class="btn-clock" class:btn-clock-red={clockState === "ROLLING_END"} on:click={onStopClick} disabled={clockState === "ROLLING_START"} title={clockState === "ROLLING_END" ? "Freeze end time" : "Reset end to now"}>
+              {clockState === "ROLLING_END" ? "Stop" : "End Now"}
             </button>
           {/if}
         </div>
@@ -1494,9 +1494,31 @@
     border-radius: 4px;
     cursor: pointer;
   }
+  .btn-clock.btn-clock-green {
+    background: #4caf50;
+    border-color: #4caf50;
+    color: #fff;
+  }
+  .btn-clock.btn-clock-green:hover {
+    background: #43a047;
+    border-color: #43a047;
+  }
+  .btn-clock.btn-clock-red {
+    background: #e53935;
+    border-color: #e53935;
+    color: #fff;
+  }
+  .btn-clock.btn-clock-red:hover {
+    background: #d32f2f;
+    border-color: #d32f2f;
+  }
   .btn-clock:hover:not(:disabled) {
     background: var(--accent, #f0c040);
     color: var(--bg);
+  }
+  .btn-clock.btn-clock-green:hover,
+  .btn-clock.btn-clock-red:hover {
+    color: #fff;
   }
   .btn-clock:disabled {
     opacity: 0.4;
