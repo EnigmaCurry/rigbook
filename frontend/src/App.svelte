@@ -166,6 +166,7 @@
   let gridMapValue = "";
   let menuOpen = false;
   let myCallsign = "";
+  let appVersion = "";
   let vfoFreq = "";
   let vfoMode = "";
   let vfoConnected = false;
@@ -236,6 +237,7 @@
   }
 
   async function startAppServices() {
+    fetchVersion();
     fetchCallsign();
     await fetchLogbookRight();
     await fetchSolarEnabled();
@@ -550,6 +552,16 @@
         body: JSON.stringify({ mode: next }),
       });
       vfoMode = next;
+    } catch {}
+  }
+
+  async function fetchVersion() {
+    try {
+      const res = await fetch("/api/version");
+      if (res.ok) {
+        const data = await res.json();
+        appVersion = data.version || "";
+      }
     } catch {}
   }
 
@@ -914,6 +926,7 @@
 
   onMount(async () => {
     migrateStorage();
+    fetchVersion();
     applyTheme();
     window.addEventListener("storage", applyTheme);
     window.addEventListener("keydown", onGlobalKeydown);
@@ -963,7 +976,7 @@
   {#if serverShutdown}
     <header>
       <div class="header-left">
-        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>
+        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version">v{appVersion}</span>{/if}</h1>
       </div>
     </header>
     <div class="welcome-container">
@@ -975,7 +988,7 @@
   {:else if pendingLogbook}
     <header>
       <div class="header-left">
-        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>
+        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version">v{appVersion}</span>{/if}</h1>
       </div>
       <span class="utc-clock">{utcNow}</span>
     </header>
@@ -992,7 +1005,7 @@
   {:else if pickerMode && !logbookOpen}
     <header>
       <div class="header-left">
-        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>
+        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version">v{appVersion}</span>{/if}</h1>
       </div>
       <span class="utc-clock">{utcNow}</span>
     </header>
@@ -1004,7 +1017,7 @@
       <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-      <h1 class="app-title" on:click={goHome} style="cursor: pointer"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>
+      <h1 class="app-title" on:click={goHome} style="cursor: pointer"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version">v{appVersion}</span>{/if}</h1>
       {#if myCallsign}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -1332,6 +1345,15 @@
     color: var(--accent-callsign);
     font-size: 1.2rem;
     font-weight: bold;
+  }
+
+  .app-version {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.55rem;
+    font-weight: normal;
+    line-height: 1;
+    margin-top: -0.15rem;
   }
 
   .logbook-name {
