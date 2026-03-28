@@ -352,6 +352,7 @@
   async function toggleTheme() {
     theme = theme === "dark" ? "light" : "dark";
     document.documentElement.classList.toggle("light", theme === "light");
+    storageSet("rigbook-theme", theme);
     await saveSetting("theme", theme);
     dispatch("saved");
     if (map_theme === "default") updatePreview();

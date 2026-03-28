@@ -913,20 +913,25 @@
     fetchWideBreakpoint();
   }
 
-  // Apply theme from localStorage on load
+  function applyThemeFromCache() {
+    const cached = storageGet("rigbook-theme");
+    const theme = cached || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+    document.documentElement.classList.toggle("light", theme === "light");
+  }
+
   async function applyTheme() {
+    applyThemeFromCache();
     try {
       const res = await fetch("/api/settings/theme");
       if (res.ok) {
         const data = await res.json();
         if (data.value) {
+          storageSet("rigbook-theme", data.value);
           document.documentElement.classList.toggle("light", data.value === "light");
           return;
         }
       }
     } catch {}
-    const fallback = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
-    document.documentElement.classList.toggle("light", fallback === "light");
   }
 
   let searchComponent;
