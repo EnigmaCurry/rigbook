@@ -91,7 +91,12 @@ def _open_logbook(name: str | None) -> None:
     cmd = [sys.argv[0], "--server"]
     if name:
         cmd.append(name)
-    subprocess.Popen(cmd, start_new_session=True)
+    subprocess.Popen(
+        cmd,
+        start_new_session=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
     time.sleep(1)
 
     info = db_manager.read_lock_info(db_path)
