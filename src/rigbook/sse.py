@@ -48,9 +48,7 @@ async def _sse_generator(queue: asyncio.Queue[str]):
     try:
         while not shutdown_evt.is_set():
             try:
-                msg = await asyncio.wait_for(
-                    asyncio.shield(queue.get()), timeout=30
-                )
+                msg = await asyncio.wait_for(queue.get(), timeout=30)
                 yield msg
             except asyncio.TimeoutError:
                 # Send keepalive comment to detect dead connections
