@@ -66,13 +66,23 @@ Pre-built binaries are available from the
 [Releases](https://github.com/EnigmaCurry/rigbook/releases) page for
 Linux, macOS, and Windows.
 
+**Linux:**
 ```bash
 chmod +x rigbook-linux-amd64
 sudo mv rigbook-linux-amd64 /usr/local/bin/rigbook
 ```
 
-**macOS:** Remove the quarantine attribute first:
-`xattr -d com.apple.quarantine rigbook-macos-arm64`
+**macOS:**
+```bash
+xattr -d com.apple.quarantine rigbook-macos-arm64
+chmod +x rigbook-macos-arm64
+sudo mv rigbook-macos-arm64 /usr/local/bin/rigbook
+```
+
+**Windows:**
+```powershell
+Move-Item rigbook-windows-amd64.exe "$env:LOCALAPPDATA\Microsoft\WindowsApps\rigbook.exe"
+```
 
 ## Run
 
