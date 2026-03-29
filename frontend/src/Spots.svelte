@@ -895,6 +895,7 @@
       selectionLines.push(
         spotterLine(spotterLL, homeLL, spot.callsign),
         hunterLine(homeLL, myLL),
+        distanceLabel(homeLL, myLL),
         L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
         distanceLabel(myLL, spotterLL),
       );
@@ -906,6 +907,7 @@
     } else if (homeLL) {
       selectionLines.push(
         hunterLine(myLL, homeLL),
+        distanceLabel(myLL, homeLL),
       );
     }
   }
@@ -931,6 +933,7 @@
       selectionLines.push(
         spotterLine(sLL, homeLL, s.callsign),
         hunterLine(homeLL, myLL),
+        distanceLabel(homeLL, myLL),
         L.polyline([myLL, sLL], { color: "#ff4444", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
         distanceLabel(myLL, sLL),
       );
