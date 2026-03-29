@@ -11,6 +11,7 @@
   export let logbookName = "";
   export let pickerMode = false;
   export let needsSetup = false;
+  export let initialTab = null;
 
   const dispatch = createEventDispatcher();
 
@@ -54,9 +55,11 @@
   let hamalert_password = "";
   let hasHamalertPassword = false;
 
-  let activeTab = "station";
+  const validTabs = ["station", "features", "appearance", "system"];
+  let activeTab = (initialTab && validTabs.includes(initialTab)) ? initialTab : "station";
   let settingsLoaded = false;
 
+  $: if (initialTab && validTabs.includes(initialTab)) activeTab = initialTab;
   $: if (needsSetup) activeTab = "station";
 
   let updateCheckLoaded = false;
@@ -411,6 +414,7 @@
   async function switchTab(tab) {
     await flushPending();
     activeTab = tab;
+    window.location.hash = `/settings/${tab}`;
   }
 
   async function restartFeeds() {

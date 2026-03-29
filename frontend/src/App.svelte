@@ -99,7 +99,10 @@
     if (hash === "/about") return { page: "about", editId: null, dualRight: null };
     if (hash === "/conditions") return { page: isWide() ? "dual" : "conditions", editId: null, dualRight: "conditions" };
     if (hash === "/links") return { page: "links", editId: null, dualRight: null };
-    if (hash === "/settings") return { page: "settings", editId: null, dualRight: null };
+    if (hash === "/settings" || hash.startsWith("/settings/")) {
+      const settingsTab = hash.split("/")[2] || null;
+      return { page: "settings", editId: null, dualRight: null, settingsTab };
+    }
     if (hash === "/export") return { page: "export", editId: null, dualRight: null };
     if (hash === "/logbook") return { page: isWide() ? "dual" : "log", editId: null, dualRight: null };
     if (hash === "/add") return { page: isWide() ? "dual" : "add", editId: null, dualRight: null };
@@ -125,6 +128,7 @@
   let { page, editId } = _parsed;
   let dualRightPage = _parsed.dualRight || "hunting";
   let previousPage = "log";
+  let settingsTab = _parsed.settingsTab || null;
   let prefill = null;
   let formDirty = false;
   let activePark = "";
@@ -748,7 +752,7 @@
     if (p === "dual") {
       window.location.hash = `/dual/${dualRightPage}`;
     } else {
-      const paths = { hunting: "/hunting", log: "/logbook", add: "/add", grid: "/grid", parks: "/parks", spots: "/spots", export: "/export", notifications: "/notifications", conditions: "/conditions", settings: "/settings", links: "/links", about: "/about", picker: "/picker" };
+      const paths = { hunting: "/hunting", log: "/logbook", add: "/add", grid: "/grid", parks: "/parks", spots: "/spots", export: "/export", notifications: "/notifications", conditions: "/conditions", settings: settingsTab ? `/settings/${settingsTab}` : "/settings", links: "/links", about: "/about", picker: "/picker" };
       window.location.hash = paths[p] || "/";
     }
     setTimeout(() => { navigating = false; }, 0);
@@ -901,6 +905,7 @@
     if (!(page === "dual" && p === "dual" && editId && !parsed.editId)) {
       editId = parsed.editId;
     }
+    settingsTab = parsed.settingsTab || null;
     page = p;
     if (parsed.dualRight) {
       if ((parsed.dualRight === "spots" && !spotsEnabled) || (parsed.dualRight === "parks" && !potaEnabled) || (parsed.dualRight === "conditions" && !solarEnabled)) {
@@ -1084,7 +1089,7 @@
       {#if customHeader || myCallsign}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class={customHeader ? "custom-header" : "callsign"} on:click={() => navigate("settings")} style="cursor: pointer">{customHeader || myCallsign}{#if currentLogbook && currentLogbook !== "rigbook"}<span class="logbook-name">{currentLogbook}</span>{/if}</span>
+        <span class={customHeader ? "custom-header" : "callsign"} on:click={() => { settingsTab = customHeader ? "appearance" : "station"; navigate("settings"); }} style="cursor: pointer">{customHeader || myCallsign}{#if currentLogbook && currentLogbook !== "rigbook"}<span class="logbook-name">{currentLogbook}</span>{/if}</span>
       {/if}
       {#if vfoEditing}
         <span class="vfo-edit">
@@ -1223,7 +1228,7 @@
     {:else if page === "notifications"}
       <Notifications on:countchange={() => fetchUnreadCount()} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
     {:else if page === "settings"}
-      <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { fetchCallsign(); fetchCustomHeader(); applyTheme(); fetchPopupNotifEnabled(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); fetchUpdateCheck(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { setShutdownState(); }} />
+      <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} initialTab={settingsTab} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { fetchCallsign(); fetchCustomHeader(); applyTheme(); fetchPopupNotifEnabled(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); fetchUpdateCheck(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { setShutdownState(); }} />
     {:else if page === "links"}
       <Links />
     {:else if page === "conditions"}
