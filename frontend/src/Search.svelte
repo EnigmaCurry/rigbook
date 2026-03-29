@@ -313,7 +313,7 @@
     border: 1px solid var(--border);
     border-top: none;
     border-radius: 0 0 6px 6px;
-    z-index: 200;
+    z-index: 10000;
   }
 
   .group-header {
