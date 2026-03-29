@@ -20,7 +20,7 @@
   let default_rst = "599";
   let qrz_password = "";
   let hasQrzPassword = false;
-  let pota_enabled = true;
+  let pota_enabled = false;
   let solar_enabled = false;
   let update_check_enabled = true;
   let updateCheckResult = null;

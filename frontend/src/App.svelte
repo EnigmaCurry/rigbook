@@ -187,7 +187,7 @@
   let radioModes = [];
   let vfoEditFreq = "";
   let vfoEditMode = "";
-  let potaEnabled = true;
+  let potaEnabled = false;
   let spotsEnabled = false;
   let solarEnabled = false;
   let flrigEnabled = false;
