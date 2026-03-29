@@ -13,6 +13,8 @@
   let colWidths = [];
   let resizing = null;
   let cannedSelect = "";
+  let schema = null;
+  let showSchema = false;
 
   const cannedQueries = [
     { label: "All contacts (latest 100)", sql: "SELECT * FROM contacts ORDER BY timestamp DESC LIMIT 100" },
@@ -90,6 +92,20 @@
     });
   }
 
+  async function toggleSchema() {
+    showSchema = !showSchema;
+    if (showSchema && !schema) {
+      try {
+        const resp = await fetch("/api/query/schema");
+        const data = await resp.json();
+        if (resp.ok) schema = data.tables;
+        else error = data.detail || "Failed to load schema";
+      } catch (e) {
+        error = e.message;
+      }
+    }
+  }
+
   function updateUrl() {
     history.replaceState(null, "", `#/query?sql=${encodeURIComponent(sql)}`);
   }
@@ -153,6 +169,7 @@
         <button class="run-btn" on:click={runQuery} disabled={loading}>
           {loading ? "Running…" : "Run Query"}
         </button>
+        <button class="csv-btn" on:click={toggleSchema}>{showSchema ? "Hide Schema" : "View Schema"}</button>
         {#if columns.length > 0}
           <button class="csv-btn" on:click={downloadJson}>Download JSON</button>
           <button class="csv-btn" on:click={downloadCsv}>Download CSV</button>
@@ -162,6 +179,17 @@
 
     {#if error}
       <div class="error">{error}</div>
+    {/if}
+
+    {#if showSchema && schema}
+      <div class="schema">
+        {#each Object.entries(schema) as [table, cols]}
+          <div class="schema-table">
+            <strong>{table}</strong>
+            <span class="schema-cols">({#each cols as col, i}{#if i}, {/if}<code class:pk={col.pk}>{col.name}</code> <span class="col-type">{col.type}</span>{/each})</span>
+          </div>
+        {/each}
+      </div>
     {/if}
 
     {#if columns.length > 0}
@@ -308,6 +336,34 @@
   }
   .truncated-warning {
     color: var(--accent-error);
+  }
+  .schema {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+    font-family: monospace;
+    overflow-y: auto;
+    max-height: 12rem;
+  }
+  .schema-table {
+    margin-bottom: 0.35rem;
+  }
+  .schema-cols {
+    color: var(--text-muted);
+  }
+  .schema-cols code {
+    color: var(--text);
+  }
+  .schema-cols code.pk {
+    color: var(--accent);
+    font-weight: bold;
+  }
+  .col-type {
+    color: var(--text-dim);
+    font-size: 0.75rem;
   }
   .table-wrap {
     flex: 1;

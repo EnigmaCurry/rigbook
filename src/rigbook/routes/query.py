@@ -89,6 +89,33 @@ def _execute_query(
         conn.close()
 
 
+@router.get("/schema")
+async def get_schema(session: AsyncSession = Depends(get_session)):
+    """Return schema for all allowed tables."""
+    await _check_enabled(session)
+    if not db_manager.db_path:
+        raise HTTPException(status_code=503, detail="No logbook is currently open")
+
+    conn = sqlite3.connect(f"file:{db_manager.db_path}?mode=ro", uri=True)
+    try:
+        tables = {}
+        for table in sorted(ALLOWED_TABLES):
+            cursor = conn.execute(f"PRAGMA table_info('{table}')")
+            cols = []
+            for row in cursor.fetchall():
+                cols.append({
+                    "name": row[1],
+                    "type": row[2],
+                    "notnull": bool(row[3]),
+                    "pk": bool(row[5]),
+                })
+            tables[table] = cols
+    finally:
+        conn.close()
+
+    return {"tables": tables}
+
+
 @router.get("/")
 async def run_query(
     sql: str = Query(..., description="SQL SELECT statement"),
