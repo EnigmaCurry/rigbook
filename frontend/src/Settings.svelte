@@ -36,6 +36,7 @@
   let map_theme = "natgeo";
   let map_custom_url = "";
   let custom_header = "";
+  let default_page = "log";
   let qrzStatus = null; // { ok, error?, username? }
   let qrzChecking = false;
 
@@ -570,6 +571,11 @@
     dispatch("saved");
   }
 
+  async function onDefaultPageChange() {
+    await saveSetting("default_page", default_page);
+    dispatch("saved");
+  }
+
   function onMapCustomUrlInput() {
     markDirty("map_custom_url");
   }
@@ -706,6 +712,7 @@
           if (s.key === "map_theme") map_theme = s.value || "default";
           if (s.key === "map_custom_url") map_custom_url = s.value || "";
           if (s.key === "custom_header") custom_header = s.value || "";
+          if (s.key === "default_page") default_page = s.value || "log";
           if (s.key === "theme") theme = s.value || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
           if (s.key === "popup_notifications_enabled") popupNotifEnabled = s.value === "true";
         }
@@ -1053,6 +1060,17 @@
       <label for="custom_header">Custom Header</label>
       <input id="custom_header" type="text" bind:value={custom_header} on:input={onCustomHeaderInput} on:blur={() => onFieldBlur("custom_header")} autocomplete="off" placeholder={my_callsign.trim().toUpperCase() || "Callsign"} />
       <span class="hint">Replaces the callsign in the header. Leave blank to show your callsign.</span>
+    </div>
+    <div class="setting-row">
+      <label for="default_page">Home Page</label>
+      <select id="default_page" bind:value={default_page} on:change={onDefaultPageChange}>
+        <option value="log">Logbook / Hunting</option>
+        <option value="hunting">Hunting</option>
+        <option value="spots">Spots</option>
+        <option value="parks">Parks</option>
+        <option value="notifications">Notifications</option>
+        <option value="conditions">Conditions</option>
+      </select>
     </div>
     <div class="setting-row">
       <label for="map_theme">Map Tiles</label>

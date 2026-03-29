@@ -128,6 +128,7 @@
   let { page, editId } = _parsed;
   let dualRightPage = _parsed.dualRight || "hunting";
   let previousPage = "log";
+  let defaultPage = "log";
   let settingsTab = _parsed.settingsTab || null;
   let prefill = null;
   let formDirty = false;
@@ -253,6 +254,7 @@
     fetchUpdateCheck();
     fetchCallsign();
     fetchCustomHeader();
+    await fetchDefaultPage();
     fetchPopupNotifEnabled();
     await fetchLogbookRight();
     await fetchSolarEnabled();
@@ -615,6 +617,16 @@
     } catch {}
   }
 
+  async function fetchDefaultPage() {
+    try {
+      const res = await fetch("/api/settings/default_page");
+      if (res.ok) {
+        const data = await res.json();
+        defaultPage = data.value || "log";
+      }
+    } catch {}
+  }
+
   async function fetchCustomHeader() {
     try {
       const res = await fetch("/api/settings/custom_header");
@@ -683,12 +695,7 @@
   }
 
   function goHome() {
-    if (isWide()) {
-      if (potaEnabled) dualRightPage = "hunting";
-      navigate("dual");
-    } else {
-      navigate("log");
-    }
+    navigate(defaultPage);
   }
 
   async function fetchWideBreakpoint() {
@@ -1009,6 +1016,11 @@
     if (logbookOpen) {
       await startAppServices();
       await checkNeedsSetup();
+      // Navigate to default page on initial load (no specific hash)
+      const initHash = window.location.hash.slice(1) || "/";
+      if (initHash === "/" && defaultPage !== "log") {
+        navigate(defaultPage);
+      }
     } else if (pickerMode) {
       page = "picker";
     }
@@ -1228,7 +1240,7 @@
     {:else if page === "notifications"}
       <Notifications on:countchange={() => fetchUnreadCount()} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
     {:else if page === "settings"}
-      <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} initialTab={settingsTab} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { fetchCallsign(); fetchCustomHeader(); applyTheme(); fetchPopupNotifEnabled(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); fetchUpdateCheck(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { setShutdownState(); }} />
+      <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} initialTab={settingsTab} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { fetchCallsign(); fetchCustomHeader(); fetchDefaultPage(); applyTheme(); fetchPopupNotifEnabled(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); fetchUpdateCheck(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { setShutdownState(); }} />
     {:else if page === "links"}
       <Links />
     {:else if page === "conditions"}
