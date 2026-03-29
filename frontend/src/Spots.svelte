@@ -902,7 +902,7 @@
     // Primary triangle lines drawn last (higher z-order)
     // Spotter->Station, Station->QTH, QTH->Spotter — all animate toward their endpoint
     // Site labels
-    selectionLines.push(markerLabel(myLL, myCallsign ? `QTH (${myCallsign})` : "QTH", "#ff4444"));
+    selectionLines.push(markerLabel(myLL, myCallsign || "QTH", "#ff4444"));
     if (homeLL) selectionLines.push(markerLabel(homeLL, spot.callsign, "#ffaa00"));
     if (spotterLL) selectionLines.push(markerLabel(spotterLL, spot.closest_call, "#00ccff"));
 
@@ -940,7 +940,7 @@
     const sLL = nearLL(baseLon, [rawLL.lat, rawLL.lng]);
 
     selectionLines.push(
-      markerLabel(myLL, myCallsign ? `QTH (${myCallsign})` : "QTH", "#ff4444"),
+      markerLabel(myLL, myCallsign || "QTH", "#ff4444"),
       markerLabel(sLL, call, "#00ccff"),
     );
 
