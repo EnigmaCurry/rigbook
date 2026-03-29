@@ -1,6 +1,5 @@
 # 📻️ Rigbook
-
-<img width="2412" height="1149" alt="image" src="https://github.com/user-attachments/assets/f7fe58fd-9c74-4c7e-8972-7cd305a80ea2" />
+<img width="3303" height="2080" alt="image" src="https://github.com/user-attachments/assets/82d570e3-3a4d-497f-8af9-cfccdf8817bd" />
 
 
 A ham radio logbook app. Log your QSOs with a local web UI, optionally
@@ -8,8 +7,6 @@ controlling your radio via [flrig](http://www.w1hkj.org/flrig-help).
 
 The current release of Rigbook is a feature-rich logbook for operators
 engaged in POTA and/or SKCC activities.
-
-**[Windows installation guide](https://wa7pge.com/static/rigbook/rigbook-windows-install.html)** *(thanks WA7PGE!)*
 
 ## Features
 
@@ -63,21 +60,96 @@ Light and dark themes. Keyboard shortcuts for all major actions.
 ## Install
 
 Pre-built binaries are available from the
-[Releases](https://github.com/EnigmaCurry/rigbook/releases) page for
-Linux, macOS, and Windows.
+[Releases](https://github.com/EnigmaCurry/rigbook/releases) page.
+Run the binary to start the server on localhost, and the page will open in your web browser automatically.
+
+### Linux
 
 ```bash
-# Download, make executable, and run:
+# Download the binary for your architecture (amd64 or arm64):
+wget https://github.com/EnigmaCurry/rigbook/releases/latest/download/rigbook-linux-amd64
 chmod +x rigbook-linux-amd64
 ./rigbook-linux-amd64
 ```
 
-Rigbook opens your browser automatically. Use `--no-browser` to disable.
-The server binds to localhost only. Set `RIGBOOK_HOST` and `RIGBOOK_PORT`
-to change.
+### macOS
 
-**macOS:** Remove the quarantine attribute first:
-`xattr -d com.apple.quarantine rigbook-macos-arm64`
+```bash
+wget https://github.com/EnigmaCurry/rigbook/releases/latest/download/rigbook-macos-arm64
+chmod +x rigbook-macos-arm64
+# Remove the quarantine attribute:
+xattr -d com.apple.quarantine rigbook-macos-arm64
+./rigbook-macos-arm64
+```
+
+### Windows
+
+Download `rigbook-windows-amd64.exe` from the
+[Releases](https://github.com/EnigmaCurry/rigbook/releases) page and
+run it. See the **[Windows installation
+guide](https://wa7pge.com/static/rigbook/rigbook-windows-install.html)**
+*(thanks WA7PGE!)* for detailed instructions.
+
+----
+----
+
+### Android (Termux)
+
+Experimentally, Rigbook runs on Android phones via [Termux](https://termux.dev) using
+the pre-built Linux ARM64 binary inside a Debian proot environment.
+The web UI is usable on phone touch screens, or you can use the phone just as the server, and have other devices access it. Rigbook is primarily
+designed for desktop browsers.
+
+```bash
+# Install Termux from F-Droid, then:
+pkg install proot-distro
+proot-distro install debian
+proot-distro login debian
+
+# Inside Debian:
+apt update && apt install -y wget
+wget https://github.com/EnigmaCurry/rigbook/releases/latest/download/rigbook-linux-arm64
+chmod +x rigbook-linux-arm64
+```
+
+**Important:** Android suspends background apps aggressively. Before
+starting rigbook, acquire a wake lock so Termux stays alive when you
+switch to the browser:
+
+```bash
+# In the debian proot (proot-distro login debian)
+termux-wake-lock
+./rigbook-linux-arm64
+```
+
+While termux is still running in the background, open your Android web browser and go to `http://127.0.0.1:8073` to access mobile Rigbook:
+
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/e74d8446-8cfb-400d-a761-ee841b5c30c3" alt="Rigbook running on Android Pixel phone via Termux in Chrome browser" width="400"><br>
+  <em>Rigbook running on Android Pixel phone via Termux in Chrome browser</em>
+</p>
+
+
+You can also use your phone as just the server, and access Rigbook from 
+another computer's browser on the same network.  This gives you the full
+desktop experience while you keep Rigbook running in your pocket. 
+Set `RIGBOOK_HOST=0.0.0.0` before starting rigbook to listen on all interfaces:
+
+```bash
+# Warning: this allows any device to access your phone on port 8073 :
+export RIGBOOK_HOST=0.0.0.0
+termux-wake-lock
+./rigbook-linux-arm64
+```
+
+Then open `http://<phone-ip>:8073` from any browser on the LAN.
+
+**Warning:** Rigbook has no authentication or encryption — only do
+this on trusted networks.
+
+---
+---
 
 ### Container
 

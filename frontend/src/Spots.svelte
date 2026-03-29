@@ -8,6 +8,7 @@
   import { QrzLookup, formatFreq, locationStr } from "./qrzLookup.js";
   import { getMapTileConfig } from "./mapTiles.js";
   import { storageGet, storageSet } from "./storage.js";
+  import { textToDashArray } from "./morse.js";
   import ParkDetail from "./ParkDetail.svelte";
   import L from "leaflet";
   import "leaflet/dist/leaflet.css";
@@ -41,6 +42,8 @@
 
   let spots = [];
   let myGrid = "";
+  let myCallsign = "";
+  let hunterDash = { dashArray: "", total: 0 };
   let showMap = storageGet("spotsMapEnabled") !== "false";
   const MIN_MAP_HEIGHT = 60;
   const MAX_MAP_FRAC = 0.7;
@@ -388,6 +391,11 @@
         const data = await res.json();
         spots = data.spots;
         myGrid = data.my_grid || "";
+        const call = data.my_callsign || "";
+        if (call !== myCallsign) {
+          myCallsign = call;
+          hunterDash = textToDashArray(call);
+        }
         await qrz.enqueue(spots);
       }
     } catch {}
@@ -715,6 +723,7 @@
   function clearLines() {
     for (const line of selectionLines) leafletMap.removeLayer(line);
     selectionLines = [];
+    _distLabels = [];
   }
 
   function clearAll() {
@@ -773,6 +782,93 @@
     return `${s.callsign}|${s.frequency}|${s.mode}`;
   }
 
+  const _cqCache = {};
+  function cqDash(callsign) {
+    if (!callsign) return { dashArray: "8 6", total: 14 };
+    if (_cqCache[callsign]) return _cqCache[callsign];
+    const result = textToDashArray("CQ CQ CQ " + callsign);
+    _cqCache[callsign] = result;
+    return result;
+  }
+
+  function spotterLine(from, to, stationCall) {
+    const dash = cqDash(stationCall);
+    const line = L.polyline([from, to], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: dash.dashArray, className: "line-spotter" }).addTo(leafletMap);
+    const el = line.getElement();
+    if (el) {
+      const speed = 34;
+      el.style.setProperty("--spotter-offset", dash.total);
+      el.style.setProperty("--spotter-duration", (dash.total / speed) + "s");
+    }
+    return line;
+  }
+
+  function hunterLine(from, to) {
+    const line = L.polyline([from, to], { color: "#ffaa00", weight: 2, opacity: 0.6, dashArray: hunterDash.dashArray, className: "line-hunter" }).addTo(leafletMap);
+    const el = line.getElement();
+    if (el) {
+      const speed = 34; // px per second
+      el.style.setProperty("--hunter-offset", hunterDash.total);
+      el.style.setProperty("--hunter-duration", (hunterDash.total / speed) + "s");
+    }
+    return line;
+  }
+
+  function haversineMi(a, b) {
+    const toRad = d => d * Math.PI / 180;
+    const dLat = toRad(b[0] - a[0]);
+    const dLon = toRad(b[1] - a[1]);
+    const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a[0])) * Math.cos(toRad(b[0])) * Math.sin(dLon / 2) ** 2;
+    return Math.round(3958.8 * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s)));
+  }
+
+  let _distLabels = []; // { marker, from, to, span }
+
+  function _labelAngle(from, to) {
+    const p1 = leafletMap.latLngToContainerPoint(from);
+    const p2 = leafletMap.latLngToContainerPoint(to);
+    let a = Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
+    if (a > 90) a -= 180;
+    else if (a < -90) a += 180;
+    return a;
+  }
+
+  function _updateDistLabels() {
+    for (const dl of _distLabels) {
+      const angle = _labelAngle(dl.from, dl.to);
+      dl.span.style.transform = `rotate(${angle}deg)`;
+    }
+  }
+
+  function distanceLabel(from, to, color = "white", t = 0.5) {
+    const mi = haversineMi(from, to);
+    const mid = [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t];
+    const angle = _labelAngle(from, to);
+    const span = document.createElement("span");
+    span.textContent = `${mi} mi`;
+    span.style.transform = `rotate(${angle}deg)`;
+    span.style.color = color;
+    const icon = L.divIcon({
+      className: "distance-label",
+      html: span.outerHTML,
+      iconSize: [0, 0],
+    });
+    const marker = L.marker(mid, { icon, interactive: false }).addTo(leafletMap);
+    const liveSpan = marker.getElement()?.querySelector("span");
+    if (liveSpan) _distLabels.push({ marker, from, to, span: liveSpan });
+    return marker;
+  }
+
+  function markerLabel(ll, text, color) {
+    const icon = L.divIcon({
+      className: "marker-label",
+      html: `<span style="color:${color}">${text}</span>`,
+      iconSize: [0, 0],
+      iconAnchor: [0, 16],
+    });
+    return L.marker(ll, { icon, interactive: false }).addTo(leafletMap);
+  }
+
   function drawTriangleForSpot(spot) {
     if (!leafletMap || !spot) return;
     clearLines();
@@ -798,26 +894,36 @@
         const pos = gridToLatLon(grid);
         if (!pos) continue;
         selectionLines.push(
-          L.polyline([nearLL(baseLon, [pos.lat, pos.lon]), homeLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "8 6", className: "line-flow" }).addTo(leafletMap),
+          spotterLine(nearLL(baseLon, [pos.lat, pos.lon]), homeLL, spot.callsign),
         );
       }
     }
 
     // Primary triangle lines drawn last (higher z-order)
     // Spotter->Station, Station->QTH, QTH->Spotter — all animate toward their endpoint
+    // Site labels
+    selectionLines.push(markerLabel(myLL, myCallsign || "QTH", "#ff4444"));
+    if (homeLL) selectionLines.push(markerLabel(homeLL, spot.callsign, "#ffaa00"));
+    if (spotterLL) selectionLines.push(markerLabel(spotterLL, spot.closest_call, "#00ccff"));
+
     if (spotterLL && homeLL) {
       selectionLines.push(
-        L.polyline([spotterLL, homeLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "8 6", className: "line-flow" }).addTo(leafletMap),
-        L.polyline([homeLL, myLL], { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
-        L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        spotterLine(spotterLL, homeLL, spot.callsign),
+        distanceLabel(spotterLL, homeLL, "#00ccff", 0.33),
+        hunterLine(homeLL, myLL),
+        distanceLabel(homeLL, myLL, "#ffaa00", 0.5),
+        L.polyline([myLL, spotterLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
+        distanceLabel(myLL, spotterLL, "#00ccff", 0.67),
       );
     } else if (spotterLL) {
       selectionLines.push(
-        L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline([myLL, spotterLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
+        distanceLabel(myLL, spotterLL, "#00ccff"),
       );
     } else if (homeLL) {
       selectionLines.push(
-        L.polyline([myLL, homeLL], { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        hunterLine(myLL, homeLL),
+        distanceLabel(myLL, homeLL, "#ffaa00"),
       );
     }
   }
@@ -834,6 +940,11 @@
     const rawLL = spotterMarker.getLatLng();
     const sLL = nearLL(baseLon, [rawLL.lat, rawLL.lng]);
 
+    selectionLines.push(
+      markerLabel(myLL, myCallsign || "QTH", "#ff4444"),
+      markerLabel(sLL, call, "#00ccff"),
+    );
+
     for (const s of spots) {
       const hg = spotHomeGrid(s);
       if (s.closest_call !== call || !hg) continue;
@@ -841,9 +952,13 @@
       if (!homePos) continue;
       const homeLL = nearLL(baseLon, [homePos.lat, homePos.lon]);
       selectionLines.push(
-        L.polyline([sLL, homeLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "8 6", className: "line-flow" }).addTo(leafletMap),
-        L.polyline([homeLL, myLL], { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
-        L.polyline([myLL, sLL], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        markerLabel(homeLL, s.callsign, "#ffaa00"),
+        spotterLine(sLL, homeLL, s.callsign),
+        distanceLabel(sLL, homeLL, "#00ccff", 0.33),
+        hunterLine(homeLL, myLL),
+        distanceLabel(homeLL, myLL, "#ffaa00", 0.5),
+        L.polyline([myLL, sLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
+        distanceLabel(myLL, sLL, "#00ccff", 0.67),
       );
     }
   }
@@ -949,6 +1064,8 @@
       maxZoom: tiles.maxZoom,
     }).addTo(leafletMap);
     leafletMap.on("click", clearAll);
+    leafletMap.on("zoomanim", _updateDistLabels);
+    leafletMap.on("zoomend", _updateDistLabels);
     addExpandControl(leafletMap, mapEl.parentElement);
     mapResizeObserver = new ResizeObserver(() => { leafletMap?.invalidateSize(); });
     mapResizeObserver.observe(mapEl);
@@ -963,7 +1080,6 @@
     // User's home marker
     if (!myMarker) {
       myMarker = L.marker([myPos.lat, myPos.lon], { icon: myIcon })
-        .bindPopup(`My QTH: ${myGrid}`)
         .addTo(leafletMap);
     }
 
@@ -1014,11 +1130,9 @@
       if (spotterMarkers[call]) {
         spotterMarkers[call].setIcon(icon);
         spotterMarkers[call].setLatLng(ll);
-        spotterMarkers[call].setPopupContent(`Spotter: ${call}<br>Grid: ${grid}`);
         continue;
       }
       const m = L.marker(ll, { icon })
-        .bindPopup(`Spotter: ${call}<br>Grid: ${grid}`)
         .addTo(leafletMap);
       m.on("click", () => onMapSpotterClick(call));
       spotterMarkers[call] = m;
@@ -1034,11 +1148,9 @@
       if (homeMarkers[call]) {
         homeMarkers[call].setIcon(icon);
         homeMarkers[call].setLatLng(ll);
-        homeMarkers[call].setPopupContent(`Station: ${call}<br>Grid: ${grid}`);
         continue;
       }
       const hm = L.marker(ll, { icon })
-        .bindPopup(`Station: ${call}<br>Grid: ${grid}`)
         .addTo(leafletMap);
       hm.on("click", () => onMapHomeClick(call));
       homeMarkers[call] = hm;
@@ -1575,11 +1687,48 @@
   }
 
 
-  :global(.line-flow) {
-    animation: dash-flow 0.8s linear infinite;
+  :global(.line-spotter) {
+    animation: dash-spotter var(--spotter-duration, 0.8s) linear infinite;
   }
-  @keyframes dash-flow {
-    to { stroke-dashoffset: -14; }
+  @keyframes dash-spotter {
+    to { stroke-dashoffset: var(--spotter-offset, 14); }
+  }
+  :global(.line-hunter) {
+    animation: dash-hunter var(--hunter-duration, 4s) linear infinite;
+  }
+  @keyframes dash-hunter {
+    to { stroke-dashoffset: var(--hunter-offset, 0); }
+  }
+
+  :global(.distance-label) {
+    background: none !important;
+    border: none !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  :global(.distance-label span) {
+    font-size: 11px;
+    font-weight: bold;
+    white-space: nowrap;
+    paint-order: stroke fill;
+    -webkit-text-stroke: 3px rgba(0,0,0,0.8);
+    text-shadow: 0 0 4px rgba(0,0,0,0.9);
+    pointer-events: none;
+  }
+
+  :global(.marker-label) {
+    background: none !important;
+    border: none !important;
+  }
+  :global(.marker-label span) {
+    font-size: 11px;
+    font-weight: bold;
+    white-space: nowrap;
+    paint-order: stroke fill;
+    -webkit-text-stroke: 3px rgba(0,0,0,0.8);
+    text-shadow: 0 0 4px rgba(0,0,0,0.9);
+    pointer-events: none;
   }
 
   :global(.spot-marker-dot.my-pos) {

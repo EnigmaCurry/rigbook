@@ -18,8 +18,8 @@ export class QrzLookup {
   }
 
   /**
-   * Process a batch of spots: find missing locations, burst up to 20,
-   * drip the rest at 1/s. Spots with >=100 missing skip entirely.
+   * Process a batch of spots: burst up to 20 lookups immediately,
+   * then trickle the rest at 1/s.
    */
   async enqueue(spots) {
     // Stop existing drip
@@ -32,13 +32,7 @@ export class QrzLookup {
     const allMissing = [...new Set(
       spots.filter(s => !s.country && !s.callsign.includes("/")).map(s => s.callsign)
     )];
-    this.skipped = allMissing.length >= 100;
-
-    if (this.skipped) {
-      this._queue = [];
-      this.pending = 0;
-      return;
-    }
+    this.skipped = false;
 
     const newCalls = allMissing.filter(c => !this._lookedUp.has(c));
     for (const c of newCalls) this._lookedUp.add(c);
