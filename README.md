@@ -125,7 +125,7 @@ termux-wake-lock
 ./rigbook-linux-arm64
 ```
 
-While termux is still running, open your Android web browser and go to `http://127.0.0.1:8073` to access mobile Rigbook:
+While termux is still running in the background, open your Android web browser and go to `http://127.0.0.1:8073` to access mobile Rigbook:
 
 
 <p align="center">
