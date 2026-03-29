@@ -840,13 +840,14 @@
     }
   }
 
-  function distanceLabel(from, to) {
+  function distanceLabel(from, to, color = "white") {
     const mi = haversineMi(from, to);
     const mid = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2];
     const angle = _labelAngle(from, to);
     const span = document.createElement("span");
     span.textContent = `${mi} mi`;
     span.style.transform = `rotate(${angle}deg)`;
+    span.style.color = color;
     const icon = L.divIcon({
       className: "distance-label",
       html: span.outerHTML,
@@ -895,19 +896,19 @@
       selectionLines.push(
         spotterLine(spotterLL, homeLL, spot.callsign),
         hunterLine(homeLL, myLL),
-        distanceLabel(homeLL, myLL),
+        distanceLabel(homeLL, myLL, "#ffaa00"),
         L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
-        distanceLabel(myLL, spotterLL),
+        distanceLabel(myLL, spotterLL, "#ff4444"),
       );
     } else if (spotterLL) {
       selectionLines.push(
         L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
-        distanceLabel(myLL, spotterLL),
+        distanceLabel(myLL, spotterLL, "#ff4444"),
       );
     } else if (homeLL) {
       selectionLines.push(
         hunterLine(myLL, homeLL),
-        distanceLabel(myLL, homeLL),
+        distanceLabel(myLL, homeLL, "#ffaa00"),
       );
     }
   }
@@ -933,9 +934,9 @@
       selectionLines.push(
         spotterLine(sLL, homeLL, s.callsign),
         hunterLine(homeLL, myLL),
-        distanceLabel(homeLL, myLL),
+        distanceLabel(homeLL, myLL, "#ffaa00"),
         L.polyline([myLL, sLL], { color: "#ff4444", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
-        distanceLabel(myLL, sLL),
+        distanceLabel(myLL, sLL, "#ff4444"),
       );
     }
   }
@@ -1690,11 +1691,12 @@
     align-items: center;
   }
   :global(.distance-label span) {
-    color: white;
     font-size: 11px;
     font-weight: bold;
     white-space: nowrap;
-    text-shadow: 0 0 4px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.9);
+    paint-order: stroke fill;
+    -webkit-text-stroke: 3px rgba(0,0,0,0.8);
+    text-shadow: 0 0 4px rgba(0,0,0,0.9);
     pointer-events: none;
   }
 
