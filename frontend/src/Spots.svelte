@@ -840,9 +840,9 @@
     }
   }
 
-  function distanceLabel(from, to, color = "white") {
+  function distanceLabel(from, to, color = "white", t = 0.5) {
     const mi = haversineMi(from, to);
-    const mid = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2];
+    const mid = [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t];
     const angle = _labelAngle(from, to);
     const span = document.createElement("span");
     span.textContent = `${mi} mi`;
@@ -909,11 +909,11 @@
     if (spotterLL && homeLL) {
       selectionLines.push(
         spotterLine(spotterLL, homeLL, spot.callsign),
-        distanceLabel(spotterLL, homeLL, "#00ccff"),
+        distanceLabel(spotterLL, homeLL, "#00ccff", 0.33),
         hunterLine(homeLL, myLL),
-        distanceLabel(homeLL, myLL, "#ffaa00"),
+        distanceLabel(homeLL, myLL, "#ffaa00", 0.5),
         L.polyline([myLL, spotterLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
-        distanceLabel(myLL, spotterLL, "#00ccff"),
+        distanceLabel(myLL, spotterLL, "#00ccff", 0.67),
       );
     } else if (spotterLL) {
       selectionLines.push(
@@ -954,11 +954,11 @@
       selectionLines.push(
         markerLabel(homeLL, s.callsign, "#ffaa00"),
         spotterLine(sLL, homeLL, s.callsign),
-        distanceLabel(sLL, homeLL, "#00ccff"),
+        distanceLabel(sLL, homeLL, "#00ccff", 0.33),
         hunterLine(homeLL, myLL),
-        distanceLabel(homeLL, myLL, "#ffaa00"),
+        distanceLabel(homeLL, myLL, "#ffaa00", 0.5),
         L.polyline([myLL, sLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
-        distanceLabel(myLL, sLL, "#00ccff"),
+        distanceLabel(myLL, sLL, "#00ccff", 0.67),
       );
     }
   }
