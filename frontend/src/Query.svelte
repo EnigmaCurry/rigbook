@@ -135,9 +135,9 @@
           {loading ? "Running…" : "Run Query"}
         </button>
         {#if columns.length > 0}
-          <button class="csv-btn" on:click={downloadCsv}>Download CSV</button>
-          <button class="csv-btn" on:click={downloadJson}>Download JSON</button>
           <button class="csv-btn" on:click={bookmarkQuery}>Bookmark Query</button>
+          <button class="csv-btn" on:click={downloadJson}>Download JSON</button>
+          <button class="csv-btn" on:click={downloadCsv}>Download CSV</button>
         {/if}
       </div>
     </div>
