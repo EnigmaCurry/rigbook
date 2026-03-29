@@ -62,14 +62,8 @@
   }
 
   function downloadJson() {
-    const data = rows.map(row => Object.fromEntries(columns.map((col, i) => [col, row[i]])));
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "query_results.json";
-    a.click();
-    URL.revokeObjectURL(url);
+    const url = `/api/query/json?sql=${encodeURIComponent(sql)}`;
+    window.open(url, "_blank");
   }
 
   function handleKeydown(e) {

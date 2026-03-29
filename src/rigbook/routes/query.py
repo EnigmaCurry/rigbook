@@ -3,6 +3,8 @@ import io
 import logging
 import sqlite3
 
+import json as json_mod
+
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
@@ -120,4 +122,38 @@ async def run_query_csv(sql: str = Query(..., description="SQL SELECT statement"
         iter([buf.getvalue()]),
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=query_results.csv"},
+    )
+
+
+@router.get("/json")
+async def run_query_json(sql: str = Query(..., description="SQL SELECT statement")):
+    """Execute a read-only SQL query and return results as a JSON file download."""
+    if not db_manager.db_path:
+        raise HTTPException(status_code=503, detail="No logbook is currently open")
+
+    sql = sql.strip()
+    if not sql:
+        raise HTTPException(status_code=400, detail="Empty query")
+
+    try:
+        columns, rows = _execute_query(str(db_manager.db_path), sql, limit=None)
+    except sqlite3.OperationalError as e:
+        if "not authorized" in str(e).lower():
+            raise HTTPException(
+                status_code=403,
+                detail="Access denied: only the contacts table may be queried",
+            )
+        if "interrupted" in str(e).lower():
+            raise HTTPException(status_code=408, detail="Query timed out")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    data = [dict(zip(columns, row)) for row in rows]
+    content = json_mod.dumps(data, indent=2)
+
+    return StreamingResponse(
+        iter([content]),
+        media_type="application/json",
+        headers={"Content-Disposition": "attachment; filename=query_results.json"},
     )
