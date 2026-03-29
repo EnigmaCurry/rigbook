@@ -1065,7 +1065,7 @@
   });
 </script>
 
-<main class:dual-mode={page === "dual"} class:parks-mode={page === "parks"} class:spots-mode={page === "spots"} class:grid-mode={page === "grid"} class:export-mode={page === "export"}>
+<main class:dual-mode={page === "dual"} class:parks-mode={page === "parks"} class:spots-mode={page === "spots"} class:grid-mode={page === "grid"} class:export-mode={page === "export"} class:search-mode={page === "search"}>
   {#if serverShutdown}
     <header>
       <div class="header-left">
@@ -1157,7 +1157,7 @@
         <span class="vfo disconnected" title="Radio not connected">❌ No Radio</span>
       {/if}
     </div>
-    <Search bind:this={searchComponent} on:action={handleSearchAction} />
+    {#if page !== "search"}<Search bind:this={searchComponent} on:action={handleSearchAction} />{/if}
     <!-- svelte-ignore a11y-click-events-have-key-events -->
     <!-- svelte-ignore a11y-no-static-element-interactions -->
     <span class="utc-clock" on:click={copyUtcTimestamp} title="Click to copy">{clockCopied ? "Copied!" : utcNow}</span>
@@ -1406,7 +1406,8 @@
     box-sizing: border-box;
   }
 
-  :global(main.export-mode) .page-content {
+  :global(main.export-mode) .page-content,
+  :global(main.search-mode) .page-content {
     max-width: 100%;
     margin: 0;
     flex: 1;
