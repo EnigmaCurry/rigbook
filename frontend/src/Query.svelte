@@ -116,7 +116,12 @@
     }
   }
 
-  onMount(() => {
+  onMount(async () => {
+    try {
+      const resp = await fetch("/api/query/schema");
+      const data = await resp.json();
+      if (resp.ok) schema = data.tables;
+    } catch {}
     if (initialSql) runQuery();
   });
 
@@ -189,7 +194,7 @@
     {/if}
   </div>
 
-  {#if showSchema && schema}
+  {#if (showSchema || columns.length === 0) && schema}
     <div class="schema">
       {#each Object.entries(schema) as [table, cols]}
         <div class="schema-table">
