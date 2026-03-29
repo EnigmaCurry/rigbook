@@ -925,7 +925,7 @@
   </section>
 
   <section class="settings-section">
-    <h3>SQL Query</h3>
+    <h3>SQL Query (read-only view)</h3>
     <div class="setting-row toggle-row">
       <label>
         <input type="checkbox" bind:checked={sql_query_enabled} on:change={onSqlQueryEnabledChange} />
