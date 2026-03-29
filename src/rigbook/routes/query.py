@@ -19,6 +19,21 @@ logger = logging.getLogger("rigbook")
 router = APIRouter(prefix="/api/query", tags=["query"])
 
 
+async def _download_filename(session: AsyncSession, ext: str) -> str:
+    from datetime import datetime, timezone
+
+    row = (
+        await session.execute(
+            select(Setting).where(Setting.key == "my_callsign")
+        )
+    ).scalar_one_or_none()
+    callsign = (row.value or "").strip().upper().replace("/", "-") if row else ""
+    db_name = db_manager.db_name or "rigbook"
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%SZ")
+    parts = [p for p in [callsign, db_name, "query", ts] if p]
+    return "_".join(parts) + f".{ext}"
+
+
 async def _check_enabled(session: AsyncSession) -> None:
     row = (
         await session.execute(
@@ -143,7 +158,7 @@ async def run_query_csv(
     return StreamingResponse(
         iter([buf.getvalue()]),
         media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=query_results.csv"},
+        headers={"Content-Disposition": f"attachment; filename={await _download_filename(session, 'csv')}"},
     )
 
 
@@ -181,5 +196,5 @@ async def run_query_json(
     return StreamingResponse(
         iter([content]),
         media_type="application/json",
-        headers={"Content-Disposition": "inline; filename=query_results.json"},
+        headers={"Content-Disposition": f"inline; filename={await _download_filename(session, 'json')}"},
     )
