@@ -3,7 +3,7 @@
 
   export let initialSql = "";
 
-  let sql = initialSql || "SELECT * FROM contacts ORDER BY timestamp DESC LIMIT 100";
+  let sql = initialSql || "";
   let columns = [];
   let rows = [];
   let error = "";
