@@ -104,15 +104,8 @@
 <div class="query-page">
   <div class="query-top">
     <h2>SQL Query</h2>
-    <p class="hint">Read-only access to <code>contacts</code>, <code>notifications</code>, <code>pota_programs</code>, <code>pota_locations</code>, <code>pota_parks</code>. Max 10000 rows interactively. CSV unlimited.</p>
 
     <div class="editor">
-      <select class="canned-select" bind:value={cannedSelect} on:change={applyCanned}>
-        <option value="">Examples...</option>
-        {#each cannedQueries as q}
-          <option value={q.sql}>{q.label}</option>
-        {/each}
-      </select>
       <textarea
         bind:value={sql}
         on:keydown={handleKeydown}
@@ -120,7 +113,14 @@
         spellcheck="false"
         placeholder="SELECT * FROM contacts WHERE ..."
       ></textarea>
+      <p class="hint">Read-only access to <code>contacts</code>, <code>notifications</code>, <code>pota_programs</code>, <code>pota_locations</code>, <code>pota_parks</code>. Max 10000 rows interactively. CSV unlimited.</p>
       <div class="buttons">
+        <select class="canned-select" bind:value={cannedSelect} on:change={applyCanned}>
+          <option value="">Examples...</option>
+          {#each cannedQueries as q}
+            <option value={q.sql}>{q.label}</option>
+          {/each}
+        </select>
         <button class="run-btn" on:click={runQuery} disabled={loading}>
           {loading ? "Running…" : "Run Query"}
         </button>
