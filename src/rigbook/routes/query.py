@@ -155,5 +155,5 @@ async def run_query_json(sql: str = Query(..., description="SQL SELECT statement
     return StreamingResponse(
         iter([content]),
         media_type="application/json",
-        headers={"Content-Disposition": "attachment; filename=query_results.json"},
+        headers={"Content-Disposition": "inline; filename=query_results.json"},
     )
