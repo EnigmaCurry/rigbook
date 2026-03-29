@@ -62,9 +62,7 @@ Light and dark themes. Keyboard shortcuts for all major actions.
 
 Pre-built binaries are available from the
 [Releases](https://github.com/EnigmaCurry/rigbook/releases) page.
-Rigbook opens your browser automatically. Use `--no-browser` to
-disable. The server binds to localhost only. Set `RIGBOOK_HOST` and
-`RIGBOOK_PORT` to change.
+Run the binary to start the server on localhost, and the page will open in your web browser automatically.
 
 ### Linux
 
