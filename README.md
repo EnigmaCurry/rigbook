@@ -124,6 +124,20 @@ switch to the browser:
 termux-wake-lock
 ```
 
+You can also access Rigbook from another computer's browser on the
+same network, which gives you the full desktop experience while using
+your phone as the server. Set `RIGBOOK_HOST=0.0.0.0` before starting
+rigbook to listen on all interfaces:
+
+```bash
+export RIGBOOK_HOST=0.0.0.0
+./rigbook-linux-arm64
+```
+
+Then open `http://<phone-ip>:8073` from any browser on the LAN.
+**Warning:** Rigbook has no authentication or encryption — only do
+this on trusted networks.
+
 ### Container
 
 ```bash
