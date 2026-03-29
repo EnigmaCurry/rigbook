@@ -1297,10 +1297,6 @@
     color: var(--accent);
   }
 
-  .setting-row:last-child {
-    flex-direction: row;
-    align-items: center;
-  }
 
   label {
     font-size: 0.8rem;
