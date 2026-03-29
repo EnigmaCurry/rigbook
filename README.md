@@ -9,8 +9,6 @@ connected to your radio via [flrig](http://www.w1hkj.com/flrig-help/).
 The current release of Rigbook is a feature-rich logbook for operators
 engaged in POTA and/or SKCC activities.
 
-**[Windows installation guide](https://wa7pge.com/static/rigbook/rigbook-windows-install.html)** *(thanks WA7PGE!)*
-
 ## Features
 
 **Logging** — Log QSOs with callsign, frequency, mode, signal reports,
@@ -63,21 +61,68 @@ Light and dark themes. Keyboard shortcuts for all major actions.
 ## Install
 
 Pre-built binaries are available from the
-[Releases](https://github.com/EnigmaCurry/rigbook/releases) page for
-Linux, macOS, and Windows.
+[Releases](https://github.com/EnigmaCurry/rigbook/releases) page.
+Rigbook opens your browser automatically. Use `--no-browser` to
+disable. The server binds to localhost only. Set `RIGBOOK_HOST` and
+`RIGBOOK_PORT` to change.
+
+### Linux
 
 ```bash
-# Download, make executable, and run:
+# Download the binary for your architecture (amd64 or arm64):
+wget https://github.com/EnigmaCurry/rigbook/releases/latest/download/rigbook-linux-amd64
 chmod +x rigbook-linux-amd64
 ./rigbook-linux-amd64
 ```
 
-Rigbook opens your browser automatically. Use `--no-browser` to disable.
-The server binds to localhost only. Set `RIGBOOK_HOST` and `RIGBOOK_PORT`
-to change.
+### macOS
 
-**macOS:** Remove the quarantine attribute first:
-`xattr -d com.apple.quarantine rigbook-macos-arm64`
+```bash
+wget https://github.com/EnigmaCurry/rigbook/releases/latest/download/rigbook-macos-arm64
+chmod +x rigbook-macos-arm64
+# Remove the quarantine attribute:
+xattr -d com.apple.quarantine rigbook-macos-arm64
+./rigbook-macos-arm64
+```
+
+### Windows
+
+Download `rigbook-windows-amd64.exe` from the
+[Releases](https://github.com/EnigmaCurry/rigbook/releases) page and
+run it. See the **[Windows installation
+guide](https://wa7pge.com/static/rigbook/rigbook-windows-install.html)**
+*(thanks WA7PGE!)* for detailed instructions.
+
+### Android (Termux)
+
+Rigbook runs on Android phones via [Termux](https://termux.dev) using
+the pre-built Linux ARM64 binary inside a Debian proot environment.
+The web UI is usable on phone touch screens, but Rigbook is primarily
+designed as a desktop application.
+
+```bash
+# Install Termux from F-Droid, then:
+pkg install proot-distro
+proot-distro install debian
+proot-distro login debian
+
+# Inside Debian:
+apt update && apt install -y wget
+wget https://github.com/EnigmaCurry/rigbook/releases/latest/download/rigbook-linux-arm64
+chmod +x rigbook-linux-arm64
+./rigbook-linux-arm64
+```
+
+Open http://localhost:8073 in your Android browser.
+
+**Important:** Android suspends background apps aggressively. Before
+starting rigbook, acquire a wake lock so Termux stays alive when you
+switch to the browser:
+
+```bash
+# Run this in Termux (outside proot) before starting rigbook:
+termux-wake-lock
+```
 
 ### Container
 
