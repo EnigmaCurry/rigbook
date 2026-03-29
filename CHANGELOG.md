@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.1.25
+
+### Spots Map
+
+- Stylized animated dash patterns on map triangle lines — look closely, they might be saying something
+- Dotted breadcrumb pattern on QTH-to-spotter distance line
+- Distance labels in miles on all three triangle lines, color-matched and spread to avoid overlap
+- Text labels for QTH, station, and spotter callsigns replace balloon popups
+- Dark-outlined colored text for readability over any map background
+
+### Other
+
+- Increase QRZ cache TTL from 24 hours to 7 days
+- Remove 100-spot skip limit on QRZ lookups, trickle all remaining after burst
+- Reverse spots map dashed line animation to flow from station to spotter
+- Add per-platform install sections to README (Linux, macOS, Windows, Android/Termux)
+
 ## v0.1.24
 
 - Fix Windows startup crash: use msvcrt for file locking instead of Unix-only fcntl
