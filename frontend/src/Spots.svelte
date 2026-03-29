@@ -1393,6 +1393,8 @@
     display: flex;
     align-items: center;
     gap: 0.4rem;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .dot {
