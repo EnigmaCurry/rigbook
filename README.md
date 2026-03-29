@@ -127,7 +127,7 @@ termux-wake-lock
 
 While termux is still running, open your Android web browser and go to `http://127.0.0.1:8073` to access mobile Rigbook.
 
-You can also use your phone only as the server, and access Rigbook from 
+You can also use your phone as just the server, and access Rigbook from 
 another computer's browser on the same network.  This gives you the full
 desktop experience while you keep Rigbook running in your pocket. 
 Set `RIGBOOK_HOST=0.0.0.0` before starting rigbook to listen on all interfaces:
