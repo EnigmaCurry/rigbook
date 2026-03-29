@@ -145,8 +145,9 @@
   }
   .run-btn {
     background: var(--accent, #58a6ff);
-    color: #fff;
+    color: var(--bg, #000);
     border-color: var(--accent, #58a6ff);
+    font-weight: bold;
   }
   .run-btn:hover:not(:disabled) {
     opacity: 0.85;
