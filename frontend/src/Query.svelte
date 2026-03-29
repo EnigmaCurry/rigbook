@@ -72,8 +72,8 @@
     window.open(url, "_blank");
   }
 
-  function bookmarkQuery() {
-    window.location.hash = `/query?sql=${encodeURIComponent(sql)}`;
+  function updateUrl() {
+    history.replaceState(null, "", `#/query?sql=${encodeURIComponent(sql)}`);
   }
 
   function handleKeydown(e) {
@@ -119,6 +119,7 @@
       <textarea
         bind:value={sql}
         on:keydown={handleKeydown}
+        on:blur={updateUrl}
         rows="4"
         spellcheck="false"
         placeholder="SELECT * FROM contacts WHERE ..."
@@ -135,7 +136,6 @@
           {loading ? "Running…" : "Run Query"}
         </button>
         {#if columns.length > 0}
-          <button class="csv-btn" on:click={bookmarkQuery}>Bookmark Query</button>
           <button class="csv-btn" on:click={downloadJson}>Download JSON</button>
           <button class="csv-btn" on:click={downloadCsv}>Download CSV</button>
         {/if}
