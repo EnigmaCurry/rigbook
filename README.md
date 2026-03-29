@@ -4,7 +4,7 @@
 
 
 A ham radio logbook app. Log your QSOs with a local web UI, optionally
-connected to your radio via [flrig](http://www.w1hkj.com/flrig-help/).
+connected to your radio via [flrig](http://www.w1hkj.org/flrig-help).
 
 The current release of Rigbook is a feature-rich logbook for operators
 engaged in POTA and/or SKCC activities.
