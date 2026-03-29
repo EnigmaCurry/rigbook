@@ -911,13 +911,13 @@
         spotterLine(spotterLL, homeLL, spot.callsign),
         hunterLine(homeLL, myLL),
         distanceLabel(homeLL, myLL, "#ffaa00"),
-        L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
-        distanceLabel(myLL, spotterLL, "#ff4444"),
+        L.polyline([myLL, spotterLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
+        distanceLabel(myLL, spotterLL, "#00ccff"),
       );
     } else if (spotterLL) {
       selectionLines.push(
-        L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
-        distanceLabel(myLL, spotterLL, "#ff4444"),
+        L.polyline([myLL, spotterLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
+        distanceLabel(myLL, spotterLL, "#00ccff"),
       );
     } else if (homeLL) {
       selectionLines.push(
@@ -955,8 +955,8 @@
         spotterLine(sLL, homeLL, s.callsign),
         hunterLine(homeLL, myLL),
         distanceLabel(homeLL, myLL, "#ffaa00"),
-        L.polyline([myLL, sLL], { color: "#ff4444", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
-        distanceLabel(myLL, sLL, "#ff4444"),
+        L.polyline([myLL, sLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
+        distanceLabel(myLL, sLL, "#00ccff"),
       );
     }
   }
