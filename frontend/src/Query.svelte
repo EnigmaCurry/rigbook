@@ -22,6 +22,7 @@
     { label: "All POTA parks", sql: "SELECT reference, name, location_desc, grid, latitude, longitude FROM pota_parks ORDER BY reference" },
     { label: "All notifications", sql: "SELECT * FROM notifications ORDER BY timestamp DESC" },
     { label: "Blocked Access: settings table", sql: "SELECT value FROM settings WHERE key = 'qrz_password'" },
+    { label: "Blocked Access: insert QSO", sql: "INSERT INTO contacts (call, freq, mode, timestamp) VALUES ('W1AW', '14.060', 'CW', '2026-01-01 00:00:00')" },
   ];
 
   function applyCanned(e) {
