@@ -140,6 +140,7 @@ termux-wake-lock
 ```
 
 Then open `http://<phone-ip>:8073` from any browser on the LAN.
+
 **Warning:** Rigbook has no authentication or encryption — only do
 this on trusted networks.
 
