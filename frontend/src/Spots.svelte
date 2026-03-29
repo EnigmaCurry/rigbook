@@ -808,7 +808,7 @@
     if (spotterLL && homeLL) {
       selectionLines.push(
         L.polyline([spotterLL, homeLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "8 6", className: "line-flow" }).addTo(leafletMap),
-        L.polyline([homeLL, myLL], { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline([homeLL, myLL], { color: "#ffaa00", weight: 2, opacity: 0.6, dashArray: "12 4 4 4 12 4 4 12 12 4 12 4 4 4 12 28", className: "line-cq" }).addTo(leafletMap),
         L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
       );
     } else if (spotterLL) {
@@ -817,7 +817,7 @@
       );
     } else if (homeLL) {
       selectionLines.push(
-        L.polyline([myLL, homeLL], { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline([myLL, homeLL], { color: "#ffaa00", weight: 2, opacity: 0.6, dashArray: "12 4 4 4 12 4 4 12 12 4 12 4 4 4 12 28", className: "line-cq" }).addTo(leafletMap),
       );
     }
   }
@@ -842,7 +842,7 @@
       const homeLL = nearLL(baseLon, [homePos.lat, homePos.lon]);
       selectionLines.push(
         L.polyline([sLL, homeLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "8 6", className: "line-flow" }).addTo(leafletMap),
-        L.polyline([homeLL, myLL], { color: "#ffaa00", weight: 2, opacity: 0.6 }).addTo(leafletMap),
+        L.polyline([homeLL, myLL], { color: "#ffaa00", weight: 2, opacity: 0.6, dashArray: "12 4 4 4 12 4 4 12 12 4 12 4 4 4 12 28", className: "line-cq" }).addTo(leafletMap),
         L.polyline([myLL, sLL], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
       );
     }
@@ -1580,6 +1580,12 @@
   }
   @keyframes dash-flow {
     to { stroke-dashoffset: 14; }
+  }
+  :global(.line-cq) {
+    animation: dash-cq 4s linear infinite;
+  }
+  @keyframes dash-cq {
+    to { stroke-dashoffset: 136; }
   }
 
   :global(.spot-marker-dot.my-pos) {
