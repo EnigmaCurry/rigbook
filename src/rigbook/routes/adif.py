@@ -142,6 +142,8 @@ def render_comment_with_template(
         "grid": c.grid,
         "pota_park": c.pota_park,
         "skcc": c.skcc,
+        "skcc_exch": "Y" if c.skcc_exch else "",
+        "dxcc": str(c.dxcc) if c.dxcc is not None else "",
     }
     parts = []
     for entry in template_fields:
@@ -924,6 +926,7 @@ ADIF_FIELD_MAP = {
     "GRIDSQUARE": "grid",
     "POTA_REF": "pota_park",
     "SKCC": "skcc",
+    "DXCC": "dxcc",
 }
 
 DEFAULT_LABELS = {
@@ -939,6 +942,8 @@ DEFAULT_LABELS = {
     "grid": "Grid",
     "pota_park": "POTA",
     "skcc": "SKCC",
+    "skcc_exch": "SKCC Exch",
+    "dxcc": "DXCC",
 }
 
 

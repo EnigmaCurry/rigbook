@@ -11,18 +11,10 @@
 
   // Comment template
   const TEMPLATE_FIELDS = [
-    { field: "pota_park", label: "POTA" },
     { field: "skcc", label: "SKCC" },
-    { field: "grid", label: "Grid" },
-    { field: "call", label: "Call" },
-    { field: "freq", label: "Freq" },
-    { field: "mode", label: "Mode" },
-    { field: "rst_sent", label: "RST Sent" },
-    { field: "rst_recv", label: "RST Recv" },
-    { field: "name", label: "Name" },
-    { field: "qth", label: "QTH" },
-    { field: "state", label: "State" },
-    { field: "country", label: "Country" },
+    { field: "skcc_exch", label: "SKCC Exch" },
+    { field: "pota_park", label: "POTA" },
+    { field: "dxcc", label: "DXCC" },
   ];
 
   let commentTemplate = [];
