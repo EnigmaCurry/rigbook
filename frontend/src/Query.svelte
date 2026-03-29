@@ -355,7 +355,6 @@
     font-size: 0.8rem;
     font-family: monospace;
     overflow-y: auto;
-    max-height: 16rem;
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 0.75rem;
