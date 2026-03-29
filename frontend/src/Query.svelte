@@ -124,7 +124,7 @@
         spellcheck="false"
         placeholder="SELECT * FROM contacts WHERE ..."
       ></textarea>
-      <p class="hint">Read-only access to <code>contacts</code>, <code>notifications</code>, <code>pota_programs</code>, <code>pota_locations</code>, <code>pota_parks</code>. Max 10000 rows interactively. JSON/CSV unlimited.</p>
+      <p class="hint">Read-only access to the tables: <code>contacts</code>, <code>notifications</code>, <code>pota_programs</code>, <code>pota_locations</code>, <code>pota_parks</code>. Max 10000 rows shown on this page. Downloading JSON/CSV returns all rows. After writing your query, you may bookmark this page, and the query will be saved in the bookmark.</p>
       <div class="buttons">
         <select class="canned-select" bind:value={cannedSelect} on:change={applyCanned}>
           <option value="">Examples...</option>
