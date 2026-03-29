@@ -14,8 +14,6 @@
   let potaResults = [];
   let parkResults = [];
   let skccResults = [];
-  let qrzResult = null;
-  let qrzLoading = false;
   let potaSpots = [];
   let debounceTimer;
   let highlightIndex = -1;
@@ -25,7 +23,6 @@
     ...potaResults.map(r => ({ type: "pota", data: r })),
     ...parkResults.map(r => ({ type: "park", data: r })),
     ...skccResults.map(r => ({ type: "skcc", data: r })),
-    ...(qrzResult ? [{ type: "qrz", data: qrzResult }] : []),
   ];
 
   async function fetchPotaSpots() {
@@ -75,23 +72,9 @@
     } catch { skccResults = []; }
   }
 
-  async function searchQrz() {
-    if (!query || query.length < 3) return;
-    qrzLoading = true;
-    try {
-      const res = await fetch(`/api/qrz/lookup/${query.toUpperCase()}`);
-      if (res.ok) {
-        const data = await res.json();
-        qrzResult = data.error ? null : data;
-      }
-    } catch {}
-    qrzLoading = false;
-  }
-
   function onInput() {
     open = true;
     highlightIndex = -1;
-    qrzResult = null;
     clearTimeout(debounceTimer);
     potaResults = filterPota(query);
     debounceTimer = setTimeout(() => { searchLogbook(query); searchParks(query); searchSkcc(query); }, 300);
@@ -118,7 +101,6 @@
         potaResults = [];
         parkResults = [];
         skccResults = [];
-        qrzResult = null;
       }
       return;
     }
@@ -139,7 +121,6 @@
     potaResults = [];
     parkResults = [];
     skccResults = [];
-    qrzResult = null;
     dispatch("action", item);
   }
 
@@ -184,7 +165,7 @@
     placeholder="Search..."
     autocomplete="off"
   />
-  {#if open && (allResults.length > 0 || qrzLoading || query.length >= 2)}
+  {#if open && (allResults.length > 0 || query.length >= 2)}
     <div class="results">
       {#if logbookResults.length > 0}
         <div class="group-header">Logbook</div>
@@ -246,26 +227,11 @@
         {/each}
       {/if}
 
-      {#if qrzResult}
-        <div class="group-header">QRZ</div>
-        {@const idx = logbookResults.length + potaResults.length + parkResults.length + skccResults.length}
-        <div
-          class="result-item"
-          class:highlighted={highlightIndex === idx}
-          on:mousedown|preventDefault={() => pick({ type: "qrz", data: qrzResult })}
-        >
-          <span class="result-call">{qrzResult.call}</span>
-          <span class="result-detail">{qrzResult.name || ""} {qrzResult.qth || ""} {qrzResult.state || ""}</span>
-        </div>
-      {:else if query.length >= 3 && !qrzLoading}
-        <div class="qrz-hint">Press Enter to show results from QRZ</div>
+      {#if query.length >= 2 && allResults.length > 0}
+        <div class="qrz-hint">Press Enter to search all fields</div>
       {/if}
 
-      {#if qrzLoading}
-        <div class="qrz-hint">Looking up on QRZ...</div>
-      {/if}
-
-      {#if allResults.length === 0 && !qrzLoading && query.length >= 2}
+      {#if allResults.length === 0 && query.length >= 2}
         <div class="qrz-hint">No results</div>
       {/if}
     </div>

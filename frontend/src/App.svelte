@@ -898,18 +898,6 @@
       menuOpen = false;
       window.location.hash = `/search?q=${encodeURIComponent(searchQuery)}`;
       return;
-    } else if (type === "qrz") {
-      prefill = {
-        call: data.call || "",
-        freq: "",
-        mode: "",
-        pota_park: "",
-        grid: data.grid || "",
-        country: data.country || "",
-        state: data.state || "",
-      };
-      dualShowForm = true;
-      navigate(isWide() ? "dual" : "add");
     }
   }
 
