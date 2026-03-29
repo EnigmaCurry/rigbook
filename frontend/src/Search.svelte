@@ -275,17 +275,14 @@
       {#if qrzResult}
         <div class="group-header">QRZ</div>
         {@const idx = logbookResults.length + potaResults.length + parkResults.length + skccResults.length}
-        <a
-          class="result-item qrz-link"
+        <div
+          class="result-item"
           class:highlighted={highlightIndex === idx}
-          href="https://www.qrz.com/db/{qrzResult.call}"
-          target="_blank"
-          rel="noopener noreferrer"
-          on:mousedown|preventDefault={() => { window.open(`https://www.qrz.com/db/${qrzResult.call}`, '_blank'); open = false; }}
+          on:mousedown|preventDefault={() => pick({ type: "qrz", data: qrzResult })}
         >
           <span class="result-call">{qrzResult.call}</span>
-          <span class="result-detail">{qrzResult.name || ""} {qrzResult.qth || ""} {qrzResult.state || ""} ↗</span>
-        </a>
+          <span class="result-detail">{qrzResult.name || ""} {qrzResult.qth || ""} {qrzResult.state || ""}</span>
+        </div>
       {:else if qrzLoading}
         <div class="qrz-hint">Looking up on QRZ...</div>
       {/if}
@@ -391,11 +388,6 @@
   .result-item:hover .result-detail,
   .result-item.highlighted .result-detail {
     color: var(--bg);
-  }
-
-  a.qrz-link {
-    text-decoration: none;
-    color: inherit;
   }
 
   .qrz-hint {
