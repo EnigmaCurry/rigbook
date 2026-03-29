@@ -418,11 +418,6 @@
     setTimeout(fetchSpotStatus, 2000);
   }
 
-  function dispatchSetupIfReady() {
-    if (needsSetup && my_callsign.trim() && my_grid.trim()) {
-      dispatch("setupcomplete");
-    }
-  }
 
   // --- Per-field auto-save handlers ---
 
@@ -507,9 +502,6 @@
     if (dirtyFields.has(key) && fieldSavers[key]) {
       dirtyFields.delete(key);
       await fieldSavers[key]();
-    }
-    if (key === "my_callsign" || key === "my_grid") {
-      dispatchSetupIfReady();
     }
   }
 
