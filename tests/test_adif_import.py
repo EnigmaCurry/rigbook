@@ -277,12 +277,12 @@ class TestValidateImportRecord:
         """SKCC ADIF field containing spaces triggers validation warning."""
         record = {"COMMENT": "", "SKCC": "12486S Hank"}
         warnings = _validate_import_record(record, self._template("skcc"), "|")
-        assert any("spaces" in w["message"] for w in warnings)
+        assert any("not a valid SKCC number" in w["message"] for w in warnings)
 
     def test_skcc_not_starting_with_digit_warns(self):
         record = {"COMMENT": "", "SKCC": "ABC"}
         warnings = _validate_import_record(record, self._template("skcc"), "|")
-        assert any("digit" in w["message"] for w in warnings)
+        assert any("not a valid SKCC number" in w["message"] for w in warnings)
 
     def test_no_comment_no_warnings(self):
         record = {"SKCC": "12486S"}

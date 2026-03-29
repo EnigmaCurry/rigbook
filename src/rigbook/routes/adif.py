@@ -692,29 +692,17 @@ def _validate_import_record(
                     )
     # Field-specific validations
     skcc_val = record.get("SKCC", "")
-    if skcc_val:
-        if " " in skcc_val.strip():
-            warnings.append(
-                {
-                    "field": "skcc",
-                    "label": "SKCC",
-                    "comment_val": "",
-                    "field_val": skcc_val,
-                    "message": f"SKCC: '{skcc_val}' contains spaces"
-                    " — should be a single value like '2240S'",
-                }
-            )
-        elif not skcc_val.strip()[0].isdigit():
-            warnings.append(
-                {
-                    "field": "skcc",
-                    "label": "SKCC",
-                    "comment_val": "",
-                    "field_val": skcc_val,
-                    "message": f"SKCC: '{skcc_val}' does not start with a digit"
-                    " — should be a number like '2240S'",
-                }
-            )
+    if skcc_val and not _is_valid_skcc_number(skcc_val):
+        warnings.append(
+            {
+                "field": "skcc",
+                "label": "SKCC",
+                "comment_val": "",
+                "field_val": skcc_val,
+                "message": f"SKCC: '{skcc_val}' is not a valid SKCC number"
+                " — expected 1-6 digits with optional letter suffix (e.g. '2240S')",
+            }
+        )
 
     return warnings
 
