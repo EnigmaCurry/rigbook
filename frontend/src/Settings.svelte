@@ -1161,6 +1161,13 @@
     {/if}
   </section>
 
+  <section class="settings-section">
+    <h3>Shutdown</h3>
+    <div class="setting-row">
+      <button class="danger-btn" on:click={shutdownServer}>Shutdown Server</button>
+    </div>
+  </section>
+
   {#if logbookName}
     <section class="settings-section danger-zone">
       <h3>Danger Zone</h3>
@@ -1187,10 +1194,6 @@
         <button class="danger-btn" on:click={deleteLogbook} disabled={deleting || dangerConfirmName !== logbookName}>
           {deleting ? "Deleting..." : "Delete Logbook"}
         </button>
-      </div>
-      <div class="danger-separator"></div>
-      <div class="setting-row">
-        <button class="danger-btn" on:click={shutdownServer} disabled={dangerConfirmName !== logbookName}>Shutdown Server</button>
       </div>
     </section>
   {/if}
