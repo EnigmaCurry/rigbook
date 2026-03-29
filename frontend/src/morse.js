@@ -20,18 +20,22 @@ const MORSE = {
  */
 export function textToDashArray(text, unit = 4) {
   if (!text) return { dashArray: "", total: 0 };
+  const words = text.toUpperCase().trim().split(/\s+/);
   const parts = [];
-  const chars = text.toUpperCase().split("");
-  for (let i = 0; i < chars.length; i++) {
-    const morse = MORSE[chars[i]];
-    if (!morse) continue;
-    for (let j = 0; j < morse.length; j++) {
-      parts.push(morse[j] === "-" ? 3 * unit : unit);
-      if (j < morse.length - 1) parts.push(unit); // intra-char gap
+  for (let w = 0; w < words.length; w++) {
+    if (w > 0) parts.push(7 * unit); // word gap
+    const chars = words[w].split("");
+    for (let i = 0; i < chars.length; i++) {
+      const morse = MORSE[chars[i]];
+      if (!morse) continue;
+      if (i > 0 && parts.length) parts.push(3 * unit); // inter-char gap
+      for (let j = 0; j < morse.length; j++) {
+        parts.push(morse[j] === "-" ? 3 * unit : unit);
+        if (j < morse.length - 1) parts.push(unit); // intra-char gap
+      }
     }
-    if (i < chars.length - 1) parts.push(3 * unit); // inter-char gap
   }
-  parts.push(7 * unit); // word gap before repeat
+  parts.push(7 * unit); // trailing gap before repeat
   const total = parts.reduce((a, b) => a + b, 0);
   return { dashArray: parts.join(" "), total };
 }

@@ -781,6 +781,27 @@
     return `${s.callsign}|${s.frequency}|${s.mode}`;
   }
 
+  const _cqCache = {};
+  function cqDash(callsign) {
+    if (!callsign) return { dashArray: "8 6", total: 14 };
+    if (_cqCache[callsign]) return _cqCache[callsign];
+    const result = textToDashArray("CQ CQ CQ " + callsign);
+    _cqCache[callsign] = result;
+    return result;
+  }
+
+  function spotterLine(from, to, stationCall) {
+    const dash = cqDash(stationCall);
+    const line = L.polyline([from, to], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: dash.dashArray, className: "line-spotter" }).addTo(leafletMap);
+    const el = line.getElement();
+    if (el) {
+      const speed = 34;
+      el.style.setProperty("--spotter-offset", dash.total);
+      el.style.setProperty("--spotter-duration", (dash.total / speed) + "s");
+    }
+    return line;
+  }
+
   function hunterLine(from, to) {
     const line = L.polyline([from, to], { color: "#ffaa00", weight: 2, opacity: 0.6, dashArray: hunterDash.dashArray, className: "line-hunter" }).addTo(leafletMap);
     const el = line.getElement();
@@ -817,7 +838,7 @@
         const pos = gridToLatLon(grid);
         if (!pos) continue;
         selectionLines.push(
-          L.polyline([nearLL(baseLon, [pos.lat, pos.lon]), homeLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "8 6", className: "line-flow" }).addTo(leafletMap),
+          spotterLine(nearLL(baseLon, [pos.lat, pos.lon]), homeLL, spot.callsign),
         );
       }
     }
@@ -826,7 +847,7 @@
     // Spotter->Station, Station->QTH, QTH->Spotter — all animate toward their endpoint
     if (spotterLL && homeLL) {
       selectionLines.push(
-        L.polyline([spotterLL, homeLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "8 6", className: "line-flow" }).addTo(leafletMap),
+        spotterLine(spotterLL, homeLL, spot.callsign),
         hunterLine(homeLL, myLL),
         L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
       );
@@ -860,7 +881,7 @@
       if (!homePos) continue;
       const homeLL = nearLL(baseLon, [homePos.lat, homePos.lon]);
       selectionLines.push(
-        L.polyline([sLL, homeLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "8 6", className: "line-flow" }).addTo(leafletMap),
+        spotterLine(sLL, homeLL, s.callsign),
         hunterLine(homeLL, myLL),
         L.polyline([myLL, sLL], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
       );
@@ -1594,11 +1615,11 @@
   }
 
 
-  :global(.line-flow) {
-    animation: dash-flow 0.8s linear infinite;
+  :global(.line-spotter) {
+    animation: dash-spotter var(--spotter-duration, 0.8s) linear infinite;
   }
-  @keyframes dash-flow {
-    to { stroke-dashoffset: 14; }
+  @keyframes dash-spotter {
+    to { stroke-dashoffset: var(--spotter-offset, 14); }
   }
   :global(.line-hunter) {
     animation: dash-hunter var(--hunter-duration, 4s) linear infinite;
