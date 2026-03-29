@@ -1014,6 +1014,9 @@ def _suggest_comment_template(records: list[dict]) -> dict:
                 )
             ]
 
+    # Only suggest fields that belong to our curated template set
+    allowed = {"skcc", "skcc_exch", "pota_park", "dxcc"}
+    best_fields = [f for f in best_fields if f["field"] in allowed]
     return {"separator": best_sep, "fields": best_fields}
 
 

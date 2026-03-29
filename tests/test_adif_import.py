@@ -324,7 +324,8 @@ class TestSuggestCommentTemplate:
         assert result["separator"] == "|"
         fields = {f["field"] for f in result["fields"]}
         assert "skcc" in fields
-        assert "mode" in fields
+        # "mode" is a common field and should be filtered out
+        assert "mode" not in fields
 
     def test_single_word_value_matching(self):
         """Ensure multi-word comment values only match first word to ADIF field."""
