@@ -723,6 +723,7 @@
   function clearLines() {
     for (const line of selectionLines) leafletMap.removeLayer(line);
     selectionLines = [];
+    _distLabels = [];
   }
 
   function clearAll() {
@@ -813,6 +814,51 @@
     return line;
   }
 
+  function haversineMi(a, b) {
+    const toRad = d => d * Math.PI / 180;
+    const dLat = toRad(b[0] - a[0]);
+    const dLon = toRad(b[1] - a[1]);
+    const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a[0])) * Math.cos(toRad(b[0])) * Math.sin(dLon / 2) ** 2;
+    return Math.round(3958.8 * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s)));
+  }
+
+  let _distLabels = []; // { marker, from, to, span }
+
+  function _labelAngle(from, to) {
+    const p1 = leafletMap.latLngToContainerPoint(from);
+    const p2 = leafletMap.latLngToContainerPoint(to);
+    let a = Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
+    if (a > 90) a -= 180;
+    else if (a < -90) a += 180;
+    return a;
+  }
+
+  function _updateDistLabels() {
+    for (const dl of _distLabels) {
+      const angle = _labelAngle(dl.from, dl.to);
+      dl.span.style.transform = `rotate(${angle}deg)`;
+    }
+  }
+
+  function distanceLabel(from, to) {
+    const mi = haversineMi(from, to);
+    const mid = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2];
+    const angle = _labelAngle(from, to);
+    const span = document.createElement("span");
+    span.textContent = `${mi} mi`;
+    span.style.transform = `rotate(${angle}deg)`;
+    const icon = L.divIcon({
+      className: "distance-label",
+      html: span.outerHTML,
+      iconSize: [0, 0],
+    });
+    const marker = L.marker(mid, { icon, interactive: false }).addTo(leafletMap);
+    // Get the live span element from the DOM for zoom updates
+    const liveSpan = marker.getElement()?.querySelector("span");
+    if (liveSpan) _distLabels.push({ marker, from, to, span: liveSpan });
+    return marker;
+  }
+
   function drawTriangleForSpot(spot) {
     if (!leafletMap || !spot) return;
     clearLines();
@@ -850,10 +896,12 @@
         spotterLine(spotterLL, homeLL, spot.callsign),
         hunterLine(homeLL, myLL),
         L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
+        distanceLabel(myLL, spotterLL),
       );
     } else if (spotterLL) {
       selectionLines.push(
         L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
+        distanceLabel(myLL, spotterLL),
       );
     } else if (homeLL) {
       selectionLines.push(
@@ -884,6 +932,7 @@
         spotterLine(sLL, homeLL, s.callsign),
         hunterLine(homeLL, myLL),
         L.polyline([myLL, sLL], { color: "#ff4444", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
+        distanceLabel(myLL, sLL),
       );
     }
   }
@@ -989,6 +1038,8 @@
       maxZoom: tiles.maxZoom,
     }).addTo(leafletMap);
     leafletMap.on("click", clearAll);
+    leafletMap.on("zoomanim", _updateDistLabels);
+    leafletMap.on("zoomend", _updateDistLabels);
     addExpandControl(leafletMap, mapEl.parentElement);
     mapResizeObserver = new ResizeObserver(() => { leafletMap?.invalidateSize(); });
     mapResizeObserver.observe(mapEl);
@@ -1626,6 +1677,22 @@
   }
   @keyframes dash-hunter {
     to { stroke-dashoffset: var(--hunter-offset, 0); }
+  }
+
+  :global(.distance-label) {
+    background: none !important;
+    border: none !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  :global(.distance-label span) {
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+    white-space: nowrap;
+    text-shadow: 0 0 4px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.9);
+    pointer-events: none;
   }
 
   :global(.spot-marker-dot.my-pos) {
