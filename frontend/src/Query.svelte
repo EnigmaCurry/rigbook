@@ -54,7 +54,7 @@
       rows = data.rows;
       rowCount = data.count;
       truncated = data.truncated;
-      colWidths = columns.map(() => 150);
+      colWidths = autoSizeColumns(columns, rows);
     } catch (e) {
       error = e.message;
     } finally {
@@ -71,6 +71,23 @@
   function downloadJson() {
     const url = `/api/query/json?sql=${encodeURIComponent(sql)}`;
     window.open(url, "_blank");
+  }
+
+  function autoSizeColumns(cols, data) {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    ctx.font = "0.8rem monospace";
+    const padding = 20; // cell padding + resize handle
+    return cols.map((col, i) => {
+      let max = ctx.measureText(col).width;
+      const limit = Math.min(data.length, 200); // sample first 200 rows
+      for (let r = 0; r < limit; r++) {
+        const val = String(data[r][i] ?? "");
+        const w = ctx.measureText(val).width;
+        if (w > max) max = w;
+      }
+      return Math.max(40, Math.ceil(max + padding));
+    });
   }
 
   function updateUrl() {
