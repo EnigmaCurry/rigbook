@@ -93,6 +93,9 @@ run it. See the **[Windows installation
 guide](https://wa7pge.com/static/rigbook/rigbook-windows-install.html)**
 *(thanks WA7PGE!)* for detailed instructions.
 
+----
+----
+
 ### Android (Termux)
 
 Rigbook runs on Android phones via [Termux](https://termux.dev) using
@@ -110,19 +113,18 @@ proot-distro login debian
 apt update && apt install -y wget
 wget https://github.com/EnigmaCurry/rigbook/releases/latest/download/rigbook-linux-arm64
 chmod +x rigbook-linux-arm64
-./rigbook-linux-arm64
 ```
-
-Open http://localhost:8073 in your Android browser.
 
 **Important:** Android suspends background apps aggressively. Before
 starting rigbook, acquire a wake lock so Termux stays alive when you
 switch to the browser:
 
 ```bash
-# Run this in Termux (outside proot) before starting rigbook:
 termux-wake-lock
+./rigbook-linux-arm64
 ```
+
+While termux is still running, open `http://127.0.0.1:8073` in your Android web browser.
 
 You can also access Rigbook from another computer's browser on the
 same network, which gives you the full desktop experience while using
@@ -131,6 +133,7 @@ rigbook to listen on all interfaces:
 
 ```bash
 export RIGBOOK_HOST=0.0.0.0
+termux-wake-lock
 ./rigbook-linux-arm64
 ```
 
@@ -142,6 +145,9 @@ this on trusted networks.
   <img src="https://github.com/user-attachments/assets/e74d8446-8cfb-400d-a761-ee841b5c30c3" alt="Rigbook running on Android Pixel phone via Termux in Chrome browser" width="400"><br>
   <em>Rigbook running on Android Pixel phone via Termux in Chrome browser</em>
 </p>
+
+---
+---
 
 ### Container
 
