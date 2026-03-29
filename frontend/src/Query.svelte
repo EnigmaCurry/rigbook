@@ -1,5 +1,9 @@
 <script>
-  let sql = "SELECT * FROM contacts ORDER BY timestamp DESC LIMIT 100";
+  import { onMount } from "svelte";
+
+  export let initialSql = "";
+
+  let sql = initialSql || "SELECT * FROM contacts ORDER BY timestamp DESC LIMIT 100";
   let columns = [];
   let rows = [];
   let error = "";
@@ -68,11 +72,19 @@
     window.open(url, "_blank");
   }
 
+  function bookmarkQuery() {
+    window.location.hash = `/query?sql=${encodeURIComponent(sql)}`;
+  }
+
   function handleKeydown(e) {
     if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
       runQuery();
     }
   }
+
+  onMount(() => {
+    if (initialSql) runQuery();
+  });
 
   function startResize(e, i) {
     e.preventDefault();
@@ -125,6 +137,7 @@
         {#if columns.length > 0}
           <button class="csv-btn" on:click={downloadCsv}>Download CSV</button>
           <button class="csv-btn" on:click={downloadJson}>Download JSON</button>
+          <button class="csv-btn" on:click={bookmarkQuery}>Bookmark Query</button>
         {/if}
       </div>
     </div>

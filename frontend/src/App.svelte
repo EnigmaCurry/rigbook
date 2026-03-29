@@ -105,7 +105,11 @@
       const settingsTab = hash.split("/")[2] || null;
       return { page: "settings", editId: null, dualRight: null, settingsTab };
     }
-    if (hash === "/query") return { page: "query", editId: null, dualRight: null };
+    if (hash === "/query" || hash.startsWith("/query?")) {
+      const qm = hash.indexOf("?");
+      const sp = qm >= 0 ? new URLSearchParams(hash.slice(qm + 1)) : null;
+      return { page: "query", editId: null, dualRight: null, querySql: sp?.get("sql") || "" };
+    }
     if (hash === "/export") return { page: "export", editId: null, dualRight: null };
     if (hash === "/search" || hash.startsWith("/search?")) {
       const qm = hash.indexOf("?");
@@ -139,6 +143,7 @@
   let defaultPage = "log";
   let settingsTab = _parsed.settingsTab || null;
   let searchQuery = _parsed.searchQuery || "";
+  let querySql = _parsed.querySql || "";
   let prefill = null;
   let formDirty = false;
   let activePark = "";
@@ -944,6 +949,7 @@
     }
     settingsTab = parsed.settingsTab || null;
     searchQuery = parsed.searchQuery || "";
+    querySql = parsed.querySql || "";
     page = p;
     if (parsed.dualRight) {
       if ((parsed.dualRight === "spots" && !spotsEnabled) || (parsed.dualRight === "parks" && !potaEnabled) || (parsed.dualRight === "conditions" && !solarEnabled)) {
@@ -1271,7 +1277,7 @@
     {:else if page === "search"}
       <SearchResults initialQuery={searchQuery} on:editcontact={e => { editId = e.detail; navigate("add"); window.location.hash = `/log/${e.detail}`; }} />
     {:else if page === "query"}
-      <Query />
+      <Query initialSql={querySql} />
     {:else if page === "export"}
       <ExportImport />
     {:else if page === "notifications"}
