@@ -47,25 +47,18 @@ async def _sse_generator(queue: asyncio.Queue[str]):
     shutdown_evt = _get_shutdown_event()
     try:
         while not shutdown_evt.is_set():
-            get_task = asyncio.ensure_future(queue.get())
-            shutdown_task = asyncio.ensure_future(shutdown_evt.wait())
-            done, pending = await asyncio.wait(
-                [get_task, shutdown_task], return_when=asyncio.FIRST_COMPLETED
-            )
-            for t in pending:
-                t.cancel()
-                try:
-                    await t
-                except asyncio.CancelledError:
-                    pass
-            if get_task in done:
-                yield get_task.result()
+            try:
+                msg = await asyncio.wait_for(queue.get(), timeout=30)
+                yield msg
+            except asyncio.TimeoutError:
+                # Send keepalive comment to detect dead connections
+                yield ": keepalive\n\n"
             if shutdown_evt.is_set():
                 # Drain any remaining messages (including shutdown broadcast)
                 while not queue.empty():
                     yield queue.get_nowait()
                 return
-    except asyncio.CancelledError:
+    except (asyncio.CancelledError, GeneratorExit):
         return
 
 
@@ -78,9 +71,12 @@ async def event_stream():
         try:
             async for msg in _sse_generator(queue):
                 yield msg
+        except (asyncio.CancelledError, GeneratorExit):
+            pass
         finally:
             if queue in _subscribers:
                 _subscribers.remove(queue)
+            logger.debug("SSE client disconnected")
 
     return StreamingResponse(
         cleanup_generator(),

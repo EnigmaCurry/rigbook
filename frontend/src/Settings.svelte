@@ -11,6 +11,7 @@
   export let logbookName = "";
   export let pickerMode = false;
   export let needsSetup = false;
+  export let initialTab = null;
 
   const dispatch = createEventDispatcher();
 
@@ -19,8 +20,11 @@
   let default_rst = "599";
   let qrz_password = "";
   let hasQrzPassword = false;
-  let pota_enabled = true;
+  let pota_enabled = false;
   let solar_enabled = false;
+  let update_check_enabled = true;
+  let updateCheckResult = null;
+  let updateChecking = false;
   let flrig_enabled = false;
   let flrig_simulate = false;
   let flrig_host = "127.0.0.1";
@@ -28,11 +32,11 @@
   let logbook_right = false;
   let wide_breakpoint = "1200";
   let wide_mode_enabled = true;
-  let theme = storageGet("rigbook-theme") || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  let theme = "dark";
   let map_theme = "natgeo";
   let map_custom_url = "";
-  let saving = false;
-  let message = "";
+  let custom_header = "";
+  let default_page = "log";
   let qrzStatus = null; // { ok, error?, username? }
   let qrzChecking = false;
 
@@ -52,37 +56,23 @@
   let hamalert_password = "";
   let hasHamalertPassword = false;
 
+  const validTabs = ["station", "features", "appearance", "system"];
+  let activeTab = (initialTab && validTabs.includes(initialTab)) ? initialTab : "station";
   let settingsLoaded = false;
-  let savedSnapshot = null;
 
-  function settingsSnapshot() {
-    return {
-      my_callsign, my_grid, default_rst, pota_enabled, solar_enabled,
-      flrig_enabled, flrig_simulate, flrig_host, flrig_port,
-      logbook_right, wide_breakpoint, wide_mode_enabled, map_theme, map_custom_url,
-      rbn_enabled, rbn_host, rbn_feed_cw, rbn_feed_digital,
-      skcc_skimmer_enabled, skcc_skimmer_distance,
-      hamalert_enabled, hamalert_host, hamalert_port, hamalert_username,
-    };
+  $: if (initialTab && validTabs.includes(initialTab)) activeTab = initialTab;
+  $: if (needsSetup) activeTab = "station";
+
+  let updateCheckLoaded = false;
+  $: if (settingsLoaded && !updateCheckLoaded) {
+    updateCheckLoaded = true;
+    if (update_check_enabled) loadUpdateCheck();
   }
-
-  $: currentSnap = {
-    my_callsign, my_grid, default_rst, pota_enabled, solar_enabled,
-    flrig_enabled, flrig_simulate, flrig_host, flrig_port,
-    logbook_right, wide_breakpoint, wide_mode_enabled, map_theme, map_custom_url,
-    rbn_enabled, rbn_host, rbn_feed_cw, rbn_feed_digital,
-    skcc_skimmer_enabled, skcc_skimmer_distance,
-    hamalert_enabled, hamalert_host, hamalert_port, hamalert_username,
-  };
-  $: dirty = savedSnapshot !== null && JSON.stringify(currentSnap) !== JSON.stringify(savedSnapshot);
-  $: changed = savedSnapshot ? Object.fromEntries(
-    Object.keys(currentSnap).map(k => [k, savedSnapshot[k] !== currentSnap[k]])
-  ) : {};
 
   // Desktop notifications
   let desktopNotifPermission = typeof Notification !== "undefined" ? Notification.permission : "denied";
   let desktopNotifEnabled = storageGet("desktop_notifications_enabled") === "true";
-  let popupNotifEnabled = storageGet("popup_notifications_enabled") === "true";
+  let popupNotifEnabled = false;
   let testPending = false;
 
   // Map preview
@@ -123,7 +113,7 @@
     if (!previewMap) {
       previewMap = L.map(previewEl, {
         scrollWheelZoom: false, zoomControl: false,
-        dragging: false, doubleClickZoom: false,
+        dragging: true, doubleClickZoom: false,
         attributionControl: false,
       });
       previewMap.setView(pos ? [pos.lat, pos.lon] : [39, -98], 4);
@@ -135,7 +125,9 @@
     }).addTo(previewMap);
     if (previewMarker) previewMap.removeLayer(previewMarker);
     if (pos) {
+      const label = [my_callsign.trim().toUpperCase(), my_grid.trim().toUpperCase()].filter(Boolean).join(" · ");
       previewMarker = L.marker([pos.lat, pos.lon], { icon: qthIcon }).addTo(previewMap);
+      if (label) previewMarker.bindTooltip(label, { permanent: true, direction: "right", offset: [8, 0], className: "qth-label" });
     }
   }
 
@@ -258,6 +250,7 @@
 
   // Danger zone
   let dangerConfirmName = "";
+  let qsoCount = 0;
   let deleteError = "";
   let deleting = false;
   let clearing = false;
@@ -367,10 +360,12 @@
   let spotStatus = { rbn: { connected: false, enabled: false }, hamalert: { connected: false, enabled: false } };
   let spotStatusInterval;
 
-  function toggleTheme() {
+  async function toggleTheme() {
     theme = theme === "dark" ? "light" : "dark";
-    storageSet("rigbook-theme", theme);
     document.documentElement.classList.toggle("light", theme === "light");
+    storageSet("rigbook-theme", theme);
+    await saveSetting("theme", theme);
+    dispatch("saved");
     if (map_theme === "default") updatePreview();
   }
 
@@ -380,14 +375,291 @@
         fetch("/api/qrz/cache", { method: "DELETE" }),
         fetch("/api/skcc/cache", { method: "DELETE" }),
       ]);
-      message = "Cache cleared.";
-    } catch {
-      message = "Failed to clear cache.";
-    }
+    } catch {}
   }
 
   $: stripCallsign = () => { my_callsign = my_callsign.replace(/\s/g, ""); };
   $: stripGrid = () => { my_grid = my_grid.replace(/[^A-Za-z0-9]/g, ""); };
+
+  // --- Auto-save helpers ---
+
+  async function saveSetting(key, value) {
+    await fetch(`/api/settings/${key}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ value }),
+    });
+  }
+
+  const dirtyFields = new Set();
+  const debounceTimers = {};
+
+  function markDirty(key) {
+    dirtyFields.add(key);
+    clearTimeout(debounceTimers[key]);
+    debounceTimers[key] = setTimeout(() => {
+      if (dirtyFields.has(key) && fieldSavers[key]) {
+        dirtyFields.delete(key);
+        fieldSavers[key]();
+      }
+    }, 2000);
+  }
+
+  async function flushPending() {
+    for (const key of dirtyFields) {
+      if (fieldSavers[key]) await fieldSavers[key]();
+    }
+    dirtyFields.clear();
+  }
+
+  async function switchTab(tab) {
+    await flushPending();
+    activeTab = tab;
+    window.location.hash = `/settings/${tab}`;
+  }
+
+  async function restartFeeds() {
+    await fetch("/api/spots/restart", { method: "POST" });
+    setTimeout(fetchSpotStatus, 2000);
+  }
+
+
+  // --- Per-field auto-save handlers ---
+
+  const fieldSavers = {
+    my_callsign: async () => {
+      await saveSetting("my_callsign", my_callsign.trim().toUpperCase());
+      dispatch("saved");
+    },
+    my_grid: async () => {
+      await saveSetting("my_grid", my_grid.trim().toUpperCase());
+      dispatch("saved");
+    },
+    default_rst: async () => {
+      await saveSetting("default_rst", default_rst.trim());
+    },
+    flrig_host: async () => {
+      if (flrig_enabled && flrig_host.trim() && flrig_port.trim()) {
+        await saveSetting("flrig_host", flrig_host.trim());
+        dispatch("saved");
+      }
+    },
+    flrig_port: async () => {
+      if (flrig_enabled && flrig_host.trim() && flrig_port.trim()) {
+        await saveSetting("flrig_port", flrig_port.trim());
+        dispatch("saved");
+      }
+    },
+    wide_breakpoint: async () => {
+      await saveSetting("wide_breakpoint", wide_mode_enabled ? String(wide_breakpoint) : "0");
+      dispatch("saved");
+    },
+    map_custom_url: async () => {
+      await saveSetting("map_custom_url", map_custom_url.trim());
+      dispatch("saved");
+    },
+    custom_header: async () => {
+      await saveSetting("custom_header", custom_header.trim());
+      dispatch("saved");
+    },
+    rbn_host: async () => {
+      await saveSetting("rbn_host", rbn_host.trim());
+      await restartFeeds();
+      dispatch("saved");
+    },
+    skcc_skimmer_distance: async () => {
+      await saveSetting("skcc_skimmer_distance", skcc_skimmer_distance.trim() || "500");
+      dispatch("saved");
+    },
+    hamalert_host: async () => {
+      await saveSetting("hamalert_host", hamalert_host.trim());
+      if (hamalert_enabled && hamalertFieldsFilled()) await restartFeeds();
+      dispatch("saved");
+    },
+    hamalert_port: async () => {
+      await saveSetting("hamalert_port", hamalert_port.trim());
+      if (hamalert_enabled && hamalertFieldsFilled()) await restartFeeds();
+      dispatch("saved");
+    },
+    hamalert_username: async () => {
+      await saveSetting("hamalert_username", hamalert_username.trim());
+      if (hamalert_enabled && hamalertFieldsFilled()) await restartFeeds();
+      dispatch("saved");
+    },
+  };
+
+  function onCallsignInput() {
+    stripCallsign();
+    markDirty("my_callsign");
+  }
+
+  function onGridInput() {
+    stripGrid();
+    markDirty("my_grid");
+  }
+
+  function onDefaultRstInput() {
+    markDirty("default_rst");
+  }
+
+  async function onFieldBlur(key) {
+    clearTimeout(debounceTimers[key]);
+    if (dirtyFields.has(key) && fieldSavers[key]) {
+      dirtyFields.delete(key);
+      await fieldSavers[key]();
+    }
+  }
+
+  async function onPotaEnabledChange() {
+    await saveSetting("pota_enabled", pota_enabled ? "true" : "false");
+    dispatch("saved");
+  }
+
+  async function onSolarEnabledChange() {
+    await saveSetting("solar_enabled", solar_enabled ? "true" : "false");
+    dispatch("saved");
+  }
+
+  async function onUpdateCheckEnabledChange() {
+    await saveSetting("update_check_enabled", update_check_enabled ? "true" : "false");
+    if (update_check_enabled) {
+      await fetchUpdateCheck();
+    } else {
+      updateCheckResult = null;
+    }
+    dispatch("saved");
+  }
+
+  async function onFlrigEnabledChange() {
+    await saveSetting("flrig_enabled", flrig_enabled ? "true" : "false");
+    dispatch("saved");
+  }
+
+  async function onFlrigSimulateChange() {
+    await saveSetting("flrig_simulate", flrig_simulate ? "true" : "false");
+    dispatch("saved");
+  }
+
+  function onFlrigHostInput() {
+    markDirty("flrig_host");
+  }
+
+  function onFlrigPortInput() {
+    markDirty("flrig_port");
+  }
+
+  async function onLogbookRightChange() {
+    await saveSetting("logbook_right", logbook_right ? "true" : "false");
+    dispatch("saved");
+  }
+
+  async function onWideModeEnabledChange() {
+    if (wide_mode_enabled) {
+      await saveSetting("wide_breakpoint", String(wide_breakpoint));
+    } else {
+      await saveSetting("wide_breakpoint", "0");
+    }
+    dispatch("saved");
+  }
+
+  function onWideBreakpointInput() {
+    markDirty("wide_breakpoint");
+  }
+
+  async function onMapThemeChange() {
+    await saveSetting("map_theme", map_theme);
+    dispatch("saved");
+  }
+
+  async function onDefaultPageChange() {
+    await saveSetting("default_page", default_page);
+    dispatch("saved");
+  }
+
+  function onMapCustomUrlInput() {
+    markDirty("map_custom_url");
+  }
+
+  function onCustomHeaderInput() {
+    markDirty("custom_header");
+  }
+
+  async function onRbnEnabledChange() {
+    await saveSetting("rbn_enabled", rbn_enabled ? "true" : "false");
+    await restartFeeds();
+    dispatch("saved");
+  }
+
+  async function onRbnFeedCwChange() {
+    const rbnFeeds = [rbn_feed_cw ? "cw" : "", rbn_feed_digital ? "digital" : ""].filter(Boolean).join(",");
+    await saveSetting("rbn_feeds", rbnFeeds || "cw");
+    await restartFeeds();
+    dispatch("saved");
+  }
+
+  async function onRbnFeedDigitalChange() {
+    const rbnFeeds = [rbn_feed_cw ? "cw" : "", rbn_feed_digital ? "digital" : ""].filter(Boolean).join(",");
+    await saveSetting("rbn_feeds", rbnFeeds || "cw");
+    await restartFeeds();
+    dispatch("saved");
+  }
+
+  function onRbnHostInput() {
+    markDirty("rbn_host");
+  }
+
+  async function onSkccSkimmerEnabledChange() {
+    await saveSetting("skcc_skimmer_enabled", skcc_skimmer_enabled ? "true" : "false");
+    await restartFeeds();
+    dispatch("saved");
+  }
+
+  function onSkccSkimmerDistanceInput() {
+    markDirty("skcc_skimmer_distance");
+  }
+
+  function hamalertFieldsFilled() {
+    return hamalert_host.trim() && hamalert_port.trim() && hamalert_username.trim() && hasHamalertPassword;
+  }
+
+  async function onHamalertEnabledChange() {
+    await saveSetting("hamalert_enabled", hamalert_enabled ? "true" : "false");
+    if (hamalertFieldsFilled()) {
+      await restartFeeds();
+    }
+    dispatch("saved");
+  }
+
+  function onHamalertHostInput() {
+    markDirty("hamalert_host");
+  }
+
+  function onHamalertPortInput() {
+    markDirty("hamalert_port");
+  }
+
+  function onHamalertUsernameInput() {
+    markDirty("hamalert_username");
+  }
+
+  async function loginQrz() {
+    if (!qrz_password.trim()) return;
+    await saveSetting("qrz_password", qrz_password.trim());
+    hasQrzPassword = true;
+    qrz_password = "";
+    await checkQrz();
+  }
+
+  async function loginHamalert() {
+    if (!hamalert_password.trim()) return;
+    await saveSetting("hamalert_password", hamalert_password.trim());
+    hasHamalertPassword = true;
+    hamalert_password = "";
+    if (hamalert_enabled && hamalertFieldsFilled()) {
+      await restartFeeds();
+    }
+    dispatch("saved");
+  }
 
   async function fetchSpotStatus() {
     try {
@@ -408,6 +680,7 @@
           if (s.key === "qrz_password") hasQrzPassword = !!s.value && s.value !== "";
           if (s.key === "pota_enabled") pota_enabled = s.value !== "false";
           if (s.key === "solar_enabled") solar_enabled = s.value === "true";
+          if (s.key === "update_check_enabled") update_check_enabled = s.value !== "false";
           if (s.key === "flrig_enabled") flrig_enabled = s.value === "true";
           if (s.key === "flrig_simulate") flrig_simulate = s.value === "true";
           if (s.key === "flrig_host") flrig_host = s.value || "127.0.0.1";
@@ -438,161 +711,39 @@
           if (s.key === "logbook_right") logbook_right = s.value === "true";
           if (s.key === "map_theme") map_theme = s.value || "default";
           if (s.key === "map_custom_url") map_custom_url = s.value || "";
+          if (s.key === "custom_header") custom_header = s.value || "";
+          if (s.key === "default_page") default_page = s.value || "log";
+          if (s.key === "theme") theme = s.value || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+          if (s.key === "popup_notifications_enabled") popupNotifEnabled = s.value === "true";
         }
       }
-      savedSnapshot = settingsSnapshot();
       settingsLoaded = true;
     } catch {}
   }
 
-  async function save() {
-    saving = true;
-    message = "";
+  async function loadUpdateCheck() {
     try {
-      await fetch("/api/settings/my_callsign", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: my_callsign.trim().toUpperCase() }),
-      });
-      await fetch("/api/settings/my_grid", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: my_grid.trim().toUpperCase() }),
-      });
-      await fetch("/api/settings/default_rst", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: default_rst.trim() }),
-      });
-      if (qrz_password.trim()) {
-        await fetch("/api/settings/qrz_password", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ value: qrz_password.trim() }),
-        });
-        hasQrzPassword = true;
-        qrz_password = "";
-      }
-      await fetch("/api/settings/pota_enabled", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: pota_enabled ? "true" : "false" }),
-      });
-      await fetch("/api/settings/solar_enabled", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: solar_enabled ? "true" : "false" }),
-      });
-      await fetch("/api/settings/flrig_enabled", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: flrig_enabled ? "true" : "false" }),
-      });
-      await fetch("/api/settings/flrig_simulate", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: flrig_simulate ? "true" : "false" }),
-      });
-      await fetch("/api/settings/flrig_host", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: flrig_host.trim() }),
-      });
-      await fetch("/api/settings/flrig_port", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: flrig_port.trim() }),
-      });
-      await fetch("/api/settings/wide_breakpoint", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: wide_mode_enabled ? String(wide_breakpoint) : "0" }),
-      });
-      await fetch("/api/settings/logbook_right", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: logbook_right ? "true" : "false" }),
-      });
-      await fetch("/api/settings/map_theme", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: map_theme }),
-      });
-      await fetch("/api/settings/map_custom_url", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: map_custom_url.trim() }),
-      });
-      // RBN settings
-      await fetch("/api/settings/rbn_enabled", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: rbn_enabled ? "true" : "false" }),
-      });
-      await fetch("/api/settings/rbn_host", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: rbn_host.trim() }),
-      });
-      const rbnFeeds = [rbn_feed_cw ? "cw" : "", rbn_feed_digital ? "digital" : ""].filter(Boolean).join(",");
-      await fetch("/api/settings/rbn_feeds", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: rbnFeeds || "cw" }),
-      });
-      await fetch("/api/settings/skcc_skimmer_enabled", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: skcc_skimmer_enabled ? "true" : "false" }),
-      });
-      await fetch("/api/settings/skcc_skimmer_distance", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: skcc_skimmer_distance.trim() || "500" }),
-      });
-      // HamAlert settings
-      await fetch("/api/settings/hamalert_enabled", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: hamalert_enabled ? "true" : "false" }),
-      });
-      await fetch("/api/settings/hamalert_host", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: hamalert_host.trim() }),
-      });
-      await fetch("/api/settings/hamalert_port", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: hamalert_port.trim() }),
-      });
-      await fetch("/api/settings/hamalert_username", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: hamalert_username.trim() }),
-      });
-      if (hamalert_password.trim()) {
-        await fetch("/api/settings/hamalert_password", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ value: hamalert_password.trim() }),
-        });
-        hasHamalertPassword = true;
-        hamalert_password = "";
-      }
-      // Restart feeds to apply changes
-      await fetch("/api/spots/restart", { method: "POST" });
-      setTimeout(fetchSpotStatus, 2000);
-      dispatch("saved");
-      savedSnapshot = settingsSnapshot();
-      message = "Settings saved.";
-      if (my_callsign.trim() && my_grid.trim()) {
-        dispatch("setupcomplete");
-      }
-    } catch (e) {
-      message = `Error: ${e.message}`;
-    }
-    saving = false;
+      const res = await fetch("/api/update-check");
+      if (res.ok) updateCheckResult = await res.json();
+    } catch {}
+  }
+
+  async function fetchUpdateCheck() {
+    updateChecking = true;
+    try {
+      const res = await fetch("/api/update-check?bust=true");
+      if (res.ok) updateCheckResult = await res.json();
+    } catch {}
+    updateChecking = false;
+  }
+
+  function formatTimeAgo(epochSecs) {
+    const diff = Math.floor(Date.now() / 1000 - epochSecs);
+    if (diff < 5) return "just now";
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
   }
 
   async function logoutQrz() {
@@ -620,9 +771,17 @@
     qrzChecking = false;
   }
 
+  async function fetchQsoCount() {
+    try {
+      const res = await fetch("/api/contacts/");
+      if (res.ok) { const data = await res.json(); qsoCount = data.length; }
+    } catch {}
+  }
+
   onMount(() => {
     fetchSettings();
     fetchSpotStatus();
+    fetchQsoCount();
     loadDbInfo();
     loadBackupStatus();
     spotStatusInterval = setInterval(fetchSpotStatus, 5000);
@@ -630,38 +789,36 @@
 
   onDestroy(() => {
     clearInterval(spotStatusInterval);
+    flushPending();
   });
 </script>
 
 <div class="settings">
-  <h2>Settings</h2>
-  {#if dirty}
-    <p class="save-reminder">You have unsaved changes. Click Save when finished.</p>
-  {/if}
-
-  <div class="setting-row save-row">
-    <button class:btn-dirty={dirty} on:click={save} disabled={saving}>
-      {saving ? "Saving..." : "Save"}
-    </button>
-    {#if message}
-      <span class="message">{message}</span>
-    {/if}
-  </div>
+  <h2>Settings <span class="autosave-hint">(are automatically saved on change)</span></h2>
 
   {#if needsSetup}
     <p class="setup-hint">Enter your callsign and grid square to get started.</p>
   {/if}
 
-  <section class="settings-section" class:section-changed={changed.my_callsign || changed.my_grid || changed.default_rst}>
+  <div class="tab-bar">
+    <button class="tab" class:active={activeTab === "station"} on:click={() => switchTab("station")}>Station</button>
+    <button class="tab" class:active={activeTab === "features"} on:click={() => switchTab("features")}>Features</button>
+    <button class="tab" class:active={activeTab === "appearance"} on:click={() => switchTab("appearance")}>Appearance</button>
+    <button class="tab" class:active={activeTab === "system"} on:click={() => switchTab("system")}>System</button>
+  </div>
+
+  {#if activeTab === "station"}
+  <div class="tab-content">
+  <section class="settings-section">
     <h3>Station</h3>
     <div class="setting-row">
       <label for="my_callsign">My Callsign{#if needsSetup && !my_callsign.trim()} <span class="required">*</span>{/if}</label>
-      <input id="my_callsign" type="text" bind:value={my_callsign} on:input={stripCallsign} maxlength="10" autocomplete="off" style="text-transform: uppercase" class:input-required={needsSetup && !my_callsign.trim()} />
+      <input id="my_callsign" type="text" bind:value={my_callsign} on:input={onCallsignInput} on:blur={() => onFieldBlur("my_callsign")} maxlength="10" autocomplete="off" style="text-transform: uppercase; max-width: 7rem" class:input-required={needsSetup && !my_callsign.trim()} />
     </div>
     <div class="setting-row">
       <label for="my_grid">My Grid Square{#if needsSetup && !my_grid.trim()} <span class="required">*</span>{/if}</label>
       <div class="grid-input-row">
-        <input id="my_grid" type="text" bind:value={my_grid} on:input={stripGrid} autocomplete="off" style="text-transform: uppercase" class:input-required={needsSetup && !my_grid.trim()} />
+        <input id="my_grid" type="text" bind:value={my_grid} on:input={onGridInput} on:blur={() => onFieldBlur("my_grid")} autocomplete="off" style="text-transform: uppercase; max-width: 7rem" class:input-required={needsSetup && !my_grid.trim()} />
         <button type="button" class="grid-picker-btn" on:click={() => showGridPicker = !showGridPicker} title="Pick from map">🌍</button>
       </div>
       {#if showGridPicker}
@@ -674,14 +831,14 @@
               <span>Grid Square</span>
               <button type="button" class="grid-picker-close" on:click={() => showGridPicker = false}>✕</button>
             </div>
-            <GridMap bind:value={my_grid} on:select={() => showGridPicker = false} />
+            <GridMap bind:value={my_grid} on:select={async () => { showGridPicker = false; await fieldSavers.my_grid(); }} />
           </div>
         </div>
       {/if}
     </div>
     <div class="setting-row">
       <label for="default_rst">Default RST</label>
-      <input id="default_rst" type="text" bind:value={default_rst} autocomplete="off" />
+      <input id="default_rst" type="text" bind:value={default_rst} on:input={onDefaultRstInput} on:blur={() => onFieldBlur("default_rst")} autocomplete="off" style="max-width: 7rem" />
     </div>
   </section>
 
@@ -689,7 +846,10 @@
     <h3>QRZ</h3>
     <div class="setting-row">
       <label for="qrz_password">{hasQrzPassword ? "Change QRZ Password" : "QRZ Password"}</label>
-      <input id="qrz_password" type="password" bind:value={qrz_password} autocomplete="off" disabled={!my_callsign.trim()} placeholder={hasQrzPassword ? "Leave blank to keep current" : "unset"} />
+      <input id="qrz_password" type="password" bind:value={qrz_password} autocomplete="off" disabled={!my_callsign.trim()} placeholder={hasQrzPassword ? "Leave blank to keep current" : "unset"} style="min-width: 8ch" />
+    </div>
+    <div class="setting-row">
+      {#if qrz_password.trim()}<button type="button" class="theme-toggle" on:click={loginQrz}>Login</button>{/if}
       <span class="hint">{#if !my_callsign.trim()}Set My Callsign first{:else if hasQrzPassword}Leave blank to remain unchanged{:else}Your QRZ account password (uses My Callsign as username){/if}</span>
     </div>
     {#if hasQrzPassword}
@@ -709,45 +869,86 @@
     {/if}
   </section>
 
-  <section class="settings-section" class:section-changed={changed.wide_mode_enabled || changed.wide_breakpoint || changed.logbook_right || changed.map_theme || changed.map_custom_url}>
-    <h3>Appearance</h3>
+  <section class="settings-section">
+    <h3>flrig Connection</h3>
     <div class="setting-row toggle-row">
-      <label>Theme</label>
-      <button class="theme-toggle" on:click={toggleTheme}>
-        {theme === "dark" ? "Dark" : "Light"}
-      </button>
+      <label>
+        <input type="checkbox" bind:checked={flrig_enabled} on:change={onFlrigEnabledChange} />
+        Enable flrig
+      </label>
+    </div>
+    <div class="setting-row toggle-row">
+      <label>
+        <input type="checkbox" bind:checked={flrig_simulate} on:change={onFlrigSimulateChange} disabled={!flrig_enabled} />
+        Simulate flrig (no real radio)
+      </label>
     </div>
     <div class="setting-row">
-      <label for="map_theme">Map Tiles</label>
-      <select id="map_theme" bind:value={map_theme}>
-        {#each TILE_THEMES as t}
-          <option value={t.value}>{t.label}</option>
-        {/each}
-      </select>
+      <label for="flrig_host">flrig Host</label>
+      <input id="flrig_host" type="text" bind:value={flrig_host} on:input={onFlrigHostInput} on:blur={() => onFieldBlur("flrig_host")} autocomplete="off" disabled={!flrig_enabled || flrig_simulate} style="max-width: 7rem" />
     </div>
-    {#if map_theme === "custom"}
-      <div class="setting-row">
-        <label for="map_custom_url">Tile URL</label>
-        <input id="map_custom_url" type="text" bind:value={map_custom_url} placeholder="https://&#123;s&#125;.tile.example.com/&#123;z&#125;/&#123;x&#125;/&#123;y&#125;.png" />
+    <div class="setting-row">
+      <label for="flrig_port">flrig Port</label>
+      <input id="flrig_port" type="text" bind:value={flrig_port} on:input={onFlrigPortInput} on:blur={() => onFieldBlur("flrig_port")} autocomplete="off" inputmode="numeric" disabled={!flrig_enabled || flrig_simulate} style="max-width: 7rem" />
+    </div>
+  </section>
+  </div>
+  {/if}
+
+  {#if activeTab === "features"}
+  <div class="tab-content">
+  <section class="settings-section">
+    <h3>Parks on the Air (POTA)</h3>
+    <div class="setting-row toggle-row">
+      <label>
+        <input type="checkbox" bind:checked={pota_enabled} on:change={onPotaEnabledChange} />
+        Enable POTA
+      </label>
+    </div>
+  </section>
+
+  <section class="settings-section">
+    <h3>Solar / Band Conditions</h3>
+    <div class="setting-row toggle-row">
+      <label>
+        <input type="checkbox" bind:checked={solar_enabled} on:change={onSolarEnabledChange} />
+        Enable band conditions (N0NBH / hamqsl.com)
+      </label>
+    </div>
+  </section>
+
+  <section class="settings-section">
+    <h3>Update Checker</h3>
+    <div class="setting-row toggle-row">
+      <label>
+        <input type="checkbox" bind:checked={update_check_enabled} on:change={onUpdateCheckEnabledChange} />
+        Check for new Rigbook releases on GitHub
+      </label>
+    </div>
+    {#if update_check_enabled && updateCheckResult}
+      <div class="update-status">
+        Current version: <strong>v{updateCheckResult.current}</strong>
+        {#if updateCheckResult.is_dev}
+          — 🚧 Development version — update checker is essentially disabled
+        {:else if updateCheckResult.update_available}
+          — <a href={updateCheckResult.url} target="_blank" rel="noopener" class="update-available">Update available: v{updateCheckResult.latest}</a>
+        {:else if updateCheckResult.is_exact}
+          — You're running the latest version
+        {:else if updateCheckResult.latest}
+          — 🚧 Development version — update checker is essentially disabled
+        {:else}
+          — Unable to check for updates
+        {/if}
+      </div>
+      <div class="update-check-meta">
+        {#if updateCheckResult.checked_at}
+          Checked {formatTimeAgo(updateCheckResult.checked_at)}
+        {/if}
+        <button class="check-now-btn" on:click={fetchUpdateCheck} disabled={updateChecking}>
+          {updateChecking ? "Checking…" : "Check now"}
+        </button>
       </div>
     {/if}
-    <div class="map-preview" bind:this={previewEl}></div>
-    <div class="setting-row toggle-row">
-      <label>
-        <input type="checkbox" bind:checked={wide_mode_enabled} />
-        Wide Mode
-      </label>
-    </div>
-    <div class="setting-row">
-      <label for="wide_breakpoint">Breakpoint: {wide_breakpoint}px</label>
-      <input id="wide_breakpoint" type="range" min="1200" max="2500" step="50" bind:value={wide_breakpoint} disabled={!wide_mode_enabled} />
-    </div>
-    <div class="setting-row toggle-row">
-      <label>
-        <input type="checkbox" bind:checked={logbook_right} disabled={!wide_mode_enabled} />
-        Logbook on right side
-      </label>
-    </div>
   </section>
 
   <section class="settings-section">
@@ -756,10 +957,10 @@
       {#if desktopNotifPermission === "denied"}
         <span class="hint">Desktop notifications blocked by browser. Allow notifications for this site in your browser settings.</span>
       {:else if desktopNotifPermission === "granted" && desktopNotifEnabled}
-        <span style="font-size:0.85rem; color:var(--accent);">Desktop notifications enabled</span>
+        <span style="font-size:0.85rem; color:var(--accent);">Desktop notifications are enabled</span>
         <button class="theme-toggle" on:click={disableDesktopNotifications}>Disable</button>
       {:else if desktopNotifPermission === "granted" && !desktopNotifEnabled}
-        <span style="font-size:0.85rem; color:var(--text-muted);">Desktop notifications disabled</span>
+        <span style="font-size:0.85rem; color:var(--text-muted);">Desktop notifications are disabled</span>
         <button class="theme-toggle" on:click={() => { desktopNotifEnabled = true; storageSet("desktop_notifications_enabled", "true"); }}>Enable</button>
       {:else}
         <button class="theme-toggle" on:click={enableDesktopNotifications}>Enable Desktop Notifications</button>
@@ -768,7 +969,7 @@
     <p class="hint">In-app notifications are always enabled. Desktop notifications show browser popups when new alerts arrive.</p>
     <div class="setting-row toggle-row" style="margin-top: 0.5rem;">
       <label>
-        <input type="checkbox" bind:checked={popupNotifEnabled} on:change={() => storageSet("popup_notifications_enabled", popupNotifEnabled ? "true" : "false")} />
+        <input type="checkbox" bind:checked={popupNotifEnabled} on:change={async () => { await saveSetting("popup_notifications_enabled", popupNotifEnabled ? "true" : "false"); dispatch("saved"); }} />
         Popup notifications
       </label>
     </div>
@@ -780,55 +981,11 @@
     </div>
   </section>
 
-  <section class="settings-section" class:section-changed={changed.pota_enabled}>
-    <h3>Parks on the Air (POTA)</h3>
-    <div class="setting-row toggle-row">
-      <label>
-        <input type="checkbox" bind:checked={pota_enabled} />
-        Enable POTA
-      </label>
-    </div>
-  </section>
-
-  <section class="settings-section" class:section-changed={changed.solar_enabled}>
-    <h3>Solar / Band Conditions</h3>
-    <div class="setting-row toggle-row">
-      <label>
-        <input type="checkbox" bind:checked={solar_enabled} />
-        Enable band conditions (N0NBH / hamqsl.com)
-      </label>
-    </div>
-  </section>
-
-  <section class="settings-section" class:section-changed={changed.flrig_enabled || changed.flrig_simulate || changed.flrig_host || changed.flrig_port}>
-    <h3>flrig Connection</h3>
-    <div class="setting-row toggle-row">
-      <label>
-        <input type="checkbox" bind:checked={flrig_enabled} />
-        Enable flrig
-      </label>
-    </div>
-    <div class="setting-row toggle-row">
-      <label>
-        <input type="checkbox" bind:checked={flrig_simulate} disabled={!flrig_enabled} />
-        Simulate flrig (no real radio)
-      </label>
-    </div>
-    <div class="setting-row">
-      <label for="flrig_host">flrig Host</label>
-      <input id="flrig_host" type="text" bind:value={flrig_host} autocomplete="off" disabled={!flrig_enabled || flrig_simulate} />
-    </div>
-    <div class="setting-row">
-      <label for="flrig_port">flrig Port</label>
-      <input id="flrig_port" type="text" bind:value={flrig_port} autocomplete="off" inputmode="numeric" disabled={!flrig_enabled || flrig_simulate} />
-    </div>
-  </section>
-
-  <section class="settings-section" class:section-changed={changed.rbn_enabled || changed.rbn_host || changed.rbn_feed_cw || changed.rbn_feed_digital || changed.skcc_skimmer_enabled || changed.skcc_skimmer_distance}>
+  <section class="settings-section">
     <h3>Reverse Beacon Network (RBN)</h3>
     <div class="setting-row toggle-row">
       <label>
-        <input type="checkbox" bind:checked={rbn_enabled} />
+        <input type="checkbox" bind:checked={rbn_enabled} on:change={onRbnEnabledChange} />
         Enable RBN Feed
       </label>
       <span class="conn-status">
@@ -837,28 +994,28 @@
       </span>
     </div>
     <div class="setting-row toggle-row">
-      <label><input type="checkbox" bind:checked={rbn_feed_cw} disabled={!rbn_enabled} /> CW (port 7000)</label>
-      <label><input type="checkbox" bind:checked={rbn_feed_digital} disabled={!rbn_enabled} /> Digital (port 7001)</label>
+      <label><input type="checkbox" bind:checked={rbn_feed_cw} on:change={onRbnFeedCwChange} disabled={!rbn_enabled} /> CW (port 7000)</label>
+      <label><input type="checkbox" bind:checked={rbn_feed_digital} on:change={onRbnFeedDigitalChange} disabled={!rbn_enabled} /> Digital (port 7001)</label>
     </div>
     <div class="setting-row">
       <label for="rbn_host">RBN Host</label>
-      <input id="rbn_host" type="text" bind:value={rbn_host} autocomplete="off" disabled={!rbn_enabled} />
+      <input id="rbn_host" type="text" bind:value={rbn_host} on:input={onRbnHostInput} on:blur={() => onFieldBlur("rbn_host")} autocomplete="off" disabled={!rbn_enabled} />
     </div>
     <div class="setting-row toggle-row">
-      <label><input type="checkbox" bind:checked={skcc_skimmer_enabled} disabled={!rbn_enabled} /> Show SKCC Skimmer on Hunting page</label>
+      <label><input type="checkbox" bind:checked={skcc_skimmer_enabled} on:change={onSkccSkimmerEnabledChange} disabled={!rbn_enabled} /> Show SKCC Skimmer on Hunting page</label>
     </div>
     <div class="setting-row">
       <label for="skcc_distance">SKCC Skimmer max distance (miles)</label>
-      <input id="skcc_distance" type="text" bind:value={skcc_skimmer_distance} autocomplete="off" inputmode="numeric" disabled={!rbn_enabled || !skcc_skimmer_enabled} />
+      <input id="skcc_distance" type="text" bind:value={skcc_skimmer_distance} on:input={onSkccSkimmerDistanceInput} on:blur={() => onFieldBlur("skcc_skimmer_distance")} autocomplete="off" inputmode="numeric" disabled={!rbn_enabled || !skcc_skimmer_enabled} style="max-width: 7rem" />
     </div>
-    <p class="hint">Uses your My Callsign to authenticate.</p>
+    <p class="hint">Uses {my_callsign.trim().toUpperCase() || "your callsign"} to authenticate.</p>
   </section>
 
-  <section class="settings-section" class:section-changed={changed.hamalert_enabled || changed.hamalert_host || changed.hamalert_port || changed.hamalert_username}>
+  <section class="settings-section">
     <h3>HamAlert</h3>
     <div class="setting-row toggle-row">
       <label>
-        <input type="checkbox" bind:checked={hamalert_enabled} />
+        <input type="checkbox" bind:checked={hamalert_enabled} on:change={onHamalertEnabledChange} />
         Enable HamAlert Feed
       </label>
       <span class="conn-status">
@@ -868,22 +1025,90 @@
     </div>
     <div class="setting-row">
       <label for="hamalert_host">Host</label>
-      <input id="hamalert_host" type="text" bind:value={hamalert_host} autocomplete="off" disabled={!hamalert_enabled} />
+      <input id="hamalert_host" type="text" bind:value={hamalert_host} on:input={onHamalertHostInput} on:blur={() => onFieldBlur("hamalert_host")} autocomplete="off" disabled={!hamalert_enabled} />
     </div>
     <div class="setting-row">
       <label for="hamalert_port">Port</label>
-      <input id="hamalert_port" type="text" bind:value={hamalert_port} autocomplete="off" inputmode="numeric" disabled={!hamalert_enabled} />
+      <input id="hamalert_port" type="text" bind:value={hamalert_port} on:input={onHamalertPortInput} on:blur={() => onFieldBlur("hamalert_port")} autocomplete="off" inputmode="numeric" disabled={!hamalert_enabled} />
     </div>
     <div class="setting-row">
       <label for="hamalert_username">Telnet Username</label>
-      <input id="hamalert_username" type="text" bind:value={hamalert_username} autocomplete="off" disabled={!hamalert_enabled} />
+      <input id="hamalert_username" type="text" bind:value={hamalert_username} on:input={onHamalertUsernameInput} on:blur={() => onFieldBlur("hamalert_username")} autocomplete="off" disabled={!hamalert_enabled} />
     </div>
     <div class="setting-row">
       <label for="hamalert_password">{hasHamalertPassword ? "Change Telnet Password" : "Telnet Password"}</label>
-      <input id="hamalert_password" type="password" bind:value={hamalert_password} autocomplete="off" disabled={!hamalert_enabled} placeholder={hasHamalertPassword ? "Leave blank to keep current" : ""} />
+      <div class="grid-input-row">
+        <input id="hamalert_password" type="password" bind:value={hamalert_password} autocomplete="off" disabled={!hamalert_enabled} placeholder={hasHamalertPassword ? "Leave blank to keep current" : ""} />
+        <button type="button" class="theme-toggle" on:click={loginHamalert} disabled={!hamalert_password.trim()}>Login</button>
+      </div>
     </div>
   </section>
+  </div>
+  {/if}
 
+  {#if activeTab === "appearance"}
+  <div class="tab-content">
+  <section class="settings-section">
+    <h3>Appearance</h3>
+    <div class="setting-row toggle-row">
+      <label>Theme</label>
+      <button class="theme-toggle" on:click={toggleTheme}>
+        {theme === "dark" ? "Dark" : "Light"}
+      </button>
+    </div>
+    <div class="setting-row">
+      <label for="custom_header">Custom Header</label>
+      <input id="custom_header" type="text" bind:value={custom_header} on:input={onCustomHeaderInput} on:blur={() => onFieldBlur("custom_header")} autocomplete="off" placeholder={my_callsign.trim().toUpperCase() || "Callsign"} />
+      <span class="hint">Replaces the callsign in the header. Leave blank to show your callsign.</span>
+    </div>
+    <div class="setting-row">
+      <label for="default_page">Home Page</label>
+      <select id="default_page" bind:value={default_page} on:change={onDefaultPageChange}>
+        <option value="log">Logbook / Hunting</option>
+        <option value="hunting">Hunting</option>
+        <option value="spots">Spots</option>
+        <option value="parks">Parks</option>
+        <option value="notifications">Notifications</option>
+        <option value="conditions">Conditions</option>
+      </select>
+    </div>
+    <div class="setting-row">
+      <label for="map_theme">Map Tiles</label>
+      <select id="map_theme" bind:value={map_theme} on:change={onMapThemeChange}>
+        {#each TILE_THEMES as t}
+          <option value={t.value}>{t.label}</option>
+        {/each}
+      </select>
+    </div>
+    {#if map_theme === "custom"}
+      <div class="setting-row">
+        <label for="map_custom_url">Tile URL</label>
+        <input id="map_custom_url" type="text" bind:value={map_custom_url} on:input={onMapCustomUrlInput} on:blur={() => onFieldBlur("map_custom_url")} placeholder="https://&#123;s&#125;.tile.example.com/&#123;z&#125;/&#123;x&#125;/&#123;y&#125;.png" />
+      </div>
+    {/if}
+    <div class="map-preview" bind:this={previewEl}></div>
+    <div class="setting-row toggle-row">
+      <label>
+        <input type="checkbox" bind:checked={wide_mode_enabled} on:change={onWideModeEnabledChange} />
+        Wide Mode
+      </label>
+    </div>
+    <div class="setting-row">
+      <label for="wide_breakpoint">Breakpoint: {wide_breakpoint}px</label>
+      <input id="wide_breakpoint" type="range" min="1200" max="2500" step="50" bind:value={wide_breakpoint} on:input={onWideBreakpointInput} on:change={() => onFieldBlur("wide_breakpoint")} disabled={!wide_mode_enabled} />
+    </div>
+    <div class="setting-row toggle-row">
+      <label>
+        <input type="checkbox" bind:checked={logbook_right} on:change={onLogbookRightChange} disabled={!wide_mode_enabled} />
+        Logbook on right side
+      </label>
+    </div>
+  </section>
+  </div>
+  {/if}
+
+  {#if activeTab === "system"}
+  <div class="tab-content">
   <section class="settings-section">
     <h3>Cache</h3>
     <p class="hint">Cached data: QRZ callsign lookups, SKCC member list. Clearing forces fresh lookups on next use.</p>
@@ -936,11 +1161,18 @@
     {/if}
   </section>
 
+  <section class="settings-section">
+    <h3>Shutdown</h3>
+    <div class="setting-row">
+      <button class="danger-btn" on:click={shutdownServer}>Shutdown Server</button>
+    </div>
+  </section>
+
   {#if logbookName}
     <section class="settings-section danger-zone">
       <h3>Danger Zone</h3>
       <div class="setting-row">
-        <label for="danger-confirm">Type <strong>{logbookName}</strong> to enable</label>
+        <label for="danger-confirm">Type <strong>{logbookName}</strong> to enable the Danger Zone</label>
         <input id="danger-confirm" type="text" bind:value={dangerConfirmName} placeholder={logbookName} autocomplete="off" />
       </div>
       <div class="danger-separator"></div>
@@ -949,8 +1181,8 @@
         <p class="danger-error">{clearError}</p>
       {/if}
       <div class="setting-row">
-        <button class="danger-btn" on:click={clearAllContacts} disabled={clearing || dangerConfirmName !== logbookName}>
-          {clearing ? "Clearing..." : "Clear All QSOs"}
+        <button class="danger-btn" on:click={clearAllContacts} disabled={clearing || dangerConfirmName !== logbookName || qsoCount === 0}>
+          {clearing ? "Clearing..." : qsoCount === 0 ? "No QSOs to clear" : "Clear All QSOs"}
         </button>
       </div>
       <div class="danger-separator"></div>
@@ -963,17 +1195,46 @@
           {deleting ? "Deleting..." : "Delete Logbook"}
         </button>
       </div>
-      <div class="danger-separator"></div>
-      <div class="setting-row">
-        <button class="danger-btn" on:click={shutdownServer}>Shutdown Server</button>
-      </div>
     </section>
+  {/if}
+  </div>
   {/if}
 </div>
 
 <style>
   .settings {
-    columns: 320px;
+  }
+
+  .tab-bar {
+    display: flex;
+    gap: 0;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+    padding: 0.5rem 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .tab:hover {
+    color: var(--text);
+  }
+
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .tab-content {
+    columns: 320px 2;
     column-gap: 1rem;
   }
 
@@ -983,11 +1244,31 @@
     margin: 0 0 1rem 0;
   }
 
+  .autosave-hint {
+    font-size: 0.7rem;
+    font-weight: normal;
+    color: var(--text-muted);
+  }
+
   .map-preview {
-    height: 120px;
+    height: 240px;
     border-radius: 4px;
     border: 1px solid var(--border);
     margin-bottom: 0.75rem;
+  }
+
+  :global(.qth-label) {
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    border: none;
+    font-size: 0.7rem;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 3px;
+    box-shadow: none;
+  }
+  :global(.qth-label::before) {
+    display: none;
   }
 
   .settings-section {
@@ -997,26 +1278,6 @@
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
     break-inside: avoid;
-  }
-  .settings-section.section-changed {
-    border-color: var(--accent);
-  }
-
-  .save-reminder {
-    color: var(--accent);
-    font-size: 0.85rem;
-    font-style: italic;
-    margin-bottom: 0.5rem;
-  }
-
-  .btn-dirty {
-    background: var(--accent) !important;
-    color: var(--bg) !important;
-    animation: pulse 1.5s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
   }
 
   h3 {
@@ -1087,10 +1348,6 @@
     color: var(--accent);
   }
 
-  .setting-row:last-child {
-    flex-direction: row;
-    align-items: center;
-  }
 
   label {
     font-size: 0.8rem;
@@ -1106,6 +1363,7 @@
     font-size: 0.9rem;
     border-radius: 3px;
     width: 100%;
+    max-width: 20rem;
   }
 
   input:not([type="range"]):not([type="checkbox"]):focus {
@@ -1115,6 +1373,7 @@
 
   input[type="range"] {
     width: 100%;
+    max-width: 20rem;
     accent-color: var(--accent);
   }
 
@@ -1150,12 +1409,6 @@
   .hint {
     font-size: 0.7rem;
     color: var(--text-dim);
-  }
-
-  .message {
-    color: var(--accent);
-    font-size: 0.85rem;
-    margin-left: 0.5rem;
   }
 
   .toggle-row {
@@ -1272,5 +1525,39 @@
   .danger-btn:disabled {
     background: #ff4444;
     opacity: 0.4;
+  }
+  .update-status {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+  .update-available {
+    color: #2ecc40;
+    font-weight: bold;
+    text-decoration: none;
+  }
+  .update-available:hover {
+    text-decoration: underline;
+  }
+  .update-check-meta {
+    margin-top: 0.3rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .check-now-btn {
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-input, transparent);
+    color: var(--text);
+  }
+  .check-now-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
   }
 </style>

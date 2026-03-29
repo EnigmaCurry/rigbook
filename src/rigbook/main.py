@@ -1,15 +1,22 @@
+import json
 import logging
 import os
 import sys
+import time
 from contextlib import asynccontextmanager
 from importlib.metadata import version
 from pathlib import Path
 
+import httpx
 import uvicorn
-from fastapi import FastAPI, Request, Response
+from fastapi import Depends, FastAPI, Request, Response
 from fastapi.staticfiles import StaticFiles
+from packaging.version import Version
+from sqlalchemy import delete, select
 
-from rigbook.db import DatabaseLockError, db_manager, init_db
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from rigbook.db import Cache, DatabaseLockError, Setting, db_manager, get_session, init_db
 from rigbook.flrig import router as flrig_router
 from rigbook.routes.logbooks import router as logbooks_router
 from rigbook.routes.spots import router as spots_router
@@ -84,8 +91,10 @@ app = FastAPI(title="Rigbook", lifespan=lifespan)
 
 
 @app.middleware("http")
-async def log_errors(request: Request, call_next):
+async def http_middleware(request: Request, call_next):
     response: Response = await call_next(request)
+    if not request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-cache"
     if response.status_code >= 400:
         logger.warning(
             '%s - "%s %s" %s',
@@ -100,6 +109,113 @@ async def log_errors(request: Request, call_next):
 @app.get("/api/version")
 async def get_version():
     return {"version": version("rigbook")}
+
+
+GITHUB_REPO = "EnigmaCurry/rigbook"
+UPDATE_CACHE_NS = "update_check"
+UPDATE_CACHE_KEY = "latest"
+UPDATE_CACHE_TTL = 3600  # 1 hour
+
+
+@app.get("/api/update-check")
+async def check_for_update(
+    session: AsyncSession = Depends(get_session), bust: bool = False
+):
+    current = version("rigbook")
+
+    # Check if update checking is disabled (skip when bust=True so settings page can force-check)
+    if not bust:
+        row = (
+            await session.execute(
+                select(Setting).where(Setting.key == "update_check_enabled")
+            )
+        ).scalar_one_or_none()
+        if row and row.value == "false":
+            return {"current": current, "latest": None, "update_available": False}
+
+    # Bust cache if requested
+    if bust:
+        await session.execute(
+            delete(Cache).where(
+                Cache.namespace == UPDATE_CACHE_NS,
+                Cache.key == UPDATE_CACHE_KEY,
+            )
+        )
+        await session.commit()
+
+    # Check cache
+    cached = (
+        await session.execute(
+            select(Cache).where(
+                Cache.namespace == UPDATE_CACHE_NS,
+                Cache.key == UPDATE_CACHE_KEY,
+                Cache.expires_at > time.time(),
+            )
+        )
+    ).scalar_one_or_none()
+
+    if cached and cached.value:
+        data = json.loads(cached.value)
+        latest = data["latest"]
+        url = data["url"]
+        checked_at = data.get("checked_at", time.time())
+    else:
+        # Fetch from GitHub
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(
+                    f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest",
+                    headers={"Accept": "application/vnd.github+json"},
+                    timeout=10,
+                )
+                resp.raise_for_status()
+                release = resp.json()
+                latest = release["tag_name"].lstrip("v")
+                url = release["html_url"]
+                logger.info("Update check: current=%s, latest=%s", current, latest)
+        except Exception:
+            logger.info("Update check failed: could not reach GitHub")
+            return {"current": current, "latest": None, "update_available": False}
+
+        checked_at = time.time()
+
+        # Store in cache
+        await session.execute(
+            delete(Cache).where(
+                Cache.namespace == UPDATE_CACHE_NS,
+                Cache.key == UPDATE_CACHE_KEY,
+            )
+        )
+        session.add(
+            Cache(
+                namespace=UPDATE_CACHE_NS,
+                key=UPDATE_CACHE_KEY,
+                value=json.dumps(
+                    {"latest": latest, "url": url, "checked_at": checked_at}
+                ),
+                expires_at=time.time() + UPDATE_CACHE_TTL,
+            )
+        )
+        await session.commit()
+
+    dev_suffixes = ("-dev", "-alpha", "-beta", "-rc")
+    is_dev = any(s in current for s in dev_suffixes)
+    is_exact = current == latest
+
+    try:
+        update_available = not is_dev and Version(latest) > Version(current)
+    except Exception:
+        update_available = not is_dev and latest != current
+
+    return {
+        "current": current,
+        "latest": latest,
+        "update_available": update_available,
+        "is_dev": is_dev,
+        "is_exact": is_exact,
+        "url": url if update_available else None,
+        "checked_at": checked_at,
+    }
 
 
 app.include_router(logbooks_router)

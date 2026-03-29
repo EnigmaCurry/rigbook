@@ -1,5 +1,69 @@
 # Changelog
 
+## v0.1.23
+
+### Update Checker
+
+- Check for new Rigbook releases on GitHub with 1-hour database-backed cache
+- Version displayed under Rigbook title in header, clickable to About page
+- Checkmark (✔) when running the latest release, construction emoji (🚧) for dev versions
+- "Update Available" link with tooltip showing new version and settings hint
+- Configurable: enable/disable in Settings with "Check now" button and last-checked time
+- Hover tooltips: "Up to date", "Development version", or "Enable update checker in the settings"
+- Dev/pre-release versions (-dev, -alpha, -beta, -rc) skip update prompts
+
+### Settings Redesign
+
+- Remove Save button — all settings auto-save on change
+- Text fields save on blur with 2-second debounce fallback
+- Organize settings into four tabs: Station, Features, Appearance, System
+- Deep-linkable tabs via URL hash (e.g. `#/settings/features`)
+- Two-column card layout on wider screens, single column on mobile
+- Auto-save hint in header: "Settings (are automatically saved on change)"
+- QRZ: "Login" button saves password and tests connection immediately
+- HamAlert: "Login" button saves password, only connects when all fields are filled
+- Log every setting change at INFO level (passwords redacted)
+
+### Appearance Settings
+
+- Custom header text: replaces callsign in header with free-form text (grey, sans-serif)
+- Home page selector: choose default landing page (Logbook, Hunting, Spots, Parks, Notifications, Conditions)
+- Theme and popup notifications stored in database instead of localStorage
+- Theme uses localStorage as fast cache to prevent flicker, DB as source of truth
+- New logbooks and picker mode default to system light/dark preference
+- Map preview: doubled height, dragging enabled, QTH labeled with callsign and grid
+
+### Header & Navigation
+
+- Logbook name moved from under title to under callsign/custom header
+- Logbook name tooltip: "Current database: {name}"
+- Callsign click navigates to Station settings tab
+- Custom header click navigates to Appearance settings tab
+- Rigbook title navigates to configured home page
+- Gold border on active navbar button
+- Version text outside clickable title area
+
+### System Settings
+
+- Shutdown Server moved to its own section, no longer gated by danger zone confirmation
+- Danger zone prompt: "Type {database} to enable the Danger Zone"
+- "Clear All QSOs" button disabled when no QSOs exist, shows "No QSOs to clear"
+- Hunting page links to Features settings tab when no activities enabled
+
+### Defaults
+
+- POTA disabled by default for new logbooks
+
+### Bug Fixes
+
+- Fix SSE "Task was destroyed but it is pending" errors on client disconnect
+- Fix hamburger menu clipped on pages with short content
+- Fix grid square not saving from map picker
+- Fix settings redirect navigating away during initial setup typing
+- Responsive layout for small mobile screens (375px): reduced padding, wrapping header, smaller VFO
+- Cache-busting: `Cache-Control: no-cache` on all static files to prevent stale frontend
+- Narrow short text fields (callsign, grid, RST, ports) to appropriate width
+
 ## v0.1.22
 
 ### ADIF Import

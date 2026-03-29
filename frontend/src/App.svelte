@@ -99,7 +99,10 @@
     if (hash === "/about") return { page: "about", editId: null, dualRight: null };
     if (hash === "/conditions") return { page: isWide() ? "dual" : "conditions", editId: null, dualRight: "conditions" };
     if (hash === "/links") return { page: "links", editId: null, dualRight: null };
-    if (hash === "/settings") return { page: "settings", editId: null, dualRight: null };
+    if (hash === "/settings" || hash.startsWith("/settings/")) {
+      const settingsTab = hash.split("/")[2] || null;
+      return { page: "settings", editId: null, dualRight: null, settingsTab };
+    }
     if (hash === "/export") return { page: "export", editId: null, dualRight: null };
     if (hash === "/logbook") return { page: isWide() ? "dual" : "log", editId: null, dualRight: null };
     if (hash === "/add") return { page: isWide() ? "dual" : "add", editId: null, dualRight: null };
@@ -125,6 +128,8 @@
   let { page, editId } = _parsed;
   let dualRightPage = _parsed.dualRight || "hunting";
   let previousPage = "log";
+  let defaultPage = "log";
+  let settingsTab = _parsed.settingsTab || null;
   let prefill = null;
   let formDirty = false;
   let activePark = "";
@@ -166,6 +171,14 @@
   let gridMapValue = "";
   let menuOpen = false;
   let myCallsign = "";
+  let customHeader = "";
+  let appVersion = "";
+  let updateAvailable = false;
+  let updateChecked = false;
+  let updateDev = false;
+  let updateExact = false;
+  let updateUrl = "";
+  let updateLatest = "";
   let vfoFreq = "";
   let vfoMode = "";
   let vfoConnected = false;
@@ -174,7 +187,7 @@
   let radioModes = [];
   let vfoEditFreq = "";
   let vfoEditMode = "";
-  let potaEnabled = true;
+  let potaEnabled = false;
   let spotsEnabled = false;
   let solarEnabled = false;
   let flrigEnabled = false;
@@ -186,6 +199,7 @@
   let prevUnreadCount = -1;
   let eventSource = null;
   let popupNotifications = [];
+  let popupNotifEnabled = false;
   let showPopup = false;
   let activeDesktopNotif = null;
   let pickerMode = false;
@@ -236,7 +250,12 @@
   }
 
   async function startAppServices() {
+    fetchVersion();
+    fetchUpdateCheck();
     fetchCallsign();
+    fetchCustomHeader();
+    await fetchDefaultPage();
+    fetchPopupNotifEnabled();
     await fetchLogbookRight();
     await fetchSolarEnabled();
     await fetchSpotsEnabled();
@@ -353,7 +372,7 @@
             body: `You have ${newCount} unread notification${newCount > 1 ? "s" : ""}`,
           });
         }
-        if (storageGet("popup_notifications_enabled") === "true") {
+        if (popupNotifEnabled) {
           showPopupNotifications();
         }
       } else if (newCount < unreadCount && activeDesktopNotif) {
@@ -553,12 +572,67 @@
     } catch {}
   }
 
+  async function fetchVersion() {
+    try {
+      const res = await fetch("/api/version");
+      if (res.ok) {
+        const data = await res.json();
+        appVersion = data.version || "";
+      }
+    } catch {}
+  }
+
+  async function fetchUpdateCheck() {
+    try {
+      const res = await fetch("/api/update-check");
+      if (res.ok) {
+        const data = await res.json();
+        updateAvailable = data.update_available || false;
+        updateChecked = !!data.latest;
+        updateDev = data.is_dev || false;
+        updateExact = data.is_exact || false;
+        updateLatest = data.latest || "";
+        updateUrl = data.url || "";
+      }
+    } catch {}
+  }
+
+  async function fetchPopupNotifEnabled() {
+    try {
+      const res = await fetch("/api/settings/popup_notifications_enabled");
+      if (res.ok) {
+        const data = await res.json();
+        popupNotifEnabled = data.value === "true";
+      }
+    } catch {}
+  }
+
   async function fetchCallsign() {
     try {
       const res = await fetch("/api/settings/my_callsign");
       if (res.ok) {
         const data = await res.json();
         myCallsign = data.value || "";
+      }
+    } catch {}
+  }
+
+  async function fetchDefaultPage() {
+    try {
+      const res = await fetch("/api/settings/default_page");
+      if (res.ok) {
+        const data = await res.json();
+        defaultPage = data.value || "log";
+      }
+    } catch {}
+  }
+
+  async function fetchCustomHeader() {
+    try {
+      const res = await fetch("/api/settings/custom_header");
+      if (res.ok) {
+        const data = await res.json();
+        customHeader = data.value || "";
       }
     } catch {}
   }
@@ -621,12 +695,7 @@
   }
 
   function goHome() {
-    if (isWide()) {
-      if (potaEnabled) dualRightPage = "hunting";
-      navigate("dual");
-    } else {
-      navigate("log");
-    }
+    navigate(defaultPage);
   }
 
   async function fetchWideBreakpoint() {
@@ -690,7 +759,7 @@
     if (p === "dual") {
       window.location.hash = `/dual/${dualRightPage}`;
     } else {
-      const paths = { hunting: "/hunting", log: "/logbook", add: "/add", grid: "/grid", parks: "/parks", spots: "/spots", export: "/export", notifications: "/notifications", conditions: "/conditions", settings: "/settings", links: "/links", about: "/about", picker: "/picker" };
+      const paths = { hunting: "/hunting", log: "/logbook", add: "/add", grid: "/grid", parks: "/parks", spots: "/spots", export: "/export", notifications: "/notifications", conditions: "/conditions", settings: settingsTab ? `/settings/${settingsTab}` : "/settings", links: "/links", about: "/about", picker: "/picker" };
       window.location.hash = paths[p] || "/";
     }
     setTimeout(() => { navigating = false; }, 0);
@@ -843,6 +912,7 @@
     if (!(page === "dual" && p === "dual" && editId && !parsed.editId)) {
       editId = parsed.editId;
     }
+    settingsTab = parsed.settingsTab || null;
     page = p;
     if (parsed.dualRight) {
       if ((parsed.dualRight === "spots" && !spotsEnabled) || (parsed.dualRight === "parks" && !potaEnabled) || (parsed.dualRight === "conditions" && !solarEnabled)) {
@@ -867,11 +937,29 @@
     fetchWideBreakpoint();
   }
 
-  // Apply theme from localStorage on load
-  function applyTheme() {
-    const stored = storageGet("rigbook-theme");
-    const theme = stored || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  function applyThemeFromCache() {
+    const cached = storageGet("rigbook-theme");
+    const theme = cached || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
     document.documentElement.classList.toggle("light", theme === "light");
+  }
+
+  async function applyTheme() {
+    applyThemeFromCache();
+    try {
+      const res = await fetch("/api/settings/theme");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.value) {
+          storageSet("rigbook-theme", data.value);
+          document.documentElement.classList.toggle("light", data.value === "light");
+          return;
+        }
+      }
+    } catch {}
+    // No theme in DB — use system preference
+    const sysPref = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    storageSet("rigbook-theme", sysPref);
+    document.documentElement.classList.toggle("light", sysPref === "light");
   }
 
   let searchComponent;
@@ -914,8 +1002,8 @@
 
   onMount(async () => {
     migrateStorage();
+    fetchVersion();
     applyTheme();
-    window.addEventListener("storage", applyTheme);
     window.addEventListener("keydown", onGlobalKeydown);
     fetchWideBreakpoint();
     clockInterval = setInterval(() => { utcNow = new Date().toISOString().slice(0, 19).replace("T", " ") + "z"; }, 1000);
@@ -928,6 +1016,11 @@
     if (logbookOpen) {
       await startAppServices();
       await checkNeedsSetup();
+      // Navigate to default page on initial load (no specific hash)
+      const initHash = window.location.hash.slice(1) || "/";
+      if (initHash === "/" && defaultPage !== "log") {
+        navigate(defaultPage);
+      }
     } else if (pickerMode) {
       page = "picker";
     }
@@ -954,7 +1047,6 @@
     if (eventSource) eventSource.close();
     window.removeEventListener("hashchange", onHashChange);
     window.removeEventListener("resize", onResize);
-    window.removeEventListener("storage", applyTheme);
     window.removeEventListener("keydown", onGlobalKeydown);
   });
 </script>
@@ -963,7 +1055,7 @@
   {#if serverShutdown}
     <header>
       <div class="header-left">
-        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>
+        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version" title={updateChecked && updateExact ? "Up to date" : updateChecked && updateDev ? "Development version" : !updateChecked ? "Enable update checker in the settings" : ""} on:click={() => navigate("about")} style="cursor: pointer">v{appVersion}{#if updateChecked && updateExact}<span class="up-to-date-check">✔</span>{/if}{#if updateChecked && updateDev}<span class="dev-version">🚧</span>{/if}{#if updateAvailable} <a href={updateUrl} target="_blank" rel="noopener" class="update-link" title={"v" + updateLatest + " available — you can disable this update checker in the settings"}>Update Available</a>{/if}</span>{/if}</h1>
       </div>
     </header>
     <div class="welcome-container">
@@ -975,7 +1067,7 @@
   {:else if pendingLogbook}
     <header>
       <div class="header-left">
-        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>
+        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version" title={updateChecked && updateExact ? "Up to date" : updateChecked && updateDev ? "Development version" : !updateChecked ? "Enable update checker in the settings" : ""} on:click={() => navigate("about")} style="cursor: pointer">v{appVersion}{#if updateChecked && updateExact}<span class="up-to-date-check">✔</span>{/if}{#if updateChecked && updateDev}<span class="dev-version">🚧</span>{/if}{#if updateAvailable} <a href={updateUrl} target="_blank" rel="noopener" class="update-link" title={"v" + updateLatest + " available — you can disable this update checker in the settings"}>Update Available</a>{/if}</span>{/if}</h1>
       </div>
       <span class="utc-clock">{utcNow}</span>
     </header>
@@ -992,7 +1084,7 @@
   {:else if pickerMode && !logbookOpen}
     <header>
       <div class="header-left">
-        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if currentLogbook && currentLogbook !== "rigbook"}<span class="logbook-name">{currentLogbook}</span>{/if}</h1>
+        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version" title={updateChecked && updateExact ? "Up to date" : updateChecked && updateDev ? "Development version" : !updateChecked ? "Enable update checker in the settings" : ""} on:click={() => navigate("about")} style="cursor: pointer">v{appVersion}{#if updateChecked && updateExact}<span class="up-to-date-check">✔</span>{/if}{#if updateChecked && updateDev}<span class="dev-version">🚧</span>{/if}{#if updateAvailable} <a href={updateUrl} target="_blank" rel="noopener" class="update-link" title={"v" + updateLatest + " available — you can disable this update checker in the settings"}>Update Available</a>{/if}</span>{/if}</h1>
       </div>
       <span class="utc-clock">{utcNow}</span>
     </header>
@@ -1000,15 +1092,16 @@
   {:else}
   <header>
     <div class="header-left">
-      <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-      <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-      <h1 class="app-title" on:click={goHome} style="cursor: pointer"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if currentLogbook && currentLogbook !== "rigbook"}<span class="logbook-name">{currentLogbook}</span>{/if}</h1>
-      {#if myCallsign}
+      <div class="title-group">
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+        <h1 class="app-title" on:click={goHome} style="cursor: pointer"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>
+        {#if appVersion}<span class="app-version" title={updateChecked && updateExact ? "Up to date" : updateChecked && updateDev ? "Development version" : !updateChecked ? "Enable update checker in the settings" : ""} on:click={() => navigate("about")} style="cursor: pointer">v{appVersion}{#if updateChecked && updateExact}<span class="up-to-date-check">✔</span>{/if}{#if updateChecked && updateDev}<span class="dev-version">🚧</span>{/if}{#if updateAvailable} <a href={updateUrl} target="_blank" rel="noopener" class="update-link" title={"v" + updateLatest + " available — you can disable this update checker in the settings"}>Update Available</a>{/if}</span>{/if}
+      </div>
+      {#if customHeader || myCallsign}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="callsign" on:click={() => navigate("settings")} style="cursor: pointer">{myCallsign}</span>
+        <span class={customHeader ? "custom-header" : "callsign"} on:click={() => { settingsTab = customHeader ? "appearance" : "station"; navigate("settings"); }} style="cursor: pointer">{customHeader || myCallsign}{#if currentLogbook && currentLogbook !== "rigbook"}<span class="logbook-name" title={"Current database: " + currentLogbook}>{currentLogbook}</span>{/if}</span>
       {/if}
       {#if vfoEditing}
         <span class="vfo-edit">
@@ -1147,7 +1240,7 @@
     {:else if page === "notifications"}
       <Notifications on:countchange={() => fetchUnreadCount()} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
     {:else if page === "settings"}
-      <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { setShutdownState(); }} />
+      <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} initialTab={settingsTab} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { fetchCallsign(); fetchCustomHeader(); fetchDefaultPage(); applyTheme(); fetchPopupNotifEnabled(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); fetchUpdateCheck(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { setShutdownState(); }} />
     {:else if page === "links"}
       <Links />
     {:else if page === "conditions"}
@@ -1274,6 +1367,7 @@
     color: var(--text);
     font-family: "Courier New", Courier, monospace;
     font-size: 14px;
+    overflow-x: clip;
   }
 
   main {
@@ -1320,6 +1414,8 @@
     display: flex;
     align-items: baseline;
     gap: 1rem;
+    flex-wrap: wrap;
+    min-width: 0;
   }
 
   h1 {
@@ -1334,13 +1430,42 @@
     font-weight: bold;
   }
 
+  .custom-header {
+    color: var(--text-muted);
+    font-size: 1rem;
+    font-weight: normal;
+    font-family: system-ui, sans-serif;
+  }
+
+  .app-version,
   .logbook-name {
     display: block;
     color: var(--text-muted);
-    font-size: 0.55rem;
+    font-size: 0.6rem;
     font-weight: normal;
     line-height: 1;
-    margin-top: -0.15rem;
+    margin-top: 0.05rem;
+  }
+
+  .up-to-date-check {
+    margin-left: 0.2rem;
+    opacity: 0.7;
+    font-size: 0.5rem;
+  }
+
+  .dev-version {
+    margin-left: 0.2rem;
+    font-size: 0.5rem;
+  }
+
+  .update-link {
+    color: #2ecc40;
+    text-decoration: none;
+    font-weight: bold;
+    margin-left: 0.3rem;
+  }
+  .update-link:hover {
+    text-decoration: underline;
   }
 
   .vfo-bezel {
@@ -1601,6 +1726,8 @@
   .menu-item.active {
     color: var(--accent);
     font-weight: bold;
+    border: 1px solid gold;
+    border-radius: 3px;
   }
 
   .menu-separator {
@@ -1744,6 +1871,21 @@
     }
     .title-short {
       display: inline;
+    }
+    main {
+      padding: 0.5rem;
+    }
+    header {
+      gap: 0.25rem;
+    }
+    .header-left {
+      gap: 0.5rem;
+    }
+    .vfo-bezel {
+      padding: 0.1rem 0.3rem;
+    }
+    .vfo-digit {
+      font-size: 0.9rem;
     }
   }
 

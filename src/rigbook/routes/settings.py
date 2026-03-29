@@ -63,6 +63,8 @@ async def upsert_setting(
         session.add(setting)
     await session.commit()
     await session.refresh(setting)
+    log_value = "***" if key in HIDDEN_KEYS else data.value
+    logger.info("Setting changed: %s = %s", key, log_value)
     return setting
 
 
