@@ -288,7 +288,7 @@
       {/if}
 
       {#if query.length >= 2 && allResults.length > 0}
-        <div class="qrz-hint">Press Enter to search all fields</div>
+        <div class="qrz-hint">Press Enter to search entire logbook</div>
       {/if}
 
       {#if allResults.length === 0 && !qrzLoading && query.length >= 2}
