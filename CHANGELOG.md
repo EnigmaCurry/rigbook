@@ -54,12 +54,20 @@
 
 - POTA disabled by default for new logbooks
 
+### ADIF Import
+
+- Comment template matching now requires colon separator (e.g. "SKCC: 1234T" matches, "SKCC 1234T" does not)
+- Comment template parses only the first word as the field value
+- Fixed and Merged status filters on import preview
+- Unit tests for ADIF import parsing functions
+
 ### Bug Fixes
 
 - Fix SSE "Task was destroyed but it is pending" errors on client disconnect
 - Fix hamburger menu clipped on pages with short content
 - Fix grid square not saving from map picker
 - Fix settings redirect navigating away during initial setup typing
+- Fix false validation warnings on comments without colon (e.g. "SKCC K3Y/1")
 - Responsive layout for small mobile screens (375px): reduced padding, wrapping header, smaller VFO
 - Cache-busting: `Cache-Control: no-cache` on all static files to prevent stale frontend
 - Narrow short text fields (callsign, grid, RST, ports) to appropriate width
