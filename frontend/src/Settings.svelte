@@ -388,9 +388,17 @@
   }
 
   const dirtyFields = new Set();
+  const debounceTimers = {};
 
   function markDirty(key) {
     dirtyFields.add(key);
+    clearTimeout(debounceTimers[key]);
+    debounceTimers[key] = setTimeout(() => {
+      if (dirtyFields.has(key) && fieldSavers[key]) {
+        dirtyFields.delete(key);
+        fieldSavers[key]();
+      }
+    }, 2000);
   }
 
   async function flushPending() {
@@ -400,8 +408,8 @@
     dirtyFields.clear();
   }
 
-  function switchTab(tab) {
-    flushPending();
+  async function switchTab(tab) {
+    await flushPending();
     activeTab = tab;
   }
 
@@ -818,7 +826,7 @@
               <span>Grid Square</span>
               <button type="button" class="grid-picker-close" on:click={() => showGridPicker = false}>✕</button>
             </div>
-            <GridMap bind:value={my_grid} on:select={() => showGridPicker = false} />
+            <GridMap bind:value={my_grid} on:select={async () => { showGridPicker = false; await fieldSavers.my_grid(); }} />
           </div>
         </div>
       {/if}
