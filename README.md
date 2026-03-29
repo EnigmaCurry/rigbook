@@ -98,7 +98,7 @@ guide](https://wa7pge.com/static/rigbook/rigbook-windows-install.html)**
 
 ### Android (Termux)
 
-Rigbook runs on Android phones via [Termux](https://termux.dev) using
+Experimentally, Rigbook runs on Android phones via [Termux](https://termux.dev) using
 the pre-built Linux ARM64 binary inside a Debian proot environment.
 The web UI is usable on phone touch screens, but Rigbook is primarily
 designed as a desktop application.
