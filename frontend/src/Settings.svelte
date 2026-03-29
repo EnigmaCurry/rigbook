@@ -430,12 +430,10 @@
     my_callsign: async () => {
       await saveSetting("my_callsign", my_callsign.trim().toUpperCase());
       dispatch("saved");
-      dispatchSetupIfReady();
     },
     my_grid: async () => {
       await saveSetting("my_grid", my_grid.trim().toUpperCase());
       dispatch("saved");
-      dispatchSetupIfReady();
     },
     default_rst: async () => {
       await saveSetting("default_rst", default_rst.trim());
@@ -505,9 +503,13 @@
   }
 
   async function onFieldBlur(key) {
+    clearTimeout(debounceTimers[key]);
     if (dirtyFields.has(key) && fieldSavers[key]) {
       dirtyFields.delete(key);
       await fieldSavers[key]();
+    }
+    if (key === "my_callsign" || key === "my_grid") {
+      dispatchSetupIfReady();
     }
   }
 
