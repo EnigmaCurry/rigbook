@@ -207,6 +207,8 @@ def contact_to_adif_record(
         record["TIME_OFF"] = c.timestamp_off.strftime("%H%M%S")
     if c.uuid:
         record["APP_RIGBOOK_UUID"] = c.uuid
+    if c.updated_at:
+        record["APP_RIGBOOK_UPDATED_AT"] = c.updated_at.strftime("%Y%m%d%H%M%S")
     return record
 
 
@@ -382,6 +384,14 @@ def adif_record_to_contact_dict(record: dict) -> dict:
     app_uuid = record.get("APP_RIGBOOK_UUID")
     if app_uuid:
         data["uuid"] = app_uuid
+    app_updated = record.get("APP_RIGBOOK_UPDATED_AT")
+    if app_updated:
+        try:
+            data["updated_at"] = datetime.strptime(app_updated, "%Y%m%d%H%M%S").replace(
+                tzinfo=timezone.utc
+            )
+        except ValueError:
+            pass
 
     qso_date = record.get("QSO_DATE", "")
     time_on = record.get("TIME_ON", "")
