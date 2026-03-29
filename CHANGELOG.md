@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.1.24
+
+- Fix Windows startup crash: use msvcrt for file locking instead of Unix-only fcntl
+
 ## v0.1.23
 
 ### Update Checker
