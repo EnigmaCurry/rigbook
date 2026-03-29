@@ -1579,7 +1579,7 @@
     animation: dash-flow 0.8s linear infinite;
   }
   @keyframes dash-flow {
-    to { stroke-dashoffset: -14; }
+    to { stroke-dashoffset: 14; }
   }
 
   :global(.spot-marker-dot.my-pos) {
