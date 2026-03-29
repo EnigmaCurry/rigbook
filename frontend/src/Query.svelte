@@ -181,26 +181,6 @@
       <div class="error">{error}</div>
     {/if}
 
-    {#if showSchema && schema}
-      <div class="schema">
-        {#each Object.entries(schema) as [table, cols]}
-          <div class="schema-table">
-            <h4>{table}</h4>
-            <table class="schema-col-table">
-              <tbody>
-                {#each cols as col}
-                  <tr>
-                    <td class:pk={col.pk}>{col.name}</td>
-                    <td class="col-type">{col.type}{#if col.pk} PK{/if}{#if col.notnull} NOT NULL{/if}</td>
-                  </tr>
-                {/each}
-              </tbody>
-            </table>
-          </div>
-        {/each}
-      </div>
-    {/if}
-
     {#if columns.length > 0}
       <div class="result-info">
         {rowCount} row{rowCount !== 1 ? "s" : ""}
@@ -208,6 +188,26 @@
       </div>
     {/if}
   </div>
+
+  {#if showSchema && schema}
+    <div class="schema">
+      {#each Object.entries(schema) as [table, cols]}
+        <div class="schema-table">
+          <h4>{table}</h4>
+          <table class="schema-col-table">
+            <tbody>
+              {#each cols as col}
+                <tr>
+                  <td class:pk={col.pk}>{col.name}</td>
+                  <td class="col-type">{col.type}{#if col.pk} PK{/if}{#if col.notnull} NOT NULL{/if}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      {/each}
+    </div>
+  {/if}
 
   {#if columns.length > 0}
     <div class="table-wrap" class:resizing={resizing !== null}>
@@ -354,9 +354,11 @@
     margin-bottom: 0.5rem;
     font-size: 0.8rem;
     font-family: monospace;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 0.75rem;
   }
   .schema-table h4 {
