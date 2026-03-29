@@ -172,7 +172,12 @@ async def query_spots(
             s["qrz_state"] = ""
             s["qrz_grid"] = ""
 
-    return {"my_grid": my_grid, "spots": spots}
+    result = await session.execute(
+        select(Setting.value).where(Setting.key == "my_callsign")
+    )
+    my_callsign = (result.scalar_one_or_none() or "").strip()
+
+    return {"my_grid": my_grid, "my_callsign": my_callsign, "spots": spots}
 
 
 # Server-side SKCC skimmer snapshot cache

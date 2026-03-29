@@ -8,6 +8,7 @@
   import { QrzLookup, formatFreq, locationStr } from "./qrzLookup.js";
   import { getMapTileConfig } from "./mapTiles.js";
   import { storageGet, storageSet } from "./storage.js";
+  import { textToDashArray } from "./morse.js";
   import ParkDetail from "./ParkDetail.svelte";
   import L from "leaflet";
   import "leaflet/dist/leaflet.css";
@@ -41,6 +42,8 @@
 
   let spots = [];
   let myGrid = "";
+  let myCallsign = "";
+  let hunterDash = { dashArray: "", total: 0 };
   let showMap = storageGet("spotsMapEnabled") !== "false";
   const MIN_MAP_HEIGHT = 60;
   const MAX_MAP_FRAC = 0.7;
@@ -388,6 +391,11 @@
         const data = await res.json();
         spots = data.spots;
         myGrid = data.my_grid || "";
+        const call = data.my_callsign || "";
+        if (call !== myCallsign) {
+          myCallsign = call;
+          hunterDash = textToDashArray(call);
+        }
         await qrz.enqueue(spots);
       }
     } catch {}
@@ -773,6 +781,17 @@
     return `${s.callsign}|${s.frequency}|${s.mode}`;
   }
 
+  function hunterLine(from, to) {
+    const line = L.polyline([from, to], { color: "#ffaa00", weight: 2, opacity: 0.6, dashArray: hunterDash.dashArray, className: "line-hunter" }).addTo(leafletMap);
+    const el = line.getElement();
+    if (el) {
+      const speed = 34; // px per second
+      el.style.setProperty("--hunter-offset", hunterDash.total);
+      el.style.setProperty("--hunter-duration", (hunterDash.total / speed) + "s");
+    }
+    return line;
+  }
+
   function drawTriangleForSpot(spot) {
     if (!leafletMap || !spot) return;
     clearLines();
@@ -808,7 +827,7 @@
     if (spotterLL && homeLL) {
       selectionLines.push(
         L.polyline([spotterLL, homeLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "8 6", className: "line-flow" }).addTo(leafletMap),
-        L.polyline([homeLL, myLL], { color: "#ffaa00", weight: 2, opacity: 0.6, dashArray: "12 4 4 4 12 4 4 12 12 4 12 4 4 4 12 28", className: "line-cq" }).addTo(leafletMap),
+        hunterLine(homeLL, myLL),
         L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
       );
     } else if (spotterLL) {
@@ -817,7 +836,7 @@
       );
     } else if (homeLL) {
       selectionLines.push(
-        L.polyline([myLL, homeLL], { color: "#ffaa00", weight: 2, opacity: 0.6, dashArray: "12 4 4 4 12 4 4 12 12 4 12 4 4 4 12 28", className: "line-cq" }).addTo(leafletMap),
+        hunterLine(myLL, homeLL),
       );
     }
   }
@@ -842,7 +861,7 @@
       const homeLL = nearLL(baseLon, [homePos.lat, homePos.lon]);
       selectionLines.push(
         L.polyline([sLL, homeLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "8 6", className: "line-flow" }).addTo(leafletMap),
-        L.polyline([homeLL, myLL], { color: "#ffaa00", weight: 2, opacity: 0.6, dashArray: "12 4 4 4 12 4 4 12 12 4 12 4 4 4 12 28", className: "line-cq" }).addTo(leafletMap),
+        hunterLine(homeLL, myLL),
         L.polyline([myLL, sLL], { color: "#ff4444", weight: 2, opacity: 0.6 }).addTo(leafletMap),
       );
     }
@@ -1581,11 +1600,11 @@
   @keyframes dash-flow {
     to { stroke-dashoffset: 14; }
   }
-  :global(.line-cq) {
-    animation: dash-cq 4s linear infinite;
+  :global(.line-hunter) {
+    animation: dash-hunter var(--hunter-duration, 4s) linear infinite;
   }
-  @keyframes dash-cq {
-    to { stroke-dashoffset: 136; }
+  @keyframes dash-hunter {
+    to { stroke-dashoffset: var(--hunter-offset, 0); }
   }
 
   :global(.spot-marker-dot.my-pos) {
