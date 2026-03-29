@@ -27,6 +27,7 @@
     if (val) {
       sql = val;
       cannedSelect = "";
+      runQuery();
     }
   }
 
