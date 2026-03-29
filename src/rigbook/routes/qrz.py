@@ -18,7 +18,7 @@ _call_locks: dict[str, asyncio.Lock] = {}
 router = APIRouter(prefix="/api/qrz", tags=["qrz"])
 
 QRZ_URL = "https://xmldata.qrz.com/xml/current/"
-CACHE_TTL = 86400  # 24 hours
+CACHE_TTL = 604800  # 7 days
 NAMESPACE = "qrz"
 
 _session_key: str | None = None
