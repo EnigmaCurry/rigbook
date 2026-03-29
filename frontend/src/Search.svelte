@@ -110,8 +110,15 @@
       e.preventDefault();
       if (highlightIndex >= 0 && highlightIndex < allResults.length) {
         pick(allResults[highlightIndex]);
-      } else {
-        searchQrz();
+      } else if (query.trim()) {
+        open = false;
+        dispatch("action", { type: "search", data: { query: query.trim() } });
+        query = "";
+        logbookResults = [];
+        potaResults = [];
+        parkResults = [];
+        skccResults = [];
+        qrzResult = null;
       }
       return;
     }

@@ -14,6 +14,7 @@
   import Notifications from "./Notifications.svelte";
   import Spots from "./Spots.svelte";
   import LogbookPicker from "./LogbookPicker.svelte";
+  import SearchResults from "./SearchResults.svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
   import { setLogbook, storageGet, storageSet, migrateStorage } from "./storage.js";
 
@@ -104,6 +105,11 @@
       return { page: "settings", editId: null, dualRight: null, settingsTab };
     }
     if (hash === "/export") return { page: "export", editId: null, dualRight: null };
+    if (hash === "/search" || hash.startsWith("/search?")) {
+      const qm = hash.indexOf("?");
+      const sp = qm >= 0 ? new URLSearchParams(hash.slice(qm + 1)) : null;
+      return { page: "search", editId: null, dualRight: null, searchQuery: sp?.get("q") || "" };
+    }
     if (hash === "/logbook") return { page: isWide() ? "dual" : "log", editId: null, dualRight: null };
     if (hash === "/add") return { page: isWide() ? "dual" : "add", editId: null, dualRight: null };
     // Right-pane-eligible pages
@@ -130,6 +136,7 @@
   let previousPage = "log";
   let defaultPage = "log";
   let settingsTab = _parsed.settingsTab || null;
+  let searchQuery = _parsed.searchQuery || "";
   let prefill = null;
   let formDirty = false;
   let activePark = "";
@@ -885,6 +892,12 @@
       };
       dualShowForm = true;
       navigate(isWide() ? "dual" : "add");
+    } else if (type === "search") {
+      searchQuery = data.query || "";
+      page = "search";
+      menuOpen = false;
+      window.location.hash = `/search?q=${encodeURIComponent(searchQuery)}`;
+      return;
     } else if (type === "qrz") {
       prefill = {
         call: data.call || "",
@@ -913,6 +926,7 @@
       editId = parsed.editId;
     }
     settingsTab = parsed.settingsTab || null;
+    searchQuery = parsed.searchQuery || "";
     page = p;
     if (parsed.dualRight) {
       if ((parsed.dualRight === "spots" && !spotsEnabled) || (parsed.dualRight === "parks" && !potaEnabled) || (parsed.dualRight === "conditions" && !solarEnabled)) {
@@ -1187,6 +1201,7 @@
           {#if potaEnabled}<button class="menu-item" class:active={page === "parks" || (page === "dual" && dualRightPage === "parks")} on:click={() => navigate("parks")}>Parks</button>{/if}
           <button class="menu-item" class:active={page === "notifications" || (page === "dual" && dualRightPage === "notifications")} on:click={() => navigate("notifications")}>Notifications{#if unreadCount > 0} ({unreadCount}){/if}</button>
           {#if solarEnabled}<button class="menu-item" class:active={page === "conditions" || (page === "dual" && dualRightPage === "conditions")} on:click={() => navigate("conditions")}>Conditions</button>{/if}
+          <button class="menu-item" class:active={page === "search"} on:click={() => { page = "search"; searchQuery = ""; menuOpen = false; window.location.hash = "/search"; }}>Search</button>
           <button class="menu-item" class:active={page === "export"} on:click={() => navigate("export")}>Import / Export</button>
           <button class="menu-item" class:active={page === "settings"} on:click={() => navigate("settings")}>Settings</button>
           <button class="menu-item" class:active={page === "links"} on:click={() => navigate("links")}>Links</button>
@@ -1235,6 +1250,8 @@
       <Logbook showForm={true} {editId} {prefill} {vfoFreq} {vfoMode} bind:formDirty bind:activePark on:editchange={e => { editId = e.detail; window.location.hash = e.detail ? `/log/${e.detail}` : "/add"; }} on:navigate={e => navigate(e.detail)} on:prefillconsumed={() => prefill = null} on:parkschanged={() => dualParks?.refreshParks()} />
     {:else if page === "hunting"}
       <Hunting {potaEnabled} {spotsEnabled} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
+    {:else if page === "search"}
+      <SearchResults initialQuery={searchQuery} on:editcontact={e => { editId = e.detail; navigate("add"); window.location.hash = `/log/${e.detail}`; }} />
     {:else if page === "export"}
       <ExportImport />
     {:else if page === "notifications"}
