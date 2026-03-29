@@ -261,6 +261,8 @@
     contact.warnings = contact.warnings.filter(w => w !== warning);
     // Mark as fixed once all warnings are resolved
     if (!contact.warnings.length) contact._fixed = true;
+    // Mark record as modified so updated_at is set
+    contact.updated_at = new Date().toISOString();
     // Re-strip comment with updated field values
     stripCommentClient(contact);
     // Trigger reactivity

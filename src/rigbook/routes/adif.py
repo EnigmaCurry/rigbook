@@ -49,6 +49,7 @@ def _apply_skcc_exchange(
         if skcc_val and _is_valid_skcc_number(skcc_val) and not already_has_exch:
             if is_skcclogger:
                 data["skcc_exch"] = 1
+                data["_skcc_auto_applied"] = True
                 auto_count += 1
             else:
                 decision_count += 1
@@ -1059,7 +1060,9 @@ async def preview_import_adif(
             "timestamp_off": data.get("timestamp_off").isoformat()
             if data.get("timestamp_off")
             else None,
-            "updated_at": None,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+            if data.get("_merged") or data.get("_skcc_auto_applied")
+            else None,
             "adif_line": record_to_adif_line(raw_record),
             "adif_lines": adif_lines,
             "warnings": warnings,
@@ -1132,6 +1135,7 @@ IMPORT_FIELDS = {
     "comments",
     "notes",
     "timestamp_off",
+    "updated_at",
 }
 
 
@@ -1160,6 +1164,7 @@ async def import_confirmed(
             skcc_val = data.get("skcc", "")
             if skcc_val and _is_valid_skcc_number(skcc_val):
                 data["skcc_exch"] = 1
+                data["updated_at"] = datetime.now(timezone.utc).replace(tzinfo=None)
         if c.get("timestamp"):
             try:
                 ts = c["timestamp"]
@@ -1180,6 +1185,16 @@ async def import_confirmed(
                 data["timestamp_off"] = ts_off
             except (ValueError, TypeError):
                 pass
+        if data.get("updated_at"):
+            try:
+                ua = data["updated_at"]
+                if isinstance(ua, str):
+                    ua = datetime.fromisoformat(ua.replace("Z", "+00:00"))
+                if ua.tzinfo is not None:
+                    ua = ua.replace(tzinfo=None)
+                data["updated_at"] = ua
+            except (ValueError, TypeError):
+                del data["updated_at"]
         # Dedup by UUID against DB and batch
         is_dup = False
         record_uuid = c.get("uuid")
