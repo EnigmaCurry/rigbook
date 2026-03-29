@@ -840,12 +840,12 @@
     }
   }
 
-  function distanceLabel(from, to, color = "white") {
+  function distanceLabel(from, to, color = "white", label = null) {
     const mi = haversineMi(from, to);
     const mid = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2];
     const angle = _labelAngle(from, to);
     const span = document.createElement("span");
-    span.textContent = `${mi} mi`;
+    span.textContent = label ? `${label} ${mi} mi` : `${mi} mi`;
     span.style.transform = `rotate(${angle}deg)`;
     span.style.color = color;
     const icon = L.divIcon({
@@ -896,7 +896,7 @@
       selectionLines.push(
         spotterLine(spotterLL, homeLL, spot.callsign),
         hunterLine(homeLL, myLL),
-        distanceLabel(homeLL, myLL, "#ffaa00"),
+        distanceLabel(homeLL, myLL, "#ffaa00", spot.callsign),
         L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
         distanceLabel(myLL, spotterLL, "#ff4444"),
       );
@@ -908,7 +908,7 @@
     } else if (homeLL) {
       selectionLines.push(
         hunterLine(myLL, homeLL),
-        distanceLabel(myLL, homeLL, "#ffaa00"),
+        distanceLabel(myLL, homeLL, "#ffaa00", spot.callsign),
       );
     }
   }
@@ -934,7 +934,7 @@
       selectionLines.push(
         spotterLine(sLL, homeLL, s.callsign),
         hunterLine(homeLL, myLL),
-        distanceLabel(homeLL, myLL, "#ffaa00"),
+        distanceLabel(homeLL, myLL, "#ffaa00", s.callsign),
         L.polyline([myLL, sLL], { color: "#ff4444", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
         distanceLabel(myLL, sLL, "#ff4444"),
       );
