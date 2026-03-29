@@ -944,6 +944,10 @@
         }
       }
     } catch {}
+    // No theme in DB — use system preference
+    const sysPref = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    storageSet("rigbook-theme", sysPref);
+    document.documentElement.classList.toggle("light", sysPref === "light");
   }
 
   let searchComponent;
