@@ -1068,7 +1068,7 @@
   });
 </script>
 
-<main class:dual-mode={page === "dual"} class:parks-mode={page === "parks"} class:spots-mode={page === "spots"} class:grid-mode={page === "grid"} class:export-mode={page === "export"} class:search-mode={page === "search"}>
+<main class:dual-mode={page === "dual"} class:parks-mode={page === "parks"} class:spots-mode={page === "spots"} class:grid-mode={page === "grid"} class:export-mode={page === "export"} class:search-mode={page === "search"} class:query-mode={page === "query"}>
   {#if serverShutdown}
     <header>
       <div class="header-left">
@@ -1404,7 +1404,8 @@
     margin: 0 auto;
   }
 
-  :global(main.export-mode) {
+  :global(main.export-mode),
+  :global(main.query-mode) {
     display: flex;
     flex-direction: column;
     height: 100vh;
@@ -1413,7 +1414,8 @@
   }
 
   :global(main.export-mode) .page-content,
-  :global(main.search-mode) .page-content {
+  :global(main.search-mode) .page-content,
+  :global(main.query-mode) .page-content {
     max-width: 100%;
     margin: 0;
     flex: 1;
