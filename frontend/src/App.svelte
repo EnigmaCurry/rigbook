@@ -15,6 +15,7 @@
   import Spots from "./Spots.svelte";
   import LogbookPicker from "./LogbookPicker.svelte";
   import SearchResults from "./SearchResults.svelte";
+  import Query from "./Query.svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
   import { setLogbook, storageGet, storageSet, migrateStorage } from "./storage.js";
 
@@ -104,6 +105,7 @@
       const settingsTab = hash.split("/")[2] || null;
       return { page: "settings", editId: null, dualRight: null, settingsTab };
     }
+    if (hash === "/query") return { page: "query", editId: null, dualRight: null };
     if (hash === "/export") return { page: "export", editId: null, dualRight: null };
     if (hash === "/search" || hash.startsWith("/search?")) {
       const qm = hash.indexOf("?");
@@ -766,7 +768,7 @@
     if (p === "dual") {
       window.location.hash = `/dual/${dualRightPage}`;
     } else {
-      const paths = { hunting: "/hunting", log: "/logbook", add: "/add", grid: "/grid", parks: "/parks", spots: "/spots", export: "/export", search: "/search", notifications: "/notifications", conditions: "/conditions", settings: settingsTab ? `/settings/${settingsTab}` : "/settings", links: "/links", about: "/about", picker: "/picker" };
+      const paths = { hunting: "/hunting", log: "/logbook", add: "/add", grid: "/grid", parks: "/parks", spots: "/spots", query: "/query", export: "/export", search: "/search", notifications: "/notifications", conditions: "/conditions", settings: settingsTab ? `/settings/${settingsTab}` : "/settings", links: "/links", about: "/about", picker: "/picker" };
       window.location.hash = paths[p] || "/";
     }
     setTimeout(() => { navigating = false; }, 0);
@@ -1204,6 +1206,7 @@
           {#if solarEnabled}<button class="menu-item" class:active={page === "conditions" || (page === "dual" && dualRightPage === "conditions")} on:click={() => navigate("conditions")}>Conditions</button>{/if}
           <button class="menu-item" class:active={page === "search"} on:click={() => { searchQuery = ""; navigate("search"); }}>Search</button>
           <button class="menu-item" class:active={page === "export"} on:click={() => navigate("export")}>Import / Export</button>
+          <button class="menu-item" class:active={page === "query"} on:click={() => navigate("query")}>SQL Query</button>
           <button class="menu-item" class:active={page === "settings"} on:click={() => navigate("settings")}>Settings</button>
           <button class="menu-item" class:active={page === "links"} on:click={() => navigate("links")}>Links</button>
           <button class="menu-item" class:active={page === "about"} on:click={() => navigate("about")}>About</button>
@@ -1253,6 +1256,8 @@
       <Hunting {potaEnabled} {spotsEnabled} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
     {:else if page === "search"}
       <SearchResults initialQuery={searchQuery} on:editcontact={e => { editId = e.detail; navigate("add"); window.location.hash = `/log/${e.detail}`; }} />
+    {:else if page === "query"}
+      <Query />
     {:else if page === "export"}
       <ExportImport />
     {:else if page === "notifications"}

@@ -36,6 +36,7 @@ from rigbook.routes.settings import (
     start_auto_backup,
     stop_auto_backup,
 )
+from rigbook.routes.query import router as query_router
 from rigbook.routes.solar import router as solar_router
 
 logger = logging.getLogger("rigbook")
@@ -231,6 +232,7 @@ app.include_router(skcc_router)
 app.include_router(tiles_router)
 app.include_router(spots_router)
 app.include_router(notifications_router)
+app.include_router(query_router)
 app.include_router(solar_router)
 app.include_router(sse_router)
 
