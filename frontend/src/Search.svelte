@@ -14,15 +14,25 @@
   let potaResults = [];
   let parkResults = [];
   let skccResults = [];
+  let qrzResult = null;
+  let qrzLoading = false;
+  let qrzEnabled = false;
   let potaSpots = [];
   let debounceTimer;
+  let qrzDebounceTimer;
   let highlightIndex = -1;
+
+  function looksLikeCallsign(q) {
+    if (!q || q.length < 3) return false;
+    return /^[A-Za-z0-9]{1,3}[0-9][A-Za-z0-9]{0,4}(\/[A-Za-z0-9]+)?$/.test(q.trim());
+  }
 
   $: allResults = [
     ...logbookResults.map(r => ({ type: "logbook", data: r })),
     ...potaResults.map(r => ({ type: "pota", data: r })),
     ...parkResults.map(r => ({ type: "park", data: r })),
     ...skccResults.map(r => ({ type: "skcc", data: r })),
+    ...(qrzResult ? [{ type: "qrz", data: qrzResult }] : []),
   ];
 
   async function fetchPotaSpots() {
@@ -52,6 +62,37 @@
       if (res.ok) logbookResults = (await res.json()).slice(0, 5);
       else logbookResults = [];
     } catch { logbookResults = []; }
+    maybeSearchQrz(q);
+  }
+
+  function maybeSearchQrz(q) {
+    clearTimeout(qrzDebounceTimer);
+    qrzResult = null;
+    if (!qrzEnabled || !looksLikeCallsign(q) || logbookResults.length > 0) return;
+    qrzDebounceTimer = setTimeout(() => searchQrz(q), 500);
+  }
+
+  async function searchQrz(q) {
+    if (!q || q.length < 3) return;
+    qrzLoading = true;
+    try {
+      const res = await fetch(`/api/qrz/lookup/${q.toUpperCase().trim()}`);
+      if (res.ok) {
+        const data = await res.json();
+        qrzResult = data.error ? null : data;
+      }
+    } catch {}
+    qrzLoading = false;
+  }
+
+  async function checkQrzEnabled() {
+    try {
+      const res = await fetch("/api/settings/qrz_password");
+      if (res.ok) {
+        const data = await res.json();
+        qrzEnabled = !!data.value && data.value !== "";
+      }
+    } catch {}
   }
 
   async function searchParks(q) {
@@ -75,7 +116,9 @@
   function onInput() {
     open = true;
     highlightIndex = -1;
+    qrzResult = null;
     clearTimeout(debounceTimer);
+    clearTimeout(qrzDebounceTimer);
     potaResults = filterPota(query);
     debounceTimer = setTimeout(() => { searchLogbook(query); searchParks(query); searchSkcc(query); }, 300);
   }
@@ -121,6 +164,7 @@
     potaResults = [];
     parkResults = [];
     skccResults = [];
+    qrzResult = null;
     dispatch("action", item);
   }
 
@@ -148,6 +192,7 @@
 
   onMount(() => {
     fetchPotaSpots();
+    checkQrzEnabled();
     const interval = setInterval(fetchPotaSpots, 60000);
     return () => clearInterval(interval);
   });
@@ -165,7 +210,7 @@
     placeholder="Search..."
     autocomplete="off"
   />
-  {#if open && (allResults.length > 0 || query.length >= 2)}
+  {#if open && (allResults.length > 0 || qrzLoading || query.length >= 2)}
     <div class="results">
       {#if logbookResults.length > 0}
         <div class="group-header">Logbook</div>
@@ -227,11 +272,29 @@
         {/each}
       {/if}
 
+      {#if qrzResult}
+        <div class="group-header">QRZ</div>
+        {@const idx = logbookResults.length + potaResults.length + parkResults.length + skccResults.length}
+        <a
+          class="result-item qrz-link"
+          class:highlighted={highlightIndex === idx}
+          href="https://www.qrz.com/db/{qrzResult.call}"
+          target="_blank"
+          rel="noopener noreferrer"
+          on:mousedown|preventDefault={() => { window.open(`https://www.qrz.com/db/${qrzResult.call}`, '_blank'); open = false; }}
+        >
+          <span class="result-call">{qrzResult.call}</span>
+          <span class="result-detail">{qrzResult.name || ""} {qrzResult.qth || ""} {qrzResult.state || ""} ↗</span>
+        </a>
+      {:else if qrzLoading}
+        <div class="qrz-hint">Looking up on QRZ...</div>
+      {/if}
+
       {#if query.length >= 2 && allResults.length > 0}
         <div class="qrz-hint">Press Enter to search all fields</div>
       {/if}
 
-      {#if allResults.length === 0 && query.length >= 2}
+      {#if allResults.length === 0 && !qrzLoading && query.length >= 2}
         <div class="qrz-hint">No results</div>
       {/if}
     </div>
@@ -328,6 +391,11 @@
   .result-item:hover .result-detail,
   .result-item.highlighted .result-detail {
     color: var(--bg);
+  }
+
+  a.qrz-link {
+    text-decoration: none;
+    color: inherit;
   }
 
   .qrz-hint {
