@@ -1190,7 +1190,7 @@
       </div>
       <div class="danger-separator"></div>
       <div class="setting-row">
-        <button class="danger-btn" on:click={shutdownServer}>Shutdown Server</button>
+        <button class="danger-btn" on:click={shutdownServer} disabled={dangerConfirmName !== logbookName}>Shutdown Server</button>
       </div>
     </section>
   {/if}
