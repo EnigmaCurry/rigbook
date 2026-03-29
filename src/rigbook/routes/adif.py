@@ -582,13 +582,9 @@ def _validate_import_record(
             if i >= len(parts):
                 break
             part = parts[i].strip()
-            # Parse "Label: value" or "Label value" (first word only)
+            # Parse "Label: value" (colon required)
             if ": " in part:
                 lbl, _, rest = part.partition(": ")
-                val = rest.strip().split(None, 1)[0] if rest.strip() else ""
-            elif part.startswith(exp["label"] + " "):
-                lbl = exp["label"]
-                rest = part[len(exp["label"]) + 1 :]
                 val = rest.strip().split(None, 1)[0] if rest.strip() else ""
             else:
                 break
@@ -625,11 +621,8 @@ def _validate_import_record(
             for entry in template_fields:
                 label = entry.get("label", entry.get("field", ""))
                 field = entry.get("field", "")
-                # Try "Label: value" or "Label value" (first word only)
+                # Try "Label: value" (colon required)
                 if lbl and lbl.strip() == label:
-                    val = rest.strip().split(None, 1)[0] if rest.strip() else ""
-                elif comment.strip().startswith(label + " "):
-                    rest = comment.strip()[len(label) + 1 :]
                     val = rest.strip().split(None, 1)[0] if rest.strip() else ""
                 else:
                     continue
