@@ -245,6 +245,7 @@
 
   // Danger zone
   let dangerConfirmName = "";
+  let qsoCount = 0;
   let deleteError = "";
   let deleting = false;
   let clearing = false;
@@ -747,9 +748,17 @@
     qrzChecking = false;
   }
 
+  async function fetchQsoCount() {
+    try {
+      const res = await fetch("/api/contacts/");
+      if (res.ok) { const data = await res.json(); qsoCount = data.length; }
+    } catch {}
+  }
+
   onMount(() => {
     fetchSettings();
     fetchSpotStatus();
+    fetchQsoCount();
     loadDbInfo();
     loadBackupStatus();
     spotStatusInterval = setInterval(fetchSpotStatus, 5000);
@@ -1126,8 +1135,8 @@
         <p class="danger-error">{clearError}</p>
       {/if}
       <div class="setting-row">
-        <button class="danger-btn" on:click={clearAllContacts} disabled={clearing || dangerConfirmName !== logbookName}>
-          {clearing ? "Clearing..." : "Clear All QSOs"}
+        <button class="danger-btn" on:click={clearAllContacts} disabled={clearing || dangerConfirmName !== logbookName || qsoCount === 0}>
+          {clearing ? "Clearing..." : qsoCount === 0 ? "No QSOs to clear" : "Clear All QSOs"}
         </button>
       </div>
       <div class="danger-separator"></div>
