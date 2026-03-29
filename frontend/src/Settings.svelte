@@ -34,6 +34,7 @@
   let theme = "dark";
   let map_theme = "natgeo";
   let map_custom_url = "";
+  let custom_header = "";
   let qrzStatus = null; // { ok, error?, username? }
   let qrzChecking = false;
 
@@ -451,6 +452,10 @@
       await saveSetting("map_custom_url", map_custom_url.trim());
       dispatch("saved");
     },
+    custom_header: async () => {
+      await saveSetting("custom_header", custom_header.trim());
+      dispatch("saved");
+    },
     rbn_host: async () => {
       await saveSetting("rbn_host", rbn_host.trim());
       await restartFeeds();
@@ -561,6 +566,10 @@
 
   function onMapCustomUrlInput() {
     markDirty("map_custom_url");
+  }
+
+  function onCustomHeaderInput() {
+    markDirty("custom_header");
   }
 
   async function onRbnEnabledChange() {
@@ -690,6 +699,7 @@
           if (s.key === "logbook_right") logbook_right = s.value === "true";
           if (s.key === "map_theme") map_theme = s.value || "default";
           if (s.key === "map_custom_url") map_custom_url = s.value || "";
+          if (s.key === "custom_header") custom_header = s.value || "";
           if (s.key === "theme") theme = s.value || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
           if (s.key === "popup_notifications_enabled") popupNotifEnabled = s.value === "true";
         }
@@ -1032,6 +1042,11 @@
       <button class="theme-toggle" on:click={toggleTheme}>
         {theme === "dark" ? "Dark" : "Light"}
       </button>
+    </div>
+    <div class="setting-row">
+      <label for="custom_header">Custom Header</label>
+      <input id="custom_header" type="text" bind:value={custom_header} on:input={onCustomHeaderInput} on:blur={() => onFieldBlur("custom_header")} autocomplete="off" placeholder={my_callsign.trim().toUpperCase() || "Callsign"} />
+      <span class="hint">Replaces the callsign in the header. Leave blank to show your callsign.</span>
     </div>
     <div class="setting-row">
       <label for="map_theme">Map Tiles</label>

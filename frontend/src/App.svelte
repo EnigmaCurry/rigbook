@@ -166,6 +166,7 @@
   let gridMapValue = "";
   let menuOpen = false;
   let myCallsign = "";
+  let customHeader = "";
   let appVersion = "";
   let updateAvailable = false;
   let updateChecked = false;
@@ -247,6 +248,7 @@
     fetchVersion();
     fetchUpdateCheck();
     fetchCallsign();
+    fetchCustomHeader();
     fetchPopupNotifEnabled();
     await fetchLogbookRight();
     await fetchSolarEnabled();
@@ -605,6 +607,16 @@
       if (res.ok) {
         const data = await res.json();
         myCallsign = data.value || "";
+      }
+    } catch {}
+  }
+
+  async function fetchCustomHeader() {
+    try {
+      const res = await fetch("/api/settings/custom_header");
+      if (res.ok) {
+        const data = await res.json();
+        customHeader = data.value || "";
       }
     } catch {}
   }
@@ -1065,10 +1077,10 @@
         <h1 class="app-title" on:click={goHome} style="cursor: pointer"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>
         {#if appVersion}<span class="app-version" title={updateChecked && updateExact ? "Up to date" : updateChecked && updateDev ? "Development version" : !updateChecked ? "Enable update checker in the settings" : ""}>v{appVersion}{#if updateChecked && updateExact}<span class="up-to-date-check">✔</span>{/if}{#if updateChecked && updateDev}<span class="dev-version">🚧</span>{/if}{#if updateAvailable} <a href={updateUrl} target="_blank" rel="noopener" class="update-link" title={"v" + updateLatest + " available — you can disable this update checker in the settings"}>Update Available</a>{/if}</span>{/if}
       </div>
-      {#if myCallsign}
+      {#if customHeader || myCallsign}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="callsign" on:click={() => navigate("settings")} style="cursor: pointer">{myCallsign}{#if currentLogbook && currentLogbook !== "rigbook"}<span class="logbook-name">{currentLogbook}</span>{/if}</span>
+        <span class="callsign" on:click={() => navigate("settings")} style="cursor: pointer">{customHeader || myCallsign}{#if currentLogbook && currentLogbook !== "rigbook"}<span class="logbook-name">{currentLogbook}</span>{/if}</span>
       {/if}
       {#if vfoEditing}
         <span class="vfo-edit">
@@ -1207,7 +1219,7 @@
     {:else if page === "notifications"}
       <Notifications on:countchange={() => fetchUnreadCount()} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
     {:else if page === "settings"}
-      <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { fetchCallsign(); applyTheme(); fetchPopupNotifEnabled(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); fetchUpdateCheck(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { setShutdownState(); }} />
+      <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { fetchCallsign(); fetchCustomHeader(); applyTheme(); fetchPopupNotifEnabled(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); fetchUpdateCheck(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { setShutdownState(); }} />
     {:else if page === "links"}
       <Links />
     {:else if page === "conditions"}
