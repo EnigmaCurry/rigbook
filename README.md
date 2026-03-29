@@ -120,6 +120,7 @@ starting rigbook, acquire a wake lock so Termux stays alive when you
 switch to the browser:
 
 ```bash
+# In the debian proot (proot-distro login debian)
 termux-wake-lock
 ./rigbook-linux-arm64
 ```
