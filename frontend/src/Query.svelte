@@ -304,6 +304,7 @@
   }
   .buttons {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
   }
   .run-btn, .csv-btn {
@@ -312,6 +313,7 @@
     border-radius: 4px;
     cursor: pointer;
     font-size: 0.85rem;
+    white-space: nowrap;
   }
   .run-btn {
     background: var(--accent);
