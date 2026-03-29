@@ -1058,7 +1058,6 @@
     // User's home marker
     if (!myMarker) {
       myMarker = L.marker([myPos.lat, myPos.lon], { icon: myIcon })
-        .bindPopup(`My QTH: ${myGrid}`)
         .addTo(leafletMap);
     }
 
@@ -1109,11 +1108,9 @@
       if (spotterMarkers[call]) {
         spotterMarkers[call].setIcon(icon);
         spotterMarkers[call].setLatLng(ll);
-        spotterMarkers[call].setPopupContent(`Spotter: ${call}<br>Grid: ${grid}`);
         continue;
       }
       const m = L.marker(ll, { icon })
-        .bindPopup(`Spotter: ${call}<br>Grid: ${grid}`)
         .addTo(leafletMap);
       m.on("click", () => onMapSpotterClick(call));
       spotterMarkers[call] = m;
@@ -1129,11 +1126,9 @@
       if (homeMarkers[call]) {
         homeMarkers[call].setIcon(icon);
         homeMarkers[call].setLatLng(ll);
-        homeMarkers[call].setPopupContent(`Station: ${call}<br>Grid: ${grid}`);
         continue;
       }
       const hm = L.marker(ll, { icon })
-        .bindPopup(`Station: ${call}<br>Grid: ${grid}`)
         .addTo(leafletMap);
       hm.on("click", () => onMapHomeClick(call));
       homeMarkers[call] = hm;
