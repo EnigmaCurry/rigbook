@@ -14,7 +14,7 @@
   let resizing = null;
   let cannedSelect = "";
   let schema = null;
-  let showSchema = false;
+  let showSchema = true;
 
   const cannedQueries = [
     { label: "All contacts (latest 100)", sql: "SELECT * FROM contacts ORDER BY timestamp DESC LIMIT 100" },
@@ -57,6 +57,7 @@
       rowCount = data.count;
       truncated = data.truncated;
       colWidths = autoSizeColumns(columns, rows);
+      showSchema = false;
     } catch (e) {
       error = e.message;
     } finally {
@@ -194,7 +195,7 @@
     {/if}
   </div>
 
-  {#if (showSchema || columns.length === 0) && schema}
+  {#if showSchema && schema}
     <div class="schema">
       {#each Object.entries(schema) as [table, cols]}
         <div class="schema-table">
@@ -214,7 +215,7 @@
     </div>
   {/if}
 
-  {#if columns.length > 0}
+  {#if columns.length > 0 && !showSchema}
     <div class="table-wrap" class:resizing={resizing !== null}>
       <table style="width: {colWidths.reduce((a, b) => a + b, 0)}px; min-width: 100%;">
         <thead>
