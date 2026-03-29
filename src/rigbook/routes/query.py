@@ -34,7 +34,9 @@ def _authorizer(action, arg1, arg2, db_name, trigger):
     return sqlite3.SQLITE_DENY
 
 
-def _execute_query(db_path: str, sql: str) -> tuple[list[str], list[list]]:
+def _execute_query(
+    db_path: str, sql: str, limit: int | None = MAX_ROWS
+) -> tuple[list[str], list[list]]:
     """Execute a read-only query against contacts table, returns (columns, rows)."""
     conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     try:
@@ -50,7 +52,7 @@ def _execute_query(db_path: str, sql: str) -> tuple[list[str], list[list]]:
         conn.set_progress_handler(progress, 1000)
         cursor = conn.execute(sql)
         columns = [desc[0] for desc in cursor.description] if cursor.description else []
-        rows = cursor.fetchmany(MAX_ROWS)
+        rows = cursor.fetchmany(limit) if limit else cursor.fetchall()
         return columns, [list(row) for row in rows]
     finally:
         conn.close()
@@ -94,7 +96,7 @@ async def run_query_csv(sql: str = Query(..., description="SQL SELECT statement"
         raise HTTPException(status_code=400, detail="Empty query")
 
     try:
-        columns, rows = _execute_query(str(db_manager.db_path), sql)
+        columns, rows = _execute_query(str(db_manager.db_path), sql, limit=None)
     except sqlite3.OperationalError as e:
         if "not authorized" in str(e).lower():
             raise HTTPException(
