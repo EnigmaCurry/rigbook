@@ -376,11 +376,17 @@
     width: 100%;
     border-collapse: collapse;
     font-size: 0.75rem;
+    table-layout: fixed;
   }
   .schema-col-table td {
     padding: 0.1rem 0.4rem;
     border: none;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .schema-col-table td:first-child {
+    width: 45%;
   }
   .schema-col-table td.pk {
     color: var(--accent);
