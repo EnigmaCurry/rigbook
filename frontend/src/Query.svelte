@@ -7,6 +7,28 @@
   let rowCount = 0;
   let colWidths = [];
   let resizing = null;
+  let cannedSelect = "";
+
+  const cannedQueries = [
+    { label: "All contacts (latest 100)", sql: "SELECT * FROM contacts ORDER BY timestamp DESC LIMIT 100" },
+    { label: "Contact count by mode", sql: "SELECT mode, count(*) AS count FROM contacts GROUP BY mode ORDER BY count DESC" },
+    { label: "Contact count by band", sql: "SELECT freq, count(*) AS count FROM contacts GROUP BY freq ORDER BY count DESC" },
+    { label: "Contacts per day", sql: "SELECT date(timestamp) AS day, count(*) AS count FROM contacts GROUP BY day ORDER BY day DESC" },
+    { label: "Unique callsigns worked", sql: "SELECT DISTINCT call FROM contacts ORDER BY call" },
+    { label: "POTA activations", sql: "SELECT pota_park, count(*) AS count FROM contacts WHERE pota_park IS NOT NULL AND pota_park != '' GROUP BY pota_park ORDER BY count DESC" },
+    { label: "States worked", sql: "SELECT state, count(*) AS count FROM contacts WHERE state IS NOT NULL AND state != '' GROUP BY state ORDER BY count DESC" },
+    { label: "Countries worked", sql: "SELECT country, count(*) AS count FROM contacts WHERE country IS NOT NULL AND country != '' GROUP BY country ORDER BY count DESC" },
+    { label: "All POTA parks", sql: "SELECT reference, name, location_desc, grid, latitude, longitude FROM pota_parks ORDER BY reference" },
+    { label: "All notifications", sql: "SELECT * FROM notifications ORDER BY timestamp DESC" },
+  ];
+
+  function applyCanned(e) {
+    const val = e.target.value;
+    if (val) {
+      sql = val;
+      cannedSelect = "";
+    }
+  }
 
   async function runQuery() {
     error = "";
@@ -84,6 +106,12 @@
     <p class="hint">Read-only access to <code>contacts</code>, <code>notifications</code>, <code>pota_programs</code>, <code>pota_locations</code>, <code>pota_parks</code>. Max 10000 rows interactively. CSV unlimited.</p>
 
     <div class="editor">
+      <select class="canned-select" bind:value={cannedSelect} on:change={applyCanned}>
+        <option value="">Examples...</option>
+        {#each cannedQueries as q}
+          <option value={q.sql}>{q.label}</option>
+        {/each}
+      </select>
       <textarea
         bind:value={sql}
         on:keydown={handleKeydown}
@@ -171,6 +199,16 @@
     flex-direction: column;
     gap: 0.5rem;
     margin-bottom: 0.75rem;
+  }
+  .canned-select {
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--border-input);
+    border-radius: 4px;
+    background: var(--bg-input);
+    color: var(--text);
+    font-size: 0.85rem;
+    cursor: pointer;
+    align-self: flex-start;
   }
   textarea {
     width: 100%;
