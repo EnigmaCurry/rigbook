@@ -16,7 +16,44 @@ from rigbook.db import Contact, Setting, get_session
 from rigbook.dxcc import dxcc_country
 from rigbook.routes.contacts import ContactResponse
 
+from pydantic import BaseModel
+
 logger = logging.getLogger("rigbook")
+
+SKCC_NUMBER_RE = re.compile(r"^\d{1,6}[A-Z]?$")
+
+
+def _is_valid_skcc_number(value: str) -> bool:
+    """Return True if the value looks like a valid SKCC member number."""
+    return bool(SKCC_NUMBER_RE.match(value.strip())) if value else False
+
+
+def _is_skcclogger_file(raw_header: str) -> bool:
+    """Return True if the ADIF header indicates the file was created by SKCCLogger."""
+    return "ADIF Log Created by SKCCLogger" in raw_header
+
+
+def _apply_skcc_exchange(
+    new_records: list[tuple[dict, dict]],
+    is_skcclogger: bool,
+) -> tuple[int, int]:
+    """Auto-set skcc_exch for SKCCLogger, or count records needing user decision.
+
+    Returns (auto_applied_count, needs_decision_count).
+    """
+    auto_count = 0
+    decision_count = 0
+    for data, _raw in new_records:
+        skcc_val = data.get("skcc", "")
+        already_has_exch = bool(data.get("skcc_exch"))
+        if skcc_val and _is_valid_skcc_number(skcc_val) and not already_has_exch:
+            if is_skcclogger:
+                data["skcc_exch"] = 1
+                auto_count += 1
+            else:
+                decision_count += 1
+    return auto_count, decision_count
+
 
 router = APIRouter(prefix="/api/adif", tags=["adif"])
 
@@ -997,6 +1034,11 @@ async def preview_import_adif(
         merged_count,
     ) = await _classify_import_records(records, session, template, separator)
 
+    is_skcclogger = _is_skcclogger_file(raw_header)
+    skcc_auto_count, skcc_decision_count = _apply_skcc_exchange(
+        new_records, is_skcclogger
+    )
+
     contacts = []
     for data, raw_record in new_records:
         warnings = _validate_import_record(raw_record, template, separator)
@@ -1048,6 +1090,9 @@ async def preview_import_adif(
         "template_matches": tpl_matches,
         "header": file_header,
         "header_raw": raw_header,
+        "skcc_auto_applied": skcc_auto_count,
+        "skcc_needs_decision": skcc_decision_count > 0,
+        "skcc_decision_count": skcc_decision_count,
     }
 
 
@@ -1102,22 +1147,31 @@ IMPORT_FIELDS = {
 }
 
 
+class ImportConfirmedRequest(BaseModel):
+    contacts: list[dict]
+    skcc_mark_validated: bool = False
+
+
 @router.post("/import/confirmed")
 async def import_confirmed(
-    contacts: list[dict], session: AsyncSession = Depends(get_session)
+    payload: ImportConfirmedRequest, session: AsyncSession = Depends(get_session)
 ):
     """Import pre-validated contacts with user corrections applied."""
     imported = 0
     duplicates = 0
     seen_uuids: set[str] = set()
     seen_call_minute: set[tuple[str, str]] = set()
-    for c in contacts:
+    for c in payload.contacts:
         data = {}
         for key in IMPORT_FIELDS:
             if key in c and c[key] is not None and c[key] != "":
                 data[key] = c[key]
         if not data.get("call"):
             continue
+        if payload.skcc_mark_validated and not data.get("skcc_exch"):
+            skcc_val = data.get("skcc", "")
+            if skcc_val and _is_valid_skcc_number(skcc_val):
+                data["skcc_exch"] = 1
         if c.get("timestamp"):
             try:
                 ts = c["timestamp"]
