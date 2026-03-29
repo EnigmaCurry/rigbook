@@ -766,7 +766,7 @@
     if (p === "dual") {
       window.location.hash = `/dual/${dualRightPage}`;
     } else {
-      const paths = { hunting: "/hunting", log: "/logbook", add: "/add", grid: "/grid", parks: "/parks", spots: "/spots", export: "/export", notifications: "/notifications", conditions: "/conditions", settings: settingsTab ? `/settings/${settingsTab}` : "/settings", links: "/links", about: "/about", picker: "/picker" };
+      const paths = { hunting: "/hunting", log: "/logbook", add: "/add", grid: "/grid", parks: "/parks", spots: "/spots", export: "/export", search: "/search", notifications: "/notifications", conditions: "/conditions", settings: settingsTab ? `/settings/${settingsTab}` : "/settings", links: "/links", about: "/about", picker: "/picker" };
       window.location.hash = paths[p] || "/";
     }
     setTimeout(() => { navigating = false; }, 0);
@@ -1201,7 +1201,7 @@
           {#if potaEnabled}<button class="menu-item" class:active={page === "parks" || (page === "dual" && dualRightPage === "parks")} on:click={() => navigate("parks")}>Parks</button>{/if}
           <button class="menu-item" class:active={page === "notifications" || (page === "dual" && dualRightPage === "notifications")} on:click={() => navigate("notifications")}>Notifications{#if unreadCount > 0} ({unreadCount}){/if}</button>
           {#if solarEnabled}<button class="menu-item" class:active={page === "conditions" || (page === "dual" && dualRightPage === "conditions")} on:click={() => navigate("conditions")}>Conditions</button>{/if}
-          <button class="menu-item" class:active={page === "search"} on:click={() => { page = "search"; searchQuery = ""; menuOpen = false; window.location.hash = "/search"; }}>Search</button>
+          <button class="menu-item" class:active={page === "search"} on:click={() => { searchQuery = ""; navigate("search"); }}>Search</button>
           <button class="menu-item" class:active={page === "export"} on:click={() => navigate("export")}>Import / Export</button>
           <button class="menu-item" class:active={page === "settings"} on:click={() => navigate("settings")}>Settings</button>
           <button class="menu-item" class:active={page === "links"} on:click={() => navigate("links")}>Links</button>
