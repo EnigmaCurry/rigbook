@@ -288,7 +288,7 @@
       {/if}
 
       {#if query.length >= 2 && allResults.length > 0}
-        <div class="qrz-hint">Press Enter to search entire logbook</div>
+        <div class="qrz-hint">Press Enter for advanced search results</div>
       {/if}
 
       {#if allResults.length === 0 && !qrzLoading && query.length >= 2}
