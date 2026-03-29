@@ -21,6 +21,7 @@
     { label: "Countries worked", sql: "SELECT country, count(*) AS count FROM contacts WHERE country IS NOT NULL AND country != '' GROUP BY country ORDER BY count DESC" },
     { label: "All POTA parks", sql: "SELECT reference, name, location_desc, grid, latitude, longitude FROM pota_parks ORDER BY reference" },
     { label: "All notifications", sql: "SELECT * FROM notifications ORDER BY timestamp DESC" },
+    { label: "Blocked Access: settings table", sql: "SELECT value FROM settings WHERE key = 'qrz_password'" },
   ];
 
   function applyCanned(e) {
