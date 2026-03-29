@@ -13,7 +13,7 @@
   const cannedQueries = [
     { label: "All contacts (latest 100)", sql: "SELECT * FROM contacts ORDER BY timestamp DESC LIMIT 100" },
     { label: "Contact count by mode", sql: "SELECT mode, count(*) AS count FROM contacts GROUP BY mode ORDER BY count DESC" },
-    { label: "Contact count by band", sql: "SELECT freq, count(*) AS count FROM contacts GROUP BY freq ORDER BY count DESC" },
+    { label: "Contact count by freq", sql: "SELECT freq, count(*) AS count FROM contacts GROUP BY freq ORDER BY count DESC" },
     { label: "Contacts per day", sql: "SELECT date(timestamp) AS day, count(*) AS count FROM contacts GROUP BY day ORDER BY day DESC" },
     { label: "Unique callsigns worked", sql: "SELECT DISTINCT call FROM contacts ORDER BY call" },
     { label: "POTA activations", sql: "SELECT pota_park, count(*) AS count FROM contacts WHERE pota_park IS NOT NULL AND pota_park != '' GROUP BY pota_park ORDER BY count DESC" },
