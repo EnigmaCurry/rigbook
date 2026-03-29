@@ -1084,7 +1084,7 @@
       {#if customHeader || myCallsign}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="callsign" on:click={() => navigate("settings")} style="cursor: pointer">{customHeader || myCallsign}{#if currentLogbook && currentLogbook !== "rigbook"}<span class="logbook-name">{currentLogbook}</span>{/if}</span>
+        <span class={customHeader ? "custom-header" : "callsign"} on:click={() => navigate("settings")} style="cursor: pointer">{customHeader || myCallsign}{#if currentLogbook && currentLogbook !== "rigbook"}<span class="logbook-name">{currentLogbook}</span>{/if}</span>
       {/if}
       {#if vfoEditing}
         <span class="vfo-edit">
@@ -1408,6 +1408,12 @@
     color: var(--accent-callsign);
     font-size: 1.2rem;
     font-weight: bold;
+  }
+
+  .custom-header {
+    color: var(--text-muted);
+    font-size: 1rem;
+    font-weight: normal;
   }
 
   .app-version,
