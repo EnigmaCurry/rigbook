@@ -205,7 +205,7 @@
               {#each cols as col}
                 <tr>
                   <td class:pk={col.pk}>{col.name}</td>
-                  <td class="col-type">{col.type}{#if col.pk} PK{/if}{#if col.notnull} NOT NULL{/if}</td>
+                  <td class="col-type">{col.type}{#if col.pk}, PK{/if}{#if col.notnull}, NOT NULL{/if}</td>
                 </tr>
               {/each}
             </tbody>
