@@ -1414,6 +1414,7 @@
     color: var(--text-muted);
     font-size: 1rem;
     font-weight: normal;
+    font-family: system-ui, sans-serif;
   }
 
   .app-version,
