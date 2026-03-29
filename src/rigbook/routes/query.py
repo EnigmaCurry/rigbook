@@ -82,7 +82,8 @@ async def run_query(sql: str = Query(..., description="SQL SELECT statement")):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    return {"columns": columns, "rows": rows, "count": len(rows)}
+    truncated = len(rows) == MAX_ROWS
+    return {"columns": columns, "rows": rows, "count": len(rows), "truncated": truncated}
 
 
 @router.get("/csv")

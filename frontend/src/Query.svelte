@@ -5,6 +5,7 @@
   let error = "";
   let loading = false;
   let rowCount = 0;
+  let truncated = false;
   let colWidths = [];
   let resizing = null;
   let cannedSelect = "";
@@ -46,6 +47,7 @@
       columns = data.columns;
       rows = data.rows;
       rowCount = data.count;
+      truncated = data.truncated;
       colWidths = columns.map(() => 150);
     } catch (e) {
       error = e.message;
@@ -136,7 +138,10 @@
     {/if}
 
     {#if columns.length > 0}
-      <div class="result-info">{rowCount} row{rowCount !== 1 ? "s" : ""}</div>
+      <div class="result-info">
+        {rowCount} row{rowCount !== 1 ? "s" : ""}
+        {#if truncated}<span class="truncated-warning"> — results truncated to {rowCount} rows. Use CSV download for full results.</span>{/if}
+      </div>
     {/if}
   </div>
 
@@ -273,6 +278,9 @@
     font-size: 0.8rem;
     color: var(--text-muted);
     margin-bottom: 0.35rem;
+  }
+  .truncated-warning {
+    color: var(--accent-error);
   }
   .table-wrap {
     flex: 1;
