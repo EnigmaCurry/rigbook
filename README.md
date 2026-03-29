@@ -138,8 +138,10 @@ Then open `http://<phone-ip>:8073` from any browser on the LAN.
 **Warning:** Rigbook has no authentication or encryption — only do
 this on trusted networks.
 
-<img width="1080" height="2400" alt="image" src="https://github.com/user-attachments/assets/e74d8446-8cfb-400d-a761-ee841b5c30c3" />
-
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/e74d8446-8cfb-400d-a761-ee841b5c30c3" alt="Rigbook running on Android Pixel phone via Termux in Chrome browser" width="400"><br>
+  <em>Rigbook running on Android Pixel phone via Termux in Chrome browser</em>
+</p>
 
 ### Container
 
