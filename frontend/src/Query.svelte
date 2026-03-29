@@ -59,6 +59,7 @@
       error = e.message;
     } finally {
       loading = false;
+      updateUrl();
     }
   }
 
