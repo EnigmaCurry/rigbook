@@ -1723,6 +1723,8 @@
   .menu-item.active {
     color: var(--accent);
     font-weight: bold;
+    border: 1px solid gold;
+    border-radius: 3px;
   }
 
   .menu-separator {
