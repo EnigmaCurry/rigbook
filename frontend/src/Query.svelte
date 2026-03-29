@@ -70,7 +70,7 @@
 <div class="query-page">
   <div class="query-top">
     <h2>SQL Query</h2>
-    <p class="hint">Read-only access to the <code>contacts</code> table. Max 10000 rows interactively. CSV unlimited.</p>
+    <p class="hint">Read-only access to <code>contacts</code>, <code>notifications</code>, <code>pota_programs</code>, <code>pota_locations</code>, <code>pota_parks</code>. Max 10000 rows interactively. CSV unlimited.</p>
 
     <div class="editor">
       <textarea

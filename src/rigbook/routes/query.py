@@ -12,7 +12,7 @@ logger = logging.getLogger("rigbook")
 
 router = APIRouter(prefix="/api/query", tags=["query"])
 
-ALLOWED_TABLES = {"contacts"}
+ALLOWED_TABLES = {"contacts", "notifications", "pota_programs", "pota_locations", "pota_parks"}
 MAX_ROWS = 10000
 QUERY_TIMEOUT_OPS = 1_000_000  # SQLite VM operations before abort
 
