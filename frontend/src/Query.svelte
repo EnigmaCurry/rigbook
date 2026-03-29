@@ -36,6 +36,17 @@
     window.open(url, "_blank");
   }
 
+  function downloadJson() {
+    const data = rows.map(row => Object.fromEntries(columns.map((col, i) => [col, row[i]])));
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "query_results.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function handleKeydown(e) {
     if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
       runQuery();
@@ -86,6 +97,7 @@
         </button>
         {#if columns.length > 0}
           <button class="csv-btn" on:click={downloadCsv}>Download CSV</button>
+          <button class="csv-btn" on:click={downloadJson}>Download JSON</button>
         {/if}
       </div>
     </div>
