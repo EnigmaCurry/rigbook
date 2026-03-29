@@ -1117,7 +1117,7 @@
     <section class="settings-section danger-zone">
       <h3>Danger Zone</h3>
       <div class="setting-row">
-        <label for="danger-confirm">Type <strong>{logbookName}</strong> to enable</label>
+        <label for="danger-confirm">Type <strong>{logbookName}</strong> to enable the Danger Zone</label>
         <input id="danger-confirm" type="text" bind:value={dangerConfirmName} placeholder={logbookName} autocomplete="off" />
       </div>
       <div class="danger-separator"></div>
