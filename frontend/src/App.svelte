@@ -1367,13 +1367,13 @@
     color: var(--text);
     font-family: "Courier New", Courier, monospace;
     font-size: 14px;
+    overflow-x: clip;
   }
 
   main {
     max-width: 100%;
     margin: 0 auto;
     padding: 1rem;
-    overflow-x: hidden;
   }
 
   .page-content {
