@@ -1373,6 +1373,7 @@
     max-width: 100%;
     margin: 0 auto;
     padding: 1rem;
+    overflow-x: hidden;
   }
 
   .page-content {
@@ -1413,6 +1414,8 @@
     display: flex;
     align-items: baseline;
     gap: 1rem;
+    flex-wrap: wrap;
+    min-width: 0;
   }
 
   h1 {
@@ -1868,6 +1871,21 @@
     }
     .title-short {
       display: inline;
+    }
+    main {
+      padding: 0.5rem;
+    }
+    header {
+      gap: 0.25rem;
+    }
+    .header-left {
+      gap: 0.5rem;
+    }
+    .vfo-bezel {
+      padding: 0.1rem 0.3rem;
+    }
+    .vfo-digit {
+      font-size: 0.9rem;
     }
   }
 

@@ -1217,8 +1217,8 @@
     border: none;
     border-bottom: 2px solid transparent;
     color: var(--text-muted);
-    padding: 0.5rem 1rem;
-    font-size: 0.85rem;
+    padding: 0.5rem 0.5rem;
+    font-size: 0.8rem;
     font-weight: 600;
     cursor: pointer;
     font-family: inherit;
