@@ -163,6 +163,12 @@
   $: fixedCount = importPreview ? (importPreview.contacts || []).filter(c => c._fixed).length : 0;
   $: mergedCount = importPreview ? (importPreview.contacts || []).filter(c => c.merged).length : 0;
 
+  // SKCC exchange decision state
+  let skccMarkValidated = false;
+  $: skccNeedsDecision = importPreview?.skcc_needs_decision || false;
+  $: skccDecisionCount = importPreview?.skcc_decision_count || 0;
+  $: skccAutoApplied = importPreview?.skcc_auto_applied || 0;
+
   function parseSegmentValue(seg, label) {
     const s = seg.trim();
     for (const fmt of [`${label}: `]) {
@@ -255,6 +261,8 @@
     contact.warnings = contact.warnings.filter(w => w !== warning);
     // Mark as fixed once all warnings are resolved
     if (!contact.warnings.length) contact._fixed = true;
+    // Mark record as modified so updated_at is set
+    contact.updated_at = new Date().toISOString();
     // Re-strip comment with updated field values
     stripCommentClient(contact);
     // Trigger reactivity
@@ -432,6 +440,7 @@
     importFile = file;
     importFileName = file.name;
     message = "";
+    skccMarkValidated = false;
     await fetchImportPreview();
   }
 
@@ -469,6 +478,7 @@
     importFilter = "all";
     message = "";
     expandedRow = null;
+    skccMarkValidated = false;
   }
 
   async function executeImport() {
@@ -479,7 +489,10 @@
       const res = await fetch("/api/adif/import/confirmed", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(importPreview.contacts),
+        body: JSON.stringify({
+          contacts: importPreview.contacts,
+          skcc_mark_validated: skccMarkValidated,
+        }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -843,7 +856,16 @@
           {#if importPreview.skipped_count > 0}({importPreview.skipped_count} invalid skipped){/if}
           {#if warningCount > 0}<span class="action-error">— {warningCount} error{warningCount !== 1 ? "s" : ""} must be resolved</span>{/if}
         {/if}
+        {#if skccAutoApplied > 0}
+          <span class="skcc-info">({skccAutoApplied} SKCC exchange{skccAutoApplied !== 1 ? 's' : ''} auto-validated)</span>
+        {/if}
       </span>
+      {#if skccNeedsDecision}
+        <label class="checkbox-label skcc-decision">
+          <input type="checkbox" bind:checked={skccMarkValidated} />
+          Mark {skccDecisionCount} SKCC contact{skccDecisionCount !== 1 ? 's' : ''} as validated exchanges?
+        </label>
+      {/if}
       {#if importPreview}
         <button class="action-btn cancel-btn" on:click={cancelImport}>Cancel</button>
       {/if}

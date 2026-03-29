@@ -16,7 +16,45 @@ from rigbook.db import Contact, Setting, get_session
 from rigbook.dxcc import dxcc_country
 from rigbook.routes.contacts import ContactResponse
 
+from pydantic import BaseModel
+
 logger = logging.getLogger("rigbook")
+
+SKCC_NUMBER_RE = re.compile(r"^\d{1,6}[A-Z]?$")
+
+
+def _is_valid_skcc_number(value: str) -> bool:
+    """Return True if the value looks like a valid SKCC member number."""
+    return bool(SKCC_NUMBER_RE.match(value.strip())) if value else False
+
+
+def _is_skcclogger_file(raw_header: str) -> bool:
+    """Return True if the ADIF header indicates the file was created by SKCCLogger."""
+    return "ADIF Log Created by SKCCLogger" in raw_header
+
+
+def _apply_skcc_exchange(
+    new_records: list[tuple[dict, dict]],
+    is_skcclogger: bool,
+) -> tuple[int, int]:
+    """Auto-set skcc_exch for SKCCLogger, or count records needing user decision.
+
+    Returns (auto_applied_count, needs_decision_count).
+    """
+    auto_count = 0
+    decision_count = 0
+    for data, _raw in new_records:
+        skcc_val = data.get("skcc", "")
+        already_has_exch = bool(data.get("skcc_exch"))
+        if skcc_val and _is_valid_skcc_number(skcc_val) and not already_has_exch:
+            if is_skcclogger:
+                data["skcc_exch"] = 1
+                data["_skcc_auto_applied"] = True
+                auto_count += 1
+            else:
+                decision_count += 1
+    return auto_count, decision_count
+
 
 router = APIRouter(prefix="/api/adif", tags=["adif"])
 
@@ -169,6 +207,8 @@ def contact_to_adif_record(
         record["TIME_OFF"] = c.timestamp_off.strftime("%H%M%S")
     if c.uuid:
         record["APP_RIGBOOK_UUID"] = c.uuid
+    if c.updated_at:
+        record["APP_RIGBOOK_UPDATED_AT"] = c.updated_at.strftime("%Y%m%d%H%M%S")
     return record
 
 
@@ -344,6 +384,14 @@ def adif_record_to_contact_dict(record: dict) -> dict:
     app_uuid = record.get("APP_RIGBOOK_UUID")
     if app_uuid:
         data["uuid"] = app_uuid
+    app_updated = record.get("APP_RIGBOOK_UPDATED_AT")
+    if app_updated:
+        try:
+            data["updated_at"] = datetime.strptime(app_updated, "%Y%m%d%H%M%S").replace(
+                tzinfo=timezone.utc
+            )
+        except ValueError:
+            pass
 
     qso_date = record.get("QSO_DATE", "")
     time_on = record.get("TIME_ON", "")
@@ -655,29 +703,17 @@ def _validate_import_record(
                     )
     # Field-specific validations
     skcc_val = record.get("SKCC", "")
-    if skcc_val:
-        if " " in skcc_val.strip():
-            warnings.append(
-                {
-                    "field": "skcc",
-                    "label": "SKCC",
-                    "comment_val": "",
-                    "field_val": skcc_val,
-                    "message": f"SKCC: '{skcc_val}' contains spaces"
-                    " — should be a single value like '2240S'",
-                }
-            )
-        elif not skcc_val.strip()[0].isdigit():
-            warnings.append(
-                {
-                    "field": "skcc",
-                    "label": "SKCC",
-                    "comment_val": "",
-                    "field_val": skcc_val,
-                    "message": f"SKCC: '{skcc_val}' does not start with a digit"
-                    " — should be a number like '2240S'",
-                }
-            )
+    if skcc_val and not _is_valid_skcc_number(skcc_val):
+        warnings.append(
+            {
+                "field": "skcc",
+                "label": "SKCC",
+                "comment_val": "",
+                "field_val": skcc_val,
+                "message": f"SKCC: '{skcc_val}' is not a valid SKCC number"
+                " — expected 1-6 digits with optional letter suffix (e.g. '2240S')",
+            }
+        )
 
     return warnings
 
@@ -997,6 +1033,11 @@ async def preview_import_adif(
         merged_count,
     ) = await _classify_import_records(records, session, template, separator)
 
+    is_skcclogger = _is_skcclogger_file(raw_header)
+    skcc_auto_count, skcc_decision_count = _apply_skcc_exchange(
+        new_records, is_skcclogger
+    )
+
     contacts = []
     for data, raw_record in new_records:
         warnings = _validate_import_record(raw_record, template, separator)
@@ -1029,7 +1070,9 @@ async def preview_import_adif(
             "timestamp_off": data.get("timestamp_off").isoformat()
             if data.get("timestamp_off")
             else None,
-            "updated_at": None,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+            if data.get("_merged") or data.get("_skcc_auto_applied")
+            else None,
             "adif_line": record_to_adif_line(raw_record),
             "adif_lines": adif_lines,
             "warnings": warnings,
@@ -1048,6 +1091,9 @@ async def preview_import_adif(
         "template_matches": tpl_matches,
         "header": file_header,
         "header_raw": raw_header,
+        "skcc_auto_applied": skcc_auto_count,
+        "skcc_needs_decision": skcc_decision_count > 0,
+        "skcc_decision_count": skcc_decision_count,
     }
 
 
@@ -1099,25 +1145,36 @@ IMPORT_FIELDS = {
     "comments",
     "notes",
     "timestamp_off",
+    "updated_at",
 }
+
+
+class ImportConfirmedRequest(BaseModel):
+    contacts: list[dict]
+    skcc_mark_validated: bool = False
 
 
 @router.post("/import/confirmed")
 async def import_confirmed(
-    contacts: list[dict], session: AsyncSession = Depends(get_session)
+    payload: ImportConfirmedRequest, session: AsyncSession = Depends(get_session)
 ):
     """Import pre-validated contacts with user corrections applied."""
     imported = 0
     duplicates = 0
     seen_uuids: set[str] = set()
     seen_call_minute: set[tuple[str, str]] = set()
-    for c in contacts:
+    for c in payload.contacts:
         data = {}
         for key in IMPORT_FIELDS:
             if key in c and c[key] is not None and c[key] != "":
                 data[key] = c[key]
         if not data.get("call"):
             continue
+        if payload.skcc_mark_validated and not data.get("skcc_exch"):
+            skcc_val = data.get("skcc", "")
+            if skcc_val and _is_valid_skcc_number(skcc_val):
+                data["skcc_exch"] = 1
+                data["updated_at"] = datetime.now(timezone.utc).replace(tzinfo=None)
         if c.get("timestamp"):
             try:
                 ts = c["timestamp"]
@@ -1138,6 +1195,16 @@ async def import_confirmed(
                 data["timestamp_off"] = ts_off
             except (ValueError, TypeError):
                 pass
+        if data.get("updated_at"):
+            try:
+                ua = data["updated_at"]
+                if isinstance(ua, str):
+                    ua = datetime.fromisoformat(ua.replace("Z", "+00:00"))
+                if ua.tzinfo is not None:
+                    ua = ua.replace(tzinfo=None)
+                data["updated_at"] = ua
+            except (ValueError, TypeError):
+                del data["updated_at"]
         # Dedup by UUID against DB and batch
         is_dup = False
         record_uuid = c.get("uuid")

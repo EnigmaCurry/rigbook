@@ -669,7 +669,10 @@
     if (grid.length >= 2) grid = grid.substring(0, 2).toUpperCase() + grid.substring(2);
     if (grid.length >= 5) grid = grid.substring(0, 4) + grid.substring(4).toLowerCase();
   };
-  $: stripSkcc = () => { skcc = skcc.replace(/[^A-Za-z0-9]/g, ""); if (!skcc.trim()) skcc_exch = false; };
+  const SKCC_NUMBER_RE = /^\d{1,6}[A-Z]?$/;
+  function isValidSkccNumber(val) { return SKCC_NUMBER_RE.test(val.trim().toUpperCase()); }
+  $: skccValid = isValidSkccNumber(skcc);
+  $: stripSkcc = () => { skcc = skcc.replace(/[^A-Za-z0-9]/g, ""); if (!isValidSkccNumber(skcc)) skcc_exch = false; };
 
   // POTA park autocomplete
   let potaResults = [];
@@ -1231,7 +1234,7 @@
       <label for="skcc">SKCC # / {skcc_exch ? "Validated!" : "Validated?"}</label>
       <div class="skcc-input-row">
         <input id="skcc" type="text" bind:value={skcc} on:input={stripSkcc} style="text-transform: uppercase" readonly={skcc_exch} />
-        <button type="button" class="skcc-exch-btn" class:active={skcc_exch} disabled={!skcc.trim()} on:click={() => skcc_exch = !skcc_exch} title="Valid SKCC exchange (RST, QTH, Name, SKCC#)">✓</button>
+        <button type="button" class="skcc-exch-btn" class:active={skcc_exch} disabled={!skccValid} on:click={() => skcc_exch = !skcc_exch} title="Valid SKCC exchange (RST, QTH, Name, SKCC#)">✓</button>
       </div>
     </div>
     <div class="field wide" class:changed={orig && comments !== orig.comments}>
