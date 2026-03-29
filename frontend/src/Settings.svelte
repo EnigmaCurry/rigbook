@@ -41,6 +41,7 @@
   let qrzChecking = false;
 
   // RBN settings
+  let sql_query_enabled = false;
   let rbn_enabled = false;
   let rbn_host = "telnet.reversebeacon.net";
   let rbn_feed_cw = true;
@@ -520,6 +521,11 @@
     dispatch("saved");
   }
 
+  async function onSqlQueryEnabledChange() {
+    await saveSetting("sql_query_enabled", sql_query_enabled ? "true" : "false");
+    dispatch("saved");
+  }
+
   async function onUpdateCheckEnabledChange() {
     await saveSetting("update_check_enabled", update_check_enabled ? "true" : "false");
     if (update_check_enabled) {
@@ -680,6 +686,7 @@
           if (s.key === "qrz_password") hasQrzPassword = !!s.value && s.value !== "";
           if (s.key === "pota_enabled") pota_enabled = s.value !== "false";
           if (s.key === "solar_enabled") solar_enabled = s.value === "true";
+          if (s.key === "sql_query_enabled") sql_query_enabled = s.value === "true";
           if (s.key === "update_check_enabled") update_check_enabled = s.value !== "false";
           if (s.key === "flrig_enabled") flrig_enabled = s.value === "true";
           if (s.key === "flrig_simulate") flrig_simulate = s.value === "true";
@@ -913,6 +920,16 @@
       <label>
         <input type="checkbox" bind:checked={solar_enabled} on:change={onSolarEnabledChange} />
         Enable band conditions (N0NBH / hamqsl.com)
+      </label>
+    </div>
+  </section>
+
+  <section class="settings-section">
+    <h3>SQL Query</h3>
+    <div class="setting-row toggle-row">
+      <label>
+        <input type="checkbox" bind:checked={sql_query_enabled} on:change={onSqlQueryEnabledChange} />
+        Enable SQL query page
       </label>
     </div>
   </section>

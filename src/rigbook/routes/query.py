@@ -8,11 +8,25 @@ import json as json_mod
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
-from rigbook.db import db_manager
+from fastapi import Depends
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from rigbook.db import Setting, db_manager, get_session
 
 logger = logging.getLogger("rigbook")
 
 router = APIRouter(prefix="/api/query", tags=["query"])
+
+
+async def _check_enabled(session: AsyncSession) -> None:
+    row = (
+        await session.execute(
+            select(Setting).where(Setting.key == "sql_query_enabled")
+        )
+    ).scalar_one_or_none()
+    if not row or row.value != "true":
+        raise HTTPException(status_code=403, detail="SQL query is disabled")
 
 ALLOWED_TABLES = {"contacts", "notifications", "pota_programs", "pota_locations", "pota_parks"}
 MAX_ROWS = 10000
@@ -61,8 +75,12 @@ def _execute_query(
 
 
 @router.get("/")
-async def run_query(sql: str = Query(..., description="SQL SELECT statement")):
+async def run_query(
+    sql: str = Query(..., description="SQL SELECT statement"),
+    session: AsyncSession = Depends(get_session),
+):
     """Execute a read-only SQL query against the contacts table."""
+    await _check_enabled(session)
     if not db_manager.db_path:
         raise HTTPException(status_code=503, detail="No logbook is currently open")
 
@@ -89,8 +107,12 @@ async def run_query(sql: str = Query(..., description="SQL SELECT statement")):
 
 
 @router.get("/csv")
-async def run_query_csv(sql: str = Query(..., description="SQL SELECT statement")):
+async def run_query_csv(
+    sql: str = Query(..., description="SQL SELECT statement"),
+    session: AsyncSession = Depends(get_session),
+):
     """Execute a read-only SQL query and return results as CSV."""
+    await _check_enabled(session)
     if not db_manager.db_path:
         raise HTTPException(status_code=503, detail="No logbook is currently open")
 
@@ -126,8 +148,12 @@ async def run_query_csv(sql: str = Query(..., description="SQL SELECT statement"
 
 
 @router.get("/json")
-async def run_query_json(sql: str = Query(..., description="SQL SELECT statement")):
+async def run_query_json(
+    sql: str = Query(..., description="SQL SELECT statement"),
+    session: AsyncSession = Depends(get_session),
+):
     """Execute a read-only SQL query and return results as a JSON file download."""
+    await _check_enabled(session)
     if not db_manager.db_path:
         raise HTTPException(status_code=503, detail="No logbook is currently open")
 

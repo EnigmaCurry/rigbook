@@ -199,6 +199,7 @@
   let potaEnabled = false;
   let spotsEnabled = false;
   let solarEnabled = false;
+  let sqlQueryEnabled = false;
   let flrigEnabled = false;
   let flrigInterval;
   let utcNow = new Date().toISOString().slice(0, 19).replace("T", " ") + "z";
@@ -269,6 +270,7 @@
     await fetchSolarEnabled();
     await fetchSpotsEnabled();
     await fetchPotaEnabled();
+    await fetchSqlQueryEnabled();
     await fetchFlrigEnabled();
     if (flrigEnabled) {
       fetchRadioModes();
@@ -689,6 +691,16 @@
     } catch {}
   }
 
+  async function fetchSqlQueryEnabled() {
+    try {
+      const res = await fetch("/api/settings/sql_query_enabled");
+      if (res.ok) {
+        const data = await res.json();
+        sqlQueryEnabled = data.value === "true";
+      }
+    } catch {}
+  }
+
   async function fetchFlrigEnabled() {
     try {
       const res = await fetch("/api/settings/flrig_enabled");
@@ -750,6 +762,7 @@
     if (p === "spots" && !spotsEnabled) p = "log";
     if (p === "parks" && !potaEnabled) p = "log";
     if (p === "conditions" && !solarEnabled) p = "log";
+    if (p === "query" && !sqlQueryEnabled) p = "log";
 
     if (isWide() && (p === "add" || p === "log" || DUAL_RIGHT_PAGES.has(p))) {
       if (DUAL_RIGHT_PAGES.has(p)) dualRightPage = p;
@@ -924,6 +937,7 @@
     if (p === "spots" && !spotsEnabled) p = isWide() ? "dual" : "log";
     if (p === "parks" && !potaEnabled) p = isWide() ? "dual" : "log";
     if (p === "conditions" && !solarEnabled) p = isWide() ? "dual" : "log";
+    if (p === "query" && !sqlQueryEnabled) p = isWide() ? "dual" : "log";
     // Don't clear editId when staying on dual (e.g. switching right pane)
     if (!(page === "dual" && p === "dual" && editId && !parsed.editId)) {
       editId = parsed.editId;
@@ -1206,7 +1220,7 @@
           {#if solarEnabled}<button class="menu-item" class:active={page === "conditions" || (page === "dual" && dualRightPage === "conditions")} on:click={() => navigate("conditions")}>Conditions</button>{/if}
           <button class="menu-item" class:active={page === "search"} on:click={() => { searchQuery = ""; navigate("search"); }}>Search</button>
           <button class="menu-item" class:active={page === "export"} on:click={() => navigate("export")}>Import / Export</button>
-          <button class="menu-item" class:active={page === "query"} on:click={() => navigate("query")}>SQL Query</button>
+          {#if sqlQueryEnabled}<button class="menu-item" class:active={page === "query"} on:click={() => navigate("query")}>SQL Query</button>{/if}
           <button class="menu-item" class:active={page === "settings"} on:click={() => navigate("settings")}>Settings</button>
           <button class="menu-item" class:active={page === "links"} on:click={() => navigate("links")}>Links</button>
           <button class="menu-item" class:active={page === "about"} on:click={() => navigate("about")}>About</button>
@@ -1263,7 +1277,7 @@
     {:else if page === "notifications"}
       <Notifications on:countchange={() => fetchUnreadCount()} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
     {:else if page === "settings"}
-      <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} initialTab={settingsTab} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { fetchCallsign(); fetchCustomHeader(); fetchDefaultPage(); applyTheme(); fetchPopupNotifEnabled(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); fetchUpdateCheck(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { setShutdownState(); }} />
+      <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} initialTab={settingsTab} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchSqlQueryEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { fetchCallsign(); fetchCustomHeader(); fetchDefaultPage(); applyTheme(); fetchPopupNotifEnabled(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchSqlQueryEnabled(); await fetchFlrigEnabled(); fetchUpdateCheck(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { setShutdownState(); }} />
     {:else if page === "links"}
       <Links />
     {:else if page === "conditions"}
