@@ -840,12 +840,12 @@
     }
   }
 
-  function distanceLabel(from, to, color = "white", label = null) {
+  function distanceLabel(from, to, color = "white") {
     const mi = haversineMi(from, to);
     const mid = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2];
     const angle = _labelAngle(from, to);
     const span = document.createElement("span");
-    span.textContent = label ? `${label} ${mi} mi` : `${mi} mi`;
+    span.textContent = `${mi} mi`;
     span.style.transform = `rotate(${angle}deg)`;
     span.style.color = color;
     const icon = L.divIcon({
@@ -854,10 +854,19 @@
       iconSize: [0, 0],
     });
     const marker = L.marker(mid, { icon, interactive: false }).addTo(leafletMap);
-    // Get the live span element from the DOM for zoom updates
     const liveSpan = marker.getElement()?.querySelector("span");
     if (liveSpan) _distLabels.push({ marker, from, to, span: liveSpan });
     return marker;
+  }
+
+  function markerLabel(ll, text, color) {
+    const icon = L.divIcon({
+      className: "marker-label",
+      html: `<span style="color:${color}">${text}</span>`,
+      iconSize: [0, 0],
+      iconAnchor: [0, 16],
+    });
+    return L.marker(ll, { icon, interactive: false }).addTo(leafletMap);
   }
 
   function drawTriangleForSpot(spot) {
@@ -892,11 +901,16 @@
 
     // Primary triangle lines drawn last (higher z-order)
     // Spotter->Station, Station->QTH, QTH->Spotter — all animate toward their endpoint
+    // Site labels
+    selectionLines.push(markerLabel(myLL, myCallsign ? `QTH (${myCallsign})` : "QTH", "#ff4444"));
+    if (homeLL) selectionLines.push(markerLabel(homeLL, spot.callsign, "#ffaa00"));
+    if (spotterLL) selectionLines.push(markerLabel(spotterLL, spot.closest_call, "#00ccff"));
+
     if (spotterLL && homeLL) {
       selectionLines.push(
         spotterLine(spotterLL, homeLL, spot.callsign),
         hunterLine(homeLL, myLL),
-        distanceLabel(homeLL, myLL, "#ffaa00", spot.callsign),
+        distanceLabel(homeLL, myLL, "#ffaa00"),
         L.polyline([myLL, spotterLL], { color: "#ff4444", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
         distanceLabel(myLL, spotterLL, "#ff4444"),
       );
@@ -908,7 +922,7 @@
     } else if (homeLL) {
       selectionLines.push(
         hunterLine(myLL, homeLL),
-        distanceLabel(myLL, homeLL, "#ffaa00", spot.callsign),
+        distanceLabel(myLL, homeLL, "#ffaa00"),
       );
     }
   }
@@ -925,6 +939,11 @@
     const rawLL = spotterMarker.getLatLng();
     const sLL = nearLL(baseLon, [rawLL.lat, rawLL.lng]);
 
+    selectionLines.push(
+      markerLabel(myLL, myCallsign ? `QTH (${myCallsign})` : "QTH", "#ff4444"),
+      markerLabel(sLL, call, "#00ccff"),
+    );
+
     for (const s of spots) {
       const hg = spotHomeGrid(s);
       if (s.closest_call !== call || !hg) continue;
@@ -932,9 +951,10 @@
       if (!homePos) continue;
       const homeLL = nearLL(baseLon, [homePos.lat, homePos.lon]);
       selectionLines.push(
+        markerLabel(homeLL, s.callsign, "#ffaa00"),
         spotterLine(sLL, homeLL, s.callsign),
         hunterLine(homeLL, myLL),
-        distanceLabel(homeLL, myLL, "#ffaa00", s.callsign),
+        distanceLabel(homeLL, myLL, "#ffaa00"),
         L.polyline([myLL, sLL], { color: "#ff4444", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
         distanceLabel(myLL, sLL, "#ff4444"),
       );
@@ -1686,6 +1706,20 @@
     align-items: center;
   }
   :global(.distance-label span) {
+    font-size: 11px;
+    font-weight: bold;
+    white-space: nowrap;
+    paint-order: stroke fill;
+    -webkit-text-stroke: 3px rgba(0,0,0,0.8);
+    text-shadow: 0 0 4px rgba(0,0,0,0.9);
+    pointer-events: none;
+  }
+
+  :global(.marker-label) {
+    background: none !important;
+    border: none !important;
+  }
+  :global(.marker-label span) {
     font-size: 11px;
     font-weight: bold;
     white-space: nowrap;
