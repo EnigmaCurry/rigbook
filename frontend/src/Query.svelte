@@ -185,8 +185,17 @@
       <div class="schema">
         {#each Object.entries(schema) as [table, cols]}
           <div class="schema-table">
-            <strong>{table}</strong>
-            <span class="schema-cols">({#each cols as col, i}{#if i}, {/if}<code class:pk={col.pk}>{col.name}</code> <span class="col-type">{col.type}</span>{/each})</span>
+            <h4>{table}</h4>
+            <table class="schema-col-table">
+              <tbody>
+                {#each cols as col}
+                  <tr>
+                    <td class:pk={col.pk}>{col.name}</td>
+                    <td class="col-type">{col.type}{#if col.pk} PK{/if}{#if col.notnull} NOT NULL{/if}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
           </div>
         {/each}
       </div>
@@ -341,29 +350,37 @@
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 4px;
-    padding: 0.5rem 0.75rem;
+    padding: 0.75rem;
     margin-bottom: 0.5rem;
     font-size: 0.8rem;
     font-family: monospace;
     overflow-y: auto;
-    max-height: 12rem;
+    max-height: 16rem;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
   }
-  .schema-table {
-    margin-bottom: 0.35rem;
+  .schema-table h4 {
+    margin: 0 0 0.25rem;
+    color: var(--accent);
+    font-size: 0.85rem;
   }
-  .schema-cols {
-    color: var(--text-muted);
+  .schema-col-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
   }
-  .schema-cols code {
-    color: var(--text);
+  .schema-col-table td {
+    padding: 0.1rem 0.4rem;
+    border: none;
+    white-space: nowrap;
   }
-  .schema-cols code.pk {
+  .schema-col-table td.pk {
     color: var(--accent);
     font-weight: bold;
   }
   .col-type {
     color: var(--text-dim);
-    font-size: 0.75rem;
   }
   .table-wrap {
     flex: 1;
