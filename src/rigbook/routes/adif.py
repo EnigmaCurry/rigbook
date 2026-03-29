@@ -187,7 +187,7 @@ def _parse_segment_value(segment: str, label: str) -> tuple[str, str] | None:
     Only the first word is treated as the field value; any trailing text is remainder.
     """
     s = segment.strip()
-    for fmt in (f"{label}: ", f"{label} "):
+    for fmt in (f"{label}: ",):
         if s.startswith(fmt):
             rest = s[len(fmt) :]
             parts = rest.split(None, 1)

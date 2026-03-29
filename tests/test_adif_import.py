@@ -51,13 +51,11 @@ class TestParseSegmentValue:
         result = _parse_segment_value("Name: John Smith Jr", "Name")
         assert result == ("John", "Smith Jr")
 
-    def test_space_format(self):
-        result = _parse_segment_value("SKCC 12486S", "SKCC")
-        assert result == ("12486S", "")
+    def test_space_format_no_match(self):
+        assert _parse_segment_value("SKCC 12486S", "SKCC") is None
 
-    def test_space_format_with_remainder(self):
-        result = _parse_segment_value("SKCC 12486S Hank", "SKCC")
-        assert result == ("12486S", "Hank")
+    def test_space_format_with_remainder_no_match(self):
+        assert _parse_segment_value("SKCC 12486S Hank", "SKCC") is None
 
     def test_no_match(self):
         assert _parse_segment_value("Foo: bar", "SKCC") is None

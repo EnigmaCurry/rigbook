@@ -165,7 +165,7 @@
 
   function parseSegmentValue(seg, label) {
     const s = seg.trim();
-    for (const fmt of [`${label}: `, `${label} `]) {
+    for (const fmt of [`${label}: `]) {
       if (s.startsWith(fmt)) {
         const rest = s.slice(fmt.length);
         const parts = rest.split(/\s+/);
