@@ -125,14 +125,15 @@ termux-wake-lock
 ./rigbook-linux-arm64
 ```
 
-While termux is still running, open `http://127.0.0.1:8073` in your Android web browser.
+While termux is still running, open your Android web browser and go to `http://127.0.0.1:8073` to access mobile Rigbook.
 
-You can also access Rigbook from another computer's browser on the
-same network, which gives you the full desktop experience while using
-your phone as the server. Set `RIGBOOK_HOST=0.0.0.0` before starting
-rigbook to listen on all interfaces:
+You can also use your phone only as the server, and access Rigbook from 
+another computer's browser on the same network.  This gives you the full
+desktop experience while you keep Rigbook running in your pocket. 
+Set `RIGBOOK_HOST=0.0.0.0` before starting rigbook to listen on all interfaces:
 
 ```bash
+# Warning: this allows any device to access your phone on port 8073 :
 export RIGBOOK_HOST=0.0.0.0
 termux-wake-lock
 ./rigbook-linux-arm64
