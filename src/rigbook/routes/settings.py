@@ -57,6 +57,8 @@ async def upsert_setting(
     result = await session.execute(select(Setting).where(Setting.key == key))
     setting = result.scalar_one_or_none()
     if setting:
+        if setting.value == data.value:
+            return setting
         setting.value = data.value
     else:
         setting = Setting(key=key, value=data.value)
