@@ -84,6 +84,9 @@ async def lifespan(app: FastAPI):
         logger.warning(
             "Custom update source: BUILD_ORIGIN_REPO=%s", GITHUB_REPO
         )
+    from rigbook.routes.update import _cleanup_old_binaries
+
+    _cleanup_old_binaries()
     await init_db()
     if db_manager.is_open:
         await start_feeds()

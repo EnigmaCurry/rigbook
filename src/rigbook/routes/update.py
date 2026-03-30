@@ -93,6 +93,21 @@ def _current_executable() -> str:
     raise RuntimeError("Self-update is only supported for official GitHub Actions builds")
 
 
+def _cleanup_old_binaries() -> None:
+    """Delete any .rigbook-superseded-v* files left from previous updates."""
+    if not getattr(sys, "frozen", False):
+        return
+    exe_dir = os.path.dirname(sys.executable)
+    for name in os.listdir(exe_dir):
+        if name.startswith(".rigbook-superseded-v"):
+            path = os.path.join(exe_dir, name)
+            try:
+                os.unlink(path)
+                logger.info("Cleaned up old binary: %s", name)
+            except OSError:
+                pass
+
+
 @router.get("/platform")
 async def get_platform_info():
     """Return platform info and whether self-update is supported."""
@@ -185,21 +200,16 @@ async def apply_update():
     # Swap binaries — rename running binary out of the way first.
     # On both Linux and Windows, overwriting a running binary fails
     # (ETXTBSY on Linux, lock on Windows).
-    backup_path = exe_path + ".backup"
+    old_name = f".rigbook-superseded-v{current}"
+    old_path = os.path.join(exe_dir, old_name)
     try:
-        if os.path.exists(backup_path):
-            os.unlink(backup_path)
+        if os.path.exists(old_path):
+            os.unlink(old_path)
 
-        os.rename(exe_path, backup_path)
+        os.rename(exe_path, old_path)
         os.rename(tmp_path, exe_path)
     except Exception as e:
         logger.error("Failed to swap binary: %s", e)
-        # Try to restore from backup
-        try:
-            if not os.path.exists(exe_path) and os.path.exists(backup_path):
-                os.rename(backup_path, exe_path)
-        except OSError:
-            pass
         try:
             os.unlink(tmp_path)
         except OSError:
