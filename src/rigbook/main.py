@@ -39,6 +39,7 @@ from rigbook.routes.settings import (
 from rigbook.routes.query import router as query_router
 from rigbook.routes.solar import router as solar_router
 from rigbook.routes.update import router as update_router
+from rigbook._build_info import BUILD_ORIGIN_REPO
 
 logger = logging.getLogger("rigbook")
 
@@ -80,7 +81,9 @@ async def lifespan(app: FastAPI):
     signal.signal(signal.SIGINT, _handle_shutdown_signal)
     signal.signal(signal.SIGTERM, _handle_shutdown_signal)
     if GITHUB_REPO != "EnigmaCurry/rigbook":
-        logger.warning("Custom update source: RIGBOOK_GITHUB_REPO=%s", GITHUB_REPO)
+        logger.warning(
+            "Custom update source: BUILD_ORIGIN_REPO=%s", GITHUB_REPO
+        )
     await init_db()
     if db_manager.is_open:
         await start_feeds()
@@ -115,7 +118,7 @@ async def get_version():
     return {"version": version("rigbook")}
 
 
-GITHUB_REPO = os.environ.get("RIGBOOK_GITHUB_REPO", "EnigmaCurry/rigbook")
+GITHUB_REPO = BUILD_ORIGIN_REPO or "EnigmaCurry/rigbook"
 UPDATE_CACHE_NS = "update_check"
 UPDATE_CACHE_KEY = "latest"
 UPDATE_CACHE_TTL = 3600  # 1 hour

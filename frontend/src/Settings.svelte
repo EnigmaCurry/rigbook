@@ -30,6 +30,7 @@
   let updateApplyError = "";
   let updateCustomRepo = false;
   let updateGithubRepo = "";
+  let updateBuildRepo = "";
   let flrig_enabled = false;
   let flrig_simulate = false;
   let flrig_host = "127.0.0.1";
@@ -773,8 +774,9 @@
       if (res.ok) {
         const data = await res.json();
         updateSupported = data.supported || false;
-        updateCustomRepo = data.custom_repo || false;
+        updateBuildRepo = data.build_origin_repo || "";
         updateGithubRepo = data.github_repo || "";
+        updateCustomRepo = !!updateBuildRepo && updateBuildRepo !== "EnigmaCurry/rigbook";
       }
     } catch {}
   }
@@ -1058,7 +1060,7 @@
     {/if}
     {#if updateCustomRepo}
       <div class="update-custom-repo-warning">
-        Warning: using custom update source <a href="https://github.com/{updateGithubRepo}" target="_blank" rel="noopener"><strong>{updateGithubRepo}</strong></a>
+        Warning: using custom update source <a href="https://github.com/{updateBuildRepo}" target="_blank" rel="noopener"><strong>{updateBuildRepo}</strong></a>
       </div>
     {/if}
   </section>

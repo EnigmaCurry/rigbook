@@ -21,7 +21,7 @@ router = APIRouter(prefix="/api/update", tags=["update"])
 
 logger = logging.getLogger("rigbook.update")
 
-GITHUB_REPO = os.environ.get("RIGBOOK_GITHUB_REPO", "EnigmaCurry/rigbook")
+GITHUB_REPO = BUILD_ORIGIN_REPO or "EnigmaCurry/rigbook"
 
 
 def _spawn_and_exit(exe_path: str) -> None:
@@ -86,16 +86,6 @@ def _is_official_build() -> bool:
     )
 
 
-def _check_repo_match() -> None:
-    """Raise if RIGBOOK_GITHUB_REPO doesn't match the baked-in origin."""
-    if GITHUB_REPO != BUILD_ORIGIN_REPO:
-        raise HTTPException(
-            400,
-            f"Repo mismatch: binary built from {BUILD_ORIGIN_REPO!r} "
-            f"but RIGBOOK_GITHUB_REPO is {GITHUB_REPO!r}",
-        )
-
-
 def _current_executable() -> str:
     """Return the path to the currently running binary."""
     if _is_official_build():
@@ -108,14 +98,13 @@ async def get_platform_info():
     """Return platform info and whether self-update is supported."""
     frozen = getattr(sys, "frozen", False)
     official = _is_official_build()
-    repo_match = official and GITHUB_REPO == BUILD_ORIGIN_REPO
     try:
         asset = _asset_name()
     except RuntimeError:
         asset = None
     return {
         "frozen": frozen,
-        "supported": official and repo_match and asset is not None,
+        "supported": official and asset is not None,
         "build_origin_repo": BUILD_ORIGIN_REPO or None,
         "build_github_actions": BUILD_GITHUB_ACTIONS,
         "platform": platform.system().lower(),
@@ -123,7 +112,6 @@ async def get_platform_info():
         "asset": asset,
         "executable": sys.executable if frozen else None,
         "github_repo": GITHUB_REPO,
-        "custom_repo": GITHUB_REPO != "EnigmaCurry/rigbook",
     }
 
 
@@ -134,7 +122,6 @@ async def apply_update():
         raise HTTPException(
             400, "Self-update only supported for official GitHub Actions builds"
         )
-    _check_repo_match()
 
     current = version("rigbook")
     asset_name = _asset_name()
