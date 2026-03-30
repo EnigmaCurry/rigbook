@@ -16,7 +16,7 @@ from sqlalchemy import delete, select
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from rigbook.db import Cache, DatabaseLockError, Setting, db_manager, get_session, init_db
+from rigbook.db import Cache, DatabaseLockError, Setting, async_session, db_manager, get_session, init_db
 from rigbook.flrig import router as flrig_router
 from rigbook.routes.logbooks import router as logbooks_router
 from rigbook.routes.spots import router as spots_router
@@ -90,7 +90,7 @@ async def lifespan(app: FastAPI):
     await init_db()
     if db_manager.is_open:
         # Clear update check cache so we always check once on startup
-        async with db_manager.session() as session:
+        async with async_session() as session:
             await session.execute(
                 delete(Cache).where(
                     Cache.namespace == UPDATE_CACHE_NS,
