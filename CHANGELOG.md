@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.2.0
+
+### Self-Update
+
+- Download and install updates from GitHub releases with automatic restart
+- Updates tab with confirmation before applying
+- Version in header links to Updates tab
+- Header updates in real-time when a new version is detected
+
+### Instance Management
+
+- Detect already-running instance on start and open browser to it
+- Auto-kill older running instance when starting a newer version
+- Error with instructions on lineage mismatch between different builds
+- `--version` flag to print version without starting the server
+
+### Build Origin Tracking
+
+- Inject build origin repo at build time from GitHub Actions
+- Version checkmark only shown for official builds
+- Warning in Settings when running from a fork
+
+### Other
+
+- Hide console window on Windows, log to file instead
+- Colorize log output: warnings in orange, errors in red
+- Consistent log formatting across uvicorn and application logs
+- RBN auto-disconnect when disabled
+- Bold theme-aware text for Settings tab labels
+- `just build-binary` recipe for local PyInstaller builds
+- Incremental builds: skip frontend/binary if sources unchanged
+
 ## v0.1.27
 
 ### Spots
