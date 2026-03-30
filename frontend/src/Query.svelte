@@ -199,7 +199,10 @@
           <span class="ta-grip"></span>
         </div>
       </div>
-      <p class="hint">Read-only access to the tables: <code>cache</code>, <code>contacts</code>, <code>notifications</code>, <code>pota_programs</code>, <code>pota_locations</code>, <code>pota_parks</code>.<br>Max 10000 rows shown on this page. Downloading JSON/CSV returns all rows.<br>After writing your query, you may bookmark this page, and the query will be saved in the bookmark.</p>
+      <details class="hint-details">
+        <summary>Query Information</summary>
+        <p class="hint">Read-only access to the tables: <code>cache</code>, <code>contacts</code>, <code>notifications</code>, <code>pota_programs</code>, <code>pota_locations</code>, <code>pota_parks</code>.<br>Max 10000 rows shown on this page. Downloading JSON/CSV returns all rows.<br>After writing your query, you may bookmark this page, and the query will be saved in the bookmark.</p>
+      </details>
       <div class="buttons">
         <select class="canned-select" bind:value={cannedSelect} on:change={applyCanned}>
           <option value="">Examples...</option>
@@ -294,10 +297,18 @@
   h2 {
     margin: 0 0 0.25rem;
   }
+  .hint-details {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+  .hint-details summary {
+    cursor: pointer;
+    user-select: none;
+  }
   .hint {
     color: var(--text-muted);
     font-size: 0.85rem;
-    margin: 0 0 0.75rem;
+    margin: 0.25rem 0 0;
   }
   .hint code {
     background: var(--bg-card);
