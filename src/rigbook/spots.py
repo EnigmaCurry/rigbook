@@ -889,7 +889,7 @@ async def _read_feed_settings() -> dict[str, str]:
         "hamalert_username",
         "hamalert_password",
         "my_callsign",
-        "rbn_idle_timeout_hours",
+        "rbn_idle_timeout_minutes",
     ]
     settings: dict[str, str] = {}
     try:
@@ -925,23 +925,23 @@ async def _idle_check_loop() -> None:
             continue
         settings = await _read_feed_settings()
         try:
-            timeout_hours = int(settings.get("rbn_idle_timeout_hours", "12") or "12")
+            timeout_minutes = int(settings.get("rbn_idle_timeout_minutes", "720") or "720")
         except (ValueError, TypeError):
             continue
-        if timeout_hours <= 0:
+        if timeout_minutes <= 0:
             continue
         if subscriber_count() > 0:
             continue
         last_disconnect = get_last_disconnect_time()
         if last_disconnect is None:
             continue
-        if _time.time() - last_disconnect >= timeout_hours * 3600:
+        if _time.time() - last_disconnect >= timeout_minutes * 60:
             await rbn_feed.stop()
             _rbn_stopped_for_idle = True
             logger.info(
-                "RBN idle timeout: no web clients for %d hours, disconnected."
+                "RBN idle timeout: no web clients for %d minutes, disconnected."
                 " Will reconnect automatically when a client connects.",
-                timeout_hours,
+                timeout_minutes,
             )
 
 
@@ -962,16 +962,16 @@ async def _log_idle_disconnect_time() -> None:
     if not rbn_enabled:
         return
     try:
-        timeout_hours = int(settings.get("rbn_idle_timeout_hours", "12") or "12")
+        timeout_minutes = int(settings.get("rbn_idle_timeout_minutes", "720") or "720")
     except (ValueError, TypeError):
         return
-    if timeout_hours <= 0:
+    if timeout_minutes <= 0:
         return
-    disconnect_at = datetime.now(timezone.utc) + timedelta(hours=timeout_hours)
+    disconnect_at = datetime.now(timezone.utc) + timedelta(minutes=timeout_minutes)
     logger.info(
-        "RBN: no web clients, will disconnect at %s UTC (%dh)",
+        "RBN: no web clients, will disconnect at %s UTC (%dm)",
         disconnect_at.strftime("%Y-%m-%d %H:%M:%S"),
-        timeout_hours,
+        timeout_minutes,
     )
 
 

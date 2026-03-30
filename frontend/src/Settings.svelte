@@ -49,7 +49,7 @@
   let skcc_skimmer_enabled = false;
   let skcc_skimmer_distance = "500";
   let rbn_idle_timeout_enabled = true;
-  let rbn_idle_timeout_hours = "12";
+  let rbn_idle_timeout_minutes = "720";
 
   // HamAlert settings
   let hamalert_enabled = false;
@@ -474,8 +474,8 @@
       await saveSetting("skcc_skimmer_distance", skcc_skimmer_distance.trim() || "500");
       dispatch("saved");
     },
-    rbn_idle_timeout_hours: async () => {
-      await saveSetting("rbn_idle_timeout_hours", rbn_idle_timeout_enabled ? (rbn_idle_timeout_hours.trim() || "12") : "0");
+    rbn_idle_timeout_minutes: async () => {
+      await saveSetting("rbn_idle_timeout_minutes", rbn_idle_timeout_enabled ? (rbn_idle_timeout_minutes.trim() || "720") : "0");
       await restartFeeds();
       dispatch("saved");
     },
@@ -632,16 +632,16 @@
   }
 
   async function onRbnIdleTimeoutEnabledChange() {
-    if (rbn_idle_timeout_enabled && !rbn_idle_timeout_hours.trim()) {
-      rbn_idle_timeout_hours = "12";
+    if (rbn_idle_timeout_enabled && !rbn_idle_timeout_minutes.trim()) {
+      rbn_idle_timeout_minutes = "12";
     }
-    await saveSetting("rbn_idle_timeout_hours", rbn_idle_timeout_enabled ? (rbn_idle_timeout_hours.trim() || "12") : "0");
+    await saveSetting("rbn_idle_timeout_minutes", rbn_idle_timeout_enabled ? (rbn_idle_timeout_minutes.trim() || "720") : "0");
     await restartFeeds();
     dispatch("saved");
   }
 
   function onRbnIdleTimeoutHoursInput() {
-    markDirty("rbn_idle_timeout_hours");
+    markDirty("rbn_idle_timeout_minutes");
   }
 
   function hamalertFieldsFilled() {
@@ -721,14 +721,14 @@
           }
           if (s.key === "skcc_skimmer_enabled") skcc_skimmer_enabled = s.value === "true";
           if (s.key === "skcc_skimmer_distance") skcc_skimmer_distance = s.value || "500";
-          if (s.key === "rbn_idle_timeout_hours") {
+          if (s.key === "rbn_idle_timeout_minutes") {
             const v = parseFloat(s.value);
             if (v > 0) {
               rbn_idle_timeout_enabled = true;
-              rbn_idle_timeout_hours = s.value;
+              rbn_idle_timeout_minutes = s.value;
             } else {
               rbn_idle_timeout_enabled = false;
-              rbn_idle_timeout_hours = "12";
+              rbn_idle_timeout_minutes = "12";
             }
           }
           if (s.key === "hamalert_enabled") hamalert_enabled = s.value === "true";
@@ -1062,8 +1062,8 @@
       </label>
     </div>
     <div class="setting-row">
-      <label for="rbn_idle_timeout">Idle timeout (hours)</label>
-      <input id="rbn_idle_timeout" type="text" bind:value={rbn_idle_timeout_hours} on:input={onRbnIdleTimeoutHoursInput} on:blur={() => onFieldBlur("rbn_idle_timeout_hours")} autocomplete="off" inputmode="numeric" disabled={!rbn_enabled || !rbn_idle_timeout_enabled} style="max-width: 7rem" />
+      <label for="rbn_idle_timeout">Idle timeout (minutes)</label>
+      <input id="rbn_idle_timeout" type="text" bind:value={rbn_idle_timeout_minutes} on:input={onRbnIdleTimeoutHoursInput} on:blur={() => onFieldBlur("rbn_idle_timeout_minutes")} autocomplete="off" inputmode="numeric" disabled={!rbn_enabled || !rbn_idle_timeout_enabled} style="max-width: 7rem" />
     </div>
     <p class="hint">Uses {my_callsign.trim().toUpperCase() || "your callsign"} to authenticate.</p>
   </section>
