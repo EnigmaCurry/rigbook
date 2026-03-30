@@ -1058,7 +1058,7 @@
     {/if}
     {#if updateCustomRepo}
       <div class="update-custom-repo-warning">
-        Warning: using custom update source <strong>{updateGithubRepo}</strong>
+        Warning: using custom update source <a href="https://github.com/{updateGithubRepo}" target="_blank" rel="noopener"><strong>{updateGithubRepo}</strong></a>
       </div>
     {/if}
   </section>
