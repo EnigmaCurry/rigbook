@@ -101,11 +101,16 @@ def _cleanup_old_binaries() -> None:
     for name in os.listdir(exe_dir):
         if name.startswith(".rigbook-superseded-v"):
             path = os.path.join(exe_dir, name)
-            try:
-                os.unlink(path)
-                logger.info("Cleaned up old binary: %s", name)
-            except OSError:
-                pass
+            for attempt in range(10):
+                try:
+                    os.unlink(path)
+                    logger.info("Cleaned up old binary: %s", name)
+                    break
+                except OSError:
+                    if attempt < 9:
+                        time.sleep(0.5)
+                    else:
+                        logger.warning("Could not remove old binary: %s", name)
 
 
 @router.get("/platform")
