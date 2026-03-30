@@ -263,12 +263,6 @@ if static_dir.is_dir():
 def run() -> None:
     import argparse
 
-    # On Windows windowed mode (no console), std streams are None — redirect to devnull
-    if sys.stdout is None:
-        sys.stdout = open(os.devnull, "w")
-    if sys.stderr is None:
-        sys.stderr = open(os.devnull, "w")
-
     parser = argparse.ArgumentParser(description="Rigbook - Ham Radio Logbook")
     parser.add_argument(
         "--version", action="version", version=f"rigbook {version('rigbook')}"
@@ -439,8 +433,8 @@ def run() -> None:
                 return f"{color}{msg}{self.RESET}"
             return msg
 
-    # On Windows windowed mode, log to a file instead of stderr
-    _windowed = getattr(sys, "frozen", False) and sys.platform == "win32" and not sys.stderr.isatty()
+    # On Windows frozen builds, log to a file (console will be hidden)
+    _windowed = getattr(sys, "frozen", False) and sys.platform == "win32"
     if _windowed:
         from rigbook.db import DB_DIR
 
@@ -487,5 +481,12 @@ def run() -> None:
             webbrowser.open(url)
 
         threading.Thread(target=open_browser, daemon=True).start()
+
+    # Hide the console window on Windows frozen builds
+    if getattr(sys, "frozen", False) and sys.platform == "win32":
+        import ctypes
+        ctypes.windll.user32.ShowWindow(
+            ctypes.windll.kernel32.GetConsoleWindow(), 0  # SW_HIDE
+        )
 
     uvicorn.run(app, host=host, port=port, access_log=False, log_config=None)
