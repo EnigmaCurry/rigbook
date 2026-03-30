@@ -167,7 +167,7 @@ async def apply_update():
         async with httpx.AsyncClient(follow_redirects=True) as client:
             async with client.stream("GET", download_url, timeout=120) as stream:
                 stream.raise_for_status()
-                for chunk in stream.iter_raw():
+                async for chunk in stream.aiter_raw():
                     os.write(fd, chunk)
         os.close(fd)
     except Exception as e:
