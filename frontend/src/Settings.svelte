@@ -1730,6 +1730,6 @@
   }
   .sha-link {
     font-family: monospace;
-    opacity: 0.7;
+    color: var(--accent);
   }
 </style>
