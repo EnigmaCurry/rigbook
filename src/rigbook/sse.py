@@ -81,7 +81,7 @@ async def _auto_shutdown_loop() -> None:
         elapsed = time.time() - reference
         if elapsed >= AUTO_SHUTDOWN_DELAY:
             logger.info(
-                "No SSE clients for %.0fs — auto-shutting down", elapsed
+                "No SSE clients for %.0fs — shutting down now", elapsed
             )
             notify_shutdown()
             os.kill(os.getpid(), signal.SIGTERM)
