@@ -112,6 +112,10 @@ async def decline_create():
 
 @router.post("/shutdown")
 async def shutdown_server():
+    from rigbook.main import NO_SHUTDOWN
+
+    if NO_SHUTDOWN:
+        raise HTTPException(status_code=403, detail="Shutdown is disabled")
     notify_shutdown()
     os.kill(os.getpid(), signal.SIGTERM)
     _deferred_kill()

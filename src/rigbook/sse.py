@@ -7,6 +7,8 @@ events, and connected SSE clients receive them in real time.
 import asyncio
 import json
 import logging
+import os
+import signal
 import time
 from collections.abc import Callable
 
@@ -22,6 +24,10 @@ _shutdown_event: asyncio.Event | None = None
 _last_client_disconnected_at: float | None = None
 _on_connect_callbacks: list[Callable[[], None]] = []
 _on_disconnect_callbacks: list[Callable[[], None]] = []
+_ever_had_client: bool = False
+_auto_shutdown_task: asyncio.Task | None = None
+
+AUTO_SHUTDOWN_DELAY = 15  # seconds
 
 
 def subscriber_count() -> int:
@@ -59,6 +65,50 @@ def broadcast(event: str, data: dict) -> None:
             pass
 
 
+async def _auto_shutdown_loop() -> None:
+    """Background task: shut down server when no SSE clients are connected.
+
+    Triggers after AUTO_SHUTDOWN_DELAY seconds with zero clients, whether
+    a client connected and then left, or no client ever connected at all.
+    """
+    started_at = time.time()
+    while True:
+        await asyncio.sleep(5)
+        if len(_subscribers) > 0:
+            continue
+        # Use last-disconnect time if a client was seen, otherwise use start time
+        reference = _last_client_disconnected_at if _ever_had_client else started_at
+        elapsed = time.time() - reference
+        if elapsed >= AUTO_SHUTDOWN_DELAY:
+            logger.info(
+                "No SSE clients for %.0fs — auto-shutting down", elapsed
+            )
+            notify_shutdown()
+            os.kill(os.getpid(), signal.SIGTERM)
+            return
+
+
+async def start_auto_shutdown() -> None:
+    """Start the auto-shutdown watcher task."""
+    global _auto_shutdown_task
+    if _auto_shutdown_task is not None:
+        return
+    _auto_shutdown_task = asyncio.create_task(_auto_shutdown_loop())
+    logger.info("Auto-shutdown watcher started (delay=%ds)", AUTO_SHUTDOWN_DELAY)
+
+
+async def stop_auto_shutdown() -> None:
+    """Stop the auto-shutdown watcher task."""
+    global _auto_shutdown_task
+    if _auto_shutdown_task is not None:
+        _auto_shutdown_task.cancel()
+        try:
+            await _auto_shutdown_task
+        except asyncio.CancelledError:
+            pass
+        _auto_shutdown_task = None
+
+
 def notify_shutdown() -> None:
     """Broadcast shutdown event and signal all SSE generators to stop."""
     broadcast("shutdown", {})
@@ -87,11 +137,12 @@ async def _sse_generator(queue: asyncio.Queue[str]):
 
 @router.get("/stream")
 async def event_stream(request: Request):
-    global _last_client_disconnected_at
+    global _last_client_disconnected_at, _ever_had_client
     client = request.client
     client_addr = f"{client.host}:{client.port}" if client else "unknown"
     queue: asyncio.Queue[str] = asyncio.Queue(maxsize=64)
     _subscribers.append(queue)
+    _ever_had_client = True
     logger.info("SSE client    connected from %s (total: %d)", client_addr, len(_subscribers))
     for cb in _on_connect_callbacks:
         cb()

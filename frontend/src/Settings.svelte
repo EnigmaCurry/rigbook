@@ -148,6 +148,10 @@
   }
 
 
+  // Shutdown
+  let noShutdown = false;
+  let autoShutdownOnDisconnect = false;
+
   // Backup
   let backupMessage = "";
   let backupMessageType = "";
@@ -760,6 +764,7 @@
           if (s.key === "default_page") default_page = s.value || "log";
           if (s.key === "theme") theme = s.value || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
           if (s.key === "popup_notifications_enabled") popupNotifEnabled = s.value === "true";
+          if (s.key === "auto_shutdown_on_disconnect") autoShutdownOnDisconnect = s.value === "true";
         }
       }
       settingsLoaded = true;
@@ -888,12 +893,23 @@
     } catch {}
   }
 
+  async function fetchNoShutdown() {
+    try {
+      const res = await fetch("/api/version");
+      if (res.ok) {
+        const data = await res.json();
+        noShutdown = !!data.no_shutdown;
+      }
+    } catch {}
+  }
+
   onMount(() => {
     fetchSettings();
     fetchSpotStatus();
     fetchQsoCount();
     loadDbInfo();
     loadBackupStatus();
+    fetchNoShutdown();
     spotStatusInterval = setInterval(fetchSpotStatus, 5000);
   });
 
@@ -1323,12 +1339,21 @@
     {/if}
   </section>
 
+  {#if !noShutdown}
   <section class="settings-section">
     <h3>Shutdown</h3>
+    <div class="setting-row toggle-row">
+      <label class="toggle-label">
+        <input type="checkbox" bind:checked={autoShutdownOnDisconnect} on:change={() => saveSetting("auto_shutdown_on_disconnect", autoShutdownOnDisconnect ? "true" : "false")} />
+        Shutdown automatically when last client disconnects
+      </label>
+    </div>
+    <p class="hint">When enabled, the server will shut down 15 seconds after all browser tabs are closed, or if no client connects within 15 seconds of startup.</p>
     <div class="setting-row">
       <button class="danger-btn" on:click={shutdownServer}>Shutdown Server</button>
     </div>
   </section>
+  {/if}
 
   {#if logbookName}
     <section class="settings-section danger-zone">

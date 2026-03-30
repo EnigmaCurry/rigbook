@@ -30,7 +30,7 @@ from rigbook.routes.skcc import router as skcc_router
 from rigbook.routes.contacts import router as contacts_router
 from rigbook.routes.geo import router as geo_router
 from rigbook.routes.notifications import router as notifications_router
-from rigbook.sse import router as sse_router
+from rigbook.sse import router as sse_router, start_auto_shutdown, stop_auto_shutdown as stop_sse_auto_shutdown
 from rigbook.routes.settings import (
     router as settings_router,
     start_auto_backup,
@@ -103,7 +103,17 @@ async def lifespan(app: FastAPI):
             await session.commit()
         await start_feeds()
         await start_auto_backup()
+        if not NO_SHUTDOWN:
+            async with async_session() as session:
+                row = (
+                    await session.execute(
+                        select(Setting).where(Setting.key == "auto_shutdown_on_disconnect")
+                    )
+                ).scalar_one_or_none()
+                if row and row.value == "true":
+                    await start_auto_shutdown()
     yield
+    await stop_sse_auto_shutdown()
     await stop_auto_backup()
     await stop_feeds()
     await db_manager.close()
@@ -128,9 +138,12 @@ async def http_middleware(request: Request, call_next):
     return response
 
 
+NO_SHUTDOWN = os.environ.get("RIGBOOK_NO_SHUTDOWN", "").lower() in ("1", "true", "yes")
+
+
 @app.get("/api/version")
 async def get_version():
-    return {"version": version("rigbook")}
+    return {"version": version("rigbook"), "no_shutdown": NO_SHUTDOWN}
 
 
 GITHUB_REPO = BUILD_ORIGIN_REPO or "EnigmaCurry/rigbook"

@@ -67,6 +67,17 @@ async def upsert_setting(
     await session.refresh(setting)
     log_value = "***" if key in HIDDEN_KEYS else data.value
     logger.info("Setting changed: %s = %s", key, log_value)
+
+    # Start or stop auto-shutdown watcher when the setting changes
+    if key == "auto_shutdown_on_disconnect":
+        from rigbook.main import NO_SHUTDOWN
+        from rigbook.sse import start_auto_shutdown, stop_auto_shutdown
+
+        if not NO_SHUTDOWN and data.value == "true":
+            await start_auto_shutdown()
+        else:
+            await stop_auto_shutdown()
+
     return setting
 
 
