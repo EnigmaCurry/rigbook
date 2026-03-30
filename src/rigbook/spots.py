@@ -16,6 +16,7 @@ import logging
 import math
 import re
 import time as _time
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
 
 import httpx
@@ -869,6 +870,8 @@ rbn_feed = RBNFeed(spot_cache)
 hamalert_feed = HamAlertFeed(spot_cache)
 
 _prune_task: asyncio.Task | None = None
+_idle_disconnect_task: asyncio.Task | None = None
+_rbn_stopped_for_idle: bool = False
 
 
 async def _read_feed_settings() -> dict[str, str]:
@@ -883,6 +886,7 @@ async def _read_feed_settings() -> dict[str, str]:
         "hamalert_username",
         "hamalert_password",
         "my_callsign",
+        "rbn_idle_timeout_minutes",
     ]
     settings: dict[str, str] = {}
     try:
@@ -900,6 +904,100 @@ async def _prune_loop() -> None:
     while True:
         await asyncio.sleep(60)
         await spot_cache.prune()
+
+
+def rbn_idle_stopped() -> bool:
+    """Return True if RBN was stopped due to idle timeout."""
+    return _rbn_stopped_for_idle
+
+
+async def _idle_disconnect_after(timeout_minutes: int) -> None:
+    """Sleep for exactly the timeout duration, then disconnect RBN."""
+    global _rbn_stopped_for_idle
+    disconnect_at = datetime.now(timezone.utc) + timedelta(minutes=timeout_minutes)
+    logger.debug(
+        "RBN: no web clients, will disconnect at %s UTC (%dm)",
+        disconnect_at.strftime("%Y-%m-%d %H:%M:%S"),
+        timeout_minutes,
+    )
+    await asyncio.sleep(timeout_minutes * 60)
+    await rbn_feed.stop()
+    _rbn_stopped_for_idle = True
+    logger.info(
+        "RBN idle timeout: no web clients for %d minutes, disconnected."
+        " Will reconnect automatically when a client connects.",
+        timeout_minutes,
+    )
+
+
+def _schedule_idle_disconnect() -> None:
+    """Schedule an idle disconnect task if conditions are met."""
+    global _idle_disconnect_task
+    if _idle_disconnect_task and not _idle_disconnect_task.done():
+        return
+    if _rbn_stopped_for_idle or not rbn_feed.connected:
+        return
+    asyncio.create_task(_maybe_schedule_idle_disconnect())
+
+
+async def _maybe_schedule_idle_disconnect() -> None:
+    global _idle_disconnect_task
+    settings = await _read_feed_settings()
+    rbn_enabled = settings.get("rbn_enabled", "false").lower() == "true"
+    if not rbn_enabled:
+        return
+    try:
+        timeout_minutes = int(settings.get("rbn_idle_timeout_minutes", "720") or "720")
+    except (ValueError, TypeError):
+        return
+    if timeout_minutes <= 0:
+        return
+    _idle_disconnect_task = asyncio.create_task(_idle_disconnect_after(timeout_minutes))
+
+
+def _cancel_idle_disconnect() -> None:
+    """Cancel any pending idle disconnect task."""
+    global _idle_disconnect_task
+    if _idle_disconnect_task and not _idle_disconnect_task.done():
+        _idle_disconnect_task.cancel()
+        _idle_disconnect_task = None
+        logger.debug("RBN: idle disconnect cancelled, client connected")
+
+
+def _on_last_client_disconnect() -> None:
+    """Called when an SSE client disconnects. If none remain, schedule idle disconnect."""
+    from rigbook.sse import subscriber_count
+
+    if subscriber_count() > 0:
+        return
+    _schedule_idle_disconnect()
+
+
+def _on_client_connect() -> None:
+    """Called when an SSE client connects. Cancel idle disconnect or restart if stopped."""
+    global _rbn_stopped_for_idle
+    _cancel_idle_disconnect()
+    if not _rbn_stopped_for_idle:
+        return
+    _rbn_stopped_for_idle = False
+    asyncio.create_task(_restart_rbn_from_idle())
+
+
+async def _restart_rbn_from_idle() -> None:
+    """Re-read settings and restart RBN after idle stop."""
+    settings = await _read_feed_settings()
+    rbn_enabled = settings.get("rbn_enabled", "false").lower() == "true"
+    if not rbn_enabled:
+        return
+    callsign = settings.get("my_callsign", "")
+    if not callsign:
+        return
+    logger.info("RBN: web client connected, restarting idle-stopped feed")
+    await rbn_feed.start(
+        host=settings.get("rbn_host", "telnet.reversebeacon.net"),
+        feeds=settings.get("rbn_feeds", "cw"),
+        callsign=callsign,
+    )
 
 
 async def _apply_settings(settings: dict[str, str]) -> None:
@@ -920,6 +1018,7 @@ async def _apply_settings(settings: dict[str, str]) -> None:
     else:
         await rbn_feed.stop()
         await spot_cache.purge_source("rbn")
+        _rbn_stopped_for_idle = False
 
     # HamAlert
     ha_enabled = settings.get("hamalert_enabled", "false").lower() == "true"
@@ -945,12 +1044,17 @@ async def start_feeds() -> None:
     """Start enabled feeds on app startup."""
     global _prune_task
     _prune_task = asyncio.create_task(_prune_loop())
+    from rigbook.sse import register_connect_callback, register_disconnect_callback
+
+    register_connect_callback(_on_client_connect)
+    register_disconnect_callback(_on_last_client_disconnect)
     settings = await _read_feed_settings()
     await _apply_settings(settings)
 
 
 async def stop_feeds() -> None:
     """Stop all feeds on app shutdown."""
+    _cancel_idle_disconnect()
     await rbn_feed.stop()
     await hamalert_feed.stop()
     if _prune_task:
@@ -963,5 +1067,8 @@ async def stop_feeds() -> None:
 
 async def refresh_feeds() -> None:
     """Re-read settings and restart feeds as needed."""
+    global _rbn_stopped_for_idle
+    _cancel_idle_disconnect()
+    _rbn_stopped_for_idle = False
     settings = await _read_feed_settings()
     await _apply_settings(settings)

@@ -285,9 +285,10 @@ def run() -> None:
                 sys.exit(1)
 
     log_level = "DEBUG" if args.verbose else "INFO"
+    logging.Formatter.converter = time.gmtime
     logging.basicConfig(
         level=log_level,
-        format="%(asctime)s %(levelname)s: %(name)s: %(message)s",
+        format="%(asctime)s UTC %(levelname)s: %(name)s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
     logging.getLogger("aiosqlite").setLevel(logging.WARNING)

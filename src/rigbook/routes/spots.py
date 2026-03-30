@@ -15,6 +15,7 @@ from rigbook.routes.skcc import _ensure_cache as ensure_skcc_cache
 from rigbook.spots import (
     hamalert_feed,
     rbn_feed,
+    rbn_idle_stopped,
     refresh_feeds,
     spot_cache,
     spotter_grids,
@@ -309,6 +310,7 @@ async def feed_status(session: AsyncSession = Depends(get_session)):
         "rbn": {
             "connected": rbn_feed.connected,
             "enabled": rbn_enabled,
+            "idle_stopped": rbn_idle_stopped(),
         },
         "hamalert": {
             "connected": hamalert_feed.connected,

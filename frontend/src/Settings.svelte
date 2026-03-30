@@ -48,6 +48,8 @@
   let rbn_feed_digital = false;
   let skcc_skimmer_enabled = false;
   let skcc_skimmer_distance = "500";
+  let rbn_idle_timeout_enabled = true;
+  let rbn_idle_timeout_minutes = "720";
 
   // HamAlert settings
   let hamalert_enabled = false;
@@ -358,7 +360,7 @@
   }
 
   // Feed connection status
-  let spotStatus = { rbn: { connected: false, enabled: false }, hamalert: { connected: false, enabled: false } };
+  let spotStatus = { rbn: { connected: false, enabled: false, idle_stopped: false }, hamalert: { connected: false, enabled: false } };
   let spotStatusInterval;
 
   async function toggleTheme() {
@@ -470,6 +472,11 @@
     },
     skcc_skimmer_distance: async () => {
       await saveSetting("skcc_skimmer_distance", skcc_skimmer_distance.trim() || "500");
+      dispatch("saved");
+    },
+    rbn_idle_timeout_minutes: async () => {
+      await saveSetting("rbn_idle_timeout_minutes", rbn_idle_timeout_enabled ? (rbn_idle_timeout_minutes.trim() || "720") : "0");
+      await restartFeeds();
       dispatch("saved");
     },
     hamalert_host: async () => {
@@ -624,6 +631,19 @@
     markDirty("skcc_skimmer_distance");
   }
 
+  async function onRbnIdleTimeoutEnabledChange() {
+    if (rbn_idle_timeout_enabled && !rbn_idle_timeout_minutes.trim()) {
+      rbn_idle_timeout_minutes = "12";
+    }
+    await saveSetting("rbn_idle_timeout_minutes", rbn_idle_timeout_enabled ? (rbn_idle_timeout_minutes.trim() || "720") : "0");
+    await restartFeeds();
+    dispatch("saved");
+  }
+
+  function onRbnIdleTimeoutHoursInput() {
+    markDirty("rbn_idle_timeout_minutes");
+  }
+
   function hamalertFieldsFilled() {
     return hamalert_host.trim() && hamalert_port.trim() && hamalert_username.trim() && hasHamalertPassword;
   }
@@ -701,6 +721,16 @@
           }
           if (s.key === "skcc_skimmer_enabled") skcc_skimmer_enabled = s.value === "true";
           if (s.key === "skcc_skimmer_distance") skcc_skimmer_distance = s.value || "500";
+          if (s.key === "rbn_idle_timeout_minutes") {
+            const v = parseFloat(s.value);
+            if (v > 0) {
+              rbn_idle_timeout_enabled = true;
+              rbn_idle_timeout_minutes = s.value;
+            } else {
+              rbn_idle_timeout_enabled = false;
+              rbn_idle_timeout_minutes = "12";
+            }
+          }
           if (s.key === "hamalert_enabled") hamalert_enabled = s.value === "true";
           if (s.key === "hamalert_host") hamalert_host = s.value || "hamalert.org";
           if (s.key === "hamalert_port") hamalert_port = s.value || "7300";
@@ -1006,8 +1036,8 @@
         Enable RBN Feed
       </label>
       <span class="conn-status">
-        <span class="dot" class:green={spotStatus.rbn.connected} class:red={spotStatus.rbn.enabled && !spotStatus.rbn.connected} class:off={!spotStatus.rbn.enabled}></span>
-        {#if !spotStatus.rbn.enabled}Disabled{:else if spotStatus.rbn.connected}Connected{:else}Connecting...{/if}
+        <span class="dot" class:green={spotStatus.rbn.connected} class:yellow={spotStatus.rbn.idle_stopped} class:red={spotStatus.rbn.enabled && !spotStatus.rbn.connected && !spotStatus.rbn.idle_stopped} class:off={!spotStatus.rbn.enabled}></span>
+        {#if !spotStatus.rbn.enabled}Disabled{:else if spotStatus.rbn.idle_stopped}Idle — paused{:else if spotStatus.rbn.connected}Connected{:else}Connecting...{/if}
       </span>
     </div>
     <div class="setting-row toggle-row">
@@ -1024,6 +1054,16 @@
     <div class="setting-row">
       <label for="skcc_distance">SKCC Skimmer max distance (miles)</label>
       <input id="skcc_distance" type="text" bind:value={skcc_skimmer_distance} on:input={onSkccSkimmerDistanceInput} on:blur={() => onFieldBlur("skcc_skimmer_distance")} autocomplete="off" inputmode="numeric" disabled={!rbn_enabled || !skcc_skimmer_enabled} style="max-width: 7rem" />
+    </div>
+    <div class="setting-row toggle-row">
+      <label>
+        <input type="checkbox" bind:checked={rbn_idle_timeout_enabled} on:change={onRbnIdleTimeoutEnabledChange} disabled={!rbn_enabled} />
+        Disconnect RBN when no web clients are connected to Rigbook
+      </label>
+    </div>
+    <div class="setting-row">
+      <label for="rbn_idle_timeout">Idle timeout (minutes)</label>
+      <input id="rbn_idle_timeout" type="text" bind:value={rbn_idle_timeout_minutes} on:input={onRbnIdleTimeoutHoursInput} on:blur={() => onFieldBlur("rbn_idle_timeout_minutes")} autocomplete="off" inputmode="numeric" disabled={!rbn_enabled || !rbn_idle_timeout_enabled} style="max-width: 7rem" />
     </div>
     <p class="hint">Uses {my_callsign.trim().toUpperCase() || "your callsign"} to authenticate.</p>
   </section>
@@ -1478,6 +1518,7 @@
     background: var(--text-dim);
   }
   .dot.green { background: #4caf50; }
+  .dot.yellow { background: #ff9800; }
   .dot.red { background: #f44336; }
   .dot.off { background: var(--text-dim); opacity: 0.4; }
 
