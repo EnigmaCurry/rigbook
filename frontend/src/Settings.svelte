@@ -28,6 +28,8 @@
   let updateSupported = false;
   let updateApplying = false;
   let updateApplyError = "";
+  let updateCustomRepo = false;
+  let updateGithubRepo = "";
   let flrig_enabled = false;
   let flrig_simulate = false;
   let flrig_host = "127.0.0.1";
@@ -771,6 +773,8 @@
       if (res.ok) {
         const data = await res.json();
         updateSupported = data.supported || false;
+        updateCustomRepo = data.custom_repo || false;
+        updateGithubRepo = data.github_repo || "";
       }
     } catch {}
   }
@@ -1050,6 +1054,11 @@
         <button class="check-now-btn" on:click={fetchUpdateCheck} disabled={updateChecking}>
           {updateChecking ? "Checking…" : "Check now"}
         </button>
+      </div>
+    {/if}
+    {#if updateCustomRepo}
+      <div class="update-custom-repo-warning">
+        Warning: using custom update source <strong>{updateGithubRepo}</strong>
       </div>
     {/if}
   </section>
@@ -1689,5 +1698,14 @@
     color: #e74c3c;
     font-size: 0.8rem;
     margin-left: 0.5rem;
+  }
+  .update-custom-repo-warning {
+    margin-top: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+    color: #f39c12;
+    border: 1px solid #f39c12;
+    border-radius: 4px;
+    background: rgba(243, 156, 18, 0.1);
   }
 </style>

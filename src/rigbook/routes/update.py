@@ -105,6 +105,7 @@ async def get_platform_info():
         asset = _asset_name()
     except RuntimeError:
         asset = None
+    default_repo = "EnigmaCurry/rigbook"
     return {
         "frozen": frozen,
         "supported": frozen and github_binary and asset is not None,
@@ -112,6 +113,8 @@ async def get_platform_info():
         "arch": platform.machine().lower(),
         "asset": asset,
         "executable": sys.executable if frozen else None,
+        "github_repo": GITHUB_REPO,
+        "custom_repo": GITHUB_REPO != default_repo,
     }
 
 
