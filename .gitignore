@@ -5,3 +5,4 @@ __pycache__/
 dist/
 src/rigbook/static/
 node_modules/
+.build-*.stamp
