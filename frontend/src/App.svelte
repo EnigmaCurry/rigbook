@@ -193,6 +193,7 @@
   let updateExact = false;
   let updateUrl = "";
   let updateLatest = "";
+  let updateHasUpdate = false;
   let updateSupported = false;
   let updateApplying = false;
   let vfoFreq = "";
@@ -613,6 +614,7 @@
         updateExact = data.is_exact || false;
         updateLatest = data.latest || "";
         updateUrl = data.url || "";
+        updateHasUpdate = data.update_available || false;
       }
     } catch {}
     try {
@@ -622,8 +624,8 @@
         updateSupported = data.supported || false;
       }
     } catch {}
-    // Only show "Update Available" banner for GitHub release binaries
-    updateAvailable = updateSupported && !!updateLatest && !updateExact && !updateDev;
+    // Only show "Update Available" banner for GitHub release binaries with a newer version
+    updateAvailable = updateSupported && updateHasUpdate;
   }
 
   async function applyUpdateFromHeader() {
