@@ -31,6 +31,7 @@
   let updateCustomRepo = false;
   let updateGithubRepo = "";
   let updateBuildRepo = "";
+  let updateBuildSha = "";
   let flrig_enabled = false;
   let flrig_simulate = false;
   let flrig_host = "127.0.0.1";
@@ -775,6 +776,7 @@
         const data = await res.json();
         updateSupported = data.supported || false;
         updateBuildRepo = data.build_origin_repo || "";
+        updateBuildSha = data.build_git_sha || "";
         updateGithubRepo = data.github_repo || "";
         updateCustomRepo = !!updateBuildRepo && updateBuildRepo !== "EnigmaCurry/rigbook";
       }
@@ -1202,7 +1204,8 @@
     </div>
     {#if update_check_enabled && updateCheckResult}
       <div class="update-status">
-        Current version: <strong>v{updateCheckResult.current}</strong>
+        Current version: <strong>v{updateCheckResult.current}</strong>{#if updateBuildSha}
+          (<a href="https://github.com/{updateGithubRepo}/commit/{updateBuildSha}" target="_blank" rel="noopener" class="sha-link">{updateBuildSha}</a>){/if}
         {#if updateCheckResult.is_dev}
           — 🚧 Development version — update checker is essentially disabled
         {:else if updateCheckResult.update_available}
@@ -1724,5 +1727,9 @@
   }
   .update-custom-repo-warning a {
     color: #2ecc40;
+  }
+  .sha-link {
+    font-family: monospace;
+    opacity: 0.7;
   }
 </style>
