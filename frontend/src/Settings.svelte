@@ -1044,7 +1044,7 @@
         {:else if updateCheckResult.is_exact}
           — You're running the latest version
         {:else if updateCheckResult.latest}
-          — 🚧 Development version — update checker is essentially disabled
+          — You're ahead of the latest release (v{updateCheckResult.latest})
         {:else}
           — Unable to check for updates
         {/if}
