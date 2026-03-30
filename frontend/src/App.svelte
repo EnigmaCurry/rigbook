@@ -195,7 +195,6 @@
   let updateLatest = "";
   let updateHasUpdate = false;
   let updateSupported = false;
-  let updateApplying = false;
   let vfoFreq = "";
   let vfoMode = "";
   let vfoConnected = false;
@@ -626,36 +625,6 @@
     } catch {}
     // Only show "Update Available" banner for GitHub release binaries with a newer version
     updateAvailable = updateSupported && updateHasUpdate;
-  }
-
-  async function applyUpdateFromHeader() {
-    if (updateApplying) return;
-    updateApplying = true;
-    try {
-      const res = await fetch("/api/update/apply", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) {
-        console.error("Update failed:", data.detail || data);
-        updateApplying = false;
-        return;
-      }
-      if (data.status === "up_to_date") {
-        updateApplying = false;
-        return;
-      }
-      await new Promise(r => setTimeout(r, 2000));
-      for (let i = 0; i < 30; i++) {
-        try {
-          const check = await fetch("/api/version");
-          if (check.ok) { window.location.reload(); return; }
-        } catch {}
-        await new Promise(r => setTimeout(r, 1000));
-      }
-      updateApplying = false;
-    } catch (e) {
-      console.error("Update error:", e);
-      updateApplying = false;
-    }
   }
 
   async function fetchPopupNotifEnabled() {
@@ -1137,7 +1106,7 @@
   {#if serverShutdown}
     <header>
       <div class="header-left">
-        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version" title={updateChecked && updateExact ? "Up to date" : updateChecked && updateDev ? "Development version" : !updateChecked ? "Enable update checker in the settings" : ""} on:click={() => navigate("about")} style="cursor: pointer">v{appVersion}{#if updateSupported && updateChecked && updateExact}<span class="up-to-date-check">✔</span>{/if}{#if updateChecked && updateDev}<span class="dev-version">🚧</span>{/if}{#if updateAvailable} <button class="update-link-btn" title={"v" + updateLatest + " available — click to update"} on:click|stopPropagation={applyUpdateFromHeader} disabled={updateApplying}>{updateApplying ? "Updating…" : "Update Available"}</button>{/if}</span>{/if}</h1>
+        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version" title={updateChecked && updateExact ? "Up to date" : updateChecked && updateDev ? "Development version" : !updateChecked ? "Enable update checker in the settings" : ""} on:click={() => navigate("about")} style="cursor: pointer">v{appVersion}{#if updateSupported && updateChecked && updateExact}<span class="up-to-date-check">✔</span>{/if}{#if updateChecked && updateDev}<span class="dev-version">🚧</span>{/if}{#if updateAvailable} <button class="update-link-btn" title={"v" + updateLatest + " available"} on:click|stopPropagation={() => { settingsTab = "updates"; navigate("settings"); }}>Update Available</button>{/if}</span>{/if}</h1>
       </div>
     </header>
     <div class="welcome-container">
@@ -1149,7 +1118,7 @@
   {:else if pendingLogbook}
     <header>
       <div class="header-left">
-        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version" title={updateChecked && updateExact ? "Up to date" : updateChecked && updateDev ? "Development version" : !updateChecked ? "Enable update checker in the settings" : ""} on:click={() => navigate("about")} style="cursor: pointer">v{appVersion}{#if updateSupported && updateChecked && updateExact}<span class="up-to-date-check">✔</span>{/if}{#if updateChecked && updateDev}<span class="dev-version">🚧</span>{/if}{#if updateAvailable} <button class="update-link-btn" title={"v" + updateLatest + " available — click to update"} on:click|stopPropagation={applyUpdateFromHeader} disabled={updateApplying}>{updateApplying ? "Updating…" : "Update Available"}</button>{/if}</span>{/if}</h1>
+        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version" title={updateChecked && updateExact ? "Up to date" : updateChecked && updateDev ? "Development version" : !updateChecked ? "Enable update checker in the settings" : ""} on:click={() => navigate("about")} style="cursor: pointer">v{appVersion}{#if updateSupported && updateChecked && updateExact}<span class="up-to-date-check">✔</span>{/if}{#if updateChecked && updateDev}<span class="dev-version">🚧</span>{/if}{#if updateAvailable} <button class="update-link-btn" title={"v" + updateLatest + " available"} on:click|stopPropagation={() => { settingsTab = "updates"; navigate("settings"); }}>Update Available</button>{/if}</span>{/if}</h1>
       </div>
       <span class="utc-clock">{utcNow}</span>
     </header>
@@ -1166,7 +1135,7 @@
   {:else if pickerMode && !logbookOpen}
     <header>
       <div class="header-left">
-        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version" title={updateChecked && updateExact ? "Up to date" : updateChecked && updateDev ? "Development version" : !updateChecked ? "Enable update checker in the settings" : ""} on:click={() => navigate("about")} style="cursor: pointer">v{appVersion}{#if updateSupported && updateChecked && updateExact}<span class="up-to-date-check">✔</span>{/if}{#if updateChecked && updateDev}<span class="dev-version">🚧</span>{/if}{#if updateAvailable} <button class="update-link-btn" title={"v" + updateLatest + " available — click to update"} on:click|stopPropagation={applyUpdateFromHeader} disabled={updateApplying}>{updateApplying ? "Updating…" : "Update Available"}</button>{/if}</span>{/if}</h1>
+        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version" title={updateChecked && updateExact ? "Up to date" : updateChecked && updateDev ? "Development version" : !updateChecked ? "Enable update checker in the settings" : ""} on:click={() => navigate("about")} style="cursor: pointer">v{appVersion}{#if updateSupported && updateChecked && updateExact}<span class="up-to-date-check">✔</span>{/if}{#if updateChecked && updateDev}<span class="dev-version">🚧</span>{/if}{#if updateAvailable} <button class="update-link-btn" title={"v" + updateLatest + " available"} on:click|stopPropagation={() => { settingsTab = "updates"; navigate("settings"); }}>Update Available</button>{/if}</span>{/if}</h1>
       </div>
       <span class="utc-clock">{utcNow}</span>
     </header>
@@ -1178,7 +1147,7 @@
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
         <h1 class="app-title" on:click={goHome} style="cursor: pointer"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>
-        {#if appVersion}<span class="app-version" title={updateChecked && updateExact ? "Up to date" : updateChecked && updateDev ? "Development version" : !updateChecked ? "Enable update checker in the settings" : ""} on:click={() => navigate("about")} style="cursor: pointer">v{appVersion}{#if updateSupported && updateChecked && updateExact}<span class="up-to-date-check">✔</span>{/if}{#if updateChecked && updateDev}<span class="dev-version">🚧</span>{/if}{#if updateAvailable} <button class="update-link-btn" title={"v" + updateLatest + " available — click to update"} on:click|stopPropagation={applyUpdateFromHeader} disabled={updateApplying}>{updateApplying ? "Updating…" : "Update Available"}</button>{/if}</span>{/if}
+        {#if appVersion}<span class="app-version" title={updateChecked && updateExact ? "Up to date" : updateChecked && updateDev ? "Development version" : !updateChecked ? "Enable update checker in the settings" : ""} on:click={() => navigate("about")} style="cursor: pointer">v{appVersion}{#if updateSupported && updateChecked && updateExact}<span class="up-to-date-check">✔</span>{/if}{#if updateChecked && updateDev}<span class="dev-version">🚧</span>{/if}{#if updateAvailable} <button class="update-link-btn" title={"v" + updateLatest + " available"} on:click|stopPropagation={() => { settingsTab = "updates"; navigate("settings"); }}>Update Available</button>{/if}</span>{/if}
       </div>
       {#if customHeader || myCallsign}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -1562,10 +1531,6 @@
   }
   .update-link-btn:hover {
     text-decoration: underline;
-  }
-  .update-link-btn:disabled {
-    opacity: 0.7;
-    cursor: default;
   }
 
   .vfo-bezel {
