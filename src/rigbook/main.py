@@ -263,6 +263,12 @@ if static_dir.is_dir():
 def run() -> None:
     import argparse
 
+    # On Windows windowed mode (no console), std streams are None — redirect to devnull
+    if sys.stdout is None:
+        sys.stdout = open(os.devnull, "w")
+    if sys.stderr is None:
+        sys.stderr = open(os.devnull, "w")
+
     parser = argparse.ArgumentParser(description="Rigbook - Ham Radio Logbook")
     parser.add_argument(
         "--version", action="version", version=f"rigbook {version('rigbook')}"
@@ -433,13 +439,27 @@ def run() -> None:
                 return f"{color}{msg}{self.RESET}"
             return msg
 
-    handler = logging.StreamHandler()
-    handler.setFormatter(
-        ColorFormatter(
-            fmt="%(asctime)s UTC %(levelname)s: %(name)s: %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
+    # On Windows windowed mode, log to a file instead of stderr
+    _windowed = getattr(sys, "frozen", False) and sys.platform == "win32" and not sys.stderr.isatty()
+    if _windowed:
+        from rigbook.db import DB_DIR
+
+        DB_DIR.mkdir(parents=True, exist_ok=True)
+        handler = logging.FileHandler(DB_DIR / "rigbook.log", encoding="utf-8")
+        handler.setFormatter(
+            logging.Formatter(
+                fmt="%(asctime)s UTC %(levelname)s: %(name)s: %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            )
         )
-    )
+    else:
+        handler = logging.StreamHandler()
+        handler.setFormatter(
+            ColorFormatter(
+                fmt="%(asctime)s UTC %(levelname)s: %(name)s: %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            )
+        )
     logging.basicConfig(level=log_level, handlers=[handler])
     logging.getLogger("aiosqlite").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)

@@ -50,7 +50,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,
+    console=(platform.system() != "Windows"),
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
