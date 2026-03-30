@@ -15,6 +15,7 @@
   import Spots from "./Spots.svelte";
   import LogbookPicker from "./LogbookPicker.svelte";
   import SearchResults from "./SearchResults.svelte";
+  import Query from "./Query.svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
   import { setLogbook, storageGet, storageSet, migrateStorage } from "./storage.js";
 
@@ -104,6 +105,11 @@
       const settingsTab = hash.split("/")[2] || null;
       return { page: "settings", editId: null, dualRight: null, settingsTab };
     }
+    if (hash === "/query" || hash.startsWith("/query?")) {
+      const qm = hash.indexOf("?");
+      const sp = qm >= 0 ? new URLSearchParams(hash.slice(qm + 1)) : null;
+      return { page: "query", editId: null, dualRight: null, querySql: sp?.get("sql") || "" };
+    }
     if (hash === "/export") return { page: "export", editId: null, dualRight: null };
     if (hash === "/search" || hash.startsWith("/search?")) {
       const qm = hash.indexOf("?");
@@ -137,6 +143,7 @@
   let defaultPage = "log";
   let settingsTab = _parsed.settingsTab || null;
   let searchQuery = _parsed.searchQuery || "";
+  let querySql = _parsed.querySql || "";
   let prefill = null;
   let formDirty = false;
   let activePark = "";
@@ -197,6 +204,7 @@
   let potaEnabled = false;
   let spotsEnabled = false;
   let solarEnabled = false;
+  let sqlQueryEnabled = false;
   let flrigEnabled = false;
   let flrigInterval;
   let utcNow = new Date().toISOString().slice(0, 19).replace("T", " ") + "z";
@@ -267,6 +275,7 @@
     await fetchSolarEnabled();
     await fetchSpotsEnabled();
     await fetchPotaEnabled();
+    await fetchSqlQueryEnabled();
     await fetchFlrigEnabled();
     if (flrigEnabled) {
       fetchRadioModes();
@@ -687,6 +696,16 @@
     } catch {}
   }
 
+  async function fetchSqlQueryEnabled() {
+    try {
+      const res = await fetch("/api/settings/sql_query_enabled");
+      if (res.ok) {
+        const data = await res.json();
+        sqlQueryEnabled = data.value === "true";
+      }
+    } catch {}
+  }
+
   async function fetchFlrigEnabled() {
     try {
       const res = await fetch("/api/settings/flrig_enabled");
@@ -748,6 +767,7 @@
     if (p === "spots" && !spotsEnabled) p = "log";
     if (p === "parks" && !potaEnabled) p = "log";
     if (p === "conditions" && !solarEnabled) p = "log";
+    if (p === "query" && !sqlQueryEnabled) p = "log";
 
     if (isWide() && (p === "add" || p === "log" || DUAL_RIGHT_PAGES.has(p))) {
       if (DUAL_RIGHT_PAGES.has(p)) dualRightPage = p;
@@ -766,7 +786,7 @@
     if (p === "dual") {
       window.location.hash = `/dual/${dualRightPage}`;
     } else {
-      const paths = { hunting: "/hunting", log: "/logbook", add: "/add", grid: "/grid", parks: "/parks", spots: "/spots", export: "/export", search: "/search", notifications: "/notifications", conditions: "/conditions", settings: settingsTab ? `/settings/${settingsTab}` : "/settings", links: "/links", about: "/about", picker: "/picker" };
+      const paths = { hunting: "/hunting", log: "/logbook", add: "/add", grid: "/grid", parks: "/parks", spots: "/spots", query: "/query", export: "/export", search: "/search", notifications: "/notifications", conditions: "/conditions", settings: settingsTab ? `/settings/${settingsTab}` : "/settings", links: "/links", about: "/about", picker: "/picker" };
       window.location.hash = paths[p] || "/";
     }
     setTimeout(() => { navigating = false; }, 0);
@@ -922,12 +942,14 @@
     if (p === "spots" && !spotsEnabled) p = isWide() ? "dual" : "log";
     if (p === "parks" && !potaEnabled) p = isWide() ? "dual" : "log";
     if (p === "conditions" && !solarEnabled) p = isWide() ? "dual" : "log";
+    if (p === "query" && !sqlQueryEnabled) p = isWide() ? "dual" : "log";
     // Don't clear editId when staying on dual (e.g. switching right pane)
     if (!(page === "dual" && p === "dual" && editId && !parsed.editId)) {
       editId = parsed.editId;
     }
     settingsTab = parsed.settingsTab || null;
     searchQuery = parsed.searchQuery || "";
+    querySql = parsed.querySql || "";
     page = p;
     if (parsed.dualRight) {
       if ((parsed.dualRight === "spots" && !spotsEnabled) || (parsed.dualRight === "parks" && !potaEnabled) || (parsed.dualRight === "conditions" && !solarEnabled)) {
@@ -1066,7 +1088,7 @@
   });
 </script>
 
-<main class:dual-mode={page === "dual"} class:parks-mode={page === "parks"} class:spots-mode={page === "spots"} class:grid-mode={page === "grid"} class:export-mode={page === "export"} class:search-mode={page === "search"}>
+<main class:dual-mode={page === "dual"} class:parks-mode={page === "parks"} class:spots-mode={page === "spots"} class:grid-mode={page === "grid"} class:export-mode={page === "export"} class:search-mode={page === "search"} class:query-mode={page === "query"}>
   {#if serverShutdown}
     <header>
       <div class="header-left">
@@ -1204,6 +1226,7 @@
           {#if solarEnabled}<button class="menu-item" class:active={page === "conditions" || (page === "dual" && dualRightPage === "conditions")} on:click={() => navigate("conditions")}>Conditions</button>{/if}
           <button class="menu-item" class:active={page === "search"} on:click={() => { searchQuery = ""; navigate("search"); }}>Search</button>
           <button class="menu-item" class:active={page === "export"} on:click={() => navigate("export")}>Import / Export</button>
+          {#if sqlQueryEnabled}<button class="menu-item" class:active={page === "query"} on:click={() => navigate("query")}>SQL Query</button>{/if}
           <button class="menu-item" class:active={page === "settings"} on:click={() => navigate("settings")}>Settings</button>
           <button class="menu-item" class:active={page === "links"} on:click={() => navigate("links")}>Links</button>
           <button class="menu-item" class:active={page === "about"} on:click={() => navigate("about")}>About</button>
@@ -1253,12 +1276,14 @@
       <Hunting {potaEnabled} {spotsEnabled} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
     {:else if page === "search"}
       <SearchResults initialQuery={searchQuery} on:editcontact={e => { editId = e.detail; navigate("add"); window.location.hash = `/log/${e.detail}`; }} />
+    {:else if page === "query"}
+      <Query initialSql={querySql} />
     {:else if page === "export"}
       <ExportImport />
     {:else if page === "notifications"}
       <Notifications on:countchange={() => fetchUnreadCount()} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
     {:else if page === "settings"}
-      <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} initialTab={settingsTab} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { fetchCallsign(); fetchCustomHeader(); fetchDefaultPage(); applyTheme(); fetchPopupNotifEnabled(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchFlrigEnabled(); fetchUpdateCheck(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { setShutdownState(); }} />
+      <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} initialTab={settingsTab} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchSqlQueryEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { fetchCallsign(); fetchCustomHeader(); fetchDefaultPage(); applyTheme(); fetchPopupNotifEnabled(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchSqlQueryEnabled(); await fetchFlrigEnabled(); fetchUpdateCheck(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { setShutdownState(); }} />
     {:else if page === "links"}
       <Links />
     {:else if page === "conditions"}
@@ -1399,7 +1424,8 @@
     margin: 0 auto;
   }
 
-  :global(main.export-mode) {
+  :global(main.export-mode),
+  :global(main.query-mode) {
     display: flex;
     flex-direction: column;
     height: 100vh;
@@ -1408,7 +1434,8 @@
   }
 
   :global(main.export-mode) .page-content,
-  :global(main.search-mode) .page-content {
+  :global(main.search-mode) .page-content,
+  :global(main.query-mode) .page-content {
     max-width: 100%;
     margin: 0;
     flex: 1;
