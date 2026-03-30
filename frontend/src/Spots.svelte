@@ -1525,10 +1525,9 @@
     right: 0;
     top: 0;
     bottom: 0;
-    width: 6px;
+    width: 5px;
     cursor: col-resize;
     background: transparent;
-    z-index: 2;
   }
 
   .spots-table .resize-handle:hover,
