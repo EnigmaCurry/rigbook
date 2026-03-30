@@ -259,6 +259,9 @@ def run() -> None:
 
     parser = argparse.ArgumentParser(description="Rigbook - Ham Radio Logbook")
     parser.add_argument(
+        "--version", action="version", version=f"rigbook {version('rigbook')}"
+    )
+    parser.add_argument(
         "-v", "--verbose", action="store_true", help="Enable verbose/debug logging"
     )
     parser.add_argument(
