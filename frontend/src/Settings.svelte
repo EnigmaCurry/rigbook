@@ -1058,7 +1058,7 @@
     <div class="setting-row toggle-row">
       <label>
         <input type="checkbox" bind:checked={rbn_idle_timeout_enabled} on:change={onRbnIdleTimeoutEnabledChange} disabled={!rbn_enabled} />
-        Disconnect when idle
+        Disconnect RBN when no web clients are connected to Rigbook
       </label>
     </div>
     <div class="setting-row">
