@@ -13,7 +13,7 @@
 </script>
 
 <div class="about">
-  <h2>Rigbook {version ? `v${version}` : ""}</h2>
+  <h2>Rigbook {version ? `v${version}` : ""} <a href="#/settings/updates" class="updates-link">Check for updates</a></h2>
   <p>A ham radio logbook web application.</p>
   <p>
     <a href="https://github.com/EnigmaCurry/rigbook" target="_blank" rel="noopener">
@@ -95,6 +95,12 @@
     font-family: monospace;
     font-size: 0.9rem;
     width: 60px;
+  }
+
+  .updates-link {
+    font-size: 0.55em;
+    color: var(--accent);
+    font-weight: normal;
   }
 
   .license {
