@@ -936,12 +936,13 @@ async def _idle_check_loop() -> None:
         if last_disconnect is None:
             continue
         if _time.time() - last_disconnect >= timeout_hours * 3600:
-            logger.info(
-                "RBN idle timeout: no web clients for %.1f hours, closing connection",
-                timeout_hours,
-            )
             await rbn_feed.stop()
             _rbn_stopped_for_idle = True
+            logger.info(
+                "RBN idle timeout: no web clients for %.1f hours, disconnected."
+                " Will reconnect automatically when a client connects.",
+                timeout_hours,
+            )
 
 
 def _on_last_client_disconnect() -> None:
