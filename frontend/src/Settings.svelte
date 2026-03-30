@@ -32,6 +32,7 @@
   let updateGithubRepo = "";
   let updateBuildRepo = "";
   let updateBuildSha = "";
+  let updateOfficialBuild = false;
   let flrig_enabled = false;
   let flrig_simulate = false;
   let flrig_host = "127.0.0.1";
@@ -778,6 +779,7 @@
         updateBuildRepo = data.build_origin_repo || "";
         updateBuildSha = data.build_git_sha || "";
         updateGithubRepo = data.github_repo || "";
+        updateOfficialBuild = data.build_github_actions || false;
         updateCustomRepo = !!updateBuildRepo && updateBuildRepo !== "EnigmaCurry/rigbook";
       }
     } catch {}
@@ -1196,51 +1198,59 @@
   <div class="tab-content">
   <section class="settings-section">
     <h3>Update Checker</h3>
-    <div class="setting-row toggle-row">
-      <label>
-        <input type="checkbox" bind:checked={update_check_enabled} on:change={onUpdateCheckEnabledChange} />
-        Check for new Rigbook releases on GitHub
-      </label>
-    </div>
-    {#if update_check_enabled && updateCheckResult}
-      <div class="update-status">
-        Current version: <strong>v{updateCheckResult.current}</strong>{#if updateBuildSha}
-          (<a href="https://github.com/{updateGithubRepo}/commit/{updateBuildSha}" target="_blank" rel="noopener" class="sha-link">{updateBuildSha}</a>){/if}
-        {#if updateCheckResult.is_dev}
-          — 🚧 Development version — update checker is essentially disabled
-        {:else if updateCheckResult.update_available}
-          — <span class="update-available">Update available: v{updateCheckResult.latest}</span>
-          {#if updateSupported}
-            <button class="check-now-btn apply-update-btn" on:click={confirmAndApplyUpdate} disabled={updateApplying}>
-              {updateApplying ? "Updating…" : "Apply Update"}
-            </button>
+    {#if updateOfficialBuild}
+      <div class="setting-row toggle-row">
+        <label>
+          <input type="checkbox" bind:checked={update_check_enabled} on:change={onUpdateCheckEnabledChange} />
+          Check for new Rigbook releases on GitHub
+        </label>
+      </div>
+      {#if update_check_enabled && updateCheckResult}
+        <div class="update-status">
+          Current version: <strong>v{updateCheckResult.current}</strong>{#if updateBuildSha}
+            (<a href="https://github.com/{updateGithubRepo}/commit/{updateBuildSha}" target="_blank" rel="noopener" class="sha-link">{updateBuildSha}</a>){/if}
+          {#if updateCheckResult.is_dev}
+            — Development version — update checker is disabled
+          {:else if updateCheckResult.update_available}
+            — <span class="update-available">Update available: v{updateCheckResult.latest}</span>
+            {#if updateSupported}
+              <button class="check-now-btn apply-update-btn" on:click={confirmAndApplyUpdate} disabled={updateApplying}>
+                {updateApplying ? "Updating…" : "Apply Update"}
+              </button>
+            {:else}
+              — <a href={updateCheckResult.url} target="_blank" rel="noopener" class="update-available">Download</a>
+            {/if}
+            {#if updateApplyError}
+              <span class="update-error">{updateApplyError}</span>
+            {/if}
+          {:else if updateCheckResult.is_exact}
+            — You're running the latest version
+          {:else if updateCheckResult.latest}
+            — You're ahead of the latest release (v{updateCheckResult.latest})
           {:else}
-            — <a href={updateCheckResult.url} target="_blank" rel="noopener" class="update-available">Download</a>
+            — Unable to check for updates
           {/if}
-          {#if updateApplyError}
-            <span class="update-error">{updateApplyError}</span>
+        </div>
+        <div class="update-check-meta">
+          {#if updateCheckResult.checked_at}
+            Checked {formatTimeAgo(updateCheckResult.checked_at)}
           {/if}
-        {:else if updateCheckResult.is_exact}
-          — You're running the latest version
-        {:else if updateCheckResult.latest}
-          — You're ahead of the latest release (v{updateCheckResult.latest})
-        {:else}
-          — Unable to check for updates
-        {/if}
+          <button class="check-now-btn" on:click={fetchUpdateCheck} disabled={updateChecking}>
+            {updateChecking ? "Checking…" : "Check now"}
+          </button>
+        </div>
+      {/if}
+      {#if updateCustomRepo}
+        <div class="update-custom-repo-warning">
+          Warning: using custom update source <a href="https://github.com/{updateBuildRepo}" target="_blank" rel="noopener"><strong>{updateBuildRepo}</strong></a>
+        </div>
+      {/if}
+    {:else}
+      <div class="update-status">
+        Version: <strong>v{updateCheckResult?.current || '...'}</strong>{#if updateBuildSha}
+          (<a href="https://github.com/{updateGithubRepo}/commit/{updateBuildSha}" target="_blank" rel="noopener" class="sha-link">{updateBuildSha}</a>){/if}
       </div>
-      <div class="update-check-meta">
-        {#if updateCheckResult.checked_at}
-          Checked {formatTimeAgo(updateCheckResult.checked_at)}
-        {/if}
-        <button class="check-now-btn" on:click={fetchUpdateCheck} disabled={updateChecking}>
-          {updateChecking ? "Checking…" : "Check now"}
-        </button>
-      </div>
-    {/if}
-    {#if updateCustomRepo}
-      <div class="update-custom-repo-warning">
-        Warning: using custom update source <a href="https://github.com/{updateBuildRepo}" target="_blank" rel="noopener"><strong>{updateBuildRepo}</strong></a>
-      </div>
+      <p class="hint">Update checking is disabled for local builds.</p>
     {/if}
   </section>
   </div>
