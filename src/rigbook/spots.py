@@ -918,7 +918,7 @@ async def _idle_disconnect_after(timeout_minutes: int) -> None:
     """Sleep for exactly the timeout duration, then disconnect RBN."""
     global _rbn_stopped_for_idle
     disconnect_at = datetime.now(timezone.utc) + timedelta(minutes=timeout_minutes)
-    logger.info(
+    logger.debug(
         "RBN: no web clients, will disconnect at %s UTC (%dm)",
         disconnect_at.strftime("%Y-%m-%d %H:%M:%S"),
         timeout_minutes,
@@ -964,7 +964,7 @@ def _cancel_idle_disconnect() -> None:
     if _idle_disconnect_task and not _idle_disconnect_task.done():
         _idle_disconnect_task.cancel()
         _idle_disconnect_task = None
-        logger.info("RBN: idle disconnect cancelled, client connected")
+        logger.debug("RBN: idle disconnect cancelled, client connected")
 
 
 def _on_last_client_disconnect() -> None:
