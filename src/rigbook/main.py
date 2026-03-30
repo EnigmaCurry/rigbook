@@ -354,11 +354,6 @@ def run() -> None:
     logging.getLogger("aiosqlite").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
-    # Route uvicorn logs through the root logger so they use our formatter
-    for uv_name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
-        uv_logger = logging.getLogger(uv_name)
-        uv_logger.handlers.clear()
-        uv_logger.propagate = True
 
     host = os.environ.get("RIGBOOK_HOST", "127.0.0.1")
     port = args.port or int(os.environ.get("RIGBOOK_PORT", "8073"))
@@ -383,4 +378,4 @@ def run() -> None:
 
         threading.Thread(target=open_browser, daemon=True).start()
 
-    uvicorn.run(app, host=host, port=port, access_log=False)
+    uvicorn.run(app, host=host, port=port, access_log=False, log_config=None)
