@@ -28,6 +28,11 @@ build: _check-node
     @test -d frontend/node_modules || { echo "Error: frontend dependencies not installed. Run 'just deps' first."; exit 1; }
     cd frontend && npm run build
 
+# Build a standalone binary with PyInstaller
+build-binary: _check-uv build
+    uv sync --group build
+    uv run pyinstaller rigbook.spec
+
 # Run frontend dev server with HMR
 dev: _check-node
     @test -d frontend/node_modules || { echo "Error: frontend dependencies not installed. Run 'just deps' first."; exit 1; }
