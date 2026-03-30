@@ -16,6 +16,7 @@ import logging
 import math
 import re
 import time as _time
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
 
 import httpx
@@ -942,6 +943,36 @@ async def _idle_check_loop() -> None:
             _rbn_stopped_for_idle = True
 
 
+def _on_last_client_disconnect() -> None:
+    """Called when an SSE client disconnects. If none remain, log projected RBN idle time."""
+    from rigbook.sse import subscriber_count
+
+    if subscriber_count() > 0:
+        return
+    if _rbn_stopped_for_idle or not rbn_feed.connected:
+        return
+    asyncio.create_task(_log_idle_disconnect_time())
+
+
+async def _log_idle_disconnect_time() -> None:
+    settings = await _read_feed_settings()
+    rbn_enabled = settings.get("rbn_enabled", "false").lower() == "true"
+    if not rbn_enabled:
+        return
+    try:
+        timeout_hours = float(settings.get("rbn_idle_timeout_hours", "24") or "24")
+    except (ValueError, TypeError):
+        return
+    if timeout_hours <= 0:
+        return
+    disconnect_at = datetime.now(timezone.utc) + timedelta(hours=timeout_hours)
+    logger.info(
+        "RBN: no web clients, will disconnect at %s UTC (%.1fh)",
+        disconnect_at.strftime("%Y-%m-%d %H:%M"),
+        timeout_hours,
+    )
+
+
 def _on_client_connect() -> None:
     """Called when an SSE client connects. Restart RBN if it was idle-stopped."""
     global _rbn_stopped_for_idle
@@ -1013,9 +1044,10 @@ async def start_feeds() -> None:
     global _prune_task, _idle_check_task
     _prune_task = asyncio.create_task(_prune_loop())
     _idle_check_task = asyncio.create_task(_idle_check_loop())
-    from rigbook.sse import register_connect_callback
+    from rigbook.sse import register_connect_callback, register_disconnect_callback
 
     register_connect_callback(_on_client_connect)
+    register_disconnect_callback(_on_last_client_disconnect)
     settings = await _read_feed_settings()
     await _apply_settings(settings)
 
