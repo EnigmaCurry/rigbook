@@ -39,7 +39,7 @@ from rigbook.routes.settings import (
 from rigbook.routes.query import router as query_router
 from rigbook.routes.solar import router as solar_router
 from rigbook.routes.update import router as update_router
-from rigbook._build_info import BUILD_GIT_SHA, BUILD_ORIGIN_REPO
+from rigbook._build_info import BUILD_GIT_SHA, BUILD_GITHUB_ACTIONS, BUILD_ORIGIN_REPO
 
 logger = logging.getLogger("rigbook")
 
@@ -144,6 +144,10 @@ async def check_for_update(
     session: AsyncSession = Depends(get_session), bust: bool = False
 ):
     current = version("rigbook")
+
+    # Only check updates for official GitHub Actions builds
+    if not BUILD_GITHUB_ACTIONS:
+        return {"current": current, "latest": None, "update_available": False}
 
     # Check if update checking is disabled (skip when bust=True so settings page can force-check)
     if not bust:
