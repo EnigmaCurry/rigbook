@@ -20,18 +20,21 @@ deps: _check-uv _check-node
     cd frontend && npm install
 
 # Run the server (builds frontend first)
-run *ARGS: _check-uv build
+run *ARGS: _check-uv build-frontend
     uv run rigbook {{ ARGS }}
 
 # Build the frontend
-build: _check-node
+build-frontend: _check-node
     @test -d frontend/node_modules || { echo "Error: frontend dependencies not installed. Run 'just deps' first."; exit 1; }
     cd frontend && npm run build
 
 # Build a standalone binary with PyInstaller
-build-binary: _check-uv build
+build-binary: _check-uv build-frontend
     uv sync --group build
     uv run pyinstaller rigbook.spec
+
+# Build everything (frontend + binary)
+build: build-frontend build-binary
 
 # Run frontend dev server with HMR
 dev: _check-node
