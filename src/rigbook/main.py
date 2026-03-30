@@ -79,6 +79,8 @@ async def lifespan(app: FastAPI):
 
     signal.signal(signal.SIGINT, _handle_shutdown_signal)
     signal.signal(signal.SIGTERM, _handle_shutdown_signal)
+    if GITHUB_REPO != "EnigmaCurry/rigbook":
+        logger.warning("Custom update source: RIGBOOK_GITHUB_REPO=%s", GITHUB_REPO)
     await init_db()
     if db_manager.is_open:
         await start_feeds()
