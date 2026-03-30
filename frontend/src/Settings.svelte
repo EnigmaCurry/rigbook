@@ -162,6 +162,7 @@
   let autoBackupHours = 24;
   let autoBackupMax = 10;
   let backupSaveTimer = null;
+  let backupSettingsReady = false;
 
   async function loadDbInfo() {
     try {
@@ -178,6 +179,8 @@
         autoBackupEnabled = backupStatus.auto_enabled;
         autoBackupHours = backupStatus.interval_hours;
         autoBackupMax = backupStatus.max_backups;
+        await tick();
+        backupSettingsReady = true;
       }
     } catch { /* ignore */ }
   }
@@ -216,6 +219,7 @@
   }
 
   async function saveAutoBackupSettings() {
+    if (!backupSettingsReady) return;  // not yet loaded — skip spurious saves
     clearTimeout(backupSaveTimer);
     backupSaveTimer = setTimeout(async () => {
       try {
