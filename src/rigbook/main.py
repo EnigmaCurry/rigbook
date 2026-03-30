@@ -281,8 +281,19 @@ def run() -> None:
             try:
                 db_manager.check_lock(db_path)
             except DatabaseLockError as e:
-                print(f"Error: {e}", file=sys.stderr)
-                sys.exit(1)
+                no_browser = args.no_browser or os.environ.get(
+                    "RIGBOOK_NO_BROWSER", ""
+                ).lower() in ("1", "true", "yes")
+                lock_info = db_manager.read_lock_info(db_path)
+                if not no_browser and lock_info and "host" in lock_info:
+                    import webbrowser
+
+                    url = f"http://{lock_info['host']}:{lock_info['port']}"
+                    print(f"{e} — opening {url}")
+                    webbrowser.open(url)
+                else:
+                    print(f"Error: {e}", file=sys.stderr)
+                sys.exit(0 if not no_browser and lock_info else 1)
 
     log_level = "DEBUG" if args.verbose else "INFO"
     logging.Formatter.converter = time.gmtime
