@@ -557,7 +557,6 @@ class RBNFeed:
                 )
 
     async def stop(self) -> None:
-        was_running = self._should_run or bool(self._tasks)
         self._should_run = False
         for name, task in list(self._tasks.items()):
             task.cancel()
@@ -567,8 +566,6 @@ class RBNFeed:
                 pass
         self._tasks.clear()
         self._connected.clear()
-        if was_running:
-            logger.info("RBN: disconnected")
 
     async def _run_loop(self, **kwargs: object) -> None:
         name = str(kwargs.get("name", ""))
