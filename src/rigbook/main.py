@@ -385,13 +385,21 @@ def run() -> None:
 
                 if not replaced:
                     if not same_lineage:
+                        import platform as _platform
+
                         running_desc = running_origin or "unknown"
                         my_desc = my_origin or "unknown"
+                        pid = lock_info.get("pid", "?")
+                        if _platform.system() == "Windows":
+                            kill_cmd = f"taskkill /PID {pid} /F"
+                        else:
+                            kill_cmd = f"kill {pid}"
                         print(
-                            f"Error: Rigbook is already running (PID {lock_info.get('pid', '?')}) "
+                            f"Error: Rigbook is already running (PID {pid}) "
                             f"from a different build origin ({running_desc}).\n"
                             f"This binary is from {my_desc}. "
-                            f"Stop the other instance first.",
+                            f"Stop the other instance first:\n"
+                            f"  {kill_cmd}",
                             file=sys.stderr,
                         )
                         sys.exit(1)
