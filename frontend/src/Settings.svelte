@@ -12,6 +12,7 @@
   export let pickerMode = false;
   export let needsSetup = false;
   export let initialTab = null;
+  export let clientCount = 0;
 
   const dispatch = createEventDispatcher();
 
@@ -1346,6 +1347,7 @@
   {#if !noShutdown}
   <section class="settings-section">
     <h3>Shutdown</h3>
+    <p class="hint">Connected clients: {clientCount}</p>
     <div class="setting-row toggle-row">
       <label class="toggle-label">
         <input type="checkbox" bind:checked={autoShutdownOnDisconnect} on:change={() => saveSetting("auto_shutdown_on_disconnect", autoShutdownOnDisconnect ? "true" : "false")} />

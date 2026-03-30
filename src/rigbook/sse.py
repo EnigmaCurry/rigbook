@@ -135,6 +135,16 @@ async def _sse_generator(queue: asyncio.Queue[str]):
         return
 
 
+def _broadcast_client_count() -> None:
+    """Notify all connected clients of the current subscriber count."""
+    broadcast("clients", {"count": len(_subscribers)})
+
+
+@router.get("/clients")
+async def get_client_count():
+    return {"count": subscriber_count()}
+
+
 @router.get("/stream")
 async def event_stream(request: Request):
     global _last_client_disconnected_at, _ever_had_client
@@ -144,6 +154,7 @@ async def event_stream(request: Request):
     _subscribers.append(queue)
     _ever_had_client = True
     logger.info("SSE client    connected from %s (total: %d)", client_addr, len(_subscribers))
+    _broadcast_client_count()
     for cb in _on_connect_callbacks:
         cb()
 
@@ -160,6 +171,7 @@ async def event_stream(request: Request):
             if len(_subscribers) == 0:
                 _last_client_disconnected_at = time.time()
             logger.info("SSE client disconnected from %s (total: %d)", client_addr, len(_subscribers))
+            _broadcast_client_count()
             for cb in _on_disconnect_callbacks:
                 cb()
 
