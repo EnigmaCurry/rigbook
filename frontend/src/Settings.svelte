@@ -1708,4 +1708,7 @@
     border-radius: 4px;
     background: rgba(243, 156, 18, 0.1);
   }
+  .update-custom-repo-warning a {
+    color: #2ecc40;
+  }
 </style>
