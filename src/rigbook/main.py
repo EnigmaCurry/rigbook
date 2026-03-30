@@ -384,6 +384,17 @@ def run() -> None:
                                 replaced = True
 
                 if not replaced:
+                    if not same_lineage:
+                        running_desc = running_origin or "unknown"
+                        my_desc = my_origin or "unknown"
+                        print(
+                            f"Error: Rigbook is already running (PID {lock_info.get('pid', '?')}) "
+                            f"from a different build origin ({running_desc}).\n"
+                            f"This binary is from {my_desc}. "
+                            f"Stop the other instance first.",
+                            file=sys.stderr,
+                        )
+                        sys.exit(1)
                     if not no_browser and lock_info and "host" in lock_info:
                         url = f"http://{lock_info['host']}:{lock_info['port']}"
                         browser_name = _detect_browser_name()
