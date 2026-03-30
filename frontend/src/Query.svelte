@@ -15,6 +15,9 @@
   let cannedSelect = "";
   let schema = null;
   let showSchema = true;
+  let textareaEl;
+  let taHeight = 120;
+  let taResizing = false;
 
   const cannedQueries = [
     { label: "All contacts (latest 100)", sql: "SELECT * FROM contacts ORDER BY timestamp DESC LIMIT 100" },
@@ -151,6 +154,28 @@
     window.addEventListener("touchmove", onMove);
     window.addEventListener("touchend", onUp);
   }
+
+  function startTaResize(e) {
+    e.preventDefault();
+    taResizing = true;
+    const startY = e.clientY || e.touches?.[0]?.clientY;
+    const startH = taHeight;
+    const onMove = (ev) => {
+      const clientY = ev.clientY || ev.touches?.[0]?.clientY;
+      taHeight = Math.max(60, startH + clientY - startY);
+    };
+    const onUp = () => {
+      taResizing = false;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("touchmove", onMove);
+      window.removeEventListener("touchend", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    window.addEventListener("touchmove", onMove);
+    window.addEventListener("touchend", onUp);
+  }
 </script>
 
 <div class="query-page">
@@ -158,14 +183,21 @@
     <h2>SQL Query</h2>
 
     <div class="editor">
-      <textarea
-        bind:value={sql}
-        on:keydown={handleKeydown}
-        on:blur={updateUrl}
-        rows="4"
-        spellcheck="false"
-        placeholder="SELECT * FROM contacts WHERE ..."
-      ></textarea>
+      <div class="ta-wrap" class:ta-resizing={taResizing}>
+        <textarea
+          bind:this={textareaEl}
+          bind:value={sql}
+          on:keydown={handleKeydown}
+          on:blur={updateUrl}
+          style="height: {taHeight}px"
+          spellcheck="false"
+          placeholder="SELECT * FROM contacts WHERE ..."
+        ></textarea>
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div class="ta-resize-handle" on:mousedown={startTaResize} on:touchstart={startTaResize}>
+          <span class="ta-grip"></span>
+        </div>
+      </div>
       <p class="hint">Read-only access to the tables: <code>cache</code>, <code>contacts</code>, <code>notifications</code>, <code>pota_programs</code>, <code>pota_locations</code>, <code>pota_parks</code>.<br>Max 10000 rows shown on this page. Downloading JSON/CSV returns all rows.<br>After writing your query, you may bookmark this page, and the query will be saved in the bookmark.</p>
       <div class="buttons">
         <select class="canned-select" bind:value={cannedSelect} on:change={applyCanned}>
@@ -288,21 +320,49 @@
     cursor: pointer;
     align-self: flex-start;
   }
+  .ta-wrap {
+    position: relative;
+  }
+  .ta-wrap.ta-resizing {
+    user-select: none;
+  }
   textarea {
     width: 100%;
     font-family: monospace;
     font-size: 0.9rem;
     padding: 0.5rem;
     border: 1px solid var(--border-input);
-    border-radius: 4px;
+    border-radius: 4px 4px 0 0;
     background: var(--bg-input);
     color: var(--text);
-    resize: vertical;
+    resize: none;
     box-sizing: border-box;
   }
   textarea:focus {
     outline: none;
     border-color: var(--accent);
+  }
+  .ta-resize-handle {
+    width: 100%;
+    height: 10px;
+    cursor: ns-resize;
+    background: var(--bg-card);
+    border: 1px solid var(--border-input);
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ta-resize-handle:hover {
+    background: var(--btn-secondary);
+  }
+  .ta-grip {
+    display: block;
+    width: 30px;
+    height: 2px;
+    border-top: 1px solid var(--text-muted);
+    border-bottom: 1px solid var(--text-muted);
   }
   .buttons {
     display: flex;
