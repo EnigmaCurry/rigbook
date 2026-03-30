@@ -1,6 +1,20 @@
 # -*- mode: python ; coding: utf-8 -*-
 import platform
+import subprocess
 from pathlib import Path
+
+# Inject git SHA into _build_info.py if not already set (e.g. local builds)
+build_info_path = Path("src/rigbook/_build_info.py")
+build_info = build_info_path.read_text()
+if 'BUILD_GIT_SHA = ""' in build_info:
+    try:
+        sha = subprocess.check_output(
+            ["git", "rev-parse", "--short=8", "HEAD"], text=True
+        ).strip()
+        build_info = build_info.replace('BUILD_GIT_SHA = ""', f'BUILD_GIT_SHA = "{sha}"')
+        build_info_path.write_text(build_info)
+    except Exception:
+        pass
 
 block_cipher = None
 static_dir = Path("src/rigbook/static")

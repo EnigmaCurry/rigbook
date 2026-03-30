@@ -39,7 +39,7 @@ from rigbook.routes.settings import (
 from rigbook.routes.query import router as query_router
 from rigbook.routes.solar import router as solar_router
 from rigbook.routes.update import router as update_router
-from rigbook._build_info import BUILD_ORIGIN_REPO
+from rigbook._build_info import BUILD_GIT_SHA, BUILD_ORIGIN_REPO
 
 logger = logging.getLogger("rigbook")
 
@@ -265,7 +265,7 @@ def run() -> None:
 
     parser = argparse.ArgumentParser(description="Rigbook - Ham Radio Logbook")
     parser.add_argument(
-        "--version", action="version", version=f"rigbook {version('rigbook')} ({BUILD_ORIGIN_REPO or 'local build'})"
+        "--version", action="version", version=f"rigbook {version('rigbook')} ({BUILD_ORIGIN_REPO or 'local build'}{' ' + BUILD_GIT_SHA if BUILD_GIT_SHA else ''})"
     )
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="Enable verbose/debug logging"
