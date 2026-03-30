@@ -407,7 +407,9 @@ def run() -> None:
                     if not no_browser and lock_info and "host" in lock_info:
                         url = f"http://{lock_info['host']}:{lock_info['port']}"
                         browser_name = _detect_browser_name()
-                        print(f"{e} — opening {url} in {browser_name}")
+                        rv = running_version or current
+                        origin = running_origin or "local"
+                        print(f"Rigbook v{rv} ({origin}) is already running — opening {url} in {browser_name}")
                         webbrowser.open(url)
                     else:
                         print(f"Error: {e}", file=sys.stderr)
