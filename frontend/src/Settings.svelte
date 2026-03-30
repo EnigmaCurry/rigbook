@@ -1350,7 +1350,7 @@
     </div>
     <p class="hint">When enabled, the server will shut down after 15 seconds with no connected clients.</p>
     <div class="setting-row">
-      <button class="danger-btn" on:click={shutdownServer}>Shutdown Server</button>
+      <button class="danger-btn" on:click={shutdownServer}>Shutdown Now</button>
     </div>
   </section>
   {/if}
