@@ -275,6 +275,24 @@ def run() -> None:
 
     db_manager.configure(db_name=args.name, picker=args.pick)
 
+    import subprocess
+    import webbrowser
+
+    def _detect_browser_name() -> str:
+        name = webbrowser.get().name
+        if name == "xdg-open":
+            try:
+                result = subprocess.run(
+                    ["xdg-settings", "get", "default-web-browser"],
+                    capture_output=True, text=True, timeout=5,
+                )
+                desktop = result.stdout.strip()
+                if desktop:
+                    return desktop.removesuffix(".desktop")
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+        return name
+
     if not db_manager.picker_mode:
         db_path = db_manager.default_db_path
         if db_path.exists() or not db_manager._db_override:
@@ -286,10 +304,8 @@ def run() -> None:
                 ).lower() in ("1", "true", "yes")
                 lock_info = db_manager.read_lock_info(db_path)
                 if not no_browser and lock_info and "host" in lock_info:
-                    import webbrowser
-
                     url = f"http://{lock_info['host']}:{lock_info['port']}"
-                    browser_name = webbrowser.get().name
+                    browser_name = _detect_browser_name()
                     print(f"{e} — opening {url} in {browser_name}")
                     webbrowser.open(url)
                 else:
@@ -313,7 +329,6 @@ def run() -> None:
     db_manager.set_listen_addr(host, port)
 
     import threading
-    import webbrowser
 
     no_browser = args.no_browser or os.environ.get(
         "RIGBOOK_NO_BROWSER", ""
@@ -325,7 +340,7 @@ def run() -> None:
             import time
 
             time.sleep(1)
-            browser_name = webbrowser.get().name
+            browser_name = _detect_browser_name()
             logger.info("Opening %s in %s", url, browser_name)
             webbrowser.open(url)
 
