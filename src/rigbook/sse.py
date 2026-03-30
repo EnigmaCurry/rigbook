@@ -92,7 +92,7 @@ async def event_stream(request: Request):
     client_addr = f"{client.host}:{client.port}" if client else "unknown"
     queue: asyncio.Queue[str] = asyncio.Queue(maxsize=64)
     _subscribers.append(queue)
-    logger.info("SSE client connected from %s (total: %d)", client_addr, len(_subscribers))
+    logger.info("SSE client    connected from %s (total: %d)", client_addr, len(_subscribers))
     for cb in _on_connect_callbacks:
         cb()
 
