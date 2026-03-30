@@ -335,6 +335,12 @@
     deleting = false;
   }
 
+  function disconnectOthers() {
+    const others = clientCount - 1;
+    if (!confirm(`Disconnect ${others} other client${others !== 1 ? "s" : ""}? They will need to reload to reconnect.`)) return;
+    dispatch("disconnect-others");
+  }
+
   async function shutdownServer() {
     if (!confirm("Are you sure you want to shut down the Rigbook server?")) return;
     dispatch("shutdown");
@@ -1348,6 +1354,11 @@
   <section class="settings-section">
     <h3>Shutdown</h3>
     <p class="hint">Connected clients: {clientCount}</p>
+    {#if clientCount > 1}
+      <div class="setting-row">
+        <button class="warning-btn" on:click={disconnectOthers}>Disconnect all other clients</button>
+      </div>
+    {/if}
     <div class="setting-row toggle-row">
       <label class="toggle-label">
         <input type="checkbox" bind:checked={autoShutdownOnDisconnect} on:change={() => saveSetting("auto_shutdown_on_disconnect", autoShutdownOnDisconnect ? "true" : "false")} />
@@ -1719,6 +1730,13 @@
   .danger-btn:disabled {
     background: #ff4444;
     opacity: 0.4;
+  }
+  .warning-btn {
+    background: #e67e22;
+    color: #fff;
+  }
+  .warning-btn:hover {
+    background: #cf6d17;
   }
   .update-status {
     margin-top: 0.5rem;

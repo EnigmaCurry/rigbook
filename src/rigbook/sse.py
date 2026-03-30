@@ -145,6 +145,14 @@ async def get_client_count():
     return {"count": subscriber_count()}
 
 
+@router.post("/disconnect-others")
+async def disconnect_others(request: Request):
+    body = await request.json()
+    nonce = body.get("nonce", "")
+    broadcast("disconnect", {"nonce": nonce})
+    return {"ok": True}
+
+
 @router.get("/stream")
 async def event_stream(request: Request):
     global _last_client_disconnected_at, _ever_had_client
