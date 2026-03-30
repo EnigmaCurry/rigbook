@@ -968,7 +968,7 @@ async def _log_idle_disconnect_time() -> None:
     disconnect_at = datetime.now(timezone.utc) + timedelta(hours=timeout_hours)
     logger.info(
         "RBN: no web clients, will disconnect at %s UTC (%.1fh)",
-        disconnect_at.strftime("%Y-%m-%d %H:%M"),
+        disconnect_at.strftime("%Y-%m-%d %H:%M:%S"),
         timeout_hours,
     )
 
