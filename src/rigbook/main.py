@@ -341,14 +341,22 @@ def run() -> None:
 
                     # Check if we're newer than the running instance
                     running_version = None
+                    running_origin = None
                     try:
                         resp = urllib.request.urlopen(f"{url}/api/version", timeout=2)
                         running_version = _json.loads(resp.read()).get("version")
                     except Exception:
                         pass
+                    try:
+                        resp = urllib.request.urlopen(f"{url}/api/update/platform", timeout=2)
+                        running_origin = _json.loads(resp.read()).get("build_origin_repo")
+                    except Exception:
+                        pass
 
                     current = version("rigbook")
-                    if running_version and running_version != current:
+                    my_origin = BUILD_ORIGIN_REPO or None
+                    same_lineage = (my_origin == running_origin) or (not my_origin and not running_origin)
+                    if same_lineage and running_version and running_version != current:
                         try:
                             from packaging.version import Version
                             is_newer = Version(current) > Version(running_version)
