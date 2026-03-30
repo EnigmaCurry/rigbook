@@ -89,6 +89,15 @@ async def lifespan(app: FastAPI):
     _cleanup_old_binaries()
     await init_db()
     if db_manager.is_open:
+        # Clear update check cache so we always check once on startup
+        async with db_manager.session() as session:
+            await session.execute(
+                delete(Cache).where(
+                    Cache.namespace == UPDATE_CACHE_NS,
+                    Cache.key == UPDATE_CACHE_KEY,
+                )
+            )
+            await session.commit()
         await start_feeds()
         await start_auto_backup()
     yield
