@@ -15,6 +15,8 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from importlib.metadata import version
 
+from rigbook._build_info import BUILD_GITHUB_ACTIONS, BUILD_ORIGIN_REPO
+
 router = APIRouter(prefix="/api/update", tags=["update"])
 
 logger = logging.getLogger("rigbook.update")
@@ -75,56 +77,64 @@ def _asset_name() -> str:
         raise RuntimeError(f"Unsupported platform: {system} {machine}")
 
 
-def _is_github_binary() -> bool:
-    """Check if the running binary looks like a GitHub release build.
+def _is_official_build() -> bool:
+    """Check if this binary was built by GitHub Actions with a known origin repo."""
+    return (
+        getattr(sys, "frozen", False)
+        and BUILD_GITHUB_ACTIONS
+        and bool(BUILD_ORIGIN_REPO)
+    )
 
-    GitHub release assets are named like rigbook-linux-amd64, rigbook-macos-arm64,
-    rigbook-windows-amd64.exe.  A locally-built PyInstaller binary is just 'rigbook'.
-    """
-    if not getattr(sys, "frozen", False):
-        return False
-    name = os.path.basename(sys.executable)
-    # Strip .exe for comparison
-    stem = name.removesuffix(".exe")
-    return stem.startswith("rigbook-") and stem.count("-") >= 2
+
+def _check_repo_match() -> None:
+    """Raise if RIGBOOK_GITHUB_REPO doesn't match the baked-in origin."""
+    if GITHUB_REPO != BUILD_ORIGIN_REPO:
+        raise HTTPException(
+            400,
+            f"Repo mismatch: binary built from {BUILD_ORIGIN_REPO!r} "
+            f"but RIGBOOK_GITHUB_REPO is {GITHUB_REPO!r}",
+        )
 
 
 def _current_executable() -> str:
     """Return the path to the currently running binary."""
-    if getattr(sys, "frozen", False) and _is_github_binary():
+    if _is_official_build():
         return sys.executable
-    raise RuntimeError("Self-update is only supported for official GitHub release binaries")
+    raise RuntimeError("Self-update is only supported for official GitHub Actions builds")
 
 
 @router.get("/platform")
 async def get_platform_info():
     """Return platform info and whether self-update is supported."""
     frozen = getattr(sys, "frozen", False)
-    github_binary = _is_github_binary()
+    official = _is_official_build()
+    repo_match = official and GITHUB_REPO == BUILD_ORIGIN_REPO
     try:
         asset = _asset_name()
     except RuntimeError:
         asset = None
-    default_repo = "EnigmaCurry/rigbook"
     return {
         "frozen": frozen,
-        "supported": frozen and github_binary and asset is not None,
+        "supported": official and repo_match and asset is not None,
+        "build_origin_repo": BUILD_ORIGIN_REPO or None,
+        "build_github_actions": BUILD_GITHUB_ACTIONS,
         "platform": platform.system().lower(),
         "arch": platform.machine().lower(),
         "asset": asset,
         "executable": sys.executable if frozen else None,
         "github_repo": GITHUB_REPO,
-        "custom_repo": GITHUB_REPO != default_repo,
+        "custom_repo": GITHUB_REPO != "EnigmaCurry/rigbook",
     }
 
 
 @router.post("/apply")
 async def apply_update():
     """Download the latest release binary and restart."""
-    if not getattr(sys, "frozen", False) or not _is_github_binary():
+    if not _is_official_build():
         raise HTTPException(
-            400, "Self-update only supported for official GitHub release binaries"
+            400, "Self-update only supported for official GitHub Actions builds"
         )
+    _check_repo_match()
 
     current = version("rigbook")
     asset_name = _asset_name()
