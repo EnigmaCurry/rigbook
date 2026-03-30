@@ -62,14 +62,14 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Inject build info
+        run: |
+          printf 'BUILD_ORIGIN_REPO = "%s"\nBUILD_GITHUB_ACTIONS = True\n' "${{ github.repository }}" > src/rigbook/_build_info.py
+
       - name: Install dependencies
         run: |
           pip install pyinstaller
           pip install .
-
-      - name: Inject build info
-        run: |
-          printf 'BUILD_ORIGIN_REPO = "%s"\nBUILD_GITHUB_ACTIONS = True\n' "${{ github.repository }}" > src/rigbook/_build_info.py
 
       - name: Build binary
         run: pyinstaller rigbook.spec
