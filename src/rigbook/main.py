@@ -304,7 +304,16 @@ def run() -> None:
                 ).lower() in ("1", "true", "yes")
                 lock_info = db_manager.read_lock_info(db_path)
                 if not no_browser and lock_info and "host" in lock_info:
+                    import urllib.request
+
                     url = f"http://{lock_info['host']}:{lock_info['port']}"
+                    # Wait for the server to be ready (it may have just started)
+                    for _ in range(10):
+                        try:
+                            urllib.request.urlopen(f"{url}/api/settings/", timeout=1)
+                            break
+                        except Exception:
+                            time.sleep(0.5)
                     browser_name = _detect_browser_name()
                     print(f"{e} — opening {url} in {browser_name}")
                     webbrowser.open(url)
