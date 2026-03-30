@@ -80,6 +80,9 @@ async def lifespan(app: FastAPI):
 
     signal.signal(signal.SIGINT, _handle_shutdown_signal)
     signal.signal(signal.SIGTERM, _handle_shutdown_signal)
+    origin = BUILD_ORIGIN_REPO or "local build"
+    sha = f" {BUILD_GIT_SHA}" if BUILD_GIT_SHA else ""
+    logger.info("Rigbook v%s (%s%s)", version("rigbook"), origin, sha)
     if GITHUB_REPO != "EnigmaCurry/rigbook":
         logger.warning(
             "Custom update source: BUILD_ORIGIN_REPO=%s", GITHUB_REPO
