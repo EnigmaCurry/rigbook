@@ -38,6 +38,7 @@ from rigbook.routes.settings import (
 )
 from rigbook.routes.query import router as query_router
 from rigbook.routes.solar import router as solar_router
+from rigbook.routes.update import router as update_router
 
 logger = logging.getLogger("rigbook")
 
@@ -234,6 +235,7 @@ app.include_router(spots_router)
 app.include_router(notifications_router)
 app.include_router(query_router)
 app.include_router(solar_router)
+app.include_router(update_router)
 app.include_router(sse_router)
 
 static_dir = _resource_path("static")

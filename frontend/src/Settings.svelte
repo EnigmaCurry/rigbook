@@ -25,6 +25,9 @@
   let update_check_enabled = true;
   let updateCheckResult = null;
   let updateChecking = false;
+  let updateSupported = false;
+  let updateApplying = false;
+  let updateApplyError = "";
   let flrig_enabled = false;
   let flrig_simulate = false;
   let flrig_host = "127.0.0.1";
@@ -763,6 +766,49 @@
       const res = await fetch("/api/update-check");
       if (res.ok) updateCheckResult = await res.json();
     } catch {}
+    try {
+      const res = await fetch("/api/update/platform");
+      if (res.ok) {
+        const data = await res.json();
+        updateSupported = data.supported || false;
+      }
+    } catch {}
+  }
+
+  async function applyUpdate() {
+    updateApplying = true;
+    updateApplyError = "";
+    try {
+      const res = await fetch("/api/update/apply", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        updateApplyError = data.detail || "Update failed";
+        updateApplying = false;
+        return;
+      }
+      if (data.status === "up_to_date") {
+        updateApplyError = "Already up to date";
+        updateApplying = false;
+        return;
+      }
+      // Server is restarting — poll until it comes back
+      await new Promise(r => setTimeout(r, 2000));
+      for (let i = 0; i < 30; i++) {
+        try {
+          const check = await fetch("/api/version");
+          if (check.ok) {
+            window.location.reload();
+            return;
+          }
+        } catch {}
+        await new Promise(r => setTimeout(r, 1000));
+      }
+      updateApplyError = "Server did not come back after update — check manually";
+      updateApplying = false;
+    } catch (e) {
+      updateApplyError = "Update failed: " + e.message;
+      updateApplying = false;
+    }
   }
 
   async function fetchUpdateCheck() {
@@ -978,7 +1024,17 @@
         {#if updateCheckResult.is_dev}
           — 🚧 Development version — update checker is essentially disabled
         {:else if updateCheckResult.update_available}
-          — <a href={updateCheckResult.url} target="_blank" rel="noopener" class="update-available">Update available: v{updateCheckResult.latest}</a>
+          — <span class="update-available">Update available: v{updateCheckResult.latest}</span>
+          {#if updateSupported}
+            <button class="check-now-btn apply-update-btn" on:click={applyUpdate} disabled={updateApplying}>
+              {updateApplying ? "Updating…" : "Apply Update"}
+            </button>
+          {:else}
+            — <a href={updateCheckResult.url} target="_blank" rel="noopener" class="update-available">Download</a>
+          {/if}
+          {#if updateApplyError}
+            <span class="update-error">{updateApplyError}</span>
+          {/if}
         {:else if updateCheckResult.is_exact}
           — You're running the latest version
         {:else if updateCheckResult.latest}
@@ -1617,5 +1673,21 @@
   .check-now-btn:disabled {
     opacity: 0.5;
     cursor: default;
+  }
+  .apply-update-btn {
+    background: #2ecc40;
+    color: #000;
+    font-weight: bold;
+    border-color: #2ecc40;
+    margin-left: 0.5rem;
+  }
+  .apply-update-btn:disabled {
+    background: #2ecc40;
+    opacity: 0.6;
+  }
+  .update-error {
+    color: #e74c3c;
+    font-size: 0.8rem;
+    margin-left: 0.5rem;
   }
 </style>
