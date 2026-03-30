@@ -394,10 +394,11 @@ def run() -> None:
                             kill_cmd = f"taskkill /PID {pid} /F"
                         else:
                             kill_cmd = f"kill {pid}"
+                        rv = running_version or "unknown"
                         print(
-                            f"Error: Rigbook is already running (PID {pid}) "
-                            f"from a different build origin ({running_desc}).\n"
-                            f"This binary is from {my_desc}. "
+                            f"Error: Rigbook v{rv} is already running (PID {pid}) "
+                            f"from build origin {running_desc}.\n"
+                            f"This binary is v{current} from {my_desc}. "
                             f"Stop the other instance first:\n"
                             f"  {kill_cmd}",
                             file=sys.stderr,
