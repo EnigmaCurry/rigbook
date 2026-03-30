@@ -49,7 +49,7 @@
   let skcc_skimmer_enabled = false;
   let skcc_skimmer_distance = "500";
   let rbn_idle_timeout_enabled = true;
-  let rbn_idle_timeout_hours = "24";
+  let rbn_idle_timeout_hours = "12";
 
   // HamAlert settings
   let hamalert_enabled = false;
@@ -475,7 +475,7 @@
       dispatch("saved");
     },
     rbn_idle_timeout_hours: async () => {
-      await saveSetting("rbn_idle_timeout_hours", rbn_idle_timeout_enabled ? (rbn_idle_timeout_hours.trim() || "24") : "0");
+      await saveSetting("rbn_idle_timeout_hours", rbn_idle_timeout_enabled ? (rbn_idle_timeout_hours.trim() || "12") : "0");
       await restartFeeds();
       dispatch("saved");
     },
@@ -633,9 +633,9 @@
 
   async function onRbnIdleTimeoutEnabledChange() {
     if (rbn_idle_timeout_enabled && !rbn_idle_timeout_hours.trim()) {
-      rbn_idle_timeout_hours = "24";
+      rbn_idle_timeout_hours = "12";
     }
-    await saveSetting("rbn_idle_timeout_hours", rbn_idle_timeout_enabled ? (rbn_idle_timeout_hours.trim() || "24") : "0");
+    await saveSetting("rbn_idle_timeout_hours", rbn_idle_timeout_enabled ? (rbn_idle_timeout_hours.trim() || "12") : "0");
     await restartFeeds();
     dispatch("saved");
   }
@@ -728,7 +728,7 @@
               rbn_idle_timeout_hours = s.value;
             } else {
               rbn_idle_timeout_enabled = false;
-              rbn_idle_timeout_hours = "24";
+              rbn_idle_timeout_hours = "12";
             }
           }
           if (s.key === "hamalert_enabled") hamalert_enabled = s.value === "true";
@@ -1063,7 +1063,7 @@
     </div>
     <div class="setting-row">
       <label for="rbn_idle_timeout">Idle timeout (hours)</label>
-      <input id="rbn_idle_timeout" type="text" bind:value={rbn_idle_timeout_hours} on:input={onRbnIdleTimeoutHoursInput} on:blur={() => onFieldBlur("rbn_idle_timeout_hours")} autocomplete="off" inputmode="decimal" disabled={!rbn_enabled || !rbn_idle_timeout_enabled} style="max-width: 7rem" />
+      <input id="rbn_idle_timeout" type="text" bind:value={rbn_idle_timeout_hours} on:input={onRbnIdleTimeoutHoursInput} on:blur={() => onFieldBlur("rbn_idle_timeout_hours")} autocomplete="off" inputmode="numeric" disabled={!rbn_enabled || !rbn_idle_timeout_enabled} style="max-width: 7rem" />
     </div>
     <p class="hint">Uses {my_callsign.trim().toUpperCase() || "your callsign"} to authenticate.</p>
   </section>

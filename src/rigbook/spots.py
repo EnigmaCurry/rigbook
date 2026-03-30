@@ -925,7 +925,7 @@ async def _idle_check_loop() -> None:
             continue
         settings = await _read_feed_settings()
         try:
-            timeout_hours = float(settings.get("rbn_idle_timeout_hours", "24") or "24")
+            timeout_hours = int(settings.get("rbn_idle_timeout_hours", "12") or "12")
         except (ValueError, TypeError):
             continue
         if timeout_hours <= 0:
@@ -939,7 +939,7 @@ async def _idle_check_loop() -> None:
             await rbn_feed.stop()
             _rbn_stopped_for_idle = True
             logger.info(
-                "RBN idle timeout: no web clients for %.1f hours, disconnected."
+                "RBN idle timeout: no web clients for %d hours, disconnected."
                 " Will reconnect automatically when a client connects.",
                 timeout_hours,
             )
@@ -962,14 +962,14 @@ async def _log_idle_disconnect_time() -> None:
     if not rbn_enabled:
         return
     try:
-        timeout_hours = float(settings.get("rbn_idle_timeout_hours", "24") or "24")
+        timeout_hours = int(settings.get("rbn_idle_timeout_hours", "12") or "12")
     except (ValueError, TypeError):
         return
     if timeout_hours <= 0:
         return
     disconnect_at = datetime.now(timezone.utc) + timedelta(hours=timeout_hours)
     logger.info(
-        "RBN: no web clients, will disconnect at %s UTC (%.1fh)",
+        "RBN: no web clients, will disconnect at %s UTC (%dh)",
         disconnect_at.strftime("%Y-%m-%d %H:%M:%S"),
         timeout_hours,
     )
