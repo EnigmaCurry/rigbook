@@ -325,7 +325,8 @@ def run() -> None:
                     "RIGBOOK_NO_BROWSER", ""
                 ).lower() in ("1", "true", "yes")
                 lock_info = db_manager.read_lock_info(db_path)
-                if not no_browser and lock_info and "host" in lock_info:
+                if lock_info and "host" in lock_info:
+                    import json as _json
                     import urllib.request
 
                     url = f"http://{lock_info['host']}:{lock_info['port']}"
@@ -336,9 +337,43 @@ def run() -> None:
                             break
                         except Exception:
                             time.sleep(0.5)
-                    browser_name = _detect_browser_name()
-                    print(f"{e} — opening {url} in {browser_name}")
-                    webbrowser.open(url)
+
+                    # Check if the running instance is an older version
+                    running_version = None
+                    try:
+                        resp = urllib.request.urlopen(f"{url}/api/version", timeout=2)
+                        running_version = _json.loads(resp.read()).get("version")
+                    except Exception:
+                        pass
+
+                    import platform as _platform
+
+                    current = version("rigbook")
+                    if running_version and running_version != current:
+                        try:
+                            from packaging.version import Version
+                            is_newer = Version(current) > Version(running_version)
+                        except Exception:
+                            is_newer = current != running_version
+                        if is_newer:
+                            pid = lock_info.get("pid", "unknown")
+                            if _platform.system() == "Windows":
+                                kill_cmd = f"taskkill /PID {pid} /F"
+                            else:
+                                kill_cmd = f"kill {pid}"
+                            print(
+                                f"Error: Rigbook v{running_version} is already running (PID {pid}), "
+                                f"but this binary is v{current}.\n"
+                                f"Close the running instance first:\n"
+                                f"  {kill_cmd}",
+                                file=sys.stderr,
+                            )
+                            sys.exit(1)
+
+                    if not no_browser:
+                        browser_name = _detect_browser_name()
+                        print(f"{e} — opening {url} in {browser_name}")
+                        webbrowser.open(url)
                 else:
                     print(f"Error: {e}", file=sys.stderr)
                 sys.exit(0 if not no_browser and lock_info else 1)
