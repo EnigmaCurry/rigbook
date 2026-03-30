@@ -146,20 +146,16 @@ async def apply_update():
     if platform.system() != "Windows":
         os.chmod(tmp_path, os.stat(tmp_path).st_mode | stat.S_IXUSR | stat.S_IXGRP)
 
-    # Swap binaries
+    # Swap binaries — rename running binary out of the way first.
+    # On both Linux and Windows, overwriting a running binary fails
+    # (ETXTBSY on Linux, lock on Windows).
     backup_path = exe_path + ".backup"
     try:
-        # Remove old backup if exists
         if os.path.exists(backup_path):
             os.unlink(backup_path)
 
-        if platform.system() == "Windows":
-            # Windows: can't delete running exe, rename it
-            os.rename(exe_path, backup_path)
-            os.rename(tmp_path, exe_path)
-        else:
-            # Unix: can replace running binary directly
-            os.rename(tmp_path, exe_path)
+        os.rename(exe_path, backup_path)
+        os.rename(tmp_path, exe_path)
     except Exception as e:
         logger.error("Failed to swap binary: %s", e)
         # Try to restore from backup
@@ -240,14 +236,9 @@ async def test_update(req: TestUpdateRequest):
         if os.path.exists(backup_path):
             os.unlink(backup_path)
 
-        if platform.system() == "Windows":
-            os.rename(exe_path, backup_path)
-            shutil.copy2(src, exe_path)
-        else:
-            shutil.copy2(src, exe_path)
-
-        if platform.system() != "Windows":
-            os.chmod(exe_path, os.stat(exe_path).st_mode | stat.S_IXUSR | stat.S_IXGRP)
+        os.rename(exe_path, backup_path)
+        shutil.copy2(src, exe_path)
+        os.chmod(exe_path, os.stat(exe_path).st_mode | stat.S_IXUSR | stat.S_IXGRP)
     except Exception as e:
         logger.error("Test update swap failed: %s", e)
         try:
