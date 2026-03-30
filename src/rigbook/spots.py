@@ -556,6 +556,8 @@ class RBNFeed:
                 )
 
     async def stop(self) -> None:
+        if self._should_run or self._tasks:
+            logger.info("RBN: disconnecting")
         self._should_run = False
         for name, task in list(self._tasks.items()):
             task.cancel()
