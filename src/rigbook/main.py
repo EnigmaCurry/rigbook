@@ -161,12 +161,14 @@ async def check_for_update(
         )
     ).scalar_one_or_none()
 
+    fresh_fetch = False
     if cached and cached.value:
         data = json.loads(cached.value)
         latest = data["latest"]
         url = data["url"]
         checked_at = data.get("checked_at", time.time())
     else:
+        fresh_fetch = True
         # Fetch from GitHub
         try:
             async with httpx.AsyncClient() as client:
@@ -224,9 +226,10 @@ async def check_for_update(
         "checked_at": checked_at,
     }
 
-    from rigbook.sse import broadcast
+    if fresh_fetch:
+        from rigbook.sse import broadcast
 
-    broadcast("update-check", result)
+        broadcast("update-check", result)
 
     return result
 
