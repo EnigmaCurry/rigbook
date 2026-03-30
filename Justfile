@@ -87,3 +87,9 @@ config-show: _check-curl
 clean:
     rm -f ~/.local/rigbook/rigbook.db
     @echo "Database deleted."
+
+# Remove build artifacts and stamp files
+clean-build:
+    rm -rf dist/ build/
+    rm -f .build-*.stamp
+    @echo "Build artifacts cleaned."
