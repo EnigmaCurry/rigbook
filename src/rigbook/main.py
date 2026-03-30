@@ -325,12 +325,13 @@ def run() -> None:
                     "RIGBOOK_NO_BROWSER", ""
                 ).lower() in ("1", "true", "yes")
                 lock_info = db_manager.read_lock_info(db_path)
+                replaced = False
+
                 if lock_info and "host" in lock_info:
                     import json as _json
                     import urllib.request
 
                     url = f"http://{lock_info['host']}:{lock_info['port']}"
-                    # Wait for the server to be ready (it may have just started)
                     for _ in range(10):
                         try:
                             urllib.request.urlopen(f"{url}/api/settings/", timeout=1)
@@ -338,7 +339,7 @@ def run() -> None:
                         except Exception:
                             time.sleep(0.5)
 
-                    # Check if the running instance is an older version
+                    # Check if we're newer than the running instance
                     running_version = None
                     try:
                         resp = urllib.request.urlopen(f"{url}/api/version", timeout=2)
@@ -346,37 +347,43 @@ def run() -> None:
                     except Exception:
                         pass
 
-                    import platform as _platform
-
                     current = version("rigbook")
                     if running_version and running_version != current:
                         try:
                             from packaging.version import Version
                             is_newer = Version(current) > Version(running_version)
                         except Exception:
-                            is_newer = current != running_version
+                            is_newer = False
                         if is_newer:
-                            pid = lock_info.get("pid", "unknown")
-                            if _platform.system() == "Windows":
-                                kill_cmd = f"taskkill /PID {pid} /F"
-                            else:
-                                kill_cmd = f"kill {pid}"
-                            print(
-                                f"Error: Rigbook v{running_version} is already running (PID {pid}), "
-                                f"but this binary is v{current}.\n"
-                                f"Close the running instance first:\n"
-                                f"  {kill_cmd}",
-                                file=sys.stderr,
-                            )
-                            sys.exit(1)
+                            pid = lock_info.get("pid")
+                            if pid:
+                                import signal
 
-                    if not no_browser:
+                                print(
+                                    f"Stopping Rigbook v{running_version} (PID {pid}) "
+                                    f"to start v{current}..."
+                                )
+                                try:
+                                    os.kill(pid, signal.SIGTERM)
+                                    for _ in range(20):
+                                        time.sleep(0.5)
+                                        try:
+                                            os.kill(pid, 0)
+                                        except OSError:
+                                            break
+                                except OSError:
+                                    pass
+                                replaced = True
+
+                if not replaced:
+                    if not no_browser and lock_info and "host" in lock_info:
+                        url = f"http://{lock_info['host']}:{lock_info['port']}"
                         browser_name = _detect_browser_name()
                         print(f"{e} — opening {url} in {browser_name}")
                         webbrowser.open(url)
-                else:
-                    print(f"Error: {e}", file=sys.stderr)
-                sys.exit(0 if not no_browser and lock_info else 1)
+                    else:
+                        print(f"Error: {e}", file=sys.stderr)
+                    sys.exit(0 if not no_browser and lock_info else 1)
 
     log_level = "DEBUG" if args.verbose else "INFO"
 
