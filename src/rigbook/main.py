@@ -339,9 +339,10 @@ def run() -> None:
                         except Exception:
                             time.sleep(0.5)
 
-                    # Check if we're newer than the running instance
+                    # Check if we're newer or a different build than the running instance
                     running_version = None
                     running_origin = None
+                    running_sha = None
                     try:
                         resp = urllib.request.urlopen(f"{url}/api/version", timeout=2)
                         running_version = _json.loads(resp.read()).get("version")
@@ -349,27 +350,37 @@ def run() -> None:
                         pass
                     try:
                         resp = urllib.request.urlopen(f"{url}/api/update/platform", timeout=2)
-                        running_origin = _json.loads(resp.read()).get("build_origin_repo")
+                        platform_info = _json.loads(resp.read())
+                        running_origin = platform_info.get("build_origin_repo")
+                        running_sha = platform_info.get("build_git_sha")
                     except Exception:
                         pass
 
                     current = version("rigbook")
                     my_origin = BUILD_ORIGIN_REPO or None
+                    my_sha = BUILD_GIT_SHA or None
                     same_lineage = (my_origin == running_origin) or (not my_origin and not running_origin)
-                    if same_lineage and running_version and running_version != current:
-                        try:
-                            from packaging.version import Version
-                            is_newer = Version(current) > Version(running_version)
-                        except Exception:
-                            is_newer = False
-                        if is_newer:
+                    should_replace = False
+                    if same_lineage and running_version:
+                        if running_version != current:
+                            try:
+                                from packaging.version import Version
+                                should_replace = Version(current) > Version(running_version)
+                            except Exception:
+                                pass
+                        elif my_sha and running_sha and my_sha != running_sha:
+                            should_replace = True
+                    if should_replace:
                             pid = lock_info.get("pid")
                             if pid:
                                 import signal
 
+                                if running_version == current and my_sha:
+                                    reason = f"v{current} ({running_sha} → {my_sha})"
+                                else:
+                                    reason = f"v{running_version} → v{current}"
                                 print(
-                                    f"Stopping Rigbook v{running_version} (PID {pid}) "
-                                    f"to start v{current}..."
+                                    f"Stopping Rigbook {reason} (PID {pid})..."
                                 )
                                 try:
                                     os.kill(pid, signal.SIGTERM)
