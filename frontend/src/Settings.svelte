@@ -1348,7 +1348,7 @@
         Shutdown automatically when last client disconnects
       </label>
     </div>
-    <p class="hint">When enabled, the server will shut down 15 seconds after all browser tabs are closed, or if no client connects within 15 seconds of startup.</p>
+    <p class="hint">When enabled, the server will shut down after 15 seconds with no connected clients.</p>
     <div class="setting-row">
       <button class="danger-btn" on:click={shutdownServer}>Shutdown Server</button>
     </div>
