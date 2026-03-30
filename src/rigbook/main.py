@@ -235,10 +235,22 @@ async def check_for_update(
     except Exception:
         update_available = not is_dev and latest != current
 
+    # Check if this version was skipped by the user
+    skipped = False
+    if update_available:
+        row = (
+            await session.execute(
+                select(Setting).where(Setting.key == "update_skip_version")
+            )
+        ).scalar_one_or_none()
+        if row and row.value == latest:
+            skipped = True
+
     result = {
         "current": current,
         "latest": latest,
         "update_available": update_available,
+        "update_skipped": skipped,
         "is_dev": is_dev,
         "is_exact": is_exact,
         "url": url if update_available else None,
@@ -251,6 +263,40 @@ async def check_for_update(
         broadcast("update-check", result)
 
     return result
+
+
+@app.post("/api/update-check/skip")
+async def skip_update(session: AsyncSession = Depends(get_session)):
+    """Skip the currently available update version."""
+    # Get the latest known version
+    cached = (
+        await session.execute(
+            select(Cache).where(
+                Cache.namespace == UPDATE_CACHE_NS,
+                Cache.key == UPDATE_CACHE_KEY,
+            )
+        )
+    ).scalar_one_or_none()
+    if not cached or not cached.value:
+        return {"status": "no_update"}
+    data = json.loads(cached.value)
+    latest = data.get("latest")
+    if not latest:
+        return {"status": "no_update"}
+
+    # Store the skipped version
+    row = (
+        await session.execute(
+            select(Setting).where(Setting.key == "update_skip_version")
+        )
+    ).scalar_one_or_none()
+    if row:
+        row.value = latest
+    else:
+        session.add(Setting(key="update_skip_version", value=latest))
+    await session.commit()
+    logger.info("Skipped update to v%s", latest)
+    return {"status": "skipped", "version": latest}
 
 
 app.include_router(logbooks_router)

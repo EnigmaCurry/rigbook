@@ -785,6 +785,16 @@
     } catch {}
   }
 
+  async function skipUpdate() {
+    try {
+      const res = await fetch("/api/update-check/skip", { method: "POST" });
+      if (res.ok && updateCheckResult) {
+        updateCheckResult.update_skipped = true;
+        updateCheckResult = updateCheckResult; // trigger reactivity
+      }
+    } catch {}
+  }
+
   function confirmAndApplyUpdate() {
     if (!updateCheckResult) return;
     if (confirm(`Update Rigbook from v${updateCheckResult.current} to v${updateCheckResult.latest}? The server will restart.`)) {
@@ -1211,18 +1221,21 @@
             (<a href="https://github.com/{updateGithubRepo}/commit/{updateBuildSha}" target="_blank" rel="noopener" class="sha-link">{updateBuildSha}</a>){/if}
           {#if updateCheckResult.is_dev}
             — Development version — update checker is disabled
-          {:else if updateCheckResult.update_available}
+          {:else if updateCheckResult.update_available && !updateCheckResult.update_skipped}
             — <span class="update-available">Update available: v{updateCheckResult.latest}</span>
             {#if updateSupported}
               <button class="check-now-btn apply-update-btn" on:click={confirmAndApplyUpdate} disabled={updateApplying}>
                 {updateApplying ? "Updating…" : "Apply Update"}
               </button>
+              <button class="check-now-btn" on:click={skipUpdate}>Skip</button>
             {:else}
               — <a href={updateCheckResult.url} target="_blank" rel="noopener" class="update-available">Download</a>
             {/if}
             {#if updateApplyError}
               <span class="update-error">{updateApplyError}</span>
             {/if}
+          {:else if updateCheckResult.update_skipped}
+            — v{updateCheckResult.latest} available (skipped)
           {:else if updateCheckResult.is_exact}
             — You're running the latest version
           {:else if updateCheckResult.latest}
