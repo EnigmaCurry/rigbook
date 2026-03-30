@@ -36,8 +36,19 @@ def _spawn_and_exit(exe_path: str) -> None:
     def _do():
         time.sleep(1)  # let the HTTP response flush
         env = os.environ.copy()
-        # Clear PyInstaller's temp dir reference so the new process unpacks fresh
-        env.pop("_MEIPASS", None)
+        # Clear all PyInstaller env vars so the new process unpacks fresh
+        for key in list(env):
+            if key.startswith("_MEI") or key.startswith("_PYI"):
+                env.pop(key)
+        # Remove old temp dir from LD_LIBRARY_PATH / DYLD_LIBRARY_PATH
+        old_meipass = getattr(sys, "_MEIPASS", "")
+        for ldvar in ("LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH"):
+            if ldvar in env and old_meipass:
+                paths = [p for p in env[ldvar].split(os.pathsep) if not p.startswith(old_meipass)]
+                if paths:
+                    env[ldvar] = os.pathsep.join(paths)
+                else:
+                    env.pop(ldvar)
         subprocess.Popen(
             [exe_path] + sys.argv[1:],
             env=env,
