@@ -10,7 +10,7 @@ import logging
 import time
 from collections.abc import Callable
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 
 logger = logging.getLogger("rigbook.sse")
@@ -86,11 +86,13 @@ async def _sse_generator(queue: asyncio.Queue[str]):
 
 
 @router.get("/stream")
-async def event_stream():
+async def event_stream(request: Request):
     global _last_client_disconnected_at
+    client = request.client
+    client_addr = f"{client.host}:{client.port}" if client else "unknown"
     queue: asyncio.Queue[str] = asyncio.Queue(maxsize=64)
     _subscribers.append(queue)
-    logger.info("SSE client connected (total: %d)", len(_subscribers))
+    logger.info("SSE client connected from %s (total: %d)", client_addr, len(_subscribers))
     for cb in _on_connect_callbacks:
         cb()
 
@@ -106,7 +108,7 @@ async def event_stream():
                 _subscribers.remove(queue)
             if len(_subscribers) == 0:
                 _last_client_disconnected_at = time.time()
-            logger.info("SSE client disconnected (total: %d)", len(_subscribers))
+            logger.info("SSE client disconnected from %s (total: %d)", client_addr, len(_subscribers))
             for cb in _on_disconnect_callbacks:
                 cb()
 
