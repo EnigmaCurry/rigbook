@@ -16,7 +16,7 @@
   let schema = null;
   let showSchema = true;
   let textareaEl;
-  let taHeight = 120;
+  let taHeight = 60;
   let taResizing = false;
 
   const cannedQueries = [
