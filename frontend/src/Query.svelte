@@ -162,7 +162,8 @@
     const startH = taHeight;
     const onMove = (ev) => {
       const clientY = ev.clientY || ev.touches?.[0]?.clientY;
-      taHeight = Math.max(60, startH + clientY - startY);
+      const maxH = Math.floor(window.innerHeight / 2);
+      taHeight = Math.min(maxH, Math.max(60, startH + clientY - startY));
     };
     const onUp = () => {
       taResizing = false;
