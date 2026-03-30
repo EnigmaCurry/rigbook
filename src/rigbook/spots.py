@@ -923,7 +923,7 @@ async def _idle_check_loop() -> None:
             continue
         settings = await _read_feed_settings()
         try:
-            timeout_hours = float(settings.get("rbn_idle_timeout_hours", "0"))
+            timeout_hours = float(settings.get("rbn_idle_timeout_hours", "24") or "24")
         except (ValueError, TypeError):
             continue
         if timeout_hours <= 0:

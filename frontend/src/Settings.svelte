@@ -48,7 +48,7 @@
   let rbn_feed_digital = false;
   let skcc_skimmer_enabled = false;
   let skcc_skimmer_distance = "500";
-  let rbn_idle_timeout_enabled = false;
+  let rbn_idle_timeout_enabled = true;
   let rbn_idle_timeout_hours = "24";
 
   // HamAlert settings
