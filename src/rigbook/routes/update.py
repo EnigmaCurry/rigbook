@@ -49,8 +49,11 @@ def _spawn_and_exit(exe_path: str) -> None:
                     env[ldvar] = os.pathsep.join(paths)
                 else:
                     env.pop(ldvar)
+        args = sys.argv[1:]
+        if "--no-browser" not in args:
+            args = args + ["--no-browser"]
         subprocess.Popen(
-            [exe_path] + sys.argv[1:],
+            [exe_path] + args,
             env=env,
             start_new_session=True,
         )
