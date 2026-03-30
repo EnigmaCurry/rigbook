@@ -113,7 +113,7 @@ async def get_version():
     return {"version": version("rigbook")}
 
 
-GITHUB_REPO = "EnigmaCurry/rigbook"
+GITHUB_REPO = os.environ.get("RIGBOOK_GITHUB_REPO", "EnigmaCurry/rigbook")
 UPDATE_CACHE_NS = "update_check"
 UPDATE_CACHE_KEY = "latest"
 UPDATE_CACHE_TTL = 3600  # 1 hour

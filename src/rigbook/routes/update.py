@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api/update", tags=["update"])
 
 logger = logging.getLogger("rigbook.update")
 
-GITHUB_REPO = "EnigmaCurry/rigbook"
+GITHUB_REPO = os.environ.get("RIGBOOK_GITHUB_REPO", "EnigmaCurry/rigbook")
 
 
 def _spawn_and_exit(exe_path: str) -> None:
