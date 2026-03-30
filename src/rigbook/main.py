@@ -326,12 +326,31 @@ def run() -> None:
                 sys.exit(0 if not no_browser and lock_info else 1)
 
     log_level = "DEBUG" if args.verbose else "INFO"
-    logging.Formatter.converter = time.gmtime
-    logging.basicConfig(
-        level=log_level,
-        format="%(asctime)s UTC %(levelname)s: %(name)s: %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
+
+    class ColorFormatter(logging.Formatter):
+        COLORS = {
+            logging.WARNING: "\033[33m",   # orange/yellow
+            logging.ERROR: "\033[31m",     # red
+            logging.CRITICAL: "\033[31;1m",  # bold red
+        }
+        RESET = "\033[0m"
+        converter = time.gmtime
+
+        def format(self, record):
+            msg = super().format(record)
+            color = self.COLORS.get(record.levelno)
+            if color and sys.stderr.isatty():
+                return f"{color}{msg}{self.RESET}"
+            return msg
+
+    handler = logging.StreamHandler()
+    handler.setFormatter(
+        ColorFormatter(
+            fmt="%(asctime)s UTC %(levelname)s: %(name)s: %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
     )
+    logging.basicConfig(level=log_level, handlers=[handler])
     logging.getLogger("aiosqlite").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
