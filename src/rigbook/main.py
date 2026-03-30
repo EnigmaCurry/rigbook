@@ -289,7 +289,8 @@ def run() -> None:
                     import webbrowser
 
                     url = f"http://{lock_info['host']}:{lock_info['port']}"
-                    print(f"{e} — opening {url}")
+                    browser_name = webbrowser.get().name
+                    print(f"{e} — opening {url} in {browser_name}")
                     webbrowser.open(url)
                 else:
                     print(f"Error: {e}", file=sys.stderr)
@@ -324,6 +325,8 @@ def run() -> None:
             import time
 
             time.sleep(1)
+            browser_name = webbrowser.get().name
+            logger.info("Opening %s in %s", url, browser_name)
             webbrowser.open(url)
 
         threading.Thread(target=open_browser, daemon=True).start()
