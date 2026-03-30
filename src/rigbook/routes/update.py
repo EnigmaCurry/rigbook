@@ -7,10 +7,13 @@ import stat
 import sys
 import tempfile
 
+import shutil
+
 import httpx
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from importlib.metadata import version
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/update", tags=["update"])
 
@@ -189,3 +192,80 @@ async def apply_update():
         "old_version": current,
         "new_version": latest,
     }
+
+
+class TestUpdateRequest(BaseModel):
+    binary_path: str
+
+
+@router.post("/test")
+async def test_update(req: TestUpdateRequest):
+    """Test self-update by swapping in a local binary and restarting.
+
+    Works even when running from source (uv run rigbook).  Provide the
+    absolute path to a replacement binary.  The current executable is
+    replaced and the process restarts via os.execv.
+    """
+    src = req.binary_path
+    if not os.path.isfile(src):
+        raise HTTPException(400, f"File not found: {src}")
+
+    frozen = getattr(sys, "frozen", False)
+    exe_path = sys.executable  # python interpreter or PyInstaller binary
+
+    if not frozen:
+        # Running from source — we can't replace the python interpreter,
+        # but we can swap ourselves to the new binary and execv into it.
+        # Use a well-known test path next to the source checkout.
+        exe_path = os.path.abspath(src)
+        logger.info("Test update (source mode): will execv into %s", exe_path)
+
+        if not os.access(exe_path, os.X_OK):
+            os.chmod(exe_path, os.stat(exe_path).st_mode | stat.S_IXUSR)
+
+        import threading
+
+        def _restart():
+            import time
+            time.sleep(1)
+            os.execv(exe_path, [exe_path] + sys.argv[1:])
+
+        threading.Thread(target=_restart, daemon=True).start()
+
+        return {"status": "restarting", "test": True, "target": exe_path}
+
+    # Frozen mode — full swap like production
+    backup_path = exe_path + ".backup"
+    try:
+        if os.path.exists(backup_path):
+            os.unlink(backup_path)
+
+        if platform.system() == "Windows":
+            os.rename(exe_path, backup_path)
+            shutil.copy2(src, exe_path)
+        else:
+            shutil.copy2(src, exe_path)
+
+        if platform.system() != "Windows":
+            os.chmod(exe_path, os.stat(exe_path).st_mode | stat.S_IXUSR | stat.S_IXGRP)
+    except Exception as e:
+        logger.error("Test update swap failed: %s", e)
+        try:
+            if not os.path.exists(exe_path) and os.path.exists(backup_path):
+                os.rename(backup_path, exe_path)
+        except OSError:
+            pass
+        raise HTTPException(500, f"Failed to swap binary: {e}")
+
+    logger.info("Test update installed, restarting from %s ...", exe_path)
+
+    import threading
+
+    def _restart():
+        import time
+        time.sleep(1)
+        os.execv(exe_path, [exe_path] + sys.argv[1:])
+
+    threading.Thread(target=_restart, daemon=True).start()
+
+    return {"status": "restarting", "test": True, "target": exe_path}
