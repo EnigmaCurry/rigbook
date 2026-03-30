@@ -3,11 +3,13 @@
 import logging
 import os
 import platform
+import shutil
 import stat
+import subprocess
 import sys
 import tempfile
-
-import shutil
+import threading
+import time
 
 import httpx
 from fastapi import APIRouter, HTTPException
@@ -20,6 +22,31 @@ router = APIRouter(prefix="/api/update", tags=["update"])
 logger = logging.getLogger("rigbook.update")
 
 GITHUB_REPO = "EnigmaCurry/rigbook"
+
+
+def _spawn_and_exit(exe_path: str) -> None:
+    """Launch the new binary as a detached process and exit.
+
+    os.execv won't work for PyInstaller binaries because it replaces the
+    process while the old temp dir (/tmp/_MEI...) is being torn down,
+    causing the new process to fail finding shared libraries.  Instead,
+    spawn a fully independent child and then shut down cleanly.
+    """
+
+    def _do():
+        time.sleep(1)  # let the HTTP response flush
+        env = os.environ.copy()
+        # Clear PyInstaller's temp dir reference so the new process unpacks fresh
+        env.pop("_MEIPASS", None)
+        subprocess.Popen(
+            [exe_path] + sys.argv[1:],
+            env=env,
+            start_new_session=True,
+        )
+        logger.info("Spawned new process, shutting down...")
+        os._exit(0)
+
+    threading.Thread(target=_do, daemon=True).start()
 
 
 def _asset_name() -> str:
@@ -171,17 +198,7 @@ async def apply_update():
         raise HTTPException(500, f"Failed to install update: {e}")
 
     logger.info("Update installed: v%s -> v%s, restarting...", current, latest)
-
-    # Send response before restarting
-    import threading
-
-    def _restart():
-        import time
-
-        time.sleep(1)  # let the HTTP response flush
-        os.execv(exe_path, [exe_path] + sys.argv[1:])
-
-    threading.Thread(target=_restart, daemon=True).start()
+    _spawn_and_exit(exe_path)
 
     return {
         "status": "restarting",
@@ -219,15 +236,7 @@ async def test_update(req: TestUpdateRequest):
         if not os.access(exe_path, os.X_OK):
             os.chmod(exe_path, os.stat(exe_path).st_mode | stat.S_IXUSR)
 
-        import threading
-
-        def _restart():
-            import time
-            time.sleep(1)
-            os.execv(exe_path, [exe_path] + sys.argv[1:])
-
-        threading.Thread(target=_restart, daemon=True).start()
-
+        _spawn_and_exit(exe_path)
         return {"status": "restarting", "test": True, "target": exe_path}
 
     # Frozen mode — full swap like production
@@ -249,14 +258,5 @@ async def test_update(req: TestUpdateRequest):
         raise HTTPException(500, f"Failed to swap binary: {e}")
 
     logger.info("Test update installed, restarting from %s ...", exe_path)
-
-    import threading
-
-    def _restart():
-        import time
-        time.sleep(1)
-        os.execv(exe_path, [exe_path] + sys.argv[1:])
-
-    threading.Thread(target=_restart, daemon=True).start()
-
+    _spawn_and_exit(exe_path)
     return {"status": "restarting", "test": True, "target": exe_path}
