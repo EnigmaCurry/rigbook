@@ -43,7 +43,7 @@ async def _check_enabled(session: AsyncSession) -> None:
     if not row or row.value != "true":
         raise HTTPException(status_code=403, detail="SQL query is disabled")
 
-ALLOWED_TABLES = {"contacts", "notifications", "pota_programs", "pota_locations", "pota_parks"}
+ALLOWED_TABLES = {"cache", "contacts", "notifications", "pota_programs", "pota_locations", "pota_parks"}
 MAX_ROWS = 10000
 QUERY_TIMEOUT_OPS = 1_000_000  # SQLite VM operations before abort
 
