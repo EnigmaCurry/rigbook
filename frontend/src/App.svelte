@@ -629,7 +629,12 @@
     try {
       const res = await fetch("/api/update/apply", { method: "POST" });
       const data = await res.json();
-      if (!res.ok || data.status === "up_to_date") {
+      if (!res.ok) {
+        console.error("Update failed:", data.detail || data);
+        updateApplying = false;
+        return;
+      }
+      if (data.status === "up_to_date") {
         updateApplying = false;
         return;
       }
@@ -642,7 +647,8 @@
         await new Promise(r => setTimeout(r, 1000));
       }
       updateApplying = false;
-    } catch {
+    } catch (e) {
+      console.error("Update error:", e);
       updateApplying = false;
     }
   }
