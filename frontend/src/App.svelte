@@ -403,6 +403,9 @@
     eventSource.addEventListener("notification", (e) => {
       // Individual notification pushed — could be used later
     });
+    eventSource.addEventListener("update-check", () => {
+      fetchUpdateCheck();
+    });
     eventSource.addEventListener("shutdown", () => {
       setShutdownState();
     });

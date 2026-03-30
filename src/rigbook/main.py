@@ -214,7 +214,7 @@ async def check_for_update(
     except Exception:
         update_available = not is_dev and latest != current
 
-    return {
+    result = {
         "current": current,
         "latest": latest,
         "update_available": update_available,
@@ -223,6 +223,12 @@ async def check_for_update(
         "url": url if update_available else None,
         "checked_at": checked_at,
     }
+
+    from rigbook.sse import broadcast
+
+    broadcast("update-check", result)
+
+    return result
 
 
 app.include_router(logbooks_router)
