@@ -118,7 +118,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    height: calc(100vh - 60px);
+    height: 100vh;
     padding: 1rem;
     box-sizing: border-box;
   }
@@ -130,7 +130,7 @@
     padding: 2rem;
     width: 100%;
     max-width: 480px;
-    max-height: calc(100vh - 92px);
+    max-height: calc(100vh - 2rem);
     display: flex;
     flex-direction: column;
     overflow: hidden;
