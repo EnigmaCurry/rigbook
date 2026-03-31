@@ -40,8 +40,8 @@
     modalParkLoading = false;
   }
 
-  // Spot map colors (loaded from settings, with defaults)
-  const SPOT_MAP_DEFAULTS = { qth: "#ff4444", station: "#ffaa00", spotter: "#00ccff", secondary: "#7744aa" };
+  // Spot map colors (loaded from settings, defaults match Aurora Borealis preset)
+  const SPOT_MAP_DEFAULTS = { qth: "#ff4444", station: "#00ff88", spotter: "#00ccff", secondary: "#7744aa" };
   let mapColors = { ...SPOT_MAP_DEFAULTS };
 
   async function loadMapColors() {
