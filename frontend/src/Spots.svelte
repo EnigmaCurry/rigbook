@@ -1324,7 +1324,7 @@
               {:else if col.key === "spotters"}<td class="mono" title={spot.spotters ? spot.spotters.join(", ") : ""}>{spot.spotter_count}</td>
               {:else if col.key === "snr"}<td class="mono">{spot.best_snr ?? ""}</td>
               {:else if col.key === "wpm"}<td class="mono">{spot.wpm ?? ""}</td>
-              {:else if col.key === "location"}<td class="location">{#if isPotaActivator(spot)}{@const pota = getPotaSpot(spot)}<!-- svelte-ignore a11y-click-events-have-key-events --><!-- svelte-ignore a11y-no-static-element-interactions --><span class="pota-loc clickable" on:click|stopPropagation={() => openParkModal(spotHomeLabel(spot))}>{spotHomeLabel(spot)}</span>{#if pota?.name}<span class="pota-name">{pota.name}</span>{/if}{:else if spot.country || spot.qrz_state}{locationStr(spot)}{:else if (spot._qrz_status || spot.qrz_status) === "not_found"}<span class="fetch-hint">(No QRZ record)</span>{:else if (spot._qrz_status || spot.qrz_status) === "no_location"}<span class="fetch-hint">(No QRZ location)</span>{:else if !qrzConfigured}<span class="fetch-hint">(Configure QRZ account)</span>{:else if qrz.skipped}<span class="fetch-hint">(filter more to fetch)</span>{:else if qrz.pending > 0}<span class="fetch-hint">(fetching... {qrz.pending} left)</span>{/if}</td>
+              {:else if col.key === "location"}<td class="location">{#if isPotaActivator(spot)}{@const pota = getPotaSpot(spot)}<!-- svelte-ignore a11y-click-events-have-key-events --><!-- svelte-ignore a11y-no-static-element-interactions --><span class="pota-loc clickable" on:click|stopPropagation={() => openParkModal(spotHomeLabel(spot))}>{spotHomeLabel(spot)}</span>{#if pota?.name}<span class="pota-name">{pota.name}</span>{/if}{:else if spot.qrz_grid && !spot.qrz_grid_approx}{spot.qrz_grid} <span class="loc-detail">{locationStr(spot)}</span>{:else if spot.qrz_state && spot.country}{spot.qrz_state}, {spot.country}{:else if spot.country}{spot.country}{:else if (spot._qrz_status || spot.qrz_status) === "not_found"}<span class="fetch-hint">(No QRZ record)</span>{:else if (spot._qrz_status || spot.qrz_status) === "no_location"}<span class="fetch-hint">(No QRZ location)</span>{:else if !qrzConfigured}<span class="fetch-hint">(Configure QRZ account)</span>{:else if qrz.skipped}<span class="fetch-hint">(filter more to fetch)</span>{:else if qrz.pending > 0}<span class="fetch-hint">(fetching... {qrz.pending} left)</span>{/if}</td>
               {:else if col.key === "source"}<td class="source-tag {spot.source}">{spot.source}</td>
               {:else if col.key === "distance"}<td class="mono">{spot.closest_call || ""}{spot.distance_mi != null ? ` ${spot.distance_mi}mi` : ""}{spot.closest_snr != null ? ` ${spot.closest_snr}dB` : ""}</td>
               {:else if col.key === "info"}<td class="info">{spot.state}{spot.wwff_ref ? ` ${spot.wwff_ref}` : ""}{spot.comment ? ` ${spot.comment}` : ""}</td>
@@ -1622,6 +1622,10 @@
     margin-left: 0.3rem;
   }
 
+  .loc-detail {
+    color: var(--text-dim);
+    font-size: 0.75rem;
+  }
   .fetch-hint {
     color: var(--text-dim);
     font-size: 0.65rem;
