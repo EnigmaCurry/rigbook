@@ -359,10 +359,16 @@
     }
   }
 
-  function startAutoReconnect() {
-    autoReconnectDelay = 1000;
+  async function startAutoReconnect() {
+    autoReconnectDelay = 2000;
     reconnectStartedAt = Date.now();
-    scheduleAutoReconnect();
+    // Try immediately first, then start backoff schedule
+    reconnecting = true;
+    await attemptReconnect();
+    reconnecting = false;
+    if (serverDisconnected) {
+      scheduleAutoReconnect();
+    }
   }
 
   function scheduleAutoReconnect() {
