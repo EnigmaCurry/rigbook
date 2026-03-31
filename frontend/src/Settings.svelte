@@ -770,6 +770,120 @@
     window.location.hash = `/settings/${tab}`;
   }
 
+  // --- Masonry layout action ---
+  // Distributes child sections into two columns, placing each in the shorter column.
+  function masonry(node) {
+    let col1, col2, observer, resizeOb, layoutPending = false, laying = false;
+
+    const MIN_WIDTH = 640; // below this, fall back to single column
+
+    function collectSections() {
+      // Sections may be direct children or inside column wrappers
+      const direct = [...node.querySelectorAll(":scope > .settings-section")];
+      const inCols = col1 ? [...col1.querySelectorAll(":scope > .settings-section"), ...col2.querySelectorAll(":scope > .settings-section")] : [];
+      return [...direct, ...inCols];
+    }
+
+    function teardownColumns() {
+      if (col1 && col1.parentNode === node) {
+        const sections = collectSections();
+        // Move sections back before removing columns
+        for (const s of sections) node.appendChild(s);
+        if (col1.parentNode === node) node.removeChild(col1);
+        if (col2.parentNode === node) node.removeChild(col2);
+      }
+    }
+
+    function layout() {
+      if (laying) return;
+      laying = true;
+      try {
+        const width = node.parentElement?.offsetWidth || node.offsetWidth;
+
+        if (width < MIN_WIDTH) {
+          teardownColumns();
+          return;
+        }
+
+        // Gather all sections (from node or from existing columns)
+        const sections = collectSections();
+        if (!sections.length) return;
+
+        // Move sections back to node temporarily for measurement
+        for (const s of sections) node.appendChild(s);
+        if (col1 && col1.parentNode === node) {
+          node.removeChild(col1);
+          node.removeChild(col2);
+        }
+
+        // Create column wrappers if needed
+        if (!col1) {
+          col1 = document.createElement("div");
+          col1.className = "masonry-col";
+          col2 = document.createElement("div");
+          col2.className = "masonry-col";
+        }
+
+        // Measure natural heights in single-column layout
+        const heights = sections.map(s => s.offsetHeight);
+
+        // Greedy distribution: place each section in the shorter column
+        let h1 = 0, h2 = 0;
+        const assign1 = [], assign2 = [];
+        for (let i = 0; i < sections.length; i++) {
+          if (h1 <= h2) {
+            assign1.push(sections[i]);
+            h1 += heights[i];
+          } else {
+            assign2.push(sections[i]);
+            h2 += heights[i];
+          }
+        }
+
+        // Move sections into columns
+        for (const s of assign1) col1.appendChild(s);
+        for (const s of assign2) col2.appendChild(s);
+        node.appendChild(col1);
+        node.appendChild(col2);
+      } finally {
+        laying = false;
+      }
+    }
+
+    function scheduleLayout() {
+      if (layoutPending || laying) return;
+      layoutPending = true;
+      requestAnimationFrame(() => { layoutPending = false; layout(); });
+    }
+
+    // Run layout after Svelte finishes rendering children
+    const raf = requestAnimationFrame(() => {
+      layout();
+      // Re-layout when direct children change (sections added/removed by Svelte conditionals)
+      observer = new MutationObserver((mutations) => {
+        // Only relayout if a settings-section was added/removed directly
+        for (const m of mutations) {
+          if (m.type === "childList" && m.target === node) { scheduleLayout(); return; }
+          if (m.type === "childList" && (m.target === col1 || m.target === col2)) continue;
+          // A section inside a column gained/lost children (e.g. {#if} block toggled)
+          if (m.type === "childList") { scheduleLayout(); return; }
+        }
+      });
+      observer.observe(node, { childList: true, subtree: true });
+      resizeOb = new ResizeObserver(scheduleLayout);
+      resizeOb.observe(node);
+    });
+
+    return {
+      destroy() {
+        cancelAnimationFrame(raf);
+        if (observer) observer.disconnect();
+        if (resizeOb) resizeOb.disconnect();
+        teardownColumns();
+      },
+    };
+  }
+
   async function restartFeeds() {
     await fetch("/api/spots/restart", { method: "POST" });
     setTimeout(fetchSpotStatus, 2000);
@@ -1304,7 +1418,7 @@
   </div>
 
   {#if activeTab === "station"}
-  <div class="tab-content">
+  <div class="tab-content" use:masonry>
   <section class="settings-section">
     <h3>Station</h3>
     <div class="setting-row">
@@ -1392,7 +1506,7 @@
   {/if}
 
   {#if activeTab === "features"}
-  <div class="tab-content">
+  <div class="tab-content" use:masonry>
   <section class="settings-section">
     <h3>Parks on the Air (POTA)</h3>
     <div class="setting-row toggle-row">
@@ -1529,7 +1643,7 @@
   {/if}
 
   {#if activeTab === "appearance"}
-  <div class="tab-content">
+  <div class="tab-content" use:masonry>
   <section class="settings-section">
     <h3>Maps</h3>
     <div class="map-preview" bind:this={previewEl}></div>
@@ -1673,7 +1787,7 @@
   {/if}
 
   {#if activeTab === "updates"}
-  <div class="tab-content">
+  <div class="tab-content" use:masonry>
   <section class="settings-section">
     <h3>Update Checker</h3>
     {#if updateOfficialBuild}
@@ -1760,7 +1874,7 @@
   {/if}
 
   {#if activeTab === "system"}
-  <div class="tab-content">
+  <div class="tab-content" use:masonry>
   <section class="settings-section">
     <h3>Cache</h3>
     <p class="hint">Cached data: QRZ callsign lookups, SKCC member list. Clearing forces fresh lookups on next use.</p>
@@ -1914,8 +2028,19 @@
   }
 
   .tab-content {
-    columns: 320px 2;
-    column-gap: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1rem;
+  }
+
+  /* Single-column fallback (no masonry columns created) */
+  .tab-content > :global(.settings-section) {
+    width: 100%;
+  }
+
+  :global(.masonry-col) {
+    flex: 1;
+    min-width: 0;
   }
 
   h2 {
@@ -1962,7 +2087,6 @@
     border-radius: 4px;
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
-    break-inside: avoid;
   }
 
   h3 {
