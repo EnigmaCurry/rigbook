@@ -82,14 +82,9 @@ config-grid grid: _check-curl
 config-show: _check-curl
     @curl -s http://localhost:8073/api/settings | python -m json.tool
 
-# Delete the database
-[confirm("This will delete ~/.local/rigbook/rigbook.db. Are you sure? (y/N)")]
-clean:
-    rm -f ~/.local/rigbook/rigbook.db
-    @echo "Database deleted."
-
 # Remove build artifacts and stamp files
-clean-build:
+clean:
     rm -rf dist/ build/
     rm -f .build-*.stamp
     @echo "Build artifacts cleaned."
+
