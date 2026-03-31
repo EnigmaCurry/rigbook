@@ -504,6 +504,7 @@
   }
 
   async function pollFlrig() {
+    if (!logbookOpen) return;
     try {
       const res = await fetch("/api/flrig/status");
       if (res.ok) {
@@ -1029,20 +1030,22 @@
         dualRightPage = parsed.dualRight;
       }
     }
-    fetchCallsign();
-    const wasEnabled = flrigEnabled;
-    await fetchFlrigEnabled();
-    if (flrigEnabled && !wasEnabled) {
-      fetchRadioModes();
-      pollFlrig();
-      flrigInterval = setInterval(pollFlrig, 2000);
-    } else if (!flrigEnabled && wasEnabled) {
-      clearInterval(flrigInterval);
-      vfoFreq = "";
-      vfoMode = "";
-      vfoConnected = false;
+    if (logbookOpen) {
+      fetchCallsign();
+      const wasEnabled = flrigEnabled;
+      await fetchFlrigEnabled();
+      if (flrigEnabled && !wasEnabled) {
+        fetchRadioModes();
+        pollFlrig();
+        flrigInterval = setInterval(pollFlrig, 2000);
+      } else if (!flrigEnabled && wasEnabled) {
+        clearInterval(flrigInterval);
+        vfoFreq = "";
+        vfoMode = "";
+        vfoConnected = false;
+      }
+      fetchWideBreakpoint();
     }
-    fetchWideBreakpoint();
   }
 
   function applySystemTheme() {
