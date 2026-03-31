@@ -878,7 +878,7 @@
       iconSize: [0, 0],
       iconAnchor: [0, 16],
     });
-    const m = L.marker(ll, { icon, interactive: false }).addTo(leafletMap);
+    const m = L.marker(ll, { icon, interactive: false, zIndexOffset: 2000 }).addTo(leafletMap);
     _markerLabels.push({ ll });
     return m;
   }
