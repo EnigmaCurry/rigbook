@@ -1265,34 +1265,38 @@
       </div>
       {#if update_check_enabled && updateCheckResult}
         <div class="update-status">
-          Current version: <strong>v{updateCheckResult.current}</strong>{#if updateBuildSha}
+          <div>Current version: <strong>v{updateCheckResult.current}</strong>{#if updateBuildSha}
             (<a href="https://github.com/{updateGithubRepo}/commit/{updateBuildSha}" target="_blank" rel="noopener" class="sha-link">{updateBuildSha}</a>){/if}
           {#if updateCheckResult.is_dev}
             — Development version — update checker is disabled
-          {:else if updateCheckResult.update_available && !updateCheckResult.update_skipped}
-            — <span class="update-available">Update available: v{updateCheckResult.latest}</span>
-            {#if updateSupported}
-              <button class="check-now-btn apply-update-btn" on:click={confirmAndApplyUpdate} disabled={updateApplying}>
-                {updateApplying ? "Updating…" : "Apply Update"}
-              </button>
-              <button class="check-now-btn" on:click={skipUpdate}>Skip</button>
-            {:else}
-              — <a href={updateCheckResult.url} target="_blank" rel="noopener" class="update-available">Download</a>
-              {#if updateNotWritable}
-                <span class="update-error">In-app update unavailable: no write permission to the binary location</span>
-              {/if}
-            {/if}
-            {#if updateApplyError}
-              <span class="update-error">{updateApplyError}</span>
-            {/if}
-          {:else if updateCheckResult.update_skipped}
-            — v{updateCheckResult.latest} available (skipped)
           {:else if updateCheckResult.is_exact}
             — You're running the latest version
-          {:else if updateCheckResult.latest}
+          {:else if updateCheckResult.latest && !updateCheckResult.update_available}
             — You're ahead of the latest release (v{updateCheckResult.latest})
-          {:else}
+          {:else if !updateCheckResult.latest}
             — Unable to check for updates
+          {/if}
+          </div>
+          {#if updateCheckResult.update_available && !updateCheckResult.update_skipped}
+            <div><span class="update-available">Update available: v{updateCheckResult.latest}</span></div>
+            <div class="update-actions">
+              {#if updateSupported}
+                <button class="check-now-btn apply-update-btn" on:click={confirmAndApplyUpdate} disabled={updateApplying}>
+                  {updateApplying ? "Updating…" : "Apply Update"}
+                </button>
+                <button class="check-now-btn" on:click={skipUpdate}>Skip</button>
+              {:else}
+                <a href={updateCheckResult.url} target="_blank" rel="noopener" class="update-available">Download</a>
+                {#if updateNotWritable}
+                  <span class="update-error">In-app update unavailable: no write permission to the binary location</span>
+                {/if}
+              {/if}
+              {#if updateApplyError}
+                <span class="update-error">{updateApplyError}</span>
+              {/if}
+            </div>
+          {:else if updateCheckResult.update_skipped}
+            <div>v{updateCheckResult.latest} available (skipped)</div>
           {/if}
         </div>
         <div class="update-check-meta">
@@ -1781,8 +1785,14 @@
   .update-available:hover {
     text-decoration: underline;
   }
-  .update-check-meta {
+  .update-actions {
     margin-top: 0.3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .update-check-meta {
+    margin-top: 0.7rem;
     font-size: 0.8rem;
     color: var(--text-muted);
     display: flex;
