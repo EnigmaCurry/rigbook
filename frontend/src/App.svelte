@@ -1017,6 +1017,7 @@
         skcc: String(spot.skcc || ""),
         country: String(spot.country || ""),
         state: String(spot.qrz_state || ""),
+        grid: String(spot.qrz_grid || ""),
       };
       dualShowForm = true;
       if (page !== "dual") navigate("add");
