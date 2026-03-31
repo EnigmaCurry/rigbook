@@ -268,6 +268,7 @@ async def check_for_update(
         "is_exact": is_exact,
         "url": url if update_available else None,
         "checked_at": checked_at,
+        "next_check_at": checked_at + UPDATE_CACHE_TTL,
     }
 
     if fresh_fetch:

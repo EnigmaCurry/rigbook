@@ -878,6 +878,15 @@
     return `${Math.floor(diff / 86400)}d ago`;
   }
 
+  function formatTimeUntil(epochSecs) {
+    const diff = Math.floor(epochSecs - Date.now() / 1000);
+    if (diff <= 0) return "soon";
+    if (diff < 60) return `in ${diff}s`;
+    if (diff < 3600) return `in ${Math.floor(diff / 60)}m`;
+    if (diff < 86400) return `in ${Math.floor(diff / 3600)}h`;
+    return `in ${Math.floor(diff / 86400)}d`;
+  }
+
   async function logoutQrz() {
     try {
       await fetch("/api/settings/qrz_password", {
@@ -1288,7 +1297,7 @@
         </div>
         <div class="update-check-meta">
           {#if updateCheckResult.checked_at}
-            Checked {formatTimeAgo(updateCheckResult.checked_at)}
+            Checked {formatTimeAgo(updateCheckResult.checked_at)}{#if updateCheckResult.next_check_at}, next check {formatTimeUntil(updateCheckResult.next_check_at)}{/if}
           {/if}
           <button class="check-now-btn" on:click={fetchUpdateCheck} disabled={updateChecking}>
             {updateChecking ? "Checking…" : "Check now"}
