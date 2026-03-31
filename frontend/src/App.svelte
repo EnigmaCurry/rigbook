@@ -222,6 +222,8 @@
   let clientCount = 0;
   let disconnectNonce = "";
   let eventSource = null;
+  let sseHeartbeatTimer = null;
+  const SSE_TIMEOUT_MS = 16000;
   let popupNotifications = [];
   let popupNotifEnabled = false;
   let showPopup = false;
@@ -333,6 +335,8 @@
   function stopAppServices() {
     clearInterval(flrigInterval);
     flrigInterval = null;
+    clearTimeout(sseHeartbeatTimer);
+    sseHeartbeatTimer = null;
     if (eventSource) { eventSource.close(); eventSource = null; }
   }
 
@@ -396,9 +400,17 @@
     applySystemTheme();
   }
 
+  function resetSseHeartbeat() {
+    clearTimeout(sseHeartbeatTimer);
+    sseHeartbeatTimer = setTimeout(() => {
+      if (!serverShutdown) setShutdownState();
+    }, SSE_TIMEOUT_MS);
+  }
+
   function connectSSE() {
     if (eventSource) eventSource.close();
     eventSource = new EventSource("/api/events/stream");
+    resetSseHeartbeat();
     eventSource.addEventListener("unread", (e) => {
       const data = JSON.parse(e.data);
       const newCount = data.count;
@@ -426,6 +438,9 @@
     });
     eventSource.addEventListener("update-check", () => {
       fetchUpdateCheck();
+    });
+    eventSource.addEventListener("keepalive", () => {
+      resetSseHeartbeat();
     });
     eventSource.addEventListener("shutdown", () => {
       setShutdownState();

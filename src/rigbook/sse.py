@@ -126,8 +126,8 @@ async def _sse_generator(queue: asyncio.Queue[str], request: Request):
                 msg = await asyncio.wait_for(queue.get(), timeout=5)
                 yield msg
             except asyncio.TimeoutError:
-                # Send keepalive comment to detect dead connections
-                yield ": keepalive\n\n"
+                # Send keepalive event; clients use this to detect server death
+                yield "event: keepalive\ndata: {}\n\n"
             if shutdown_evt.is_set():
                 # Drain any remaining messages (including shutdown broadcast)
                 while not queue.empty():
