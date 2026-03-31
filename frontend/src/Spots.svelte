@@ -1149,7 +1149,7 @@
         spotterMarkers[call].setLatLng(ll);
         continue;
       }
-      const m = L.marker(ll, { icon })
+      const m = L.marker(ll, { icon, zIndexOffset: 0 })
         .addTo(leafletMap);
       m.on("click", () => onMapSpotterClick(call));
       spotterMarkers[call] = m;
@@ -1167,7 +1167,7 @@
         homeMarkers[call].setLatLng(ll);
         continue;
       }
-      const hm = L.marker(ll, { icon })
+      const hm = L.marker(ll, { icon, zIndexOffset: 1000 })
         .addTo(leafletMap);
       hm.on("click", () => onMapHomeClick(call));
       homeMarkers[call] = hm;
