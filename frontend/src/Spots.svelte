@@ -558,6 +558,7 @@
   let spotterMarkers = {};   // closest_call -> marker
   let homeMarkers = {};      // callsign -> marker
   let homeSpotterCounts = new Map();
+  let homeApproxSet = new Set();
   let spotterLines = {};     // closest_call -> polyline (to my QTH)
   let myMarker = null;
   let selectionLines = [];   // active triangle lines
@@ -602,21 +603,22 @@
 
   const spotterIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot spotter"></div>', iconSize: [10, 10], iconAnchor: [5, 5] });
   const spotterSecondaryIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot spotter-secondary"></div>', iconSize: [10, 10], iconAnchor: [5, 5] });
-  function homeLocIcon(spotterCount) {
+  function homeLocIcon(spotterCount, approx = false) {
     const t = Math.min(spotterCount / 10, 1);
     // Lerp from dim gold (#886600) to bright yellow (#ffee00)
     const r = Math.round(0x88 + t * (0xff - 0x88));
     const g = Math.round(0x66 + t * (0xee - 0x66));
     const b = Math.round(0x00 + t * (0x00 - 0x00));
-    const bg = `rgb(${r},${g},${b})`;
+    const bg = approx ? "transparent" : `rgb(${r},${g},${b})`;
     const br = Math.round(0x55 + t * (0x99 - 0x55));
     const bg2 = Math.round(0x33 + t * (0x77 - 0x33));
     const border = `rgb(${br},${bg2},0)`;
+    const borderStyle = approx ? "2px dashed" : "2px solid";
     const size = spotterCount > 10 ? 15 : Math.round(10 + (spotterCount / 10) * 5);
     const half = Math.round(size / 2);
     return L.divIcon({
       className: "spot-marker",
-      html: `<div class="spot-marker-dot" style="width:${size-2}px;height:${size-2}px;background:${bg};border:2px solid ${border};border-radius:50%"></div>`,
+      html: `<div class="spot-marker-dot" style="width:${size-2}px;height:${size-2}px;background:${bg};border:${borderStyle} ${border};border-radius:50%"></div>`,
       iconSize: [size, size],
       iconAnchor: [half, half],
     });
@@ -774,7 +776,7 @@
     for (const [call, m] of Object.entries(homeMarkers)) {
       setMarkerVisible(m, true);
       const count = homeSpotterCounts.get(call) || 1;
-      m.setIcon(homeLocIcon(count));
+      m.setIcon(homeLocIcon(count, homeApproxSet.has(call)));
     }
   }
 
@@ -1088,6 +1090,7 @@
     const closestCalls = new Set();
     const currentHomes = new Map();
     homeSpotterCounts = new Map();
+    homeApproxSet = new Set();
     for (const s of spots) {
       if (s.closest_call && s.closest_grid) {
         currentSpotters.set(s.closest_call, s.closest_grid);
@@ -1103,6 +1106,7 @@
       if (s.callsign && hg) {
         currentHomes.set(s.callsign, hg);
         homeSpotterCounts.set(s.callsign, s.spotter_count || 1);
+        if (s.qrz_grid_approx) homeApproxSet.add(s.callsign);
       }
     }
 
@@ -1141,7 +1145,7 @@
     // Add/update home location markers (normalized to QTH longitude)
     for (const [call, grid] of currentHomes) {
       const count = homeSpotterCounts.get(call) || 1;
-      const icon = homeLocIcon(count);
+      const icon = homeLocIcon(count, homeApproxSet.has(call));
       const pos = gridToLatLon(grid);
       if (!pos) continue;
       const ll = nearLL(baseLon, [pos.lat, pos.lon]);
