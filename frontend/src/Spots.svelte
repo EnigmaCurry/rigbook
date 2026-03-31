@@ -1212,12 +1212,48 @@
     }
 
     // Add/update home location markers (normalized to QTH longitude)
+    // Group approximate markers by grid so we can honeycomb-offset overlapping ones
+    const approxByGrid = new Map();
+    for (const [call, grid] of currentHomes) {
+      if (homeApproxSet.has(call)) {
+        if (!approxByGrid.has(grid)) approxByGrid.set(grid, []);
+        approxByGrid.get(grid).push(call);
+      }
+    }
+    // Build offset map: call -> [dlat, dlon]
+    const honeycombOffset = new Map();
+    for (const [grid, calls] of approxByGrid) {
+      if (calls.length <= 1) continue;
+      // Honeycomb: ring 0 = center (no offset), ring 1 = 6 positions, ring 2 = 12, etc.
+      // Offset ~0.4° so markers spread visibly at typical zoom levels
+      const step = 0.4;
+      let idx = 0;
+      for (const call of calls) {
+        if (idx === 0) { idx++; continue; } // first one stays at center
+        // Which ring and position within ring
+        let ring = 1, pos_in_ring = idx - 1, ring_start = 1;
+        while (pos_in_ring >= ring * 6) {
+          pos_in_ring -= ring * 6;
+          ring_start += ring * 6;
+          ring++;
+        }
+        const angle = (pos_in_ring / (ring * 6)) * Math.PI * 2;
+        const dlat = Math.sin(angle) * step * ring;
+        const dlon = Math.cos(angle) * step * ring * 1.5; // wider lon since degrees are narrower
+        honeycombOffset.set(call, [dlat, dlon]);
+        idx++;
+      }
+    }
+
     for (const [call, grid] of currentHomes) {
       const count = homeSpotterCounts.get(call) || 1;
       const icon = homeLocIcon(count, homeApproxSet.has(call));
       const pos = gridToLatLon(grid);
       if (!pos) continue;
-      const ll = nearLL(baseLon, [pos.lat, pos.lon]);
+      let ll = nearLL(baseLon, [pos.lat, pos.lon]);
+      // Apply honeycomb offset for overlapping approximate markers
+      const offset = honeycombOffset.get(call);
+      if (offset) ll = [ll[0] + offset[0], ll[1] + offset[1]];
       if (homeMarkers[call]) {
         homeMarkers[call].setIcon(icon);
         homeMarkers[call].setLatLng(ll);
