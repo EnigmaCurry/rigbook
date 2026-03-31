@@ -375,9 +375,9 @@
   async function shutdownFromMenu() {
     menuOpen = false;
     try {
-      await fetch("/api/logbooks/shutdown", { method: "POST" });
+      const res = await fetch("/api/logbooks/shutdown", { method: "POST" });
+      if (res.ok) setShutdownState();
     } catch {}
-    setShutdownState();
   }
 
   async function closeLogbook() {

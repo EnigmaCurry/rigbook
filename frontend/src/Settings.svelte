@@ -344,11 +344,13 @@
 
   async function shutdownServer() {
     if (!confirm("Are you sure you want to shut down the Rigbook server?")) return;
-    dispatch("shutdown");
     try {
-      await fetch("/api/logbooks/shutdown", { method: "POST" });
+      const res = await fetch("/api/logbooks/shutdown", { method: "POST" });
+      if (res.ok) {
+        dispatch("shutdown");
+        dispatch("deleted", { shutdown: true });
+      }
     } catch {}
-    dispatch("deleted", { shutdown: true });
   }
 
   async function enableDesktopNotifications() {
