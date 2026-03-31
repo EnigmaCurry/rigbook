@@ -1193,7 +1193,7 @@
       <label for="theme_select">Theme</label>
       <select id="theme_select" bind:value={theme} on:change={onThemeChange}>
         {#each THEME_NAMES as t}
-          <option value={t}>{THEMES[t].label}</option>
+          <option value={t}>{THEMES[t].label}{t !== "dark" && t !== "light" ? ` (${THEMES[t].base})` : ""}</option>
         {/each}
       </select>
     </div>
