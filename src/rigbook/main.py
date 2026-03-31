@@ -39,7 +39,7 @@ from rigbook.routes.settings import (
 from rigbook.routes.query import router as query_router
 from rigbook.routes.solar import router as solar_router
 from rigbook.routes.update import router as update_router
-from rigbook._build_info import BUILD_GIT_SHA, BUILD_GITHUB_ACTIONS, BUILD_ORIGIN_REPO
+from rigbook._build_info import BUILD_GITHUB_ACTIONS, BUILD_ORIGIN_REPO, GIT_SHA
 
 logger = logging.getLogger("rigbook")
 
@@ -81,7 +81,7 @@ async def lifespan(app: FastAPI):
     signal.signal(signal.SIGINT, _handle_shutdown_signal)
     signal.signal(signal.SIGTERM, _handle_shutdown_signal)
     origin = BUILD_ORIGIN_REPO or "local build"
-    sha = f" {BUILD_GIT_SHA}" if BUILD_GIT_SHA else ""
+    sha = f" {GIT_SHA}" if GIT_SHA else ""
     logger.info("Rigbook v%s (%s%s)", version("rigbook"), origin, sha)
     if GITHUB_REPO != "EnigmaCurry/rigbook":
         logger.warning(
@@ -341,7 +341,7 @@ def run() -> None:
 
     parser = argparse.ArgumentParser(description="Rigbook - Ham Radio Logbook")
     parser.add_argument(
-        "--version", action="version", version=f"rigbook {version('rigbook')} ({BUILD_ORIGIN_REPO or 'local build'}{' ' + BUILD_GIT_SHA if BUILD_GIT_SHA else ''})"
+        "--version", action="version", version=f"rigbook {version('rigbook')} ({BUILD_ORIGIN_REPO or 'local build'}{' ' + GIT_SHA if GIT_SHA else ''})"
     )
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="Enable verbose/debug logging"
@@ -437,7 +437,7 @@ def run() -> None:
 
                     current = version("rigbook")
                     my_origin = BUILD_ORIGIN_REPO or None
-                    my_sha = BUILD_GIT_SHA or None
+                    my_sha = GIT_SHA or None
                     same_lineage = (my_origin == running_origin) or (not my_origin and not running_origin)
                     should_replace = False
                     if same_lineage and running_version:

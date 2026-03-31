@@ -15,7 +15,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from importlib.metadata import version
 
-from rigbook._build_info import BUILD_GIT_SHA, BUILD_GITHUB_ACTIONS, BUILD_ORIGIN_REPO
+from rigbook._build_info import BUILD_GITHUB_ACTIONS, BUILD_ORIGIN_REPO, GIT_SHA
 
 router = APIRouter(prefix="/api/update", tags=["update"])
 
@@ -145,7 +145,7 @@ async def get_platform_info():
         "supported": official and asset is not None,
         "writable": writable,
         "build_origin_repo": BUILD_ORIGIN_REPO or None,
-        "build_git_sha": BUILD_GIT_SHA or None,
+        "build_git_sha": GIT_SHA or None,
         "build_github_actions": BUILD_GITHUB_ACTIONS,
         "platform": platform.system().lower(),
         "arch": platform.machine().lower(),
