@@ -386,6 +386,7 @@
     logbookOpen = false;
     currentLogbook = "";
     page = "picker";
+    applySystemTheme();
   }
 
   function connectSSE() {
@@ -1035,6 +1036,12 @@
     fetchWideBreakpoint();
   }
 
+  function applySystemTheme() {
+    const sysPref = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    storageSet("rigbook-theme", sysPref);
+    document.documentElement.classList.toggle("light", sysPref === "light");
+  }
+
   function applyThemeFromCache() {
     const cached = storageGet("rigbook-theme");
     const theme = cached || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
@@ -1110,7 +1117,11 @@
     await checkLogbookMode();
     setLogbook(currentLogbook);
     dualSplit = parseFloat(storageGet("dualSplit")) || 50;
-    applyTheme();
+    if (logbookOpen) {
+      applyTheme();
+    } else {
+      applySystemTheme();
+    }
     if (logbookOpen) {
       await startAppServices();
       await checkNeedsSetup();
@@ -1348,7 +1359,7 @@
     {:else if page === "notifications"}
       <Notifications on:countchange={() => fetchUnreadCount()} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
     {:else if page === "settings"}
-      <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} initialTab={settingsTab} {clientCount} on:disconnect-others={async () => { const nonce = Math.random().toString(36).slice(2); disconnectNonce = nonce; try { await fetch("/api/events/disconnect-others", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nonce }) }); } catch {} }} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchSqlQueryEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { fetchCallsign(); fetchCustomHeader(); fetchDefaultPage(); applyTheme(); fetchPopupNotifEnabled(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchSqlQueryEnabled(); await fetchFlrigEnabled(); fetchShutdownMenuEnabled(); fetchUpdateCheck(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { setShutdownState(); }} />
+      <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} initialTab={settingsTab} {clientCount} on:disconnect-others={async () => { const nonce = Math.random().toString(36).slice(2); disconnectNonce = nonce; try { await fetch("/api/events/disconnect-others", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nonce }) }); } catch {} }} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { logbookOpen = false; currentLogbook = ""; page = "picker"; applySystemTheme(); } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchSqlQueryEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { fetchCallsign(); fetchCustomHeader(); fetchDefaultPage(); applyTheme(); fetchPopupNotifEnabled(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchSqlQueryEnabled(); await fetchFlrigEnabled(); fetchShutdownMenuEnabled(); fetchUpdateCheck(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { setShutdownState(); }} />
     {:else if page === "links"}
       <Links />
     {:else if page === "conditions"}
