@@ -261,7 +261,7 @@
       const half = Math.round(size / 2);
       const icon = L.divIcon({
         className: "",
-        html: `<div style="width:${size}px;height:${size}px;background:${spotMapStation};border:2px solid ${staBorder};border-radius:50%;display:flex;align-items:center;justify-content:center"><div style="width:4px;height:4px;background:${spotMapQth};border-radius:50%"></div></div>`,
+        html: `<div style="width:${size}px;height:${size}px;background:${spotMapStation};border:2px solid ${staBorder};border-radius:50%;display:flex;align-items:center;justify-content:center"><div style="width:${Math.max(Math.round(size*0.3),2)}px;height:${Math.max(Math.round(size*0.3),2)}px;background:${spotMapQth};border-radius:50%"></div></div>`,
         iconSize: [size, size],
         iconAnchor: [half, half],
       });

@@ -680,7 +680,7 @@
     const half = Math.round(size / 2);
     return L.divIcon({
       className: "spot-marker",
-      html: `<div class="spot-marker-dot" style="width:${size-2}px;height:${size-2}px;background:${bg};border:${borderStyle} ${border};border-radius:50%;display:flex;align-items:center;justify-content:center">${approx ? `<span style="color:${qColor};font-size:${Math.max(size-2,8)}px;font-weight:bold;line-height:1">?</span>` : `<div style="width:4px;height:4px;background:${mapColors.qth};border-radius:50%"></div>`}</div>`,
+      html: `<div class="spot-marker-dot" style="width:${size-2}px;height:${size-2}px;background:${bg};border:${borderStyle} ${border};border-radius:50%;display:flex;align-items:center;justify-content:center">${approx ? `<span style="color:${qColor};font-size:${Math.max(size-2,8)}px;font-weight:bold;line-height:1">?</span>` : `<div style="width:${Math.max(Math.round(size*0.3),2)}px;height:${Math.max(Math.round(size*0.3),2)}px;background:${mapColors.qth};border-radius:50%"></div>`}</div>`,
       iconSize: [size, size],
       iconAnchor: [half, half],
     });
