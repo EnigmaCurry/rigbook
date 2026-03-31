@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.2.1
+
+- Fix Windows console window not fully hiding
+- Test build for upgrading v0.2.0 to v0.2.1
+
 ## v0.2.0
 
 ### Themes
