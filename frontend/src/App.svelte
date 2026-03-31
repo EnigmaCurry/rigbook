@@ -223,7 +223,7 @@
   let disconnectNonce = "";
   let eventSource = null;
   let sseHeartbeatTimer = null;
-  const SSE_TIMEOUT_MS = 16000;
+  const SSE_TIMEOUT_MS = 11000;
   let popupNotifications = [];
   let popupNotifEnabled = false;
   let showPopup = false;
