@@ -29,9 +29,12 @@ def _validate_name(name: str) -> None:
 
 @router.get("/mode")
 async def get_mode():
+    from rigbook.main import NO_SHUTDOWN
+
     return {
         "picker": db_manager.picker_mode,
         "db_override": db_manager._db_override is not None,
+        "no_shutdown": NO_SHUTDOWN,
     }
 
 

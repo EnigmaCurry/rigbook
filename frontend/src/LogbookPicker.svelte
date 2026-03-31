@@ -1,12 +1,22 @@
 <script>
   import { onMount, createEventDispatcher } from "svelte";
 
+  export let showShutdown = false;
+
   const dispatch = createEventDispatcher();
 
   let logbooks = [];
   let newName = "";
   let error = "";
   let loading = true;
+  let shuttingDown = false;
+
+  async function shutdownServer() {
+    shuttingDown = true;
+    try {
+      await fetch("/api/logbooks/shutdown", { method: "POST" });
+    } catch {}
+  }
 
   async function fetchLogbooks() {
     try {
@@ -110,6 +120,14 @@
         <button on:click={createLogbook}>Create</button>
       </div>
     </div>
+
+    {#if showShutdown}
+      <div class="picker-shutdown">
+        <button class="shutdown-btn" on:click={shutdownServer} disabled={shuttingDown}>
+          {shuttingDown ? "Shutting down…" : "Shutdown Server"}
+        </button>
+      </div>
+    {/if}
   </div>
 </div>
 
@@ -252,5 +270,34 @@
 
   .picker-create-row button:hover {
     background: var(--accent-hover);
+  }
+
+  .picker-shutdown {
+    border-top: 1px solid var(--border);
+    padding-top: 1.5rem;
+    margin-top: 1.5rem;
+    text-align: center;
+  }
+
+  .shutdown-btn {
+    padding: 0.5rem 1.5rem;
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+
+  .shutdown-btn:hover {
+    background: #ff444422;
+    color: #ff6666;
+    border-color: #ff444444;
+  }
+
+  .shutdown-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
   }
 </style>

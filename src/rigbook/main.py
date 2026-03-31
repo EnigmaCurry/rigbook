@@ -363,6 +363,11 @@ def run() -> None:
         help="Do not open the browser automatically",
     )
     parser.add_argument(
+        "--no-shutdown",
+        action="store_true",
+        help="Disable the shutdown endpoint and auto-shutdown",
+    )
+    parser.add_argument(
         "-p",
         "--port",
         type=int,
@@ -373,7 +378,7 @@ def run() -> None:
 
     global NO_SHUTDOWN
     db_manager.configure(db_name=args.name, picker=args.pick)
-    if args.pick:
+    if args.no_shutdown:
         NO_SHUTDOWN = True
 
     import subprocess

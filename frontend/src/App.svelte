@@ -238,6 +238,7 @@
       if (res.ok) {
         const data = await res.json();
         pickerMode = data.picker;
+        noShutdown = data.no_shutdown;
       }
     } catch {}
     try {
@@ -1215,7 +1216,7 @@
   {:else if !logbookReady}
     <!-- waiting for logbook mode check -->
   {:else if pickerMode && !logbookOpen}
-    <LogbookPicker on:logbookopened={handleLogbookOpened} />
+    <LogbookPicker on:logbookopened={handleLogbookOpened} showShutdown={!noShutdown} />
   {:else}
   <header>
     <div class="header-left">
