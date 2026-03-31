@@ -335,7 +335,7 @@ export const THEMES = {
     },
   },
   ares: {
-    label: "ARES/RACES",
+    label: "EMCOMM",
     base: "dark",
     vars: {
       "--bg": "#141418",
