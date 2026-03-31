@@ -51,10 +51,12 @@
         const d = await res.json();
         if (d.value) {
           const c = JSON.parse(d.value);
-          if (c.qth) mapColors.qth = c.qth;
-          if (c.station) mapColors.station = c.station;
-          if (c.spotter) mapColors.spotter = c.spotter;
-          if (c.secondary) mapColors.secondary = c.secondary;
+          mapColors = {
+            qth: c.qth || SPOT_MAP_DEFAULTS.qth,
+            station: c.station || SPOT_MAP_DEFAULTS.station,
+            spotter: c.spotter || SPOT_MAP_DEFAULTS.spotter,
+            secondary: c.secondary || SPOT_MAP_DEFAULTS.secondary,
+          };
         }
       }
     } catch {}
