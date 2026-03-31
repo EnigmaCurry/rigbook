@@ -1,5 +1,46 @@
 # Changelog
 
+## v0.2.2
+
+### Spots Map
+
+- Draw approximate spot location from state or country center when no grid is available
+- Approximate locations shown with dashed border, transparent fill, and ? marker
+- Stations with accurate grid shown as solid bright yellow markers (size varies by spotter count)
+- Station markers draw above spotter markers for easier clicking
+- Callsign labels draw above all markers
+- Secondary spotter markers changed from dark blue to purple
+- Clicking secondary spotter markers shows all stations they hear
+- Distance labels hidden when endpoints are too close on screen or overlapping callsign labels
+
+### Spots List
+
+- Location column shows best available info: grid > state+country > country > status hints
+- QRZ grid shown with dimmed state/country detail when available
+
+### QSO Form
+
+- Pass QRZ grid to QSO form when clicking non-POTA spots
+- Don't prefill QSO form with approximate grid from state/country center
+
+### Bug Fixes
+
+- Fix frontend QRZ trickle-fetch not setting grid on spot objects
+- Fix Parks nav showing when POTA is disabled on fresh logbooks
+
+### Shutdown & Reconnection
+
+- `--no-shutdown` CLI flag to disable shutdown from the UI
+- Shutdown button in logbook picker UI with confirmation dialog
+- Client-side SSE heartbeat timeout detects server death
+- Disconnect modal overlay with auto-reconnect countdown (retries for 60s)
+- Separate disconnect vs shutdown vs logbook-closed states
+- Full page reload on reconnect for clean state
+
+### Other
+
+- Show install/download buttons for skipped updates in settings
+
 ## v0.2.1
 
 - Fix Windows console window not fully hiding
