@@ -1742,9 +1742,15 @@
   }
 
   .color-pickers {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
+  }
+
+  @media (max-width: 360px) {
+    .color-pickers {
+      grid-template-columns: 1fr;
+    }
   }
 
   .color-picker-group {
