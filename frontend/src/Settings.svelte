@@ -780,21 +780,28 @@
   // --- Masonry layout action ---
   // Distributes child sections into two columns, placing each in the shorter column.
   function masonry(node) {
-    let col1, col2, observer, resizeOb, layoutPending = false, laying = false;
-
-    const MIN_WIDTH = 640; // below this, fall back to single column
+    let col1, col2, observer, resizeOb;
+    const MIN_WIDTH = 640;
 
     function collectSections() {
-      // Sections may be direct children or inside column wrappers
       const direct = [...node.querySelectorAll(":scope > .settings-section")];
       const inCols = col1 ? [...col1.querySelectorAll(":scope > .settings-section"), ...col2.querySelectorAll(":scope > .settings-section")] : [];
       return [...direct, ...inCols];
     }
 
+    function pauseObservers() {
+      if (observer) observer.disconnect();
+      if (resizeOb) resizeOb.disconnect();
+    }
+
+    function resumeObservers() {
+      if (observer) observer.observe(node, { childList: true });
+      if (resizeOb) resizeOb.observe(node);
+    }
+
     function teardownColumns() {
       if (col1 && col1.parentNode === node) {
         const sections = collectSections();
-        // Move sections back before removing columns
         for (const s of sections) node.appendChild(s);
         if (col1.parentNode === node) node.removeChild(col1);
         if (col2.parentNode === node) node.removeChild(col2);
@@ -802,8 +809,7 @@
     }
 
     function layout() {
-      if (laying) return;
-      laying = true;
+      pauseObservers();
       try {
         const width = node.parentElement?.offsetWidth || node.offsetWidth;
 
@@ -812,7 +818,6 @@
           return;
         }
 
-        // Gather all sections (from node or from existing columns)
         const sections = collectSections();
         if (!sections.length) return;
 
@@ -823,7 +828,6 @@
           node.removeChild(col2);
         }
 
-        // Create column wrappers if needed
         if (!col1) {
           col1 = document.createElement("div");
           col1.className = "masonry-col";
@@ -847,45 +851,30 @@
           }
         }
 
-        // Move sections into columns
         for (const s of assign1) col1.appendChild(s);
         for (const s of assign2) col2.appendChild(s);
         node.appendChild(col1);
         node.appendChild(col2);
       } finally {
-        laying = false;
+        resumeObservers();
       }
-    }
-
-    function scheduleLayout() {
-      if (layoutPending || laying) return;
-      layoutPending = true;
-      requestAnimationFrame(() => { layoutPending = false; layout(); });
     }
 
     // Run layout after Svelte finishes rendering children
     const raf = requestAnimationFrame(() => {
       layout();
-      // Re-layout when direct children change (sections added/removed by Svelte conditionals)
-      observer = new MutationObserver((mutations) => {
-        // Only relayout if a settings-section was added/removed directly
-        for (const m of mutations) {
-          if (m.type === "childList" && m.target === node) { scheduleLayout(); return; }
-          if (m.type === "childList" && (m.target === col1 || m.target === col2)) continue;
-          // A section inside a column gained/lost children (e.g. {#if} block toggled)
-          if (m.type === "childList") { scheduleLayout(); return; }
-        }
-      });
-      observer.observe(node, { childList: true, subtree: true });
-      resizeOb = new ResizeObserver(scheduleLayout);
-      resizeOb.observe(node);
+      // Only watch direct childList on node (not subtree) to detect Svelte adding/removing sections
+      observer = new MutationObserver(() => requestAnimationFrame(layout));
+      resizeOb = new ResizeObserver(() => requestAnimationFrame(layout));
+      resumeObservers();
     });
 
     return {
       destroy() {
         cancelAnimationFrame(raf);
-        if (observer) observer.disconnect();
-        if (resizeOb) resizeOb.disconnect();
+        pauseObservers();
+        observer = null;
+        resizeOb = null;
         teardownColumns();
       },
     };
