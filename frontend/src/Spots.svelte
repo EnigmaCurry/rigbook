@@ -604,15 +604,8 @@
   const spotterIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot spotter"></div>', iconSize: [10, 10], iconAnchor: [5, 5] });
   const spotterSecondaryIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot spotter-secondary"></div>', iconSize: [10, 10], iconAnchor: [5, 5] });
   function homeLocIcon(spotterCount, approx = false) {
-    const t = Math.min(spotterCount / 10, 1);
-    // Lerp from dim gold (#886600) to bright yellow (#ffee00)
-    const r = Math.round(0x88 + t * (0xff - 0x88));
-    const g = Math.round(0x66 + t * (0xee - 0x66));
-    const b = Math.round(0x00 + t * (0x00 - 0x00));
-    const bg = approx ? `rgba(${r},${g},${b},0.35)` : `rgb(${r},${g},${b})`;
-    const br = Math.round(0x55 + t * (0x99 - 0x55));
-    const bg2 = Math.round(0x33 + t * (0x77 - 0x33));
-    const border = approx ? `rgb(${r},${g},${b})` : `rgb(${br},${bg2},0)`;
+    const bg = approx ? "rgba(255,238,0,0.35)" : "#ffee00";
+    const border = approx ? "#ffee00" : "#997700";
     const borderStyle = approx ? "2px dashed" : "2px solid";
     const size = spotterCount > 10 ? 15 : Math.round(10 + (spotterCount / 10) * 5);
     const half = Math.round(size / 2);
