@@ -195,6 +195,14 @@
     }
   }
 
+  function homeLatLon(callsign, grid) {
+    const pos = gridToLatLon(grid);
+    if (!pos) return null;
+    const offset = homeOffsets.get(callsign);
+    if (offset) return { lat: pos.lat + offset[0], lon: pos.lon + offset[1] };
+    return pos;
+  }
+
   function spotHomeGrid(spot) {
     const pota = getPotaSpot(spot);
     if (pota) return pota.grid6 || pota.grid4 || "";
@@ -599,6 +607,7 @@
   let homeMarkers = {};      // callsign -> marker
   let homeSpotterCounts = new Map();
   let homeApproxSet = new Set();
+  let homeOffsets = new Map(); // callsign -> [dlat, dlon] for honeycomb offset
   let spotterLines = {};     // closest_call -> polyline (to my QTH)
   let myMarker = null;
   let selectionLines = [];   // active triangle lines
@@ -948,7 +957,7 @@
     const spotterGrid = spot.closest_grid;
     const homeGrid = spotHomeGrid(spot);
     const spotterPos = spotterGrid ? gridToLatLon(spotterGrid) : null;
-    const homePos = homeGrid ? gridToLatLon(homeGrid) : null;
+    const homePos = homeGrid ? homeLatLon(spot.callsign, homeGrid) : null;
 
     // Normalize all points relative to my QTH longitude
     const homeLL = homePos ? nearLL(baseLon, [homePos.lat, homePos.lon]) : null;
@@ -1018,7 +1027,7 @@
       const hg = spotHomeGrid(s);
       const hearsThis = s.closest_call === call || (s.spotter_grids && s.spotter_grids[call]);
       if (!hearsThis || !hg) continue;
-      const homePos = gridToLatLon(hg);
+      const homePos = homeLatLon(s.callsign, hg);
       if (!homePos) continue;
       const homeLL = nearLL(baseLon, [homePos.lat, homePos.lon]);
       selectionLines.push(
@@ -1221,7 +1230,7 @@
       }
     }
     // Build offset map: call -> [dlat, dlon]
-    const honeycombOffset = new Map();
+    homeOffsets = new Map();
     for (const [grid, calls] of approxByGrid) {
       if (calls.length <= 1) continue;
       // Honeycomb: ring 0 = center (no offset), ring 1 = 6 positions, ring 2 = 12, etc.
@@ -1240,7 +1249,7 @@
         const angle = (pos_in_ring / (ring * 6)) * Math.PI * 2;
         const dlat = Math.sin(angle) * step * ring;
         const dlon = Math.cos(angle) * step * ring * 1.5; // wider lon since degrees are narrower
-        honeycombOffset.set(call, [dlat, dlon]);
+        homeOffsets.set(call, [dlat, dlon]);
         idx++;
       }
     }
@@ -1252,7 +1261,7 @@
       if (!pos) continue;
       let ll = nearLL(baseLon, [pos.lat, pos.lon]);
       // Apply honeycomb offset for overlapping approximate markers
-      const offset = honeycombOffset.get(call);
+      const offset = homeOffsets.get(call);
       if (offset) ll = [ll[0] + offset[0], ll[1] + offset[1]];
       if (homeMarkers[call]) {
         homeMarkers[call].setIcon(icon);
