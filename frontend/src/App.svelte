@@ -301,10 +301,11 @@
     connectSSE();
   }
 
-  function setShutdownState() {
+  function setShutdownState(disconnected = false) {
     serverShutdown = true;
+    serverDisconnected = disconnected;
     stopAppServices();
-    document.title = "Close this tab";
+    document.title = disconnected ? "Disconnected" : "Close this tab";
     const link = document.querySelector("link[rel~='icon']") || document.createElement("link");
     link.rel = "icon";
     link.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💤</text></svg>";
@@ -313,6 +314,7 @@
 
   function clearShutdownState() {
     serverShutdown = false;
+    serverDisconnected = false;
     document.title = "Rigbook";
     const link = document.querySelector("link[rel~='icon']");
     if (link) link.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📻</text></svg>";
@@ -353,6 +355,7 @@
   }
 
   let serverShutdown = false;
+  let serverDisconnected = false;
 
   async function confirmPendingLogbook() {
     try {
@@ -403,7 +406,7 @@
   function resetSseHeartbeat() {
     clearTimeout(sseHeartbeatTimer);
     sseHeartbeatTimer = setTimeout(() => {
-      if (!serverShutdown) setShutdownState();
+      if (!serverShutdown) setShutdownState(true);
     }, SSE_TIMEOUT_MS);
   }
 
@@ -1202,7 +1205,7 @@
   {#if serverShutdown}
     <div class="welcome-container">
       <div class="welcome-card">
-        <p>Server has shut down.</p>
+        <p>{serverDisconnected ? "Server has been disconnected." : "Server has shut down."}</p>
         <button class="welcome-btn" on:click={attemptReconnect}>Reconnect</button>
       </div>
     </div>
