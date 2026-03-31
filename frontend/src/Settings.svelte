@@ -172,10 +172,20 @@
     return L.marker(ll, { icon, interactive: false });
   }
 
+  function contrastStroke(hex) {
+    const h = hex.replace("#", "");
+    const r = parseInt(h.slice(0, 2), 16) / 255;
+    const g = parseInt(h.slice(2, 4), 16) / 255;
+    const b = parseInt(h.slice(4, 6), 16) / 255;
+    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+    return lum > 0.5 ? "rgba(0,0,0,0.85)" : "rgba(255,255,255,0.85)";
+  }
+
   function previewLabel(ll, text, color) {
+    const stroke = contrastStroke(color);
     const icon = L.divIcon({
       className: "marker-label",
-      html: `<span style="color:${color};font-size:11px;font-weight:bold;white-space:nowrap;paint-order:stroke fill;-webkit-text-stroke:3px rgba(0,0,0,0.8);text-shadow:0 0 4px rgba(0,0,0,0.9)">${text}</span>`,
+      html: `<span style="color:${color};font-size:11px;font-weight:bold;white-space:nowrap;paint-order:stroke fill;-webkit-text-stroke:3px ${stroke};text-shadow:0 0 4px ${stroke}">${text}</span>`,
       iconSize: [0, 0],
       iconAnchor: [0, 16],
     });
@@ -193,9 +203,10 @@
   function distLabel(from, to, color, t = 0.5) {
     const mi = Math.round(haversineMi(from, to));
     const mid = [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t];
+    const stroke = contrastStroke(color);
     const icon = L.divIcon({
       className: "distance-label",
-      html: `<span style="color:${color};font-size:11px;font-weight:bold;white-space:nowrap;paint-order:stroke fill;-webkit-text-stroke:3px rgba(0,0,0,0.8);text-shadow:0 0 4px rgba(0,0,0,0.9)">${mi} mi</span>`,
+      html: `<span style="color:${color};font-size:11px;font-weight:bold;white-space:nowrap;paint-order:stroke fill;-webkit-text-stroke:3px ${stroke};text-shadow:0 0 4px ${stroke}">${mi} mi</span>`,
       iconSize: [0, 0],
     });
     return L.marker(mid, { icon, interactive: false });
