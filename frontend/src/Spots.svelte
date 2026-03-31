@@ -40,6 +40,34 @@
     modalParkLoading = false;
   }
 
+  // Spot map colors (loaded from settings, with defaults)
+  const SPOT_MAP_DEFAULTS = { qth: "#ff4444", station: "#ffaa00", spotter: "#00ccff", secondary: "#7744aa" };
+  let mapColors = { ...SPOT_MAP_DEFAULTS };
+
+  async function loadMapColors() {
+    try {
+      const res = await fetch("/api/settings/spot_map_colors");
+      if (res.ok) {
+        const d = await res.json();
+        if (d.value) {
+          const c = JSON.parse(d.value);
+          if (c.qth) mapColors.qth = c.qth;
+          if (c.station) mapColors.station = c.station;
+          if (c.spotter) mapColors.spotter = c.spotter;
+          if (c.secondary) mapColors.secondary = c.secondary;
+        }
+      }
+    } catch {}
+  }
+
+  function darkenColor(hex, factor = 0.5) {
+    const h = hex.replace("#", "");
+    const r = Math.round(parseInt(h.slice(0, 2), 16) * factor);
+    const g = Math.round(parseInt(h.slice(2, 4), 16) * factor);
+    const b = Math.round(parseInt(h.slice(4, 6), 16) * factor);
+    return `#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;
+  }
+
   let spots = [];
   let myGrid = "";
   let myCallsign = "";
@@ -486,6 +514,7 @@
   }
 
   onMount(async () => {
+    await loadMapColors();
     checkQrzConfigured();
     fetchStatus();
     fetchBands();
@@ -601,28 +630,38 @@
     return [pt[0], nearLon(baseLon, pt[1])];
   }
 
-  const spotterIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot spotter"></div>', iconSize: [10, 10], iconAnchor: [5, 5] });
-  const spotterSecondaryIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot spotter-secondary"></div>', iconSize: [10, 10], iconAnchor: [5, 5] });
+  function getSpotterIcon() {
+    return L.divIcon({ className: "spot-marker", html: `<div class="spot-marker-dot" style="width:8px;height:8px;background:${mapColors.spotter};border:2px solid ${darkenColor(mapColors.spotter)};border-radius:50%"></div>`, iconSize: [10, 10], iconAnchor: [5, 5] });
+  }
+  function getSecondaryIcon() {
+    return L.divIcon({ className: "spot-marker", html: `<div class="spot-marker-dot" style="width:8px;height:8px;background:${mapColors.secondary};border:2px solid ${darkenColor(mapColors.secondary)};border-radius:50%"></div>`, iconSize: [10, 10], iconAnchor: [5, 5] });
+  }
   function homeLocIcon(spotterCount, approx = false) {
-    const bg = approx ? "rgba(255,238,0,0.35)" : "#ffee00";
-    const border = approx ? "#ffee00" : "#997700";
+    const color = mapColors.station;
+    const borderColor = darkenColor(color);
+    const bg = approx ? color + "59" : color;
+    const border = approx ? color : borderColor;
     const borderStyle = approx ? "2px dashed" : "2px solid";
     const size = spotterCount > 10 ? 15 : Math.round(10 + (spotterCount / 10) * 5);
     const half = Math.round(size / 2);
     return L.divIcon({
       className: "spot-marker",
-      html: `<div class="spot-marker-dot" style="width:${size-2}px;height:${size-2}px;background:${bg};border:${borderStyle} ${border};border-radius:50%;display:flex;align-items:center;justify-content:center">${approx ? `<span style="color:#997700;font-size:${Math.max(size-4,7)}px;font-weight:bold;line-height:1">?</span>` : ""}</div>`,
+      html: `<div class="spot-marker-dot" style="width:${size-2}px;height:${size-2}px;background:${bg};border:${borderStyle} ${border};border-radius:50%;display:flex;align-items:center;justify-content:center">${approx ? `<span style="color:${borderColor};font-size:${Math.max(size-4,7)}px;font-weight:bold;line-height:1">?</span>` : ""}</div>`,
       iconSize: [size, size],
       iconAnchor: [half, half],
     });
   }
-  const homeActiveIcon = L.divIcon({
-    className: "spot-marker",
-    html: '<div class="spot-marker-dot" style="width:13px;height:13px;background:#ffee00;border:2px solid #997700;border-radius:50%"></div>',
-    iconSize: [15, 15],
-    iconAnchor: [7, 7],
-  });
-  const myIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot my-pos"></div>', iconSize: [14, 14], iconAnchor: [7, 7] });
+  function getHomeActiveIcon() {
+    return L.divIcon({
+      className: "spot-marker",
+      html: `<div class="spot-marker-dot" style="width:13px;height:13px;background:${mapColors.station};border:2px solid ${darkenColor(mapColors.station)};border-radius:50%"></div>`,
+      iconSize: [15, 15],
+      iconAnchor: [7, 7],
+    });
+  }
+  function getMyIcon() {
+    return L.divIcon({ className: "spot-marker", html: `<div class="spot-marker-dot" style="width:12px;height:12px;background:${mapColors.qth};border:2px solid ${darkenColor(mapColors.qth)};border-radius:50%;box-shadow:0 0 8px ${mapColors.qth}99"></div>`, iconSize: [14, 14], iconAnchor: [7, 7] });
+  }
 
   function addExpandControl(map, wrapEl) {
     const ExpandControl = L.Control.extend({
@@ -743,13 +782,13 @@
       const visible = coWitnesses.has(call);
       setMarkerVisible(marker, visible);
       if (visible) {
-        marker.setIcon(call === spot.closest_call ? spotterIcon : spotterSecondaryIcon);
+        marker.setIcon(call === spot.closest_call ? getSpotterIcon() : getSecondaryIcon());
       }
     }
     for (const [call, marker] of Object.entries(homeMarkers)) {
       const active = call === spot.callsign;
       setMarkerVisible(marker, active);
-      if (active) marker.setIcon(homeActiveIcon);
+      if (active) marker.setIcon(getHomeActiveIcon());
     }
   }
 
@@ -765,7 +804,7 @@
     const closest = globalClosestCalls();
     for (const [call, m] of Object.entries(spotterMarkers)) {
       setMarkerVisible(m, true);
-      m.setIcon(closest.has(call) ? spotterIcon : spotterSecondaryIcon);
+      m.setIcon(closest.has(call) ? getSpotterIcon() : getSecondaryIcon());
     }
     for (const [call, m] of Object.entries(homeMarkers)) {
       setMarkerVisible(m, true);
@@ -789,7 +828,7 @@
 
   function spotterLine(from, to, stationCall) {
     const dash = cqDash(stationCall);
-    const line = L.polyline([from, to], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: dash.dashArray, className: "line-spotter" }).addTo(leafletMap);
+    const line = L.polyline([from, to], { color: mapColors.spotter, weight: 2, opacity: 0.6, dashArray: dash.dashArray, className: "line-spotter" }).addTo(leafletMap);
     const el = line.getElement();
     if (el) {
       const speed = 34;
@@ -800,7 +839,7 @@
   }
 
   function hunterLine(from, to) {
-    const line = L.polyline([from, to], { color: "#ffaa00", weight: 2, opacity: 0.6, dashArray: hunterDash.dashArray, className: "line-hunter" }).addTo(leafletMap);
+    const line = L.polyline([from, to], { color: mapColors.station, weight: 2, opacity: 0.6, dashArray: hunterDash.dashArray, className: "line-hunter" }).addTo(leafletMap);
     const el = line.getElement();
     if (el) {
       const speed = 34; // px per second
@@ -916,28 +955,28 @@
     // Primary triangle lines drawn last (higher z-order)
     // Spotter->Station, Station->QTH, QTH->Spotter — all animate toward their endpoint
     // Site labels
-    selectionLines.push(markerLabel(myLL, myCallsign || "QTH", "#ff4444"));
-    if (homeLL) selectionLines.push(markerLabel(homeLL, spot.callsign, "#ffaa00"));
-    if (spotterLL) selectionLines.push(markerLabel(spotterLL, spot.closest_call, "#00ccff"));
+    selectionLines.push(markerLabel(myLL, myCallsign || "QTH", mapColors.qth));
+    if (homeLL) selectionLines.push(markerLabel(homeLL, spot.callsign, mapColors.station));
+    if (spotterLL) selectionLines.push(markerLabel(spotterLL, spot.closest_call, mapColors.spotter));
 
     if (spotterLL && homeLL) {
       selectionLines.push(
         spotterLine(spotterLL, homeLL, spot.callsign),
-        distanceLabel(spotterLL, homeLL, "#00ccff", 0.33),
+        distanceLabel(spotterLL, homeLL, mapColors.spotter, 0.33),
         hunterLine(homeLL, myLL),
-        distanceLabel(homeLL, myLL, "#ffaa00", 0.5),
-        L.polyline([myLL, spotterLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
-        distanceLabel(myLL, spotterLL, "#00ccff", 0.67),
+        distanceLabel(homeLL, myLL, mapColors.station, 0.5),
+        L.polyline([myLL, spotterLL], { color: mapColors.spotter, weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
+        distanceLabel(myLL, spotterLL, mapColors.spotter, 0.67),
       );
     } else if (spotterLL) {
       selectionLines.push(
-        L.polyline([myLL, spotterLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
-        distanceLabel(myLL, spotterLL, "#00ccff"),
+        L.polyline([myLL, spotterLL], { color: mapColors.spotter, weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
+        distanceLabel(myLL, spotterLL, mapColors.spotter),
       );
     } else if (homeLL) {
       selectionLines.push(
         hunterLine(myLL, homeLL),
-        distanceLabel(myLL, homeLL, "#ffaa00"),
+        distanceLabel(myLL, homeLL, mapColors.station),
       );
     }
     _updateDistLabels();
@@ -956,8 +995,8 @@
     const sLL = nearLL(baseLon, [rawLL.lat, rawLL.lng]);
 
     selectionLines.push(
-      markerLabel(myLL, myCallsign || "QTH", "#ff4444"),
-      markerLabel(sLL, call, "#00ccff"),
+      markerLabel(myLL, myCallsign || "QTH", mapColors.qth),
+      markerLabel(sLL, call, mapColors.spotter),
     );
 
     for (const s of spots) {
@@ -968,13 +1007,13 @@
       if (!homePos) continue;
       const homeLL = nearLL(baseLon, [homePos.lat, homePos.lon]);
       selectionLines.push(
-        markerLabel(homeLL, s.callsign, "#ffaa00"),
+        markerLabel(homeLL, s.callsign, mapColors.station),
         spotterLine(sLL, homeLL, s.callsign),
-        distanceLabel(sLL, homeLL, "#00ccff", 0.33),
+        distanceLabel(sLL, homeLL, mapColors.spotter, 0.33),
         hunterLine(homeLL, myLL),
-        distanceLabel(homeLL, myLL, "#ffaa00", 0.5),
-        L.polyline([myLL, sLL], { color: "#00ccff", weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
-        distanceLabel(myLL, sLL, "#00ccff", 0.67),
+        distanceLabel(homeLL, myLL, mapColors.station, 0.5),
+        L.polyline([myLL, sLL], { color: mapColors.spotter, weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
+        distanceLabel(myLL, sLL, mapColors.spotter, 0.67),
       );
     }
     _updateDistLabels();
@@ -1096,7 +1135,7 @@
 
     // User's home marker
     if (!myMarker) {
-      myMarker = L.marker([myPos.lat, myPos.lon], { icon: myIcon })
+      myMarker = L.marker([myPos.lat, myPos.lon], { icon: getMyIcon() })
         .addTo(leafletMap);
     }
 
@@ -1142,7 +1181,7 @@
 
     // Add/update spotter markers (normalized to QTH longitude)
     for (const [call, grid] of currentSpotters) {
-      const icon = closestCalls.has(call) ? spotterIcon : spotterSecondaryIcon;
+      const icon = closestCalls.has(call) ? getSpotterIcon() : getSecondaryIcon();
       const pos = gridToLatLon(grid);
       if (!pos) continue;
       const ll = nearLL(baseLon, [pos.lat, pos.lon]);
@@ -1698,19 +1737,6 @@
     transition: all 0.15s;
   }
 
-  :global(.spot-marker-dot.spotter) {
-    width: 8px;
-    height: 8px;
-    background: #00ccff;
-    border: 2px solid #006688;
-  }
-
-  :global(.spot-marker-dot.spotter-secondary) {
-    width: 8px;
-    height: 8px;
-    background: #7744aa;
-    border: 2px solid #553388;
-  }
 
 
   :global(.line-spotter) {
@@ -1755,14 +1781,6 @@
     -webkit-text-stroke: 3px rgba(0,0,0,0.8);
     text-shadow: 0 0 4px rgba(0,0,0,0.9);
     pointer-events: none;
-  }
-
-  :global(.spot-marker-dot.my-pos) {
-    width: 12px;
-    height: 12px;
-    background: #ff4444;
-    border: 2px solid #880000;
-    box-shadow: 0 0 8px rgba(255, 68, 68, 0.6);
   }
 
   :global(.map-fullscreen) {

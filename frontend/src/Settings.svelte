@@ -53,6 +53,13 @@
   let map_theme = "natgeo";
   let map_custom_url = "";
   let custom_header = "";
+
+  // Spot map colors
+  const SPOT_MAP_DEFAULTS = { qth: "#ff4444", station: "#ffaa00", spotter: "#00ccff", secondary: "#7744aa" };
+  let spotMapQth = SPOT_MAP_DEFAULTS.qth;
+  let spotMapStation = SPOT_MAP_DEFAULTS.station;
+  let spotMapSpotter = SPOT_MAP_DEFAULTS.spotter;
+  let spotMapSecondary = SPOT_MAP_DEFAULTS.secondary;
   let default_page = "log";
   let qrzStatus = null; // { ok, error?, username? }
   let qrzChecking = false;
@@ -119,40 +126,139 @@
     return { lat, lon };
   }
 
-  const qthIcon = L.divIcon({
-    className: "",
-    html: '<div style="width:10px;height:10px;background:#e53e3e;border-radius:50%;border:2px solid #fff;"></div>',
-    iconSize: [10, 10],
-    iconAnchor: [5, 5],
-  });
+  let previewLayers = [];
+
+  function clearPreviewLayers() {
+    for (const l of previewLayers) {
+      if (previewMap) previewMap.removeLayer(l);
+    }
+    previewLayers = [];
+  }
+
+  function previewDot(ll, color, border, size = 10) {
+    const half = Math.round(size / 2);
+    const icon = L.divIcon({
+      className: "",
+      html: `<div style="width:${size}px;height:${size}px;background:${color};border-radius:50%;border:2px solid ${border};"></div>`,
+      iconSize: [size, size],
+      iconAnchor: [half, half],
+    });
+    return L.marker(ll, { icon, interactive: false });
+  }
+
+  function previewLabel(ll, text, color) {
+    const icon = L.divIcon({
+      className: "marker-label",
+      html: `<span style="color:${color};font-size:11px;font-weight:bold;white-space:nowrap;paint-order:stroke fill;-webkit-text-stroke:3px rgba(0,0,0,0.8);text-shadow:0 0 4px rgba(0,0,0,0.9)">${text}</span>`,
+      iconSize: [0, 0],
+      iconAnchor: [0, 16],
+    });
+    return L.marker(ll, { icon, interactive: false });
+  }
+
+  function darkenColor(hex, factor = 0.5) {
+    const h = hex.replace("#", "");
+    const r = Math.round(parseInt(h.slice(0, 2), 16) * factor);
+    const g = Math.round(parseInt(h.slice(2, 4), 16) * factor);
+    const b = Math.round(parseInt(h.slice(4, 6), 16) * factor);
+    return `#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;
+  }
 
   function updatePreview() {
     if (!previewEl) return;
     const tiles = resolveTileConfig(map_theme, map_custom_url);
     const pos = gridToLatLon(my_grid);
+    const center = pos ? [pos.lat, pos.lon] : [39, -98];
     if (!previewMap) {
       previewMap = L.map(previewEl, {
         scrollWheelZoom: false, zoomControl: false,
         dragging: true, doubleClickZoom: false,
         attributionControl: false,
       });
-      previewMap.setView(pos ? [pos.lat, pos.lon] : [39, -98], 4);
+      previewMap.setView(center, 4);
     }
     if (previewTileLayer) previewMap.removeLayer(previewTileLayer);
     previewTileLayer = L.tileLayer(tiles.url, {
       attribution: tiles.attribution,
       maxZoom: tiles.maxZoom,
     }).addTo(previewMap);
-    if (previewMarker) previewMap.removeLayer(previewMarker);
-    if (pos) {
-      const label = [my_callsign.trim().toUpperCase(), my_grid.trim().toUpperCase()].filter(Boolean).join(" · ");
-      previewMarker = L.marker([pos.lat, pos.lon], { icon: qthIcon }).addTo(previewMap);
-      if (label) previewMarker.bindTooltip(label, { permanent: true, direction: "right", offset: [8, 0], className: "qth-label" });
+
+    // Clear old preview layers
+    clearPreviewLayers();
+
+    // Hypothetical spots preview showing all four colors
+    const qthLL = pos ? [pos.lat, pos.lon] : center;
+    // Place hypothetical station ~8° east, ~3° north
+    const stationLL = [qthLL[0] + 3, qthLL[1] + 8];
+    // Place hypothetical spotter ~2° south, ~5° east
+    const spotterLL = [qthLL[0] - 2, qthLL[1] + 5];
+    // Secondary spotter ~4° south, ~12° east
+    const secSpotterLL = [qthLL[0] - 4, qthLL[1] + 12];
+
+    const qthBorder = darkenColor(spotMapQth);
+    const staBorder = darkenColor(spotMapStation);
+    const sptBorder = darkenColor(spotMapSpotter);
+    const secBorder = darkenColor(spotMapSecondary);
+
+    // Lines
+    const spotterToStation = L.polyline([spotterLL, stationLL], { color: spotMapSpotter, weight: 2, opacity: 0.6, dashArray: "6 4" });
+    const stationToQth = L.polyline([stationLL, qthLL], { color: spotMapStation, weight: 2, opacity: 0.6, dashArray: "6 4" });
+    const qthToSpotter = L.polyline([qthLL, spotterLL], { color: spotMapSpotter, weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" });
+    const secToStation = L.polyline([secSpotterLL, stationLL], { color: spotMapSecondary, weight: 2, opacity: 0.5, dashArray: "4 6" });
+
+    // Dots
+    const qthDot = previewDot(qthLL, spotMapQth, qthBorder, 12);
+    const stationDot = previewDot(stationLL, spotMapStation, staBorder, 12);
+    const spotterDot = previewDot(spotterLL, spotMapSpotter, sptBorder, 10);
+    const secDot = previewDot(secSpotterLL, spotMapSecondary, secBorder, 10);
+
+    // Labels
+    const callLabel = my_callsign.trim().toUpperCase() || "QTH";
+    const qthLabel = previewLabel(qthLL, callLabel, spotMapQth);
+    const staLabel = previewLabel(stationLL, "W1AW", spotMapStation);
+    const sptLabel = previewLabel(spotterLL, "K3LR", spotMapSpotter);
+    const secLabel = previewLabel(secSpotterLL, "VE3NEA", spotMapSecondary);
+
+    // Distance labels
+    function distLabel(from, to, color, t = 0.5) {
+      const mi = Math.round(haversineMi(from, to));
+      const mid = [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t];
+      const icon = L.divIcon({
+        className: "distance-label",
+        html: `<span style="color:${color};font-size:11px;font-weight:bold;white-space:nowrap;paint-order:stroke fill;-webkit-text-stroke:3px rgba(0,0,0,0.8);text-shadow:0 0 4px rgba(0,0,0,0.9)">${mi} mi</span>`,
+        iconSize: [0, 0],
+      });
+      return L.marker(mid, { icon, interactive: false });
+    }
+
+    const d1 = distLabel(spotterLL, stationLL, spotMapSpotter, 0.33);
+    const d2 = distLabel(stationLL, qthLL, spotMapStation, 0.5);
+    const d3 = distLabel(qthLL, spotterLL, spotMapSpotter, 0.67);
+
+    const layers = [
+      secToStation, spotterToStation, stationToQth, qthToSpotter,
+      qthDot, stationDot, spotterDot, secDot,
+      qthLabel, staLabel, sptLabel, secLabel,
+      d1, d2, d3,
+    ];
+    for (const l of layers) {
+      l.addTo(previewMap);
+      previewLayers.push(l);
     }
   }
 
+  function haversineMi(a, b) {
+    const R = 3958.8;
+    const dLat = (b[0] - a[0]) * Math.PI / 180;
+    const dLon = (b[1] - a[1]) * Math.PI / 180;
+    const lat1 = a[0] * Math.PI / 180;
+    const lat2 = b[0] * Math.PI / 180;
+    const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;
+    return Math.round(R * 2 * Math.asin(Math.sqrt(h)));
+  }
+
   $: if (settingsLoaded && previewEl) {
-    map_theme, map_custom_url;
+    map_theme, map_custom_url, spotMapQth, spotMapStation, spotMapSpotter, spotMapSecondary;
     updatePreview();
   }
 
@@ -464,6 +570,46 @@
         node.removeEventListener("touchstart", onDown);
       },
     };
+  }
+
+  // --- Spot map color pickers ---
+  let mapColorDragging = false;
+
+  function mapColorPicker(node, { getValue, setValue }) {
+    node.setAttribute("color", getValue());
+    const onChange = (e) => { setValue(e.detail.value); updatePreview(); };
+    const onDown = () => { mapColorDragging = true; };
+    const onUp = () => { if (mapColorDragging) { mapColorDragging = false; saveSpotMapColors(); } };
+    node.addEventListener("color-changed", onChange);
+    window.addEventListener("mouseup", onUp);
+    window.addEventListener("touchend", onUp);
+    node.addEventListener("mousedown", onDown);
+    node.addEventListener("touchstart", onDown);
+    return {
+      update({ getValue }) { node.setAttribute("color", getValue()); },
+      destroy() {
+        node.removeEventListener("color-changed", onChange);
+        window.removeEventListener("mouseup", onUp);
+        window.removeEventListener("touchend", onUp);
+        node.removeEventListener("mousedown", onDown);
+        node.removeEventListener("touchstart", onDown);
+      },
+    };
+  }
+
+  function onMapColorInput() {
+    updatePreview();
+  }
+
+  async function onMapColorCommit() {
+    updatePreview();
+    await saveSpotMapColors();
+  }
+
+  async function saveSpotMapColors() {
+    const colors = JSON.stringify({ qth: spotMapQth, station: spotMapStation, spotter: spotMapSpotter, secondary: spotMapSecondary });
+    await saveSetting("spot_map_colors", colors);
+    dispatch("saved");
   }
 
   async function clearCache() {
@@ -842,6 +988,15 @@
           if (s.key === "logbook_right") logbook_right = s.value === "true";
           if (s.key === "map_theme") map_theme = s.value || "default";
           if (s.key === "map_custom_url") map_custom_url = s.value || "";
+          if (s.key === "spot_map_colors") {
+            try {
+              const c = JSON.parse(s.value);
+              if (c.qth) spotMapQth = c.qth;
+              if (c.station) spotMapStation = c.station;
+              if (c.spotter) spotMapSpotter = c.spotter;
+              if (c.secondary) spotMapSecondary = c.secondary;
+            } catch {}
+          }
           if (s.key === "custom_header") custom_header = s.value || "";
           if (s.key === "default_page") default_page = s.value || "log";
           if (s.key === "theme") theme = s.value || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
@@ -1327,7 +1482,7 @@
     </div>
   </section>
   <section class="settings-section">
-    <h3>Map Tiles</h3>
+    <h3>Maps</h3>
     <div class="setting-row">
       <label for="map_theme">Map Tiles</label>
       <select id="map_theme" bind:value={map_theme} on:change={onMapThemeChange}>
@@ -1342,6 +1497,28 @@
         <input id="map_custom_url" type="text" bind:value={map_custom_url} on:input={onMapCustomUrlInput} on:blur={() => onFieldBlur("map_custom_url")} placeholder="https://&#123;s&#125;.tile.example.com/&#123;z&#125;/&#123;x&#125;/&#123;y&#125;.png" />
       </div>
     {/if}
+    <div class="color-pickers spot-map-colors">
+      <div class="color-picker-group">
+        <label>QTH</label>
+        <hex-color-picker use:mapColorPicker={{ getValue: () => spotMapQth, setValue: (v) => { spotMapQth = v; } }}></hex-color-picker>
+        <input type="text" class="color-hex-input" bind:value={spotMapQth} on:input={onMapColorInput} on:blur={onMapColorCommit} maxlength="7" />
+      </div>
+      <div class="color-picker-group">
+        <label>Station</label>
+        <hex-color-picker use:mapColorPicker={{ getValue: () => spotMapStation, setValue: (v) => { spotMapStation = v; } }}></hex-color-picker>
+        <input type="text" class="color-hex-input" bind:value={spotMapStation} on:input={onMapColorInput} on:blur={onMapColorCommit} maxlength="7" />
+      </div>
+      <div class="color-picker-group">
+        <label>Spotter</label>
+        <hex-color-picker use:mapColorPicker={{ getValue: () => spotMapSpotter, setValue: (v) => { spotMapSpotter = v; } }}></hex-color-picker>
+        <input type="text" class="color-hex-input" bind:value={spotMapSpotter} on:input={onMapColorInput} on:blur={onMapColorCommit} maxlength="7" />
+      </div>
+      <div class="color-picker-group">
+        <label>2nd Spotter</label>
+        <hex-color-picker use:mapColorPicker={{ getValue: () => spotMapSecondary, setValue: (v) => { spotMapSecondary = v; } }}></hex-color-picker>
+        <input type="text" class="color-hex-input" bind:value={spotMapSecondary} on:input={onMapColorInput} on:blur={onMapColorCommit} maxlength="7" />
+      </div>
+    </div>
     <div class="map-preview" bind:this={previewEl}></div>
   </section>
   <section class="settings-section">
@@ -1625,10 +1802,15 @@
   }
 
   .map-preview {
-    height: 240px;
+    height: 300px;
     border-radius: 4px;
     border: 1px solid var(--border);
+    margin-top: 0.75rem;
     margin-bottom: 0.75rem;
+  }
+
+  .spot-map-colors {
+    margin-top: 0.75rem;
   }
 
   :global(.qth-label) {
