@@ -421,16 +421,20 @@
     if (map_theme === "default") updatePreview();
   }
 
-  let customColorTimer;
-  function onCustomColorChange() {
+  function onCustomColorInput() {
     applyCustomThemeVars(customBg, customText, customAccent, customVfo);
     storageSet("rigbook-theme", "custom");
-    clearTimeout(customColorTimer);
-    customColorTimer = setTimeout(async () => {
-      await saveCustomColors();
-      dispatch("saved");
-      if (map_theme === "default") updatePreview();
-    }, 500);
+  }
+
+  async function onCustomColorCommit() {
+    onCustomColorInput();
+    await saveCustomColors();
+    dispatch("saved");
+    if (map_theme === "default") updatePreview();
+  }
+
+  function onCustomColorChange() {
+    onCustomColorCommit();
   }
 
   async function saveCustomColors() {
@@ -438,13 +442,27 @@
     await saveSetting("custom_theme_colors", colors);
   }
 
+  let colorDragging = false;
+
   function colorPicker(node, { getValue, setValue }) {
     node.setAttribute("color", getValue());
-    const handler = (e) => { setValue(e.detail.value); onCustomColorChange(); };
-    node.addEventListener("color-changed", handler);
+    const onChange = (e) => { setValue(e.detail.value); onCustomColorInput(); };
+    const onDown = () => { colorDragging = true; };
+    const onUp = () => { if (colorDragging) { colorDragging = false; onCustomColorCommit(); } };
+    node.addEventListener("color-changed", onChange);
+    window.addEventListener("mouseup", onUp);
+    window.addEventListener("touchend", onUp);
+    node.addEventListener("mousedown", onDown);
+    node.addEventListener("touchstart", onDown);
     return {
       update({ getValue }) { node.setAttribute("color", getValue()); },
-      destroy() { node.removeEventListener("color-changed", handler); },
+      destroy() {
+        node.removeEventListener("color-changed", onChange);
+        window.removeEventListener("mouseup", onUp);
+        window.removeEventListener("touchend", onUp);
+        node.removeEventListener("mousedown", onDown);
+        node.removeEventListener("touchstart", onDown);
+      },
     };
   }
 
@@ -1269,22 +1287,22 @@
       <div class="color-picker-group">
         <label>Background</label>
         <hex-color-picker use:colorPicker={{ getValue: () => customBg, setValue: (v) => { customBg = v; } }}></hex-color-picker>
-        <input type="text" class="color-hex-input" bind:value={customBg} on:input={onCustomColorChange} maxlength="7" />
+        <input type="text" class="color-hex-input" bind:value={customBg} on:input={onCustomColorInput} on:blur={onCustomColorCommit} maxlength="7" />
       </div>
       <div class="color-picker-group">
         <label>Text</label>
         <hex-color-picker use:colorPicker={{ getValue: () => customText, setValue: (v) => { customText = v; } }}></hex-color-picker>
-        <input type="text" class="color-hex-input" bind:value={customText} on:input={onCustomColorChange} maxlength="7" />
+        <input type="text" class="color-hex-input" bind:value={customText} on:input={onCustomColorInput} on:blur={onCustomColorCommit} maxlength="7" />
       </div>
       <div class="color-picker-group">
         <label>Accent</label>
         <hex-color-picker use:colorPicker={{ getValue: () => customAccent, setValue: (v) => { customAccent = v; } }}></hex-color-picker>
-        <input type="text" class="color-hex-input" bind:value={customAccent} on:input={onCustomColorChange} maxlength="7" />
+        <input type="text" class="color-hex-input" bind:value={customAccent} on:input={onCustomColorInput} on:blur={onCustomColorCommit} maxlength="7" />
       </div>
       <div class="color-picker-group">
         <label>VFO</label>
         <hex-color-picker use:colorPicker={{ getValue: () => customVfo, setValue: (v) => { customVfo = v; } }}></hex-color-picker>
-        <input type="text" class="color-hex-input" bind:value={customVfo} on:input={onCustomColorChange} maxlength="7" />
+        <input type="text" class="color-hex-input" bind:value={customVfo} on:input={onCustomColorInput} on:blur={onCustomColorCommit} maxlength="7" />
       </div>
     </div>
     {/if}
