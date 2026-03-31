@@ -572,11 +572,10 @@ def run() -> None:
 
         threading.Thread(target=open_browser, daemon=True).start()
 
-    # Hide the console window on Windows frozen builds
+    # Detach from the console on Windows frozen builds so the window disappears.
+    # ShowWindow(SW_HIDE) only works with conhost; FreeConsole fully detaches.
     if getattr(sys, "frozen", False) and sys.platform == "win32":
         import ctypes
-        ctypes.windll.user32.ShowWindow(
-            ctypes.windll.kernel32.GetConsoleWindow(), 0  # SW_HIDE
-        )
+        ctypes.windll.kernel32.FreeConsole()
 
     uvicorn.run(app, host=host, port=port, access_log=False, log_config=None)
