@@ -54,12 +54,27 @@
   let map_custom_url = "";
   let custom_header = "";
 
-  // Spot map colors
-  const SPOT_MAP_DEFAULTS = { qth: "#ff4444", station: "#ffaa00", spotter: "#00ccff", secondary: "#7744aa" };
-  let spotMapQth = SPOT_MAP_DEFAULTS.qth;
-  let spotMapStation = SPOT_MAP_DEFAULTS.station;
-  let spotMapSpotter = SPOT_MAP_DEFAULTS.spotter;
-  let spotMapSecondary = SPOT_MAP_DEFAULTS.secondary;
+  // Spot map color presets
+  const MAP_COLOR_PRESETS = {
+    "aurora":      { label: "Aurora Borealis",  qth: "#ff4444", station: "#00ff88", spotter: "#00ccff", secondary: "#7744aa" },
+    "sunset":      { label: "Sunset Ridge",     qth: "#ff2266", station: "#ff8800", spotter: "#ffcc00", secondary: "#cc6600" },
+    "deep-sea":    { label: "Deep Sea",         qth: "#ff3355", station: "#00ddaa", spotter: "#0088ff", secondary: "#335588" },
+    "tundra":      { label: "Tundra",           qth: "#ee4433", station: "#88ccaa", spotter: "#99ddff", secondary: "#6688aa" },
+    "volcano":     { label: "Volcano",          qth: "#ff0000", station: "#ffaa00", spotter: "#ff6600", secondary: "#993300" },
+    "glacier":     { label: "Glacier",          qth: "#ff5577", station: "#aaeeff", spotter: "#44bbff", secondary: "#2266aa" },
+    "savanna":     { label: "Savanna",          qth: "#dd3322", station: "#ddbb44", spotter: "#88aa33", secondary: "#556622" },
+    "coral-reef":  { label: "Coral Reef",       qth: "#ff4488", station: "#ffaa55", spotter: "#44ddcc", secondary: "#2288aa" },
+    "midnight":    { label: "Midnight Pass",    qth: "#ff3366", station: "#bb88ff", spotter: "#6699ff", secondary: "#334488" },
+    "desert":      { label: "Desert Mesa",      qth: "#cc3300", station: "#ee9944", spotter: "#ccaa66", secondary: "#886633" },
+  };
+  const MAP_COLOR_PRESET_NAMES = Object.keys(MAP_COLOR_PRESETS);
+
+  let spotMapColorMode = "preset"; // "preset" or "custom"
+  let spotMapPreset = "aurora";
+  let spotMapQth = MAP_COLOR_PRESETS.aurora.qth;
+  let spotMapStation = MAP_COLOR_PRESETS.aurora.station;
+  let spotMapSpotter = MAP_COLOR_PRESETS.aurora.spotter;
+  let spotMapSecondary = MAP_COLOR_PRESETS.aurora.secondary;
   let default_page = "log";
   let qrzStatus = null; // { ok, error?, username? }
   let qrzChecking = false;
@@ -664,6 +679,29 @@
     };
   }
 
+  function applyMapPreset(name) {
+    const p = MAP_COLOR_PRESETS[name];
+    if (!p) return;
+    spotMapQth = p.qth;
+    spotMapStation = p.station;
+    spotMapSpotter = p.spotter;
+    spotMapSecondary = p.secondary;
+  }
+
+  async function onMapColorModeChange() {
+    if (spotMapColorMode === "preset") {
+      applyMapPreset(spotMapPreset);
+    }
+    updatePreview();
+    await saveSpotMapColors();
+  }
+
+  async function onMapPresetChange() {
+    applyMapPreset(spotMapPreset);
+    updatePreview();
+    await saveSpotMapColors();
+  }
+
   function onMapColorInput() {
     updatePreview();
   }
@@ -674,7 +712,11 @@
   }
 
   async function saveSpotMapColors() {
-    const colors = JSON.stringify({ qth: spotMapQth, station: spotMapStation, spotter: spotMapSpotter, secondary: spotMapSecondary });
+    const colors = JSON.stringify({
+      mode: spotMapColorMode,
+      preset: spotMapPreset,
+      qth: spotMapQth, station: spotMapStation, spotter: spotMapSpotter, secondary: spotMapSecondary,
+    });
     await saveSetting("spot_map_colors", colors);
     dispatch("saved");
   }
@@ -1058,6 +1100,8 @@
           if (s.key === "spot_map_colors") {
             try {
               const c = JSON.parse(s.value);
+              if (c.mode) spotMapColorMode = c.mode;
+              if (c.preset && MAP_COLOR_PRESETS[c.preset]) spotMapPreset = c.preset;
               if (c.qth) spotMapQth = c.qth;
               if (c.station) spotMapStation = c.station;
               if (c.spotter) spotMapSpotter = c.spotter;
@@ -1503,6 +1547,23 @@
         <input id="map_custom_url" type="text" bind:value={map_custom_url} on:input={onMapCustomUrlInput} on:blur={() => onFieldBlur("map_custom_url")} placeholder="https://&#123;s&#125;.tile.example.com/&#123;z&#125;/&#123;x&#125;/&#123;y&#125;.png" />
       </div>
     {/if}
+    <div class="setting-row toggle-row">
+      <label>Colors</label>
+      <div class="theme-mode-switch">
+        <button class="mode-btn" class:active={spotMapColorMode === "preset"} on:click={() => { spotMapColorMode = "preset"; onMapColorModeChange(); }}>Preset</button>
+        <button class="mode-btn" class:active={spotMapColorMode === "custom"} on:click={() => { spotMapColorMode = "custom"; onMapColorModeChange(); }}>Custom</button>
+      </div>
+    </div>
+    {#if spotMapColorMode === "preset"}
+    <div class="setting-row">
+      <label for="map_color_preset">Color Preset</label>
+      <select id="map_color_preset" bind:value={spotMapPreset} on:change={onMapPresetChange}>
+        {#each MAP_COLOR_PRESET_NAMES as name}
+          <option value={name}>{MAP_COLOR_PRESETS[name].label}</option>
+        {/each}
+      </select>
+    </div>
+    {:else}
     <div class="color-pickers spot-map-colors">
       <div class="color-picker-group">
         <label>QTH</label>
@@ -1525,6 +1586,7 @@
         <input type="text" class="color-hex-input" bind:value={spotMapSecondary} on:input={onMapColorInput} on:blur={onMapColorCommit} maxlength="7" />
       </div>
     </div>
+    {/if}
   </section>
   <section class="settings-section">
     <h3>Theme</h3>
