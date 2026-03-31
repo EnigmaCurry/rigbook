@@ -1306,6 +1306,9 @@
       </div>
     </div>
     {/if}
+  </section>
+  <section class="settings-section">
+    <h3>Content</h3>
     <div class="setting-row">
       <label for="custom_header">Custom Header</label>
       <input id="custom_header" type="text" bind:value={custom_header} on:input={onCustomHeaderInput} on:blur={() => onFieldBlur("custom_header")} autocomplete="off" placeholder={my_callsign.trim().toUpperCase() || "Callsign"} />
