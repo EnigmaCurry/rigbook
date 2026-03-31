@@ -1411,6 +1411,21 @@
             </div>
           {:else if updateCheckResult.update_skipped}
             <div>v{updateCheckResult.latest} available (skipped)</div>
+            <div class="update-actions">
+              {#if updateSupported}
+                <button class="check-now-btn apply-update-btn" on:click={confirmAndApplyUpdate} disabled={updateApplying}>
+                  {updateApplying ? "Updating…" : "Apply Update"}
+                </button>
+              {:else}
+                <a href={updateCheckResult.url} target="_blank" rel="noopener" class="update-available">Download</a>
+                {#if updateNotWritable}
+                  <span class="update-error">In-app update unavailable: no write permission to the binary location</span>
+                {/if}
+              {/if}
+              {#if updateApplyError}
+                <span class="update-error">{updateApplyError}</span>
+              {/if}
+            </div>
           {/if}
         </div>
         <div class="update-check-meta">
