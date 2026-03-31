@@ -337,7 +337,7 @@
 
   function disconnectOthers() {
     const others = clientCount - 1;
-    if (!confirm(`Disconnect ${others} other client${others !== 1 ? "s" : ""}? They will need to reload to reconnect.`)) return;
+    if (!confirm(`Disconnect ${others} other client${others !== 1 ? "s" : ""}? It may take up to 30s to process this request.`)) return;
     dispatch("disconnect-others");
   }
 
