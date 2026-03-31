@@ -295,13 +295,24 @@
       L.polyline([qthLL, spt3LL], { color: spotMapSpotter, weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }),
     );
 
-    // --- Station dots (exact and approximate) ---
+    // --- Station dots (exact with bullseye, and approximate) ---
+    // Bullseye helper for exact stations in the graph
+    function graphBullseye(ll, size = 11) {
+      const half = Math.round(size / 2);
+      const icon = L.divIcon({
+        className: "",
+        html: `<div style="width:${size}px;height:${size}px;background:${spotMapStation};border:2px solid ${staBorder};border-radius:50%;display:flex;align-items:center;justify-content:center"><div style="width:4px;height:4px;background:${spotMapQth};border-radius:50%"></div></div>`,
+        iconSize: [size, size],
+        iconAnchor: [half, half],
+      });
+      return L.marker(ll, { icon, interactive: false });
+    }
     // sta1: exact, 2 spotters → size 11
-    add(previewDot(sta1LL, spotMapStation, staBorder, 11));
+    add(graphBullseye(sta1LL, 11));
     // sta2: approximate (QRZ) → dashed border with ?
     add(previewApproxDot(sta2LL, spotMapStation, 11));
     // sta3: exact, 3 spotters → larger size 13
-    add(previewDot(sta3LL, spotMapStation, staBorder, 13));
+    add(graphBullseye(sta3LL, 13));
 
     // --- Primary spotter dots ---
     add(
@@ -342,6 +353,47 @@
       distLabel(qthLL, spt1LL, spotMapSpotter, 0.67),
     );
 
+    // --- Unconnected stations and spotters (no lines, just dots on the map) ---
+    // Extra exact stations (with bullseye)
+    const xSta1 = [qthLL[0] - 6, qthLL[1] - 4];
+    const xSta2 = [qthLL[0] + 2, qthLL[1] + 18];
+    const xSta3 = [qthLL[0] + 7, qthLL[1] - 8];
+    const xSta4 = [qthLL[0] - 3, qthLL[1] - 10];
+    // Extra approximate stations
+    const xApx1 = [qthLL[0] - 7, qthLL[1] + 8];
+    const xApx2 = [qthLL[0] + 4, qthLL[1] - 12];
+    // Extra primary spotters
+    const xSpt1 = [qthLL[0] + 6, qthLL[1] + 14];
+    const xSpt2 = [qthLL[0] - 5, qthLL[1] - 7];
+    const xSpt3 = [qthLL[0] + 9, qthLL[1] + 8];
+    // Extra secondary spotters
+    const xSec1 = [qthLL[0] - 8, qthLL[1] + 3];
+    const xSec2 = [qthLL[0] + 3, qthLL[1] - 6];
+
+    // Bullseye helper for exact stations
+    function previewBullseye(ll, size = 11) {
+      const half = Math.round(size / 2);
+      const icon = L.divIcon({
+        className: "",
+        html: `<div style="width:${size}px;height:${size}px;background:${spotMapStation};border:2px solid ${staBorder};border-radius:50%;display:flex;align-items:center;justify-content:center"><div style="width:4px;height:4px;background:${spotMapQth};border-radius:50%"></div></div>`,
+        iconSize: [size, size],
+        iconAnchor: [half, half],
+      });
+      return L.marker(ll, { icon, interactive: false });
+    }
+
+    add(
+      previewBullseye(xSta1, 10), previewBullseye(xSta2, 11),
+      previewBullseye(xSta3, 12), previewBullseye(xSta4, 10),
+      previewApproxDot(xApx1, spotMapStation, 11),
+      previewApproxDot(xApx2, spotMapStation, 10),
+      previewDot(xSpt1, spotMapSpotter, sptBorder, 9),
+      previewDot(xSpt2, spotMapSpotter, sptBorder, 9),
+      previewDot(xSpt3, spotMapSpotter, sptBorder, 10),
+      previewDot(xSec1, spotMapSecondary, secBorder, 8),
+      previewDot(xSec2, spotMapSecondary, secBorder, 8),
+    );
+
     for (const l of layers) {
       l.addTo(previewMap);
       previewLayers.push(l);
@@ -350,7 +402,8 @@
     // On first render, fit the map to show all points
     // Delay until container has its final size (tab switch starts at zero dimensions)
     if (isNew) {
-      const allPoints = [qthLL, sta1LL, sta2LL, sta3LL, spt1LL, spt2LL, spt3LL, sec1LL, sec3aLL, sec3bLL];
+      const allPoints = [qthLL, sta1LL, sta2LL, sta3LL, spt1LL, spt2LL, spt3LL, sec1LL, sec3aLL, sec3bLL,
+        xSta1, xSta2, xSta3, xSta4, xApx1, xApx2, xSpt1, xSpt2, xSpt3, xSec1, xSec2];
       setTimeout(() => {
         if (previewMap) {
           previewMap.invalidateSize();
