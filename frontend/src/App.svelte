@@ -18,6 +18,7 @@
   import Query from "./Query.svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
   import { setLogbook, storageGet, storageSet, migrateStorage } from "./storage.js";
+  import { applyThemeVars, applyCustomThemeVars, resolveDefaultTheme } from "./themes.js";
 
   const BANDS = [
     { name: "160m", lo: 1800, hi: 2000, segments: [
@@ -330,6 +331,7 @@
 
   function stopAppServices() {
     clearInterval(flrigInterval);
+    flrigInterval = null;
     if (eventSource) { eventSource.close(); eventSource = null; }
   }
 
@@ -503,6 +505,7 @@
   }
 
   async function pollFlrig() {
+    if (!logbookOpen) return;
     try {
       const res = await fetch("/api/flrig/status");
       if (res.ok) {
@@ -1028,51 +1031,64 @@
         dualRightPage = parsed.dualRight;
       }
     }
-    fetchCallsign();
-    const wasEnabled = flrigEnabled;
-    await fetchFlrigEnabled();
-    if (flrigEnabled && !wasEnabled) {
-      fetchRadioModes();
-      pollFlrig();
-      flrigInterval = setInterval(pollFlrig, 2000);
-    } else if (!flrigEnabled && wasEnabled) {
-      clearInterval(flrigInterval);
-      vfoFreq = "";
-      vfoMode = "";
-      vfoConnected = false;
+    if (logbookOpen) {
+      fetchCallsign();
+      const wasEnabled = flrigEnabled;
+      await fetchFlrigEnabled();
+      if (flrigEnabled && !wasEnabled) {
+        fetchRadioModes();
+        pollFlrig();
+        flrigInterval = setInterval(pollFlrig, 2000);
+      } else if (!flrigEnabled && wasEnabled) {
+        clearInterval(flrigInterval);
+        vfoFreq = "";
+        vfoMode = "";
+        vfoConnected = false;
+      }
+      fetchWideBreakpoint();
     }
-    fetchWideBreakpoint();
   }
 
   function applySystemTheme() {
-    const sysPref = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    const sysPref = resolveDefaultTheme();
     storageSet("rigbook-theme", sysPref);
-    document.documentElement.classList.toggle("light", sysPref === "light");
+    applyThemeVars(sysPref);
   }
 
   function applyThemeFromCache() {
     const cached = storageGet("rigbook-theme");
-    const theme = cached || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
-    document.documentElement.classList.toggle("light", theme === "light");
+    const theme = cached || resolveDefaultTheme();
+    applyThemeVars(theme);
   }
 
   async function applyTheme() {
     applyThemeFromCache();
     try {
-      const res = await fetch("/api/settings/theme");
+      const settings = {};
+      const res = await fetch("/api/settings/");
       if (res.ok) {
         const data = await res.json();
-        if (data.value) {
-          storageSet("rigbook-theme", data.value);
-          document.documentElement.classList.toggle("light", data.value === "light");
-          return;
-        }
+        for (const s of data) settings[s.key] = s.value;
+      }
+      if (settings.theme_mode === "custom" && settings.custom_theme_colors) {
+        try {
+          const c = JSON.parse(settings.custom_theme_colors);
+          if (c.bg && c.text && c.accent && c.vfo) {
+            applyCustomThemeVars(c.bg, c.text, c.accent, c.vfo);
+            storageSet("rigbook-theme", "custom");
+            return;
+          }
+        } catch {}
+      }
+      if (settings.theme) {
+        storageSet("rigbook-theme", settings.theme);
+        applyThemeVars(settings.theme);
+        return;
       }
     } catch {}
-    // No theme in DB — use system preference
-    const sysPref = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    const sysPref = resolveDefaultTheme();
     storageSet("rigbook-theme", sysPref);
-    document.documentElement.classList.toggle("light", sysPref === "light");
+    applyThemeVars(sysPref);
   }
 
   let searchComponent;
@@ -1166,7 +1182,7 @@
   });
 </script>
 
-<main class:dual-mode={page === "dual"} class:parks-mode={page === "parks"} class:spots-mode={page === "spots"} class:grid-mode={page === "grid"} class:export-mode={page === "export"} class:search-mode={page === "search"} class:query-mode={page === "query"}>
+<main class:picker-mode={pickerMode && !logbookOpen} class:dual-mode={page === "dual"} class:parks-mode={page === "parks"} class:spots-mode={page === "spots"} class:grid-mode={page === "grid"} class:export-mode={page === "export"} class:search-mode={page === "search"} class:query-mode={page === "query"}>
   {#if serverShutdown}
     <header>
       <div class="header-left">
@@ -1199,12 +1215,6 @@
   {:else if !logbookReady}
     <!-- waiting for logbook mode check -->
   {:else if pickerMode && !logbookOpen}
-    <header>
-      <div class="header-left">
-        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version" title={!appFrozen ? "Local build" : updateChecked && updateExact ? "Up to date" : updateChecked && updateDev ? "Development version" : !updateChecked ? "Enable update checker in the settings" : ""} on:click={() => { navigate("about"); }} style="cursor: pointer">v{appVersion}{#if updateSupported && updateChecked && updateExact}<span class="up-to-date-check">✔</span>{/if}{#if (updateChecked && updateDev) || !appFrozen}<span class="dev-version">🚧</span>{/if}{#if updateAvailable} <button class="update-link-btn" title={"v" + updateLatest + " available"} on:click|stopPropagation={() => { settingsTab = "updates"; navigate("settings"); }}>Update Available</button><button class="update-skip-btn" title="Skip this version" on:click|stopPropagation={skipUpdate}>✕</button>{/if}</span>{/if}</h1>
-      </div>
-      <span class="utc-clock">{utcNow}</span>
-    </header>
     <LogbookPicker on:logbookopened={handleLogbookOpened} />
   {:else}
   <header>
@@ -1367,7 +1377,7 @@
     {:else if page === "notifications"}
       <Notifications on:countchange={() => fetchUnreadCount()} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
     {:else if page === "settings"}
-      <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} initialTab={settingsTab} {clientCount} on:disconnect-others={async () => { const nonce = Math.random().toString(36).slice(2); disconnectNonce = nonce; try { await fetch("/api/events/disconnect-others", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nonce }) }); } catch {} }} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { logbookOpen = false; currentLogbook = ""; page = "picker"; applySystemTheme(); } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchSqlQueryEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { fetchCallsign(); fetchCustomHeader(); fetchDefaultPage(); applyTheme(); fetchPopupNotifEnabled(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchSqlQueryEnabled(); await fetchFlrigEnabled(); fetchShutdownMenuEnabled(); fetchUpdateCheck(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { setShutdownState(); }} />
+      <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} initialTab={settingsTab} {clientCount} on:disconnect-others={async () => { const nonce = Math.random().toString(36).slice(2); disconnectNonce = nonce; try { await fetch("/api/events/disconnect-others", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nonce }) }); } catch {} }} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { stopAppServices(); logbookOpen = false; currentLogbook = ""; page = "picker"; applySystemTheme(); } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchSqlQueryEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { fetchCallsign(); fetchCustomHeader(); fetchDefaultPage(); applyTheme(); fetchPopupNotifEnabled(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchSqlQueryEnabled(); await fetchFlrigEnabled(); fetchShutdownMenuEnabled(); fetchUpdateCheck(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; vfoFreq = ""; vfoMode = ""; vfoConnected = false; } }} on:shutdown={() => { setShutdownState(); }} />
     {:else if page === "links"}
       <Links />
     {:else if page === "conditions"}
@@ -1423,6 +1433,7 @@
 {/if}
 
 <style>
+  /* Default (dark) variables — overridden at runtime by themes.js */
   :global(:root) {
     --bg: #24252b;
     --bg-card: #2a2d3e;
@@ -1453,36 +1464,6 @@
     --menu-hover: #3e404a;
   }
 
-  :global(:root.light) {
-    --bg: #e8e8ff;
-    --bg-card: #f4f4f6;
-    --bg-input: #ffffff;
-    --bg-deep: #f0f0f2;
-    --border: #c8c8d0;
-    --border-input: #b0b0b8;
-    --text: #1a1a2e;
-    --text-muted: #555566;
-    --text-dim: #777788;
-    --text-dimmer: #999aaa;
-    --accent: #00994d;
-    --accent-hover: #007a3d;
-    --accent-callsign: #b8860b;
-    --accent-vfo: #332525;
-    --vfo-bg: #0c1e88;
-    --vfo-border: #0c1e88;
-    --vfo-text: #fbfbfb;
-    --accent-delete: #cc3333;
-    --accent-delete-hover: #aa2222;
-    --accent-error: #cc2222;
-    --btn-secondary: #aaaabc;
-    --btn-secondary-hover: #9999ab;
-    --row-hover: #dddde4;
-    --row-editing: #c8ecc8;
-    --bar-color: #333344;
-    --menu-bg: #d8d8e0;
-    --menu-hover: #c8c8d4;
-  }
-
   :global(*, *::before, *::after) {
     box-sizing: border-box;
   }
@@ -1506,6 +1487,12 @@
   .page-content {
     max-width: 1100px;
     margin: 0 auto;
+  }
+
+  :global(main.picker-mode) {
+    padding: 0;
+    height: 100vh;
+    overflow: hidden;
   }
 
   :global(main.export-mode),

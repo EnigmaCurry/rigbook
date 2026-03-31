@@ -2,9 +2,11 @@
   import { onMount, onDestroy, createEventDispatcher, tick } from "svelte";
   import { TILE_THEMES, resolveTileConfig } from "./mapTiles.js";
   import { storageGet, storageSet } from "./storage.js";
+  import { THEMES, THEME_NAMES, applyThemeVars, applyCustomThemeVars, generateCustomTheme } from "./themes.js";
   import L from "leaflet";
   import "leaflet/dist/leaflet.css";
   import GridMap from "./GridMap.svelte";
+  import "vanilla-colorful/hex-color-picker.js";
 
   let showGridPicker = false;
 
@@ -43,6 +45,11 @@
   let wide_breakpoint = "1200";
   let wide_mode_enabled = true;
   let theme = "dark";
+  let themeMode = "preset"; // "preset" or "custom"
+  let customBg = "#24252b";
+  let customText = "#eaeaea";
+  let customAccent = "#00ff88";
+  let customVfo = "#00ccff";
   let map_theme = "natgeo";
   let map_custom_url = "";
   let custom_header = "";
@@ -390,13 +397,73 @@
   let spotStatus = { rbn: { connected: false, enabled: false, idle_stopped: false }, hamalert: { connected: false, enabled: false } };
   let spotStatusInterval;
 
-  async function toggleTheme() {
-    theme = theme === "dark" ? "light" : "dark";
-    document.documentElement.classList.toggle("light", theme === "light");
+  async function onThemeChange() {
+    applyThemeVars(theme);
     storageSet("rigbook-theme", theme);
     await saveSetting("theme", theme);
+    await saveSetting("theme_mode", "preset");
     dispatch("saved");
     if (map_theme === "default") updatePreview();
+  }
+
+  async function onThemeModeChange() {
+    if (themeMode === "preset") {
+      applyThemeVars(theme);
+      storageSet("rigbook-theme", theme);
+      await saveSetting("theme_mode", "preset");
+    } else {
+      applyCustomThemeVars(customBg, customText, customAccent, customVfo);
+      storageSet("rigbook-theme", "custom");
+      await saveSetting("theme_mode", "custom");
+      await saveCustomColors();
+    }
+    dispatch("saved");
+    if (map_theme === "default") updatePreview();
+  }
+
+  function onCustomColorInput() {
+    applyCustomThemeVars(customBg, customText, customAccent, customVfo);
+    storageSet("rigbook-theme", "custom");
+  }
+
+  async function onCustomColorCommit() {
+    onCustomColorInput();
+    await saveCustomColors();
+    dispatch("saved");
+    if (map_theme === "default") updatePreview();
+  }
+
+  function onCustomColorChange() {
+    onCustomColorCommit();
+  }
+
+  async function saveCustomColors() {
+    const colors = JSON.stringify({ bg: customBg, text: customText, accent: customAccent, vfo: customVfo });
+    await saveSetting("custom_theme_colors", colors);
+  }
+
+  let colorDragging = false;
+
+  function colorPicker(node, { getValue, setValue }) {
+    node.setAttribute("color", getValue());
+    const onChange = (e) => { setValue(e.detail.value); onCustomColorInput(); };
+    const onDown = () => { colorDragging = true; };
+    const onUp = () => { if (colorDragging) { colorDragging = false; onCustomColorCommit(); } };
+    node.addEventListener("color-changed", onChange);
+    window.addEventListener("mouseup", onUp);
+    window.addEventListener("touchend", onUp);
+    node.addEventListener("mousedown", onDown);
+    node.addEventListener("touchstart", onDown);
+    return {
+      update({ getValue }) { node.setAttribute("color", getValue()); },
+      destroy() {
+        node.removeEventListener("color-changed", onChange);
+        window.removeEventListener("mouseup", onUp);
+        window.removeEventListener("touchend", onUp);
+        node.removeEventListener("mousedown", onDown);
+        node.removeEventListener("touchstart", onDown);
+      },
+    };
   }
 
   async function clearCache() {
@@ -778,6 +845,16 @@
           if (s.key === "custom_header") custom_header = s.value || "";
           if (s.key === "default_page") default_page = s.value || "log";
           if (s.key === "theme") theme = s.value || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+          if (s.key === "theme_mode") themeMode = s.value || "preset";
+          if (s.key === "custom_theme_colors") {
+            try {
+              const c = JSON.parse(s.value);
+              if (c.bg) customBg = c.bg;
+              if (c.text) customText = c.text;
+              if (c.accent) customAccent = c.accent;
+              if (c.vfo) customVfo = c.vfo;
+            } catch {}
+          }
           if (s.key === "popup_notifications_enabled") popupNotifEnabled = s.value === "true";
           if (s.key === "auto_shutdown_on_disconnect") autoShutdownOnDisconnect = s.value === "true";
           if (s.key === "shutdown_in_menu") shutdownInMenu = s.value === "true";
@@ -1190,11 +1267,48 @@
   <section class="settings-section">
     <h3>Theme</h3>
     <div class="setting-row toggle-row">
-      <label>Theme</label>
-      <button class="theme-toggle" on:click={toggleTheme}>
-        {theme === "dark" ? "Dark" : "Light"}
-      </button>
+      <label>Mode</label>
+      <div class="theme-mode-switch">
+        <button class="mode-btn" class:active={themeMode === "preset"} on:click={() => { themeMode = "preset"; onThemeModeChange(); }}>Preset</button>
+        <button class="mode-btn" class:active={themeMode === "custom"} on:click={() => { themeMode = "custom"; onThemeModeChange(); }}>Custom</button>
+      </div>
     </div>
+    {#if themeMode === "preset"}
+    <div class="setting-row">
+      <label for="theme_select">Theme</label>
+      <select id="theme_select" bind:value={theme} on:change={onThemeChange}>
+        {#each THEME_NAMES as t}
+          <option value={t}>{THEMES[t].label}{t !== "dark" && t !== "light" ? ` (${THEMES[t].base})` : ""}</option>
+        {/each}
+      </select>
+    </div>
+    {:else}
+    <div class="color-pickers">
+      <div class="color-picker-group">
+        <label>Background</label>
+        <hex-color-picker use:colorPicker={{ getValue: () => customBg, setValue: (v) => { customBg = v; } }}></hex-color-picker>
+        <input type="text" class="color-hex-input" bind:value={customBg} on:input={onCustomColorInput} on:blur={onCustomColorCommit} maxlength="7" />
+      </div>
+      <div class="color-picker-group">
+        <label>Text</label>
+        <hex-color-picker use:colorPicker={{ getValue: () => customText, setValue: (v) => { customText = v; } }}></hex-color-picker>
+        <input type="text" class="color-hex-input" bind:value={customText} on:input={onCustomColorInput} on:blur={onCustomColorCommit} maxlength="7" />
+      </div>
+      <div class="color-picker-group">
+        <label>Accent</label>
+        <hex-color-picker use:colorPicker={{ getValue: () => customAccent, setValue: (v) => { customAccent = v; } }}></hex-color-picker>
+        <input type="text" class="color-hex-input" bind:value={customAccent} on:input={onCustomColorInput} on:blur={onCustomColorCommit} maxlength="7" />
+      </div>
+      <div class="color-picker-group">
+        <label>VFO</label>
+        <hex-color-picker use:colorPicker={{ getValue: () => customVfo, setValue: (v) => { customVfo = v; } }}></hex-color-picker>
+        <input type="text" class="color-hex-input" bind:value={customVfo} on:input={onCustomColorInput} on:blur={onCustomColorCommit} maxlength="7" />
+      </div>
+    </div>
+    {/if}
+  </section>
+  <section class="settings-section">
+    <h3>Content</h3>
     <div class="setting-row">
       <label for="custom_header">Custom Header</label>
       <input id="custom_header" type="text" bind:value={custom_header} on:input={onCustomHeaderInput} on:blur={() => onFieldBlur("custom_header")} autocomplete="off" placeholder={my_callsign.trim().toUpperCase() || "Callsign"} />
@@ -1463,12 +1577,19 @@
   }
 
   .tab:hover {
-    color: var(--text);
+    background: var(--accent);
+    color: #000;
+    font-weight: bold;
   }
 
   .tab.active {
     color: var(--accent);
     border-bottom-color: var(--accent);
+  }
+
+  .tab.active:hover {
+    background: var(--accent);
+    color: #000;
   }
 
   .tab-content {
@@ -1592,7 +1713,7 @@
     color: var(--text-muted);
   }
 
-  input:not([type="range"]):not([type="checkbox"]) {
+  input:not([type="range"]):not([type="checkbox"]), select {
     background: var(--bg-input);
     border: 1px solid var(--border-input);
     color: var(--text);
@@ -1604,7 +1725,7 @@
     max-width: 20rem;
   }
 
-  input:not([type="range"]):not([type="checkbox"]):focus {
+  input:not([type="range"]):not([type="checkbox"]):focus, select:focus {
     outline: none;
     border-color: var(--accent);
   }
@@ -1621,6 +1742,70 @@
 
   input[type="checkbox"] {
     accent-color: var(--accent);
+  }
+
+  .color-pickers {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  @media (max-width: 360px) {
+    .color-pickers {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .color-picker-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .color-picker-group label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: bold;
+  }
+
+  .color-picker-group hex-color-picker {
+    width: 120px;
+    height: 120px;
+  }
+
+  .color-hex-input {
+    width: 5.5rem !important;
+    text-align: center;
+    font-size: 0.8rem !important;
+  }
+
+  .theme-mode-switch {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .mode-btn {
+    padding: 0.3rem 1rem;
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    background: var(--bg-input);
+    color: var(--text-muted);
+  }
+
+  .mode-btn.active {
+    background: var(--accent);
+    color: #000;
+  }
+
+  .mode-btn:hover:not(.active) {
+    background: var(--menu-hover);
   }
 
   button {

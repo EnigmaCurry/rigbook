@@ -2,6 +2,16 @@
 
 ## v0.2.0
 
+### Themes
+
+- 20 theme presets (light and dark)
+- Custom theme mode with 4 realtime color pickers
+
+### Logbook Picker (`--pick`)
+
+- Redesigned picker layout with scrollable list, fixed create section, and full viewport height
+- Sort picker list by last-opened time
+
 ### Self-Update
 
 - Download and install updates from GitHub releases with automatic restart

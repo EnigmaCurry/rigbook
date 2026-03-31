@@ -5,7 +5,7 @@ import signal
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from rigbook.db import DB_DIR, DatabaseLockError, db_manager
+from rigbook.db import DB_DIR, DatabaseLockError, _read_last_opened, db_manager
 from rigbook.spots import start_feeds, stop_feeds
 from rigbook.sse import notify_shutdown
 
@@ -53,13 +53,15 @@ def _is_locked(db_path) -> bool:
 
 @router.get("/")
 async def list_logbooks():
+    last_opened = _read_last_opened()
     dbs = []
-    for f in sorted(DB_DIR.glob("*.db")):
+    for f in DB_DIR.glob("*.db"):
         dbs.append({
             "name": f.stem,
             "size_bytes": f.stat().st_size,
             "locked": _is_locked(f),
         })
+    dbs.sort(key=lambda d: last_opened.get(d["name"], 0), reverse=True)
     return dbs
 
 

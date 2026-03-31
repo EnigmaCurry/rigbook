@@ -72,26 +72,31 @@
 
 <div class="picker-container">
   <div class="picker-card">
-    <h2>Select Logbook</h2>
+    <div class="picker-header">
+      <h2>Select Logbook</h2>
+      <p class="picker-subtitle">Most recent logbooks shown first</p>
+    </div>
 
     {#if error}
       <div class="picker-error">{error}</div>
     {/if}
 
-    {#if loading}
-      <p class="picker-loading">Loading...</p>
-    {:else if logbooks.length === 0}
-      <p class="picker-empty">No logbooks found. Create one below.</p>
-    {:else}
-      <div class="picker-list">
-        {#each logbooks as lb}
-          <button class="picker-item" on:click={() => openLogbook(lb.name)}>
-            <span class="picker-item-name">{lb.name}</span>
-            <span class="picker-item-size">{formatSize(lb.size_bytes)}</span>
-          </button>
-        {/each}
-      </div>
-    {/if}
+    <div class="picker-body">
+      {#if loading}
+        <p class="picker-loading">Loading...</p>
+      {:else if logbooks.length === 0}
+        <p class="picker-empty">No logbooks found. Create one below.</p>
+      {:else}
+        <div class="picker-list">
+          {#each logbooks as lb}
+            <button class="picker-item" on:click={() => openLogbook(lb.name)}>
+              <span class="picker-item-name">{lb.name}</span>
+              <span class="picker-item-size">{formatSize(lb.size_bytes)}</span>
+            </button>
+          {/each}
+        </div>
+      {/if}
+    </div>
 
     <div class="picker-create">
       <h3>Create New Logbook</h3>
@@ -113,8 +118,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: calc(100vh - 60px);
+    height: 100vh;
     padding: 1rem;
+    box-sizing: border-box;
   }
 
   .picker-card {
@@ -124,13 +130,28 @@
     padding: 2rem;
     width: 100%;
     max-width: 480px;
+    max-height: calc(100vh - 2rem);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .picker-header {
+    flex-shrink: 0;
   }
 
   .picker-card h2 {
-    margin: 0 0 1.5rem;
+    margin: 0 0 0.25rem;
     color: var(--accent);
     font-size: 1.4rem;
     text-align: center;
+  }
+
+  .picker-subtitle {
+    margin: 0 0 1rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
   }
 
   .picker-error {
@@ -141,6 +162,13 @@
     padding: 0.5rem 0.75rem;
     margin-bottom: 1rem;
     font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+
+  .picker-body {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
   }
 
   .picker-loading, .picker-empty {
@@ -153,7 +181,6 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    margin-bottom: 1.5rem;
   }
 
   .picker-item {
@@ -185,8 +212,10 @@
   }
 
   .picker-create {
+    flex-shrink: 0;
     border-top: 1px solid var(--border);
     padding-top: 1.5rem;
+    margin-top: 1.5rem;
   }
 
   .picker-create h3 {

@@ -205,7 +205,14 @@
   }
 
   .tab:hover {
-    background: var(--bg-input);
+    background: var(--accent);
+    color: #000;
+    font-weight: bold;
+  }
+
+  .tab.active:hover {
+    background: var(--accent);
+    color: #000;
   }
 
   .mark-all-btn {
