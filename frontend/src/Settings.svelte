@@ -146,6 +146,18 @@
     return L.marker(ll, { icon, interactive: false });
   }
 
+  function previewApproxDot(ll, color, size = 12) {
+    const half = Math.round(size / 2);
+    const border = darkenColor(color);
+    const icon = L.divIcon({
+      className: "",
+      html: `<div style="width:${size}px;height:${size}px;background:${color}59;border:2px dashed ${color};border-radius:50%;display:flex;align-items:center;justify-content:center"><span style="color:${border};font-size:${Math.max(size-4,7)}px;font-weight:bold;line-height:1">?</span></div>`,
+      iconSize: [size, size],
+      iconAnchor: [half, half],
+    });
+    return L.marker(ll, { icon, interactive: false });
+  }
+
   function previewLabel(ll, text, color) {
     const icon = L.divIcon({
       className: "marker-label",
@@ -164,6 +176,17 @@
     return `#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;
   }
 
+  function distLabel(from, to, color, t = 0.5) {
+    const mi = Math.round(haversineMi(from, to));
+    const mid = [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t];
+    const icon = L.divIcon({
+      className: "distance-label",
+      html: `<span style="color:${color};font-size:11px;font-weight:bold;white-space:nowrap;paint-order:stroke fill;-webkit-text-stroke:3px rgba(0,0,0,0.8);text-shadow:0 0 4px rgba(0,0,0,0.9)">${mi} mi</span>`,
+      iconSize: [0, 0],
+    });
+    return L.marker(mid, { icon, interactive: false });
+  }
+
   function updatePreview() {
     if (!previewEl) return;
     const tiles = resolveTileConfig(map_theme, map_custom_url);
@@ -171,7 +194,7 @@
     const center = pos ? [pos.lat, pos.lon] : [39, -98];
     if (!previewMap) {
       previewMap = L.map(previewEl, {
-        scrollWheelZoom: false, zoomControl: false,
+        scrollWheelZoom: true, zoomControl: true,
         dragging: true, doubleClickZoom: false,
         attributionControl: false,
       });
@@ -183,64 +206,108 @@
       maxZoom: tiles.maxZoom,
     }).addTo(previewMap);
 
-    // Clear old preview layers
     clearPreviewLayers();
-
-    // Hypothetical spots preview showing all four colors
-    const qthLL = pos ? [pos.lat, pos.lon] : center;
-    // Place hypothetical station ~8° east, ~3° north
-    const stationLL = [qthLL[0] + 3, qthLL[1] + 8];
-    // Place hypothetical spotter ~2° south, ~5° east
-    const spotterLL = [qthLL[0] - 2, qthLL[1] + 5];
-    // Secondary spotter ~4° south, ~12° east
-    const secSpotterLL = [qthLL[0] - 4, qthLL[1] + 12];
 
     const qthBorder = darkenColor(spotMapQth);
     const staBorder = darkenColor(spotMapStation);
     const sptBorder = darkenColor(spotMapSpotter);
     const secBorder = darkenColor(spotMapSecondary);
 
-    // Lines
-    const spotterToStation = L.polyline([spotterLL, stationLL], { color: spotMapSpotter, weight: 2, opacity: 0.6, dashArray: "6 4" });
-    const stationToQth = L.polyline([stationLL, qthLL], { color: spotMapStation, weight: 2, opacity: 0.6, dashArray: "6 4" });
-    const qthToSpotter = L.polyline([qthLL, spotterLL], { color: spotMapSpotter, weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" });
-    const secToStation = L.polyline([secSpotterLL, stationLL], { color: spotMapSecondary, weight: 2, opacity: 0.5, dashArray: "4 6" });
+    const qthLL = pos ? [pos.lat, pos.lon] : center;
 
-    // Dots
-    const qthDot = previewDot(qthLL, spotMapQth, qthBorder, 12);
-    const stationDot = previewDot(stationLL, spotMapStation, staBorder, 12);
-    const spotterDot = previewDot(spotterLL, spotMapSpotter, sptBorder, 10);
-    const secDot = previewDot(secSpotterLL, spotMapSecondary, secBorder, 10);
+    // --- Hypothetical scene with multiple spots ---
+    // Station 1: W1AW — exact grid, spotted by 2 spotters (1 primary, 1 secondary)
+    const sta1LL = [qthLL[0] + 5, qthLL[1] + 10];
+    const spt1LL = [qthLL[0] + 1, qthLL[1] + 6];   // primary spotter for sta1
+    const sec1LL = [qthLL[0] - 2, qthLL[1] + 13];   // secondary spotter for sta1
 
-    // Labels
+    // Station 2: K5D — approximate grid (QRZ lookup), spotted by 1 primary spotter
+    const sta2LL = [qthLL[0] - 4, qthLL[1] + 16];
+    const spt2LL = [qthLL[0] - 1, qthLL[1] + 11];  // primary spotter for sta2
+
+    // Station 3: VE3XYZ — exact grid, spotted by 3 spotters (bigger dot), with 2 secondary
+    const sta3LL = [qthLL[0] + 8, qthLL[1] + 3];
+    const spt3LL = [qthLL[0] + 3, qthLL[1] - 2];   // primary spotter for sta3
+    const sec3aLL = [qthLL[0] + 6, qthLL[1] - 5];   // secondary spotter for sta3
+    const sec3bLL = [qthLL[0] + 1, qthLL[1] + 1];   // secondary spotter for sta3
+
+    const layers = [];
+    function add(...items) { for (const l of items) layers.push(l); }
+
+    // --- Secondary spotter lines (drawn first, lower z-order) ---
+    add(
+      L.polyline([sec1LL, sta1LL], { color: spotMapSecondary, weight: 2, opacity: 0.4, dashArray: "4 6" }),
+      L.polyline([sec3aLL, sta3LL], { color: spotMapSecondary, weight: 2, opacity: 0.4, dashArray: "4 6" }),
+      L.polyline([sec3bLL, sta3LL], { color: spotMapSecondary, weight: 2, opacity: 0.4, dashArray: "4 6" }),
+    );
+
+    // --- Primary triangle lines (spotter->station, station->QTH, QTH->spotter) ---
+    // Triangle 1: W1AW
+    add(
+      L.polyline([spt1LL, sta1LL], { color: spotMapSpotter, weight: 2, opacity: 0.6, dashArray: "6 4" }),
+      L.polyline([sta1LL, qthLL], { color: spotMapStation, weight: 2, opacity: 0.6, dashArray: "6 4" }),
+      L.polyline([qthLL, spt1LL], { color: spotMapSpotter, weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }),
+    );
+    // Triangle 2: K5D
+    add(
+      L.polyline([spt2LL, sta2LL], { color: spotMapSpotter, weight: 2, opacity: 0.6, dashArray: "6 4" }),
+      L.polyline([sta2LL, qthLL], { color: spotMapStation, weight: 2, opacity: 0.6, dashArray: "6 4" }),
+      L.polyline([qthLL, spt2LL], { color: spotMapSpotter, weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }),
+    );
+    // Triangle 3: VE3XYZ
+    add(
+      L.polyline([spt3LL, sta3LL], { color: spotMapSpotter, weight: 2, opacity: 0.6, dashArray: "6 4" }),
+      L.polyline([sta3LL, qthLL], { color: spotMapStation, weight: 2, opacity: 0.6, dashArray: "6 4" }),
+      L.polyline([qthLL, spt3LL], { color: spotMapSpotter, weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }),
+    );
+
+    // --- Station dots (exact and approximate) ---
+    // sta1: exact, 2 spotters → size 11
+    add(previewDot(sta1LL, spotMapStation, staBorder, 11));
+    // sta2: approximate (QRZ) → dashed border with ?
+    add(previewApproxDot(sta2LL, spotMapStation, 11));
+    // sta3: exact, 3 spotters → larger size 13
+    add(previewDot(sta3LL, spotMapStation, staBorder, 13));
+
+    // --- Primary spotter dots ---
+    add(
+      previewDot(spt1LL, spotMapSpotter, sptBorder, 10),
+      previewDot(spt2LL, spotMapSpotter, sptBorder, 10),
+      previewDot(spt3LL, spotMapSpotter, sptBorder, 10),
+    );
+
+    // --- Secondary spotter dots ---
+    add(
+      previewDot(sec1LL, spotMapSecondary, secBorder, 8),
+      previewDot(sec3aLL, spotMapSecondary, secBorder, 8),
+      previewDot(sec3bLL, spotMapSecondary, secBorder, 8),
+    );
+
+    // --- QTH dot (on top) ---
+    add(previewDot(qthLL, spotMapQth, qthBorder, 14));
+
+    // --- Labels ---
     const callLabel = my_callsign.trim().toUpperCase() || "QTH";
-    const qthLabel = previewLabel(qthLL, callLabel, spotMapQth);
-    const staLabel = previewLabel(stationLL, "W1AW", spotMapStation);
-    const sptLabel = previewLabel(spotterLL, "K3LR", spotMapSpotter);
-    const secLabel = previewLabel(secSpotterLL, "VE3NEA", spotMapSecondary);
+    add(
+      previewLabel(qthLL, callLabel, spotMapQth),
+      previewLabel(sta1LL, "W1AW", spotMapStation),
+      previewLabel(sta2LL, "K5D", spotMapStation),
+      previewLabel(sta3LL, "VE3XYZ", spotMapStation),
+      previewLabel(spt1LL, "K3LR", spotMapSpotter),
+      previewLabel(spt2LL, "N1MM", spotMapSpotter),
+      previewLabel(spt3LL, "W3UA", spotMapSpotter),
+      previewLabel(sec1LL, "VE3NEA", spotMapSecondary),
+      previewLabel(sec3aLL, "W9RE", spotMapSecondary),
+      previewLabel(sec3bLL, "AA7BQ", spotMapSecondary),
+    );
 
-    // Distance labels
-    function distLabel(from, to, color, t = 0.5) {
-      const mi = Math.round(haversineMi(from, to));
-      const mid = [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t];
-      const icon = L.divIcon({
-        className: "distance-label",
-        html: `<span style="color:${color};font-size:11px;font-weight:bold;white-space:nowrap;paint-order:stroke fill;-webkit-text-stroke:3px rgba(0,0,0,0.8);text-shadow:0 0 4px rgba(0,0,0,0.9)">${mi} mi</span>`,
-        iconSize: [0, 0],
-      });
-      return L.marker(mid, { icon, interactive: false });
-    }
+    // --- Distance labels on one triangle (sta1) for visual variety ---
+    add(
+      distLabel(spt1LL, sta1LL, spotMapSpotter, 0.33),
+      distLabel(sta1LL, qthLL, spotMapStation, 0.5),
+      distLabel(qthLL, spt1LL, spotMapSpotter, 0.67),
+    );
 
-    const d1 = distLabel(spotterLL, stationLL, spotMapSpotter, 0.33);
-    const d2 = distLabel(stationLL, qthLL, spotMapStation, 0.5);
-    const d3 = distLabel(qthLL, spotterLL, spotMapSpotter, 0.67);
-
-    const layers = [
-      secToStation, spotterToStation, stationToQth, qthToSpotter,
-      qthDot, stationDot, spotterDot, secDot,
-      qthLabel, staLabel, sptLabel, secLabel,
-      d1, d2, d3,
-    ];
     for (const l of layers) {
       l.addTo(previewMap);
       previewLayers.push(l);
