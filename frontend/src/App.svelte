@@ -18,7 +18,7 @@
   import Query from "./Query.svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
   import { setLogbook, storageGet, storageSet, migrateStorage } from "./storage.js";
-  import { applyThemeVars, resolveDefaultTheme } from "./themes.js";
+  import { applyThemeVars, applyCustomThemeVars, resolveDefaultTheme } from "./themes.js";
 
   const BANDS = [
     { name: "160m", lo: 1800, hi: 2000, segments: [
@@ -1060,14 +1060,26 @@
   async function applyTheme() {
     applyThemeFromCache();
     try {
-      const res = await fetch("/api/settings/theme");
+      const settings = {};
+      const res = await fetch("/api/settings/");
       if (res.ok) {
         const data = await res.json();
-        if (data.value) {
-          storageSet("rigbook-theme", data.value);
-          applyThemeVars(data.value);
-          return;
-        }
+        for (const s of data) settings[s.key] = s.value;
+      }
+      if (settings.theme_mode === "custom" && settings.custom_theme_colors) {
+        try {
+          const c = JSON.parse(settings.custom_theme_colors);
+          if (c.bg && c.text && c.accent && c.vfo) {
+            applyCustomThemeVars(c.bg, c.text, c.accent, c.vfo);
+            storageSet("rigbook-theme", "custom");
+            return;
+          }
+        } catch {}
+      }
+      if (settings.theme) {
+        storageSet("rigbook-theme", settings.theme);
+        applyThemeVars(settings.theme);
+        return;
       }
     } catch {}
     const sysPref = resolveDefaultTheme();

@@ -681,3 +681,77 @@ export function applyThemeVars(themeName) {
 export function resolveDefaultTheme() {
   return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
 }
+
+// --- Custom theme generation from 4 seed colors ---
+
+function hexToRgb(hex) {
+  const h = hex.replace("#", "");
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+
+function rgbToHex([r, g, b]) {
+  return "#" + [r, g, b].map(c => Math.max(0, Math.min(255, Math.round(c))).toString(16).padStart(2, "0")).join("");
+}
+
+function mix(c1, c2, t) {
+  const a = hexToRgb(c1), b = hexToRgb(c2);
+  return rgbToHex(a.map((v, i) => v + (b[i] - v) * t));
+}
+
+function lighten(hex, amount) { return mix(hex, "#ffffff", amount); }
+function darken(hex, amount) { return mix(hex, "#000000", amount); }
+
+function luminance(hex) {
+  const [r, g, b] = hexToRgb(hex).map(c => c / 255);
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+
+/** Generate a full theme vars object from 4 seed colors. */
+export function generateCustomTheme(bg, text, accent, vfo) {
+  const isDark = luminance(bg) < 0.5;
+  const shift = isDark ? lighten : darken;
+  const antiShift = isDark ? darken : lighten;
+
+  return {
+    base: isDark ? "dark" : "light",
+    vars: {
+      "--bg": bg,
+      "--bg-card": shift(bg, 0.06),
+      "--bg-input": shift(bg, 0.15),
+      "--bg-deep": antiShift(bg, 0.08),
+      "--border": shift(bg, 0.22),
+      "--border-input": shift(bg, 0.30),
+      "--text": text,
+      "--text-muted": mix(text, bg, 0.25),
+      "--text-dim": mix(text, bg, 0.45),
+      "--text-dimmer": mix(text, bg, 0.60),
+      "--accent": accent,
+      "--accent-hover": antiShift(accent, 0.15),
+      "--accent-callsign": mix(accent, vfo, 0.5),
+      "--accent-vfo": vfo,
+      "--vfo-bg": isDark ? antiShift(bg, 0.08) : darken(vfo, 0.6),
+      "--vfo-border": isDark ? shift(bg, 0.22) : darken(vfo, 0.6),
+      "--vfo-text": isDark ? vfo : lighten(vfo, 0.85),
+      "--accent-delete": "#cc3333",
+      "--accent-delete-hover": "#aa2222",
+      "--accent-error": isDark ? "#ff6b6b" : "#cc2222",
+      "--btn-secondary": shift(bg, 0.30),
+      "--btn-secondary-hover": shift(bg, 0.22),
+      "--row-hover": shift(bg, 0.10),
+      "--row-editing": mix(shift(bg, 0.10), accent, 0.15),
+      "--bar-color": text,
+      "--menu-bg": shift(bg, 0.06),
+      "--menu-hover": shift(bg, 0.12),
+    },
+  };
+}
+
+/** Apply a custom theme's vars directly. */
+export function applyCustomThemeVars(bg, text, accent, vfo) {
+  const theme = generateCustomTheme(bg, text, accent, vfo);
+  const style = document.documentElement.style;
+  for (const [prop, val] of Object.entries(theme.vars)) {
+    style.setProperty(prop, val);
+  }
+  return theme;
+}

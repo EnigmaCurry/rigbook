@@ -2,7 +2,7 @@
   import { onMount, onDestroy, createEventDispatcher, tick } from "svelte";
   import { TILE_THEMES, resolveTileConfig } from "./mapTiles.js";
   import { storageGet, storageSet } from "./storage.js";
-  import { THEMES, THEME_NAMES, applyThemeVars } from "./themes.js";
+  import { THEMES, THEME_NAMES, applyThemeVars, applyCustomThemeVars, generateCustomTheme } from "./themes.js";
   import L from "leaflet";
   import "leaflet/dist/leaflet.css";
   import GridMap from "./GridMap.svelte";
@@ -44,6 +44,11 @@
   let wide_breakpoint = "1200";
   let wide_mode_enabled = true;
   let theme = "dark";
+  let themeMode = "preset"; // "preset" or "custom"
+  let customBg = "#24252b";
+  let customText = "#eaeaea";
+  let customAccent = "#00ff88";
+  let customVfo = "#00ccff";
   let map_theme = "natgeo";
   let map_custom_url = "";
   let custom_header = "";
@@ -395,8 +400,37 @@
     applyThemeVars(theme);
     storageSet("rigbook-theme", theme);
     await saveSetting("theme", theme);
+    await saveSetting("theme_mode", "preset");
     dispatch("saved");
     if (map_theme === "default") updatePreview();
+  }
+
+  async function onThemeModeChange() {
+    if (themeMode === "preset") {
+      applyThemeVars(theme);
+      storageSet("rigbook-theme", theme);
+      await saveSetting("theme_mode", "preset");
+    } else {
+      applyCustomThemeVars(customBg, customText, customAccent, customVfo);
+      storageSet("rigbook-theme", "custom");
+      await saveSetting("theme_mode", "custom");
+      await saveCustomColors();
+    }
+    dispatch("saved");
+    if (map_theme === "default") updatePreview();
+  }
+
+  async function onCustomColorChange() {
+    applyCustomThemeVars(customBg, customText, customAccent, customVfo);
+    storageSet("rigbook-theme", "custom");
+    await saveCustomColors();
+    dispatch("saved");
+    if (map_theme === "default") updatePreview();
+  }
+
+  async function saveCustomColors() {
+    const colors = JSON.stringify({ bg: customBg, text: customText, accent: customAccent, vfo: customVfo });
+    await saveSetting("custom_theme_colors", colors);
   }
 
   async function clearCache() {
@@ -778,6 +812,16 @@
           if (s.key === "custom_header") custom_header = s.value || "";
           if (s.key === "default_page") default_page = s.value || "log";
           if (s.key === "theme") theme = s.value || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+          if (s.key === "theme_mode") themeMode = s.value || "preset";
+          if (s.key === "custom_theme_colors") {
+            try {
+              const c = JSON.parse(s.value);
+              if (c.bg) customBg = c.bg;
+              if (c.text) customText = c.text;
+              if (c.accent) customAccent = c.accent;
+              if (c.vfo) customVfo = c.vfo;
+            } catch {}
+          }
           if (s.key === "popup_notifications_enabled") popupNotifEnabled = s.value === "true";
           if (s.key === "auto_shutdown_on_disconnect") autoShutdownOnDisconnect = s.value === "true";
           if (s.key === "shutdown_in_menu") shutdownInMenu = s.value === "true";
@@ -1189,6 +1233,14 @@
   <div class="tab-content">
   <section class="settings-section">
     <h3>Theme</h3>
+    <div class="setting-row toggle-row">
+      <label>Mode</label>
+      <div class="theme-mode-switch">
+        <button class="mode-btn" class:active={themeMode === "preset"} on:click={() => { themeMode = "preset"; onThemeModeChange(); }}>Preset</button>
+        <button class="mode-btn" class:active={themeMode === "custom"} on:click={() => { themeMode = "custom"; onThemeModeChange(); }}>Custom</button>
+      </div>
+    </div>
+    {#if themeMode === "preset"}
     <div class="setting-row">
       <label for="theme_select">Theme</label>
       <select id="theme_select" bind:value={theme} on:change={onThemeChange}>
@@ -1197,6 +1249,24 @@
         {/each}
       </select>
     </div>
+    {:else}
+    <div class="setting-row">
+      <label for="custom_bg">Background</label>
+      <input id="custom_bg" type="color" bind:value={customBg} on:input={onCustomColorChange} />
+    </div>
+    <div class="setting-row">
+      <label for="custom_text">Text</label>
+      <input id="custom_text" type="color" bind:value={customText} on:input={onCustomColorChange} />
+    </div>
+    <div class="setting-row">
+      <label for="custom_accent">Accent</label>
+      <input id="custom_accent" type="color" bind:value={customAccent} on:input={onCustomColorChange} />
+    </div>
+    <div class="setting-row">
+      <label for="custom_vfo">VFO</label>
+      <input id="custom_vfo" type="color" bind:value={customVfo} on:input={onCustomColorChange} />
+    </div>
+    {/if}
     <div class="setting-row">
       <label for="custom_header">Custom Header</label>
       <input id="custom_header" type="text" bind:value={custom_header} on:input={onCustomHeaderInput} on:blur={() => onFieldBlur("custom_header")} autocomplete="off" placeholder={my_callsign.trim().toUpperCase() || "Callsign"} />
@@ -1630,6 +1700,44 @@
 
   input[type="checkbox"] {
     accent-color: var(--accent);
+  }
+
+  input[type="color"] {
+    width: 4rem;
+    height: 2rem;
+    padding: 2px;
+    border: 1px solid var(--border-input);
+    border-radius: 3px;
+    background: var(--bg-input);
+    cursor: pointer;
+  }
+
+  .theme-mode-switch {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .mode-btn {
+    padding: 0.3rem 1rem;
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    background: var(--bg-input);
+    color: var(--text-muted);
+  }
+
+  .mode-btn.active {
+    background: var(--accent);
+    color: #000;
+  }
+
+  .mode-btn:hover:not(.active) {
+    background: var(--menu-hover);
   }
 
   button {
