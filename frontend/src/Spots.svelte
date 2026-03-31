@@ -41,7 +41,10 @@
   }
 
   // Spot map colors (loaded from settings, defaults match Aurora Borealis preset)
-  const SPOT_MAP_DEFAULTS = { qth: "#ff4444", station: "#00ff88", spotter: "#00ccff", secondary: "#7744aa" };
+  const SPOT_MAP_DEFAULTS = {
+    qth: "#ff4444", station: "#00ff88", spotter: "#00ccff", secondary: "#7744aa",
+    strokeQth: "black", strokeStation: "black", strokeSpotter: "black", strokeSecondary: "white",
+  };
   let mapColors = { ...SPOT_MAP_DEFAULTS };
 
   async function loadMapColors() {
@@ -56,19 +59,18 @@
             station: c.station || SPOT_MAP_DEFAULTS.station,
             spotter: c.spotter || SPOT_MAP_DEFAULTS.spotter,
             secondary: c.secondary || SPOT_MAP_DEFAULTS.secondary,
+            strokeQth: c.strokeQth || SPOT_MAP_DEFAULTS.strokeQth,
+            strokeStation: c.strokeStation || SPOT_MAP_DEFAULTS.strokeStation,
+            strokeSpotter: c.strokeSpotter || SPOT_MAP_DEFAULTS.strokeSpotter,
+            strokeSecondary: c.strokeSecondary || SPOT_MAP_DEFAULTS.strokeSecondary,
           };
         }
       }
     } catch {}
   }
 
-  function contrastStroke(hex) {
-    const h = hex.replace("#", "");
-    const r = parseInt(h.slice(0, 2), 16) / 255;
-    const g = parseInt(h.slice(2, 4), 16) / 255;
-    const b = parseInt(h.slice(4, 6), 16) / 255;
-    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-    return lum > 0.5 ? "rgba(0,0,0,0.85)" : "rgba(255,255,255,0.85)";
+  function strokeRgba(name) {
+    return name === "white" ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.85)";
   }
 
   function darkenColor(hex, factor = 0.5) {
@@ -673,7 +675,7 @@
     const bg = approx ? color + "88" : color;
     const border = approx ? color : borderColor;
     const borderStyle = approx ? "2px dashed" : "2px solid";
-    const qColor = contrastStroke(color).includes("255") ? "#fff" : "#000";
+    const qColor = mapColors.strokeStation === "white" ? "#fff" : "#000";
     const size = spotterCount > 10 ? 15 : Math.round(10 + (spotterCount / 10) * 5);
     const half = Math.round(size / 2);
     return L.divIcon({
@@ -937,11 +939,11 @@
     }
   }
 
-  function distanceLabel(from, to, color = "white", t = 0.5) {
+  function distanceLabel(from, to, color = "white", strokeName = "black", t = 0.5) {
     const mi = haversineMi(from, to);
     const mid = [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t];
     const angle = _labelAngle(from, to);
-    const stroke = contrastStroke(color);
+    const stroke = strokeRgba(strokeName);
     const span = document.createElement("span");
     span.textContent = `${mi} mi`;
     span.style.transform = `rotate(${angle}deg)`;
@@ -959,8 +961,8 @@
     return marker;
   }
 
-  function markerLabel(ll, text, color) {
-    const stroke = contrastStroke(color);
+  function markerLabel(ll, text, color, strokeName = "black") {
+    const stroke = strokeRgba(strokeName);
     const icon = L.divIcon({
       className: "marker-label",
       html: `<span style="color:${color};-webkit-text-stroke:3px ${stroke};text-shadow:0 0 4px ${stroke}">${text}</span>`,
@@ -1005,28 +1007,28 @@
     // Primary triangle lines drawn last (higher z-order)
     // Spotter->Station, Station->QTH, QTH->Spotter — all animate toward their endpoint
     // Site labels
-    selectionLines.push(markerLabel(myLL, myCallsign || "QTH", mapColors.qth));
-    if (homeLL) selectionLines.push(markerLabel(homeLL, spot.callsign, mapColors.station));
-    if (spotterLL) selectionLines.push(markerLabel(spotterLL, spot.closest_call, mapColors.spotter));
+    selectionLines.push(markerLabel(myLL, myCallsign || "QTH", mapColors.qth, mapColors.strokeQth));
+    if (homeLL) selectionLines.push(markerLabel(homeLL, spot.callsign, mapColors.station, mapColors.strokeStation));
+    if (spotterLL) selectionLines.push(markerLabel(spotterLL, spot.closest_call, mapColors.spotter, mapColors.strokeSpotter));
 
     if (spotterLL && homeLL) {
       selectionLines.push(
         spotterLine(spotterLL, homeLL, spot.callsign),
-        distanceLabel(spotterLL, homeLL, mapColors.spotter, 0.33),
+        distanceLabel(spotterLL, homeLL, mapColors.spotter, mapColors.strokeSpotter, 0.33),
         hunterLine(homeLL, myLL),
-        distanceLabel(homeLL, myLL, mapColors.station, 0.5),
+        distanceLabel(homeLL, myLL, mapColors.station, mapColors.strokeStation, 0.5),
         L.polyline([myLL, spotterLL], { color: mapColors.spotter, weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
-        distanceLabel(myLL, spotterLL, mapColors.spotter, 0.67),
+        distanceLabel(myLL, spotterLL, mapColors.spotter, mapColors.strokeSpotter, 0.67),
       );
     } else if (spotterLL) {
       selectionLines.push(
         L.polyline([myLL, spotterLL], { color: mapColors.spotter, weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
-        distanceLabel(myLL, spotterLL, mapColors.spotter),
+        distanceLabel(myLL, spotterLL, mapColors.spotter, mapColors.strokeSpotter),
       );
     } else if (homeLL) {
       selectionLines.push(
         hunterLine(myLL, homeLL),
-        distanceLabel(myLL, homeLL, mapColors.station),
+        distanceLabel(myLL, homeLL, mapColors.station, mapColors.strokeStation),
       );
     }
     _updateDistLabels();
@@ -1045,8 +1047,8 @@
     const sLL = nearLL(baseLon, [rawLL.lat, rawLL.lng]);
 
     selectionLines.push(
-      markerLabel(myLL, myCallsign || "QTH", mapColors.qth),
-      markerLabel(sLL, call, mapColors.spotter),
+      markerLabel(myLL, myCallsign || "QTH", mapColors.qth, mapColors.strokeQth),
+      markerLabel(sLL, call, mapColors.spotter, mapColors.strokeSpotter),
     );
 
     for (const s of spots) {
@@ -1057,13 +1059,13 @@
       if (!homePos) continue;
       const homeLL = nearLL(baseLon, [homePos.lat, homePos.lon]);
       selectionLines.push(
-        markerLabel(homeLL, s.callsign, mapColors.station),
+        markerLabel(homeLL, s.callsign, mapColors.station, mapColors.strokeStation),
         spotterLine(sLL, homeLL, s.callsign),
-        distanceLabel(sLL, homeLL, mapColors.spotter, 0.33),
+        distanceLabel(sLL, homeLL, mapColors.spotter, mapColors.strokeSpotter, 0.33),
         hunterLine(homeLL, myLL),
-        distanceLabel(homeLL, myLL, mapColors.station, 0.5),
+        distanceLabel(homeLL, myLL, mapColors.station, mapColors.strokeStation, 0.5),
         L.polyline([myLL, sLL], { color: mapColors.spotter, weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
-        distanceLabel(myLL, sLL, mapColors.spotter, 0.67),
+        distanceLabel(myLL, sLL, mapColors.spotter, mapColors.strokeSpotter, 0.67),
       );
     }
     _updateDistLabels();

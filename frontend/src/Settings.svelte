@@ -56,16 +56,16 @@
 
   // Spot map color presets
   const MAP_COLOR_PRESETS = {
-    "aurora":      { label: "Aurora Borealis",  qth: "#ff4444", station: "#00ff88", spotter: "#00ccff", secondary: "#7744aa" },
-    "coral-reef":  { label: "Coral Reef",       qth: "#ff4488", station: "#ffaa55", spotter: "#44ddcc", secondary: "#2288aa" },
-    "sunset":      { label: "Sunset Ridge",     qth: "#ff2255", station: "#ffbb00", spotter: "#00ccff", secondary: "#8844cc" },
-    "deep-sea":    { label: "Deep Sea",         qth: "#ff3355", station: "#00eebb", spotter: "#4488ff", secondary: "#cc44ff" },
-    "volcano":     { label: "Volcano",          qth: "#ff0000", station: "#ffdd00", spotter: "#00bbff", secondary: "#aa55ff" },
-    "glacier":     { label: "Glacier",          qth: "#ff4466", station: "#00ffcc", spotter: "#4499ff", secondary: "#ddaa00" },
-    "savanna":     { label: "Savanna",          qth: "#ff3333", station: "#ddcc00", spotter: "#33bbaa", secondary: "#cc66ff" },
-    "midnight":    { label: "Midnight Pass",    qth: "#ff3366", station: "#bb88ff", spotter: "#00ddff", secondary: "#ffaa00" },
-    "tundra":      { label: "Tundra",           qth: "#ff5544", station: "#44eedd", spotter: "#ffcc33", secondary: "#aa66ff" },
-    "desert":      { label: "Desert Mesa",      qth: "#ff2200", station: "#ffcc00", spotter: "#44ccbb", secondary: "#dd55aa" },
+    "aurora":      { label: "Aurora Borealis",  qth: "#ff4444", station: "#00ff88", spotter: "#00ccff", secondary: "#7744aa", strokes: { qth: "black", station: "black", spotter: "black", secondary: "white" } },
+    "coral-reef":  { label: "Coral Reef",       qth: "#ff4488", station: "#ffaa55", spotter: "#44ddcc", secondary: "#2288aa", strokes: { qth: "black", station: "black", spotter: "black", secondary: "white" } },
+    "sunset":      { label: "Sunset Ridge",     qth: "#ff2255", station: "#ffbb00", spotter: "#00ccff", secondary: "#8844cc", strokes: { qth: "white", station: "black", spotter: "black", secondary: "white" } },
+    "deep-sea":    { label: "Deep Sea",         qth: "#ff3355", station: "#00eebb", spotter: "#4488ff", secondary: "#cc44ff", strokes: { qth: "white", station: "black", spotter: "white", secondary: "black" } },
+    "volcano":     { label: "Volcano",          qth: "#ff0000", station: "#ffdd00", spotter: "#00bbff", secondary: "#aa55ff", strokes: { qth: "white", station: "black", spotter: "black", secondary: "white" } },
+    "glacier":     { label: "Glacier",          qth: "#ff4466", station: "#00ffcc", spotter: "#4499ff", secondary: "#ddaa00", strokes: { qth: "white", station: "black", spotter: "white", secondary: "black" } },
+    "savanna":     { label: "Savanna",          qth: "#ff3333", station: "#ddcc00", spotter: "#33bbaa", secondary: "#cc66ff", strokes: { qth: "white", station: "black", spotter: "black", secondary: "black" } },
+    "midnight":    { label: "Midnight Pass",    qth: "#ff3366", station: "#bb88ff", spotter: "#00ddff", secondary: "#ffaa00", strokes: { qth: "white", station: "white", spotter: "black", secondary: "black" } },
+    "tundra":      { label: "Tundra",           qth: "#ff5544", station: "#44eedd", spotter: "#ffcc33", secondary: "#aa66ff", strokes: { qth: "black", station: "black", spotter: "black", secondary: "white" } },
+    "desert":      { label: "Desert Mesa",      qth: "#ff2200", station: "#ffcc00", spotter: "#44ccbb", secondary: "#dd55aa", strokes: { qth: "white", station: "black", spotter: "black", secondary: "black" } },
   };
   const MAP_COLOR_PRESET_NAMES = Object.keys(MAP_COLOR_PRESETS);
 
@@ -75,6 +75,10 @@
   let spotMapStation = MAP_COLOR_PRESETS.aurora.station;
   let spotMapSpotter = MAP_COLOR_PRESETS.aurora.spotter;
   let spotMapSecondary = MAP_COLOR_PRESETS.aurora.secondary;
+  let spotMapStrokeQth = "black";
+  let spotMapStrokeStation = "black";
+  let spotMapStrokeSpotter = "black";
+  let spotMapStrokeSecondary = "white";
   let default_page = "log";
   let qrzStatus = null; // { ok, error?, username? }
   let qrzChecking = false;
@@ -172,17 +176,12 @@
     return L.marker(ll, { icon, interactive: false });
   }
 
-  function contrastStroke(hex) {
-    const h = hex.replace("#", "");
-    const r = parseInt(h.slice(0, 2), 16) / 255;
-    const g = parseInt(h.slice(2, 4), 16) / 255;
-    const b = parseInt(h.slice(4, 6), 16) / 255;
-    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-    return lum > 0.5 ? "rgba(0,0,0,0.85)" : "rgba(255,255,255,0.85)";
+  function strokeRgba(strokeName) {
+    return strokeName === "white" ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.85)";
   }
 
-  function previewLabel(ll, text, color) {
-    const stroke = contrastStroke(color);
+  function previewLabel(ll, text, color, strokeName) {
+    const stroke = strokeRgba(strokeName);
     const icon = L.divIcon({
       className: "marker-label",
       html: `<span style="color:${color};font-size:11px;font-weight:bold;white-space:nowrap;paint-order:stroke fill;-webkit-text-stroke:3px ${stroke};text-shadow:0 0 4px ${stroke}">${text}</span>`,
@@ -200,10 +199,10 @@
     return `#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;
   }
 
-  function distLabel(from, to, color, t = 0.5) {
+  function distLabel(from, to, color, strokeName, t = 0.5) {
     const mi = Math.round(haversineMi(from, to));
     const mid = [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t];
-    const stroke = contrastStroke(color);
+    const stroke = strokeRgba(strokeName);
     const icon = L.divIcon({
       className: "distance-label",
       html: `<span style="color:${color};font-size:11px;font-weight:bold;white-space:nowrap;paint-order:stroke fill;-webkit-text-stroke:3px ${stroke};text-shadow:0 0 4px ${stroke}">${mi} mi</span>`,
@@ -286,11 +285,11 @@
 
     const callLabel = my_callsign.trim().toUpperCase() || "QTH";
     add(
-      previewLabel(staLL, "W1AW", spotMapStation),
-      previewLabel(sptLL, "K3LR", spotMapSpotter),
-      previewLabel(secLL, "VE3NEA", spotMapSecondary),
-      distLabel(sptLL, staLL, spotMapSpotter, 0.33),
-      distLabel(staLL, qthLL, spotMapStation, 0.5),
+      previewLabel(staLL, "W1AW", spotMapStation, spotMapStrokeStation),
+      previewLabel(sptLL, "K3LR", spotMapSpotter, spotMapStrokeSpotter),
+      previewLabel(secLL, "VE3NEA", spotMapSecondary, spotMapStrokeSecondary),
+      distLabel(sptLL, staLL, spotMapSpotter, spotMapStrokeSpotter, 0.33),
+      distLabel(staLL, qthLL, spotMapStation, spotMapStrokeStation, 0.5),
     );
 
     // --- Scattered unconnected dots (no lines, no labels) ---
@@ -320,7 +319,7 @@
 
     // --- QTH dot + label (on top) ---
     add(previewDot(qthLL, spotMapQth, qthBorder, 14));
-    add(previewLabel(qthLL, callLabel, spotMapQth));
+    add(previewLabel(qthLL, callLabel, spotMapQth, spotMapStrokeQth));
 
     for (const l of layers) {
       l.addTo(previewMap);
@@ -699,6 +698,10 @@
     spotMapStation = p.station;
     spotMapSpotter = p.spotter;
     spotMapSecondary = p.secondary;
+    spotMapStrokeQth = p.strokes.qth;
+    spotMapStrokeStation = p.strokes.station;
+    spotMapStrokeSpotter = p.strokes.spotter;
+    spotMapStrokeSecondary = p.strokes.secondary;
   }
 
   async function onMapColorModeChange() {
@@ -729,6 +732,8 @@
       mode: spotMapColorMode,
       preset: spotMapPreset,
       qth: spotMapQth, station: spotMapStation, spotter: spotMapSpotter, secondary: spotMapSecondary,
+      strokeQth: spotMapStrokeQth, strokeStation: spotMapStrokeStation,
+      strokeSpotter: spotMapStrokeSpotter, strokeSecondary: spotMapStrokeSecondary,
     });
     await saveSetting("spot_map_colors", colors);
     dispatch("saved");
@@ -1199,6 +1204,10 @@
               if (c.station) spotMapStation = c.station;
               if (c.spotter) spotMapSpotter = c.spotter;
               if (c.secondary) spotMapSecondary = c.secondary;
+              if (c.strokeQth) spotMapStrokeQth = c.strokeQth;
+              if (c.strokeStation) spotMapStrokeStation = c.strokeStation;
+              if (c.strokeSpotter) spotMapStrokeSpotter = c.strokeSpotter;
+              if (c.strokeSecondary) spotMapStrokeSecondary = c.strokeSecondary;
             } catch {}
           }
           if (s.key === "custom_header") custom_header = s.value || "";
@@ -1662,21 +1671,25 @@
         <label>QTH</label>
         <hex-color-picker use:mapColorPicker={{ getValue: () => spotMapQth, setValue: (v) => { spotMapQth = v; } }}></hex-color-picker>
         <input type="text" class="color-hex-input" bind:value={spotMapQth} on:input={onMapColorInput} on:blur={onMapColorCommit} maxlength="7" />
+        <select class="stroke-select" bind:value={spotMapStrokeQth} on:change={onMapColorCommit}><option value="black">Black outline</option><option value="white">White outline</option></select>
       </div>
       <div class="color-picker-group">
         <label>Station</label>
         <hex-color-picker use:mapColorPicker={{ getValue: () => spotMapStation, setValue: (v) => { spotMapStation = v; } }}></hex-color-picker>
         <input type="text" class="color-hex-input" bind:value={spotMapStation} on:input={onMapColorInput} on:blur={onMapColorCommit} maxlength="7" />
+        <select class="stroke-select" bind:value={spotMapStrokeStation} on:change={onMapColorCommit}><option value="black">Black outline</option><option value="white">White outline</option></select>
       </div>
       <div class="color-picker-group">
         <label>Spotter</label>
         <hex-color-picker use:mapColorPicker={{ getValue: () => spotMapSpotter, setValue: (v) => { spotMapSpotter = v; } }}></hex-color-picker>
         <input type="text" class="color-hex-input" bind:value={spotMapSpotter} on:input={onMapColorInput} on:blur={onMapColorCommit} maxlength="7" />
+        <select class="stroke-select" bind:value={spotMapStrokeSpotter} on:change={onMapColorCommit}><option value="black">Black outline</option><option value="white">White outline</option></select>
       </div>
       <div class="color-picker-group">
         <label>2nd Spotter</label>
         <hex-color-picker use:mapColorPicker={{ getValue: () => spotMapSecondary, setValue: (v) => { spotMapSecondary = v; } }}></hex-color-picker>
         <input type="text" class="color-hex-input" bind:value={spotMapSecondary} on:input={onMapColorInput} on:blur={onMapColorCommit} maxlength="7" />
+        <select class="stroke-select" bind:value={spotMapStrokeSecondary} on:change={onMapColorCommit}><option value="black">Black outline</option><option value="white">White outline</option></select>
       </div>
     </div>
     {/if}
@@ -2044,6 +2057,12 @@
 
   .spot-map-colors {
     margin-top: 0.75rem;
+  }
+
+  .stroke-select {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.3rem;
+    width: 5.5rem;
   }
 
   :global(.qth-label) {
