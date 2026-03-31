@@ -1,6 +1,8 @@
+import json
 import logging
 import os
 import sys
+import time
 import uuid as _uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -14,6 +16,21 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 logger = logging.getLogger("rigbook")
 
 DB_DIR = Path.home() / ".local" / "rigbook"
+_LAST_OPENED_FILE = DB_DIR / "last_opened.json"
+
+
+def _read_last_opened() -> dict[str, float]:
+    try:
+        return json.loads(_LAST_OPENED_FILE.read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def _record_last_opened(name: str) -> None:
+    data = _read_last_opened()
+    data[name] = time.time()
+    _LAST_OPENED_FILE.parent.mkdir(parents=True, exist_ok=True)
+    _LAST_OPENED_FILE.write_text(json.dumps(data))
 
 
 def _lock_exclusive(f) -> None:
@@ -305,6 +322,7 @@ class DatabaseManager:
                     "UPDATE contacts SET uuid = lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)),2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6))) WHERE uuid IS NULL"
                 )
             )
+        _record_last_opened(db_path.stem)
         logger.info("Opened logbook: %s", db_path)
 
     async def close(self) -> None:
