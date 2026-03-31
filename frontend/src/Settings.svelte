@@ -152,6 +152,7 @@
   // Shutdown
   let noShutdown = false;
   let autoShutdownOnDisconnect = false;
+  let shutdownInMenu = false;
 
   // Backup
   let backupMessage = "";
@@ -776,6 +777,7 @@
           if (s.key === "theme") theme = s.value || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
           if (s.key === "popup_notifications_enabled") popupNotifEnabled = s.value === "true";
           if (s.key === "auto_shutdown_on_disconnect") autoShutdownOnDisconnect = s.value === "true";
+          if (s.key === "shutdown_in_menu") shutdownInMenu = s.value === "true";
         }
       }
       settingsLoaded = true;
@@ -1372,6 +1374,12 @@
       </label>
     </div>
     <p class="hint">When enabled, the server will shut down after 15 seconds with no connected clients.</p>
+    <div class="setting-row toggle-row">
+      <label class="toggle-label">
+        <input type="checkbox" bind:checked={shutdownInMenu} on:change={() => { saveSetting("shutdown_in_menu", shutdownInMenu ? "true" : "false"); dispatch("saved"); }} />
+        Add Shutdown action to the main menu
+      </label>
+    </div>
     <div class="setting-row">
       <button class="danger-btn" on:click={shutdownServer}>Shutdown Now</button>
     </div>

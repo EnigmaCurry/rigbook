@@ -209,6 +209,7 @@
   let solarEnabled = false;
   let sqlQueryEnabled = false;
   let flrigEnabled = false;
+  let shutdownMenuEnabled = false;
   let flrigInterval;
   let utcNow = new Date().toISOString().slice(0, 19).replace("T", " ") + "z";
   let clockInterval;
@@ -282,6 +283,7 @@
     await fetchPotaEnabled();
     await fetchSqlQueryEnabled();
     await fetchFlrigEnabled();
+    await fetchShutdownMenuEnabled();
     if (flrigEnabled) {
       fetchRadioModes();
       pollFlrig();
@@ -363,6 +365,14 @@
   async function declinePendingLogbook() {
     try {
       await fetch("/api/logbooks/decline", { method: "POST" });
+    } catch {}
+    setShutdownState();
+  }
+
+  async function shutdownFromMenu() {
+    menuOpen = false;
+    try {
+      await fetch("/api/logbooks/shutdown", { method: "POST" });
     } catch {}
     setShutdownState();
   }
@@ -753,6 +763,16 @@
       if (res.ok) {
         const data = await res.json();
         flrigEnabled = data.value === "true";
+      }
+    } catch {}
+  }
+
+  async function fetchShutdownMenuEnabled() {
+    try {
+      const res = await fetch("/api/settings/shutdown_in_menu");
+      if (res.ok) {
+        const data = await res.json();
+        shutdownMenuEnabled = data.value === "true";
       }
     } catch {}
   }
@@ -1275,6 +1295,10 @@
             <div class="menu-separator"></div>
             <button class="menu-item close-logbook" on:click={closeLogbook}>Close Logbook</button>
           {/if}
+          {#if shutdownMenuEnabled}
+            <div class="menu-separator"></div>
+            <button class="menu-item menu-shutdown" on:click={shutdownFromMenu}>Shutdown</button>
+          {/if}
         </nav>
       {/if}
     </div>
@@ -1324,7 +1348,7 @@
     {:else if page === "notifications"}
       <Notifications on:countchange={() => fetchUnreadCount()} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
     {:else if page === "settings"}
-      <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} initialTab={settingsTab} {clientCount} on:disconnect-others={async () => { const nonce = Math.random().toString(36).slice(2); disconnectNonce = nonce; try { await fetch("/api/events/disconnect-others", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nonce }) }); } catch {} }} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchSqlQueryEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { fetchCallsign(); fetchCustomHeader(); fetchDefaultPage(); applyTheme(); fetchPopupNotifEnabled(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchSqlQueryEnabled(); await fetchFlrigEnabled(); fetchUpdateCheck(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { setShutdownState(); }} />
+      <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} initialTab={settingsTab} {clientCount} on:disconnect-others={async () => { const nonce = Math.random().toString(36).slice(2); disconnectNonce = nonce; try { await fetch("/api/events/disconnect-others", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nonce }) }); } catch {} }} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { logbookOpen = false; currentLogbook = ""; page = "picker"; } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchSqlQueryEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { fetchCallsign(); fetchCustomHeader(); fetchDefaultPage(); applyTheme(); fetchPopupNotifEnabled(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchSqlQueryEnabled(); await fetchFlrigEnabled(); fetchShutdownMenuEnabled(); fetchUpdateCheck(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; } }} on:shutdown={() => { setShutdownState(); }} />
     {:else if page === "links"}
       <Links />
     {:else if page === "conditions"}
@@ -1841,6 +1865,10 @@
 
   .menu-item.close-logbook {
     color: var(--text-muted);
+  }
+
+  .menu-item.menu-shutdown {
+    color: var(--danger, #e74c3c);
   }
 
   .welcome-container {
