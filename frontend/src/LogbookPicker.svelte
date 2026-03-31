@@ -14,7 +14,8 @@
   async function shutdownServer() {
     shuttingDown = true;
     try {
-      await fetch("/api/logbooks/shutdown", { method: "POST" });
+      const res = await fetch("/api/logbooks/shutdown", { method: "POST" });
+      if (res.ok) dispatch("shutdown");
     } catch {}
   }
 

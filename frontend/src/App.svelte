@@ -1216,7 +1216,7 @@
   {:else if !logbookReady}
     <!-- waiting for logbook mode check -->
   {:else if pickerMode && !logbookOpen}
-    <LogbookPicker on:logbookopened={handleLogbookOpened} showShutdown={!noShutdown} />
+    <LogbookPicker on:logbookopened={handleLogbookOpened} on:shutdown={setShutdownState} showShutdown={!noShutdown} />
   {:else}
   <header>
     <div class="header-left">
