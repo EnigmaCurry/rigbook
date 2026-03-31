@@ -1686,8 +1686,8 @@
   :global(.spot-marker-dot.spotter-secondary) {
     width: 8px;
     height: 8px;
-    background: #005577;
-    border: 2px solid #003344;
+    background: #7744aa;
+    border: 2px solid #553388;
   }
 
 
