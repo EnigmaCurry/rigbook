@@ -752,7 +752,7 @@
       const res = await fetch("/api/settings/pota_enabled");
       if (res.ok) {
         const data = await res.json();
-        potaEnabled = data.value !== "false";
+        potaEnabled = data.value === "true";
       }
     } catch {}
   }
