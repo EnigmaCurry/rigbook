@@ -1291,7 +1291,7 @@
     <div class="welcome-container">
       <div class="welcome-card">
         <p>{logbookClosed ? "This logbook has been closed." : "Server has shut down."}</p>
-        <button class="welcome-btn" on:click={attemptReconnect}>Reconnect</button>
+        <button class="welcome-btn" on:click={() => location.reload()}>Reconnect</button>
       </div>
     </div>
   {:else if pendingLogbook}
@@ -1494,7 +1494,7 @@
     <div class="disconnect-modal">
       <p>Server has been disconnected.</p>
       <p class="disconnect-status">{reconnecting ? "Reconnecting…" : reconnectCountdown > 0 ? `Retrying in ${reconnectCountdown}s…` : "Waiting to reconnect…"}</p>
-      <button class="welcome-btn" on:click={attemptReconnect}>Reconnect Now</button>
+      <button class="welcome-btn" on:click={() => location.reload()}>Reconnect Now</button>
     </div>
   </div>
 {/if}
