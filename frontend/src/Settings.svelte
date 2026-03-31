@@ -1601,7 +1601,7 @@
     color: var(--text-muted);
   }
 
-  input:not([type="range"]):not([type="checkbox"]) {
+  input:not([type="range"]):not([type="checkbox"]), select {
     background: var(--bg-input);
     border: 1px solid var(--border-input);
     color: var(--text);
@@ -1613,7 +1613,7 @@
     max-width: 20rem;
   }
 
-  input:not([type="range"]):not([type="checkbox"]):focus {
+  input:not([type="range"]):not([type="checkbox"]):focus, select:focus {
     outline: none;
     border-color: var(--accent);
   }
