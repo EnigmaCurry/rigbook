@@ -942,7 +942,8 @@
 
     for (const s of spots) {
       const hg = spotHomeGrid(s);
-      if (s.closest_call !== call || !hg) continue;
+      const hearsThis = s.closest_call === call || (s.spotter_grids && s.spotter_grids[call]);
+      if (!hearsThis || !hg) continue;
       const homePos = gridToLatLon(hg);
       if (!homePos) continue;
       const homeLL = nearLL(baseLon, [homePos.lat, homePos.lon]);
@@ -1045,7 +1046,7 @@
     selectedSpotter = call;
     drawTrianglesForSpotter(call);
     // Scroll to first spot for this spotter
-    const spot = sortedSpots.find(s => s.closest_call === call);
+    const spot = sortedSpots.find(s => s.closest_call === call || (s.spotter_grids && s.spotter_grids[call]));
     if (spot) scrollToSpot(spot);
   }
 
