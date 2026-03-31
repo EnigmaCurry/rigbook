@@ -337,9 +337,15 @@
     }
 
     // On first render, fit the map to show all points
+    // Delay until container has its final size (tab switch starts at zero dimensions)
     if (isNew) {
       const allPoints = [qthLL, sta1LL, sta2LL, sta3LL, spt1LL, spt2LL, spt3LL, sec1LL, sec3aLL, sec3bLL];
-      previewMap.fitBounds(allPoints, { padding: [20, 20] });
+      setTimeout(() => {
+        if (previewMap) {
+          previewMap.invalidateSize();
+          previewMap.fitBounds(allPoints, { padding: [20, 20] });
+        }
+      }, 50);
     }
   }
 
