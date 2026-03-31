@@ -301,20 +301,33 @@
     connectSSE();
   }
 
-  function setShutdownState(disconnected = false) {
+  function setShutdownState() {
     serverShutdown = true;
-    serverDisconnected = disconnected;
     stopAppServices();
-    document.title = disconnected ? "Disconnected" : "Close this tab";
+    document.title = "Close this tab";
     const link = document.querySelector("link[rel~='icon']") || document.createElement("link");
     link.rel = "icon";
     link.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💤</text></svg>";
     document.head.appendChild(link);
   }
 
+  function setDisconnectedState() {
+    serverDisconnected = true;
+    stopAppServices();
+    document.title = "Disconnected";
+    startAutoReconnect();
+  }
+
+  function clearDisconnectedState() {
+    serverDisconnected = false;
+    reconnecting = false;
+    stopAutoReconnect();
+    document.title = "Rigbook";
+  }
+
   function clearShutdownState() {
     serverShutdown = false;
-    serverDisconnected = false;
+    logbookClosed = false;
     document.title = "Rigbook";
     const link = document.querySelector("link[rel~='icon']");
     if (link) link.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📻</text></svg>";
@@ -322,16 +335,51 @@
 
   async function attemptReconnect() {
     try {
-      const res = await fetch("/api/settings/my_callsign");
+      const res = await fetch("/api/logbooks/current");
       if (res.ok) {
-        clearShutdownState();
-        startAppServices();
+        const data = await res.json();
+        if (serverDisconnected) {
+          clearDisconnectedState();
+          if (data.is_open && data.name === currentLogbook) {
+            startAppServices();
+          } else {
+            logbookClosed = true;
+            serverShutdown = true;
+            document.title = "Close this tab";
+          }
+        } else {
+          clearShutdownState();
+          startAppServices();
+        }
       } else {
-        alert("Server is not available yet.");
+        if (!serverDisconnected) alert("Server is not available yet.");
       }
     } catch {
-      alert("Server is not available yet.");
+      if (!serverDisconnected) alert("Server is not available yet.");
     }
+  }
+
+  function startAutoReconnect() {
+    autoReconnectDelay = 1000;
+    scheduleAutoReconnect();
+  }
+
+  function scheduleAutoReconnect() {
+    autoReconnectTimer = setTimeout(async () => {
+      reconnecting = true;
+      await attemptReconnect();
+      reconnecting = false;
+      if (serverDisconnected && autoReconnectDelay < 60000) {
+        autoReconnectDelay = Math.min(autoReconnectDelay * 2, 60000);
+        scheduleAutoReconnect();
+      }
+    }, autoReconnectDelay);
+  }
+
+  function stopAutoReconnect() {
+    clearTimeout(autoReconnectTimer);
+    autoReconnectTimer = null;
+    autoReconnectDelay = 1000;
   }
 
   function stopAppServices() {
@@ -356,6 +404,10 @@
 
   let serverShutdown = false;
   let serverDisconnected = false;
+  let logbookClosed = false;
+  let autoReconnectTimer = null;
+  let autoReconnectDelay = 1000;
+  let reconnecting = false;
 
   async function confirmPendingLogbook() {
     try {
@@ -406,7 +458,7 @@
   function resetSseHeartbeat() {
     clearTimeout(sseHeartbeatTimer);
     sseHeartbeatTimer = setTimeout(() => {
-      if (!serverShutdown) setShutdownState(true);
+      if (!serverShutdown && !serverDisconnected) setDisconnectedState();
     }, SSE_TIMEOUT_MS);
   }
 
@@ -1205,7 +1257,7 @@
   {#if serverShutdown}
     <div class="welcome-container">
       <div class="welcome-card">
-        <p>{serverDisconnected ? "Server has been disconnected." : "Server has shut down."}</p>
+        <p>{logbookClosed ? "This logbook has been closed." : "Server has shut down."}</p>
         <button class="welcome-btn" on:click={attemptReconnect}>Reconnect</button>
       </div>
     </div>
@@ -1403,6 +1455,16 @@
   {/if}
   {/if}
 </main>
+
+{#if serverDisconnected}
+  <div class="disconnect-backdrop">
+    <div class="disconnect-modal">
+      <p>Server has been disconnected.</p>
+      <p class="disconnect-status">{reconnecting ? "Reconnecting…" : "Waiting to reconnect…"}</p>
+      <button class="welcome-btn" on:click={attemptReconnect}>Reconnect Now</button>
+    </div>
+  </div>
+{/if}
 
 {#if showPopup}
   <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -2039,6 +2101,40 @@
     .vfo-digit {
       font-size: 0.9rem;
     }
+  }
+
+  .disconnect-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 30000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .disconnect-modal {
+    background: var(--bg-card);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 1.5rem 2rem;
+    text-align: center;
+    max-width: 360px;
+    width: 90%;
+  }
+
+  .disconnect-modal p {
+    margin: 0 0 0.5rem;
+    color: var(--fg);
+  }
+
+  .disconnect-status {
+    font-size: 0.85rem;
+    color: var(--fg-dim);
+    margin-bottom: 1rem !important;
   }
 
   .popup-backdrop {
