@@ -361,6 +361,7 @@
 
   function startAutoReconnect() {
     autoReconnectDelay = 1000;
+    reconnectStartedAt = Date.now();
     scheduleAutoReconnect();
   }
 
@@ -380,8 +381,17 @@
       reconnecting = true;
       await attemptReconnect();
       reconnecting = false;
-      if (serverDisconnected && autoReconnectDelay < 60000) {
-        autoReconnectDelay = Math.min(autoReconnectDelay * 2, 60000);
+      if (serverDisconnected) {
+        if (Date.now() - reconnectStartedAt > 61000) {
+          stopAutoReconnect();
+          serverDisconnected = false;
+          logbookClosed = true;
+          serverShutdown = true;
+          stopAppServices();
+          document.title = "Close this tab";
+          return;
+        }
+        autoReconnectDelay = Math.min(autoReconnectDelay * 2, 10000);
         scheduleAutoReconnect();
       }
     }, autoReconnectDelay);
@@ -424,6 +434,7 @@
   let reconnecting = false;
   let reconnectCountdown = 0;
   let countdownInterval = null;
+  let reconnectStartedAt = 0;
 
   async function confirmPendingLogbook() {
     try {
