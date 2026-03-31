@@ -829,9 +829,15 @@
   }
 
   function _updateDistLabels() {
+    if (!leafletMap) return;
     for (const dl of _distLabels) {
       const angle = _labelAngle(dl.from, dl.to);
+      const pxFrom = leafletMap.latLngToContainerPoint(dl.from);
+      const pxTo = leafletMap.latLngToContainerPoint(dl.to);
+      const pxDist = Math.hypot(pxTo.x - pxFrom.x, pxTo.y - pxFrom.y);
+      const visible = pxDist > 80;
       dl.span.style.transform = `rotate(${angle}deg)`;
+      dl.span.style.display = visible ? "" : "none";
     }
   }
 
