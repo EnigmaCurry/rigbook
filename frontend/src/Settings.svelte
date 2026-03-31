@@ -786,24 +786,15 @@
 
   // --- Masonry layout action ---
   // Distributes child sections into two columns, placing each in the shorter column.
+  // Runs once on mount and on window resize only — no MutationObserver.
   function masonry(node) {
-    let col1, col2, observer, resizeOb;
+    let col1, col2;
     const MIN_WIDTH = 640;
 
     function collectSections() {
       const direct = [...node.querySelectorAll(":scope > .settings-section")];
       const inCols = col1 ? [...col1.querySelectorAll(":scope > .settings-section"), ...col2.querySelectorAll(":scope > .settings-section")] : [];
       return [...direct, ...inCols];
-    }
-
-    function pauseObservers() {
-      if (observer) observer.disconnect();
-      if (resizeOb) resizeOb.disconnect();
-    }
-
-    function resumeObservers() {
-      if (observer) observer.observe(node, { childList: true });
-      if (resizeOb) resizeOb.observe(node);
     }
 
     function teardownColumns() {
@@ -816,72 +807,58 @@
     }
 
     function layout() {
-      pauseObservers();
-      try {
-        const width = node.parentElement?.offsetWidth || node.offsetWidth;
+      const width = node.parentElement?.offsetWidth || node.offsetWidth;
 
-        if (width < MIN_WIDTH) {
-          teardownColumns();
-          return;
-        }
-
-        const sections = collectSections();
-        if (!sections.length) return;
-
-        // Move sections back to node temporarily for measurement
-        for (const s of sections) node.appendChild(s);
-        if (col1 && col1.parentNode === node) {
-          node.removeChild(col1);
-          node.removeChild(col2);
-        }
-
-        if (!col1) {
-          col1 = document.createElement("div");
-          col1.className = "masonry-col";
-          col2 = document.createElement("div");
-          col2.className = "masonry-col";
-        }
-
-        // Measure natural heights in single-column layout
-        const heights = sections.map(s => s.offsetHeight);
-
-        // Greedy distribution: place each section in the shorter column
-        let h1 = 0, h2 = 0;
-        const assign1 = [], assign2 = [];
-        for (let i = 0; i < sections.length; i++) {
-          if (h1 <= h2) {
-            assign1.push(sections[i]);
-            h1 += heights[i];
-          } else {
-            assign2.push(sections[i]);
-            h2 += heights[i];
-          }
-        }
-
-        for (const s of assign1) col1.appendChild(s);
-        for (const s of assign2) col2.appendChild(s);
-        node.appendChild(col1);
-        node.appendChild(col2);
-      } finally {
-        resumeObservers();
+      if (width < MIN_WIDTH) {
+        teardownColumns();
+        return;
       }
+
+      const sections = collectSections();
+      if (!sections.length) return;
+
+      // Move sections back to node temporarily for measurement
+      for (const s of sections) node.appendChild(s);
+      if (col1 && col1.parentNode === node) {
+        node.removeChild(col1);
+        node.removeChild(col2);
+      }
+
+      if (!col1) {
+        col1 = document.createElement("div");
+        col1.className = "masonry-col";
+        col2 = document.createElement("div");
+        col2.className = "masonry-col";
+      }
+
+      const heights = sections.map(s => s.offsetHeight);
+
+      let h1 = 0, h2 = 0;
+      const assign1 = [], assign2 = [];
+      for (let i = 0; i < sections.length; i++) {
+        if (h1 <= h2) {
+          assign1.push(sections[i]);
+          h1 += heights[i];
+        } else {
+          assign2.push(sections[i]);
+          h2 += heights[i];
+        }
+      }
+
+      for (const s of assign1) col1.appendChild(s);
+      for (const s of assign2) col2.appendChild(s);
+      node.appendChild(col1);
+      node.appendChild(col2);
     }
 
-    // Run layout after Svelte finishes rendering children
-    const raf = requestAnimationFrame(() => {
-      layout();
-      // Only watch direct childList on node (not subtree) to detect Svelte adding/removing sections
-      observer = new MutationObserver(() => requestAnimationFrame(layout));
-      resizeOb = new ResizeObserver(() => requestAnimationFrame(layout));
-      resumeObservers();
-    });
+    const raf = requestAnimationFrame(layout);
+    const onResize = () => requestAnimationFrame(layout);
+    window.addEventListener("resize", onResize);
 
     return {
       destroy() {
         cancelAnimationFrame(raf);
-        pauseObservers();
-        observer = null;
-        resizeOb = null;
+        window.removeEventListener("resize", onResize);
         teardownColumns();
       },
     };
