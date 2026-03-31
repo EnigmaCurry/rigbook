@@ -1,4 +1,5 @@
 import { storageGet } from "./storage.js";
+import { THEMES } from "./themes.js";
 
 /** Normalize uppercase {Z}/{X}/{Y} to lowercase for Leaflet. */
 function normUrl(url) {
@@ -20,7 +21,7 @@ export const TILE_THEMES = [
   { value: "custom",             label: "Custom URL" },
 ];
 
-const THEMES = {
+const TILE_CATALOG = {
   "default-light": {
     url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
@@ -88,12 +89,13 @@ export function resolveTileConfig(mapTheme, customUrl) {
   if (mapTheme === "custom" && customUrl) {
     return { url: normUrl(customUrl), attribution: "", maxZoom: 19 };
   }
-  if (THEMES[mapTheme]) {
-    return THEMES[mapTheme];
+  if (TILE_CATALOG[mapTheme]) {
+    return TILE_CATALOG[mapTheme];
   }
   const stored = storageGet("rigbook-theme");
-  const appTheme = stored || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
-  return appTheme === "dark" ? THEMES["default-dark"] : THEMES["default-light"];
+  const themeName = stored || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  const base = (THEMES[themeName] && THEMES[themeName].base) || "dark";
+  return base === "dark" ? TILE_CATALOG["default-dark"] : TILE_CATALOG["default-light"];
 }
 
 /** Fetch map tile settings and resolve to { url, attribution, maxZoom }. */
@@ -119,12 +121,13 @@ export async function getMapTileConfig() {
     return { url: normUrl(customUrl), attribution: "", maxZoom: 19 };
   }
 
-  if (THEMES[mapTheme]) {
-    return THEMES[mapTheme];
+  if (TILE_CATALOG[mapTheme]) {
+    return TILE_CATALOG[mapTheme];
   }
 
   // "default" — follow app theme
   const stored = storageGet("rigbook-theme");
-  const appTheme = stored || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
-  return appTheme === "dark" ? THEMES["default-dark"] : THEMES["default-light"];
+  const themeName = stored || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  const base = (THEMES[themeName] && THEMES[themeName].base) || "dark";
+  return base === "dark" ? TILE_CATALOG["default-dark"] : TILE_CATALOG["default-light"];
 }

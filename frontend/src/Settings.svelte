@@ -2,6 +2,7 @@
   import { onMount, onDestroy, createEventDispatcher, tick } from "svelte";
   import { TILE_THEMES, resolveTileConfig } from "./mapTiles.js";
   import { storageGet, storageSet } from "./storage.js";
+  import { THEMES, THEME_NAMES, applyThemeVars } from "./themes.js";
   import L from "leaflet";
   import "leaflet/dist/leaflet.css";
   import GridMap from "./GridMap.svelte";
@@ -390,9 +391,8 @@
   let spotStatus = { rbn: { connected: false, enabled: false, idle_stopped: false }, hamalert: { connected: false, enabled: false } };
   let spotStatusInterval;
 
-  async function toggleTheme() {
-    theme = theme === "dark" ? "light" : "dark";
-    document.documentElement.classList.toggle("light", theme === "light");
+  async function onThemeChange() {
+    applyThemeVars(theme);
     storageSet("rigbook-theme", theme);
     await saveSetting("theme", theme);
     dispatch("saved");
@@ -1189,11 +1189,13 @@
   <div class="tab-content">
   <section class="settings-section">
     <h3>Theme</h3>
-    <div class="setting-row toggle-row">
-      <label>Theme</label>
-      <button class="theme-toggle" on:click={toggleTheme}>
-        {theme === "dark" ? "Dark" : "Light"}
-      </button>
+    <div class="setting-row">
+      <label for="theme_select">Theme</label>
+      <select id="theme_select" bind:value={theme} on:change={onThemeChange}>
+        {#each THEME_NAMES as t}
+          <option value={t}>{THEMES[t].label}</option>
+        {/each}
+      </select>
     </div>
     <div class="setting-row">
       <label for="custom_header">Custom Header</label>
