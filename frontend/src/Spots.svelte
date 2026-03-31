@@ -199,7 +199,7 @@
 
   function homeLatLon(callsign, grid) {
     const pos = gridToLatLon(grid);
-    if (!pos) return null;
+    if (!pos || isNaN(pos.lat) || isNaN(pos.lon)) return null;
     const hc = homeHoneycomb.get(callsign);
     if (hc) {
       const zoom = leafletMap ? leafletMap.getZoom() : 4;
@@ -209,7 +209,8 @@
       const maxDeg = 0.5;
       const step = Math.min(pixelStep * degreesPerPixel * hc.ring, maxDeg * hc.ring);
       const dlat = Math.sin(hc.angle) * step;
-      const dlon = Math.cos(hc.angle) * step / Math.cos(pos.lat * Math.PI / 180);
+      const cosLat = Math.cos(pos.lat * Math.PI / 180);
+      const dlon = cosLat > 0.01 ? Math.cos(hc.angle) * step / cosLat : 0;
       return { lat: pos.lat + dlat, lon: pos.lon + dlon };
     }
     return pos;
@@ -639,6 +640,7 @@
     const latField = g.charCodeAt(1) - 65;
     const lonSq = parseInt(g[2]);
     const latSq = parseInt(g[3]);
+    if (isNaN(lonSq) || isNaN(latSq)) return null;
     let lon = lonField * 20 - 180 + lonSq * 2 + 1;
     let lat = latField * 10 - 90 + latSq * 1 + 0.5;
     if (grid.length >= 6) {
