@@ -905,9 +905,11 @@
 
   function _repositionHoneycomb() {
     if (!leafletMap) return;
+    const lockedCall = lockedSpot?.callsign;
     const baseLon = gridToLatLon(myGrid)?.lon || 0;
     for (const [call, marker] of Object.entries(homeMarkers)) {
       if (!homeHoneycomb.has(call)) continue;
+      if (call === lockedCall) continue; // don't move the selected station
       const grid = homeBaseGrids.get(call);
       if (!grid) continue;
       const hpos = homeLatLon(call, grid);
@@ -1286,7 +1288,8 @@
       let ll = nearLL(baseLon, [hpos.lat, hpos.lon]);
       if (homeMarkers[call]) {
         homeMarkers[call].setIcon(icon);
-        homeMarkers[call].setLatLng(ll);
+        // Don't move the locked station's marker
+        if (call !== lockedSpot?.callsign) homeMarkers[call].setLatLng(ll);
         continue;
       }
       const hm = L.marker(ll, { icon, zIndexOffset: 1000 })
