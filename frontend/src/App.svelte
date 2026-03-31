@@ -210,6 +210,7 @@
   let sqlQueryEnabled = false;
   let flrigEnabled = false;
   let shutdownMenuEnabled = false;
+  let noShutdown = false;
   let flrigInterval;
   let utcNow = new Date().toISOString().slice(0, 19).replace("T", " ") + "z";
   let clockInterval;
@@ -628,6 +629,7 @@
       if (res.ok) {
         const data = await res.json();
         appVersion = data.version || "";
+        noShutdown = !!data.no_shutdown;
       }
     } catch {}
   }
@@ -1308,7 +1310,7 @@
             <div class="menu-separator"></div>
             <button class="menu-item close-logbook" on:click={closeLogbook}>Close Logbook</button>
           {/if}
-          {#if shutdownMenuEnabled}
+          {#if shutdownMenuEnabled && !noShutdown}
             <div class="menu-separator"></div>
             <button class="menu-item menu-shutdown" on:click={shutdownFromMenu}>Shutdown</button>
           {/if}
