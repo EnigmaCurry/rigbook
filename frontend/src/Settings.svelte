@@ -27,6 +27,7 @@
   let updateCheckResult = null;
   let updateChecking = false;
   let updateSupported = false;
+  let updateNotWritable = false;
   let updateApplying = false;
   let updateApplyError = "";
   let updateCustomRepo = false;
@@ -795,7 +796,8 @@
       const res = await fetch("/api/update/platform");
       if (res.ok) {
         const data = await res.json();
-        updateSupported = data.supported || false;
+        updateSupported = (data.supported && data.writable) || false;
+        updateNotWritable = data.supported && !data.writable;
         updateBuildRepo = data.build_origin_repo || "";
         updateBuildSha = data.build_git_sha || "";
         updateGithubRepo = data.github_repo || "";
@@ -1267,6 +1269,9 @@
               <button class="check-now-btn" on:click={skipUpdate}>Skip</button>
             {:else}
               — <a href={updateCheckResult.url} target="_blank" rel="noopener" class="update-available">Download</a>
+              {#if updateNotWritable}
+                <span class="update-error">In-app update unavailable: no write permission to the binary location</span>
+              {/if}
             {/if}
             {#if updateApplyError}
               <span class="update-error">{updateApplyError}</span>

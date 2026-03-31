@@ -125,9 +125,16 @@ async def get_platform_info():
         asset = _asset_name()
     except RuntimeError:
         asset = None
+    # Check if we can write to the executable's directory
+    writable = False
+    if frozen:
+        exe_dir = os.path.dirname(sys.executable)
+        writable = os.access(exe_dir, os.W_OK) and os.access(sys.executable, os.W_OK)
+
     return {
         "frozen": frozen,
         "supported": official and asset is not None,
+        "writable": writable,
         "build_origin_repo": BUILD_ORIGIN_REPO or None,
         "build_git_sha": BUILD_GIT_SHA or None,
         "build_github_actions": BUILD_GITHUB_ACTIONS,
@@ -150,6 +157,10 @@ async def apply_update():
     current = version("rigbook")
     asset_name = _asset_name()
     exe_path = _current_executable()
+
+    exe_dir = os.path.dirname(exe_path)
+    if not os.access(exe_dir, os.W_OK):
+        raise HTTPException(403, f"No write permission to {exe_dir}")
 
     # Fetch latest release info
     try:
@@ -183,7 +194,6 @@ async def apply_update():
         )
 
     # Download to a temp file next to the current executable
-    exe_dir = os.path.dirname(exe_path)
     logger.info("Downloading %s from v%s ...", asset_name, latest)
 
     try:
