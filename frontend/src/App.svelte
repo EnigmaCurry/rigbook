@@ -333,6 +333,19 @@
     if (link) link.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📻</text></svg>";
   }
 
+  async function reloadIfAlive() {
+    try {
+      const res = await fetch("/api/logbooks/current");
+      if (res.ok) {
+        location.reload();
+      } else {
+        alert("Server is not available yet.");
+      }
+    } catch {
+      alert("Server is not available yet.");
+    }
+  }
+
   async function attemptReconnect() {
     try {
       const res = await fetch("/api/logbooks/current");
@@ -1279,7 +1292,7 @@
     <div class="welcome-container">
       <div class="welcome-card">
         <p>{logbookClosed ? "This logbook has been closed." : "Server has shut down."}</p>
-        <button class="welcome-btn" on:click={() => location.reload()}>Reconnect</button>
+        <button class="welcome-btn" on:click={reloadIfAlive}>Reconnect</button>
       </div>
     </div>
   {:else if pendingLogbook}
@@ -1482,7 +1495,7 @@
     <div class="disconnect-modal">
       <p>Server has been disconnected.</p>
       <p class="disconnect-status">{reconnecting ? "Reconnecting…" : reconnectCountdown > 0 ? `Retrying in ${reconnectCountdown}s…` : "Waiting to reconnect…"}</p>
-      <button class="welcome-btn" on:click={() => location.reload()}>Reconnect Now</button>
+      <button class="welcome-btn" on:click={attemptReconnect}>Reconnect Now</button>
     </div>
   </div>
 {/if}
