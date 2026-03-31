@@ -64,7 +64,7 @@ jobs:
 
       - name: Inject build info
         run: |
-          printf 'BUILD_ORIGIN_REPO = "%s"\nBUILD_GITHUB_ACTIONS = True\nBUILD_GIT_SHA = "%s"\n' "${{ github.repository }}" "${GITHUB_SHA::8}" > src/rigbook/_build_info.py
+          printf 'BUILD_ORIGIN_REPO = "%s"\nBUILD_GITHUB_ACTIONS = True\nBUILD_GIT_SHA = "%s"\nGIT_SHA = BUILD_GIT_SHA\n' "${{ github.repository }}" "${GITHUB_SHA::8}" > src/rigbook/_build_info.py
 
       - name: Install dependencies
         run: |
