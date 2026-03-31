@@ -670,14 +670,15 @@
   function homeLocIcon(spotterCount, approx = false) {
     const color = mapColors.station;
     const borderColor = darkenColor(color);
-    const bg = approx ? color + "59" : color;
+    const bg = approx ? color + "88" : color;
     const border = approx ? color : borderColor;
     const borderStyle = approx ? "2px dashed" : "2px solid";
+    const qColor = contrastStroke(color).includes("255") ? "#fff" : "#000";
     const size = spotterCount > 10 ? 15 : Math.round(10 + (spotterCount / 10) * 5);
     const half = Math.round(size / 2);
     return L.divIcon({
       className: "spot-marker",
-      html: `<div class="spot-marker-dot" style="width:${size-2}px;height:${size-2}px;background:${bg};border:${borderStyle} ${border};border-radius:50%;display:flex;align-items:center;justify-content:center">${approx ? `<span style="color:${borderColor};font-size:${Math.max(size-4,7)}px;font-weight:bold;line-height:1">?</span>` : ""}</div>`,
+      html: `<div class="spot-marker-dot" style="width:${size-2}px;height:${size-2}px;background:${bg};border:${borderStyle} ${border};border-radius:50%;display:flex;align-items:center;justify-content:center">${approx ? `<span style="color:${qColor};font-size:${Math.max(size-2,8)}px;font-weight:bold;line-height:1">?</span>` : ""}</div>`,
       iconSize: [size, size],
       iconAnchor: [half, half],
     });
