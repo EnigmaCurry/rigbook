@@ -421,12 +421,16 @@
     if (map_theme === "default") updatePreview();
   }
 
-  async function onCustomColorChange() {
+  let customColorTimer;
+  function onCustomColorChange() {
     applyCustomThemeVars(customBg, customText, customAccent, customVfo);
     storageSet("rigbook-theme", "custom");
-    await saveCustomColors();
-    dispatch("saved");
-    if (map_theme === "default") updatePreview();
+    clearTimeout(customColorTimer);
+    customColorTimer = setTimeout(async () => {
+      await saveCustomColors();
+      dispatch("saved");
+      if (map_theme === "default") updatePreview();
+    }, 500);
   }
 
   async function saveCustomColors() {
