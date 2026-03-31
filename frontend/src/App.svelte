@@ -1182,7 +1182,7 @@
   });
 </script>
 
-<main class:dual-mode={page === "dual"} class:parks-mode={page === "parks"} class:spots-mode={page === "spots"} class:grid-mode={page === "grid"} class:export-mode={page === "export"} class:search-mode={page === "search"} class:query-mode={page === "query"}>
+<main class:picker-mode={pickerMode && !logbookOpen} class:dual-mode={page === "dual"} class:parks-mode={page === "parks"} class:spots-mode={page === "spots"} class:grid-mode={page === "grid"} class:export-mode={page === "export"} class:search-mode={page === "search"} class:query-mode={page === "query"}>
   {#if serverShutdown}
     <header>
       <div class="header-left">
@@ -1487,6 +1487,12 @@
   .page-content {
     max-width: 1100px;
     margin: 0 auto;
+  }
+
+  :global(main.picker-mode) {
+    padding: 0;
+    height: 100vh;
+    overflow: hidden;
   }
 
   :global(main.export-mode),
