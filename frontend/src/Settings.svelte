@@ -57,15 +57,15 @@
   // Spot map color presets
   const MAP_COLOR_PRESETS = {
     "aurora":      { label: "Aurora Borealis",  qth: "#ff4444", station: "#00ff88", spotter: "#00ccff", secondary: "#7744aa" },
-    "sunset":      { label: "Sunset Ridge",     qth: "#ff2266", station: "#ff8800", spotter: "#ffcc00", secondary: "#cc6600" },
-    "deep-sea":    { label: "Deep Sea",         qth: "#ff3355", station: "#00ddaa", spotter: "#0088ff", secondary: "#335588" },
-    "tundra":      { label: "Tundra",           qth: "#ee4433", station: "#88ccaa", spotter: "#99ddff", secondary: "#6688aa" },
-    "volcano":     { label: "Volcano",          qth: "#ff0000", station: "#ffaa00", spotter: "#ff6600", secondary: "#993300" },
-    "glacier":     { label: "Glacier",          qth: "#ff5577", station: "#aaeeff", spotter: "#44bbff", secondary: "#2266aa" },
-    "savanna":     { label: "Savanna",          qth: "#dd3322", station: "#ddbb44", spotter: "#88aa33", secondary: "#556622" },
     "coral-reef":  { label: "Coral Reef",       qth: "#ff4488", station: "#ffaa55", spotter: "#44ddcc", secondary: "#2288aa" },
-    "midnight":    { label: "Midnight Pass",    qth: "#ff3366", station: "#bb88ff", spotter: "#6699ff", secondary: "#334488" },
-    "desert":      { label: "Desert Mesa",      qth: "#cc3300", station: "#ee9944", spotter: "#ccaa66", secondary: "#886633" },
+    "sunset":      { label: "Sunset Ridge",     qth: "#ff2255", station: "#ffbb00", spotter: "#00ccff", secondary: "#8844cc" },
+    "deep-sea":    { label: "Deep Sea",         qth: "#ff3355", station: "#00eebb", spotter: "#4488ff", secondary: "#cc44ff" },
+    "volcano":     { label: "Volcano",          qth: "#ff0000", station: "#ffdd00", spotter: "#00bbff", secondary: "#aa55ff" },
+    "glacier":     { label: "Glacier",          qth: "#ff4466", station: "#00ffcc", spotter: "#4499ff", secondary: "#ddaa00" },
+    "savanna":     { label: "Savanna",          qth: "#ff3333", station: "#ddcc00", spotter: "#33bbaa", secondary: "#cc66ff" },
+    "midnight":    { label: "Midnight Pass",    qth: "#ff3366", station: "#bb88ff", spotter: "#00ddff", secondary: "#ffaa00" },
+    "tundra":      { label: "Tundra",           qth: "#ff5544", station: "#44eedd", spotter: "#ffcc33", secondary: "#aa66ff" },
+    "desert":      { label: "Desert Mesa",      qth: "#ff2200", station: "#ffcc00", spotter: "#44ccbb", secondary: "#dd55aa" },
   };
   const MAP_COLOR_PRESET_NAMES = Object.keys(MAP_COLOR_PRESETS);
 
