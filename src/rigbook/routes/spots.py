@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from rigbook.db import Cache, Setting, get_session
+from rigbook.geo_centers import approx_grid_for_country, approx_grid_for_state
 from rigbook.routes.qrz import qrz_lookup
 from rigbook.routes.skcc import _ensure_cache as ensure_skcc_cache
 from rigbook.spots import (
@@ -166,7 +167,9 @@ async def query_spots(
                 else:
                     country_name = qrz_data.get("country") or ""
                     s["country"] = country_name
-                    s["country_code"] = _COUNTRY_NAME_TO_CODE.get(country_name.lower(), "")
+                    s["country_code"] = _COUNTRY_NAME_TO_CODE.get(
+                        country_name.lower(), ""
+                    )
                     s["qrz_state"] = qrz_data.get("state") or ""
                     s["qrz_grid"] = qrz_data.get("grid") or ""
                     if country_name or s["qrz_state"]:
@@ -183,6 +186,21 @@ async def query_spots(
             s["country_code"] = ""
             s["qrz_state"] = ""
             s["qrz_grid"] = ""
+
+    # Approximate grid from state/country center when QRZ has no grid
+    for s in spots:
+        if not s.get("qrz_grid"):
+            state = s.get("qrz_state", "")
+            cc = s.get("country_code", "")
+            if state and cc == "US":
+                approx = approx_grid_for_state(state)
+            elif cc:
+                approx = approx_grid_for_country(cc)
+            else:
+                approx = None
+            if approx:
+                s["qrz_grid"] = approx
+                s["qrz_grid_approx"] = True
 
     result = await session.execute(
         select(Setting.value).where(Setting.key == "my_callsign")
@@ -285,12 +303,29 @@ async def skcc_skimmer(
                 else:
                     country_name = data.get("country") or ""
                     s["country"] = country_name
-                    s["country_code"] = _COUNTRY_NAME_TO_CODE.get(country_name.lower(), "")
+                    s["country_code"] = _COUNTRY_NAME_TO_CODE.get(
+                        country_name.lower(), ""
+                    )
                     s["qrz_state"] = data.get("state") or ""
                     if country_name or s["qrz_state"]:
                         s["qrz_status"] = "ok"
                     else:
                         s["qrz_status"] = "no_location"
+
+    # Approximate grid from state/country center when QRZ has no grid
+    for s in results:
+        if not s.get("qrz_grid"):
+            state = s.get("qrz_state", "")
+            cc = s.get("country_code", "")
+            if state and cc == "US":
+                approx = approx_grid_for_state(state)
+            elif cc:
+                approx = approx_grid_for_country(cc)
+            else:
+                approx = None
+            if approx:
+                s["qrz_grid"] = approx
+                s["qrz_grid_approx"] = True
 
     return results
 

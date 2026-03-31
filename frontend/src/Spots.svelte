@@ -558,6 +558,7 @@
   let spotterMarkers = {};   // closest_call -> marker
   let homeMarkers = {};      // callsign -> marker
   let homeSpotterCounts = new Map();
+  let homeApproxSet = new Set();
   let spotterLines = {};     // closest_call -> polyline (to my QTH)
   let myMarker = null;
   let selectionLines = [];   // active triangle lines
@@ -602,21 +603,15 @@
 
   const spotterIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot spotter"></div>', iconSize: [10, 10], iconAnchor: [5, 5] });
   const spotterSecondaryIcon = L.divIcon({ className: "spot-marker", html: '<div class="spot-marker-dot spotter-secondary"></div>', iconSize: [10, 10], iconAnchor: [5, 5] });
-  function homeLocIcon(spotterCount) {
-    const t = Math.min(spotterCount / 10, 1);
-    // Lerp from dim gold (#886600) to bright yellow (#ffee00)
-    const r = Math.round(0x88 + t * (0xff - 0x88));
-    const g = Math.round(0x66 + t * (0xee - 0x66));
-    const b = Math.round(0x00 + t * (0x00 - 0x00));
-    const bg = `rgb(${r},${g},${b})`;
-    const br = Math.round(0x55 + t * (0x99 - 0x55));
-    const bg2 = Math.round(0x33 + t * (0x77 - 0x33));
-    const border = `rgb(${br},${bg2},0)`;
+  function homeLocIcon(spotterCount, approx = false) {
+    const bg = approx ? "rgba(255,238,0,0.35)" : "#ffee00";
+    const border = approx ? "#ffee00" : "#997700";
+    const borderStyle = approx ? "2px dashed" : "2px solid";
     const size = spotterCount > 10 ? 15 : Math.round(10 + (spotterCount / 10) * 5);
     const half = Math.round(size / 2);
     return L.divIcon({
       className: "spot-marker",
-      html: `<div class="spot-marker-dot" style="width:${size-2}px;height:${size-2}px;background:${bg};border:2px solid ${border};border-radius:50%"></div>`,
+      html: `<div class="spot-marker-dot" style="width:${size-2}px;height:${size-2}px;background:${bg};border:${borderStyle} ${border};border-radius:50%;display:flex;align-items:center;justify-content:center">${approx ? `<span style="color:#997700;font-size:${Math.max(size-4,7)}px;font-weight:bold;line-height:1">?</span>` : ""}</div>`,
       iconSize: [size, size],
       iconAnchor: [half, half],
     });
@@ -724,6 +719,7 @@
     for (const line of selectionLines) leafletMap.removeLayer(line);
     selectionLines = [];
     _distLabels = [];
+    _markerLabels = [];
   }
 
   function clearAll() {
@@ -774,7 +770,7 @@
     for (const [call, m] of Object.entries(homeMarkers)) {
       setMarkerVisible(m, true);
       const count = homeSpotterCounts.get(call) || 1;
-      m.setIcon(homeLocIcon(count));
+      m.setIcon(homeLocIcon(count, homeApproxSet.has(call)));
     }
   }
 
@@ -823,6 +819,7 @@
   }
 
   let _distLabels = []; // { marker, from, to, span }
+  let _markerLabels = []; // { ll }
 
   function _labelAngle(from, to) {
     const p1 = leafletMap.latLngToContainerPoint(from);
@@ -834,9 +831,24 @@
   }
 
   function _updateDistLabels() {
+    if (!leafletMap) return;
+    // Collect all callsign label pixel positions (always shown)
+    const occupied = [];
+    for (const ml of _markerLabels) {
+      occupied.push(leafletMap.latLngToContainerPoint(ml.ll));
+    }
+    // Show distance labels only if far enough from all occupied positions
     for (const dl of _distLabels) {
       const angle = _labelAngle(dl.from, dl.to);
       dl.span.style.transform = `rotate(${angle}deg)`;
+      const pxFrom = leafletMap.latLngToContainerPoint(dl.from);
+      const pxTo = leafletMap.latLngToContainerPoint(dl.to);
+      const linePx = Math.hypot(pxTo.x - pxFrom.x, pxTo.y - pxFrom.y);
+      if (linePx < 80) { dl.span.style.display = "none"; continue; }
+      const mid = { x: (pxFrom.x + pxTo.x) / 2, y: (pxFrom.y + pxTo.y) / 2 };
+      const tooClose = occupied.some(p => Math.hypot(p.x - mid.x, p.y - mid.y) < 60);
+      dl.span.style.display = tooClose ? "none" : "";
+      if (!tooClose) occupied.push(mid);
     }
   }
 
@@ -866,7 +878,9 @@
       iconSize: [0, 0],
       iconAnchor: [0, 16],
     });
-    return L.marker(ll, { icon, interactive: false }).addTo(leafletMap);
+    const m = L.marker(ll, { icon, interactive: false, zIndexOffset: 2000 }).addTo(leafletMap);
+    _markerLabels.push({ ll });
+    return m;
   }
 
   function drawTriangleForSpot(spot) {
@@ -926,6 +940,7 @@
         distanceLabel(myLL, homeLL, "#ffaa00"),
       );
     }
+    _updateDistLabels();
   }
 
   function drawTrianglesForSpotter(call) {
@@ -947,7 +962,8 @@
 
     for (const s of spots) {
       const hg = spotHomeGrid(s);
-      if (s.closest_call !== call || !hg) continue;
+      const hearsThis = s.closest_call === call || (s.spotter_grids && s.spotter_grids[call]);
+      if (!hearsThis || !hg) continue;
       const homePos = gridToLatLon(hg);
       if (!homePos) continue;
       const homeLL = nearLL(baseLon, [homePos.lat, homePos.lon]);
@@ -961,6 +977,7 @@
         distanceLabel(myLL, sLL, "#00ccff", 0.67),
       );
     }
+    _updateDistLabels();
   }
 
   function onSpotHover(spot) {
@@ -1050,7 +1067,7 @@
     selectedSpotter = call;
     drawTrianglesForSpotter(call);
     // Scroll to first spot for this spotter
-    const spot = sortedSpots.find(s => s.closest_call === call);
+    const spot = sortedSpots.find(s => s.closest_call === call || (s.spotter_grids && s.spotter_grids[call]));
     if (spot) scrollToSpot(spot);
   }
 
@@ -1088,6 +1105,7 @@
     const closestCalls = new Set();
     const currentHomes = new Map();
     homeSpotterCounts = new Map();
+    homeApproxSet = new Set();
     for (const s of spots) {
       if (s.closest_call && s.closest_grid) {
         currentSpotters.set(s.closest_call, s.closest_grid);
@@ -1103,6 +1121,7 @@
       if (s.callsign && hg) {
         currentHomes.set(s.callsign, hg);
         homeSpotterCounts.set(s.callsign, s.spotter_count || 1);
+        if (s.qrz_grid_approx) homeApproxSet.add(s.callsign);
       }
     }
 
@@ -1132,7 +1151,7 @@
         spotterMarkers[call].setLatLng(ll);
         continue;
       }
-      const m = L.marker(ll, { icon })
+      const m = L.marker(ll, { icon, zIndexOffset: 0 })
         .addTo(leafletMap);
       m.on("click", () => onMapSpotterClick(call));
       spotterMarkers[call] = m;
@@ -1141,7 +1160,7 @@
     // Add/update home location markers (normalized to QTH longitude)
     for (const [call, grid] of currentHomes) {
       const count = homeSpotterCounts.get(call) || 1;
-      const icon = homeLocIcon(count);
+      const icon = homeLocIcon(count, homeApproxSet.has(call));
       const pos = gridToLatLon(grid);
       if (!pos) continue;
       const ll = nearLL(baseLon, [pos.lat, pos.lon]);
@@ -1150,7 +1169,7 @@
         homeMarkers[call].setLatLng(ll);
         continue;
       }
-      const hm = L.marker(ll, { icon })
+      const hm = L.marker(ll, { icon, zIndexOffset: 1000 })
         .addTo(leafletMap);
       hm.on("click", () => onMapHomeClick(call));
       homeMarkers[call] = hm;
@@ -1320,7 +1339,7 @@
               {:else if col.key === "spotters"}<td class="mono" title={spot.spotters ? spot.spotters.join(", ") : ""}>{spot.spotter_count}</td>
               {:else if col.key === "snr"}<td class="mono">{spot.best_snr ?? ""}</td>
               {:else if col.key === "wpm"}<td class="mono">{spot.wpm ?? ""}</td>
-              {:else if col.key === "location"}<td class="location">{#if isPotaActivator(spot)}{@const pota = getPotaSpot(spot)}<!-- svelte-ignore a11y-click-events-have-key-events --><!-- svelte-ignore a11y-no-static-element-interactions --><span class="pota-loc clickable" on:click|stopPropagation={() => openParkModal(spotHomeLabel(spot))}>{spotHomeLabel(spot)}</span>{#if pota?.name}<span class="pota-name">{pota.name}</span>{/if}{:else if spot.country || spot.qrz_state}{locationStr(spot)}{:else if (spot._qrz_status || spot.qrz_status) === "not_found"}<span class="fetch-hint">(No QRZ record)</span>{:else if (spot._qrz_status || spot.qrz_status) === "no_location"}<span class="fetch-hint">(No QRZ location)</span>{:else if !qrzConfigured}<span class="fetch-hint">(Configure QRZ account)</span>{:else if qrz.skipped}<span class="fetch-hint">(filter more to fetch)</span>{:else if qrz.pending > 0}<span class="fetch-hint">(fetching... {qrz.pending} left)</span>{/if}</td>
+              {:else if col.key === "location"}<td class="location">{#if isPotaActivator(spot)}{@const pota = getPotaSpot(spot)}<!-- svelte-ignore a11y-click-events-have-key-events --><!-- svelte-ignore a11y-no-static-element-interactions --><span class="pota-loc clickable" on:click|stopPropagation={() => openParkModal(spotHomeLabel(spot))}>{spotHomeLabel(spot)}</span>{#if pota?.name}<span class="pota-name">{pota.name}</span>{/if}{:else if spot.qrz_grid && !spot.qrz_grid_approx}{spot.qrz_grid} <span class="loc-detail">{locationStr(spot)}</span>{:else if spot.country || spot.qrz_state}{locationStr(spot)}{:else if (spot._qrz_status || spot.qrz_status) === "not_found"}<span class="fetch-hint">(No QRZ record)</span>{:else if (spot._qrz_status || spot.qrz_status) === "no_location"}<span class="fetch-hint">(No QRZ location)</span>{:else if !qrzConfigured}<span class="fetch-hint">(Configure QRZ account)</span>{:else if qrz.skipped}<span class="fetch-hint">(filter more to fetch)</span>{:else if qrz.pending > 0}<span class="fetch-hint">(fetching... {qrz.pending} left)</span>{/if}</td>
               {:else if col.key === "source"}<td class="source-tag {spot.source}">{spot.source}</td>
               {:else if col.key === "distance"}<td class="mono">{spot.closest_call || ""}{spot.distance_mi != null ? ` ${spot.distance_mi}mi` : ""}{spot.closest_snr != null ? ` ${spot.closest_snr}dB` : ""}</td>
               {:else if col.key === "info"}<td class="info">{spot.state}{spot.wwff_ref ? ` ${spot.wwff_ref}` : ""}{spot.comment ? ` ${spot.comment}` : ""}</td>
@@ -1618,6 +1637,10 @@
     margin-left: 0.3rem;
   }
 
+  .loc-detail {
+    color: var(--text-dim);
+    font-size: 0.75rem;
+  }
   .fetch-hint {
     color: var(--text-dim);
     font-size: 0.65rem;
@@ -1685,8 +1708,8 @@
   :global(.spot-marker-dot.spotter-secondary) {
     width: 8px;
     height: 8px;
-    background: #005577;
-    border: 2px solid #003344;
+    background: #7744aa;
+    border: 2px solid #553388;
   }
 
 
