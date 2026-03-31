@@ -420,16 +420,8 @@
     if (eventSource) { eventSource.close(); eventSource = null; }
   }
 
-  async function handleLogbookOpened(e) {
-    currentLogbook = e.detail;
-    setLogbook(currentLogbook);
-    dualSplit = parseFloat(storageGet("dualSplit")) || 50;
-    applyTheme();
-    logbookOpen = true;
-    page = isWide() ? "dual" : "log";
-    window.location.hash = "/";
-    startAppServices();
-    await checkNeedsSetup();
+  function handleLogbookOpened() {
+    location.reload();
   }
 
   let serverShutdown = false;
