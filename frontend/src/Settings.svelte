@@ -207,13 +207,14 @@
     const tiles = resolveTileConfig(map_theme, map_custom_url);
     const pos = gridToLatLon(my_grid);
     const center = pos ? [pos.lat, pos.lon] : [39, -98];
-    if (!previewMap) {
+    const isNew = !previewMap;
+    if (isNew) {
       previewMap = L.map(previewEl, {
         scrollWheelZoom: true, zoomControl: true,
         dragging: true, doubleClickZoom: false,
         attributionControl: false,
       });
-      previewMap.setView(center, 4);
+      previewMap.setView(center, 4); // temporary; fitBounds below
     }
     if (previewTileLayer) previewMap.removeLayer(previewTileLayer);
     previewTileLayer = L.tileLayer(tiles.url, {
@@ -326,6 +327,12 @@
     for (const l of layers) {
       l.addTo(previewMap);
       previewLayers.push(l);
+    }
+
+    // On first render, fit the map to show all points
+    if (isNew) {
+      const allPoints = [qthLL, sta1LL, sta2LL, sta3LL, spt1LL, spt2LL, spt3LL, sec1LL, sec3aLL, sec3bLL];
+      previewMap.fitBounds(allPoints, { padding: [20, 20] });
     }
   }
 
