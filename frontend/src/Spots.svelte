@@ -198,8 +198,17 @@
   function homeLatLon(callsign, grid) {
     const pos = gridToLatLon(grid);
     if (!pos) return null;
-    const offset = homeOffsets.get(callsign);
-    if (offset) return { lat: pos.lat + offset[0], lon: pos.lon + offset[1] };
+    const hc = homeHoneycomb.get(callsign);
+    if (hc) {
+      const zoom = leafletMap ? leafletMap.getZoom() : 4;
+      // ~20px offset at any zoom: convert pixels to degrees
+      const pixelStep = 20;
+      const degreesPerPixel = 360 / (256 * Math.pow(2, zoom));
+      const step = pixelStep * degreesPerPixel * hc.ring;
+      const dlat = Math.sin(hc.angle) * step;
+      const dlon = Math.cos(hc.angle) * step / Math.cos(pos.lat * Math.PI / 180);
+      return { lat: pos.lat + dlat, lon: pos.lon + dlon };
+    }
     return pos;
   }
 
@@ -607,7 +616,8 @@
   let homeMarkers = {};      // callsign -> marker
   let homeSpotterCounts = new Map();
   let homeApproxSet = new Set();
-  let homeOffsets = new Map(); // callsign -> [dlat, dlon] for honeycomb offset
+  let homeHoneycomb = new Map(); // callsign -> { ring, angle } for honeycomb layout
+  let homeBaseGrids = new Map(); // callsign -> grid (for recomputing offsets on zoom)
   let spotterLines = {};     // closest_call -> polyline (to my QTH)
   let myMarker = null;
   let selectionLines = [];   // active triangle lines
@@ -889,6 +899,20 @@
     return a;
   }
 
+  function _repositionHoneycomb() {
+    if (!leafletMap) return;
+    const baseLon = gridToLatLon(myGrid)?.lon || 0;
+    for (const [call, marker] of Object.entries(homeMarkers)) {
+      if (!homeHoneycomb.has(call)) continue;
+      const grid = homeBaseGrids.get(call);
+      if (!grid) continue;
+      const hpos = homeLatLon(call, grid);
+      if (!hpos) continue;
+      const ll = nearLL(baseLon, [hpos.lat, hpos.lon]);
+      marker.setLatLng(ll);
+    }
+  }
+
   function _updateDistLabels() {
     if (!leafletMap) return;
     // Collect all callsign label pixel positions (always shown)
@@ -1146,6 +1170,7 @@
     leafletMap.on("click", clearAll);
     leafletMap.on("zoomanim", _updateDistLabels);
     leafletMap.on("zoomend", _updateDistLabels);
+    leafletMap.on("zoomend", _repositionHoneycomb);
     addExpandControl(leafletMap, mapEl.parentElement);
     mapResizeObserver = new ResizeObserver(() => { leafletMap?.invalidateSize(); });
     mapResizeObserver.observe(mapEl);
@@ -1229,27 +1254,22 @@
         approxByGrid.get(grid).push(call);
       }
     }
-    // Build offset map: call -> [dlat, dlon]
-    homeOffsets = new Map();
+    // Build honeycomb layout: call -> { ring, angle }
+    homeHoneycomb = new Map();
+    homeBaseGrids = new Map();
     for (const [grid, calls] of approxByGrid) {
       if (calls.length <= 1) continue;
-      // Honeycomb: ring 0 = center (no offset), ring 1 = 6 positions, ring 2 = 12, etc.
-      // Offset ~0.4° so markers spread visibly at typical zoom levels
-      const step = 0.4;
       let idx = 0;
       for (const call of calls) {
-        if (idx === 0) { idx++; continue; } // first one stays at center
-        // Which ring and position within ring
-        let ring = 1, pos_in_ring = idx - 1, ring_start = 1;
+        homeBaseGrids.set(call, grid);
+        if (idx === 0) { idx++; continue; } // first stays at center
+        let ring = 1, pos_in_ring = idx - 1;
         while (pos_in_ring >= ring * 6) {
           pos_in_ring -= ring * 6;
-          ring_start += ring * 6;
           ring++;
         }
         const angle = (pos_in_ring / (ring * 6)) * Math.PI * 2;
-        const dlat = Math.sin(angle) * step * ring;
-        const dlon = Math.cos(angle) * step * ring * 1.5; // wider lon since degrees are narrower
-        homeOffsets.set(call, [dlat, dlon]);
+        homeHoneycomb.set(call, { ring, angle });
         idx++;
       }
     }
@@ -1257,12 +1277,9 @@
     for (const [call, grid] of currentHomes) {
       const count = homeSpotterCounts.get(call) || 1;
       const icon = homeLocIcon(count, homeApproxSet.has(call));
-      const pos = gridToLatLon(grid);
-      if (!pos) continue;
-      let ll = nearLL(baseLon, [pos.lat, pos.lon]);
-      // Apply honeycomb offset for overlapping approximate markers
-      const offset = homeOffsets.get(call);
-      if (offset) ll = [ll[0] + offset[0], ll[1] + offset[1]];
+      const hpos = homeLatLon(call, grid);
+      if (!hpos) continue;
+      let ll = nearLL(baseLon, [hpos.lat, hpos.lon]);
       if (homeMarkers[call]) {
         homeMarkers[call].setIcon(icon);
         homeMarkers[call].setLatLng(ll);
