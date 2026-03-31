@@ -125,11 +125,20 @@ async def get_platform_info():
         asset = _asset_name()
     except RuntimeError:
         asset = None
-    # Check if we can write to the executable's directory
+    # Check if we can write to the executable's directory.
+    # We need to rename the running binary out of the way, which requires
+    # write permission on the directory.  If the directory has the sticky
+    # bit set (like /tmp), we also need to own the file.
     writable = False
     if frozen:
         exe_dir = os.path.dirname(sys.executable)
-        writable = os.access(exe_dir, os.W_OK) and os.access(sys.executable, os.W_OK)
+        if os.access(exe_dir, os.W_OK):
+            dir_stat = os.stat(exe_dir)
+            sticky = bool(dir_stat.st_mode & stat.S_ISVTX)
+            if sticky:
+                writable = os.stat(sys.executable).st_uid == os.getuid()
+            else:
+                writable = True
 
     return {
         "frozen": frozen,
