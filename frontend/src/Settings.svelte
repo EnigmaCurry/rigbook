@@ -120,8 +120,9 @@
   // Map preview
   let previewEl;
   let previewMap;
+  let previewMapEl; // track which DOM node the map was created on
   let previewTileLayer;
-  let previewMarker;
+  let previewLayers = [];
 
   function gridToLatLon(grid) {
     if (!grid || grid.length < 4) return null;
@@ -140,8 +141,6 @@
     }
     return { lat, lon };
   }
-
-  let previewLayers = [];
 
   function clearPreviewLayers() {
     for (const l of previewLayers) {
@@ -207,6 +206,13 @@
     const tiles = resolveTileConfig(map_theme, map_custom_url);
     const pos = gridToLatLon(my_grid);
     const center = pos ? [pos.lat, pos.lon] : [39, -98];
+    // Reinitialize if the DOM node changed (tab switch destroys/recreates it)
+    if (previewMap && previewMapEl !== previewEl) {
+      previewMap.remove();
+      previewMap = null;
+      previewTileLayer = null;
+      previewLayers = [];
+    }
     const isNew = !previewMap;
     if (isNew) {
       previewMap = L.map(previewEl, {
@@ -214,6 +220,7 @@
         dragging: true, doubleClickZoom: false,
         attributionControl: false,
       });
+      previewMapEl = previewEl;
       previewMap.setView(center, 4); // temporary; fitBounds below
     }
     if (previewTileLayer) previewMap.removeLayer(previewTileLayer);
