@@ -364,7 +364,18 @@
     scheduleAutoReconnect();
   }
 
+  function startCountdown(seconds) {
+    reconnectCountdown = seconds;
+    clearInterval(countdownInterval);
+    countdownInterval = setInterval(() => {
+      reconnectCountdown = Math.max(0, reconnectCountdown - 1);
+      if (reconnectCountdown <= 0) clearInterval(countdownInterval);
+    }, 1000);
+  }
+
   function scheduleAutoReconnect() {
+    const delaySec = Math.round(autoReconnectDelay / 1000);
+    startCountdown(delaySec);
     autoReconnectTimer = setTimeout(async () => {
       reconnecting = true;
       await attemptReconnect();
@@ -380,6 +391,9 @@
     clearTimeout(autoReconnectTimer);
     autoReconnectTimer = null;
     autoReconnectDelay = 1000;
+    reconnectCountdown = 0;
+    clearInterval(countdownInterval);
+    countdownInterval = null;
   }
 
   function stopAppServices() {
@@ -408,6 +422,8 @@
   let autoReconnectTimer = null;
   let autoReconnectDelay = 1000;
   let reconnecting = false;
+  let reconnectCountdown = 0;
+  let countdownInterval = null;
 
   async function confirmPendingLogbook() {
     try {
@@ -1460,7 +1476,7 @@
   <div class="disconnect-backdrop">
     <div class="disconnect-modal">
       <p>Server has been disconnected.</p>
-      <p class="disconnect-status">{reconnecting ? "Reconnecting…" : "Waiting to reconnect…"}</p>
+      <p class="disconnect-status">{reconnecting ? "Reconnecting…" : reconnectCountdown > 0 ? `Retrying in ${reconnectCountdown}s…` : "Waiting to reconnect…"}</p>
       <button class="welcome-btn" on:click={attemptReconnect}>Reconnect Now</button>
     </div>
   </div>
