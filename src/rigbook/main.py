@@ -370,7 +370,10 @@ def run() -> None:
     )
     args = parser.parse_args()
 
+    global NO_SHUTDOWN
     db_manager.configure(db_name=args.name, picker=args.pick)
+    if args.pick:
+        NO_SHUTDOWN = True
 
     import subprocess
     import webbrowser
