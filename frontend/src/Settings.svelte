@@ -330,7 +330,7 @@
     // Delay until container has its final size (tab switch starts at zero dimensions)
     if (isNew) {
       const allPoints = previewLayers
-        .filter(l => l.getLatLng)
+        .filter(l => l instanceof L.Marker)
         .map(l => { const ll = l.getLatLng(); return [ll.lat, ll.lng]; });
       setTimeout(() => {
         if (previewMap) {
