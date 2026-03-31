@@ -224,6 +224,7 @@
   let showPopup = false;
   let activeDesktopNotif = null;
   let pickerMode = false;
+  let logbookReady = false;
   let logbookOpen = false;
   let currentLogbook = "";
   let pendingLogbook = "";
@@ -248,6 +249,7 @@
     if (!pickerMode && !logbookOpen && !pendingLogbook) {
       logbookOpen = true;
     }
+    logbookReady = true;
   }
 
   let needsSetup = false;
@@ -1108,9 +1110,8 @@
   onMount(async () => {
     migrateStorage();
     fetchVersion();
-    applyTheme();
+    applySystemTheme();
     window.addEventListener("keydown", onGlobalKeydown);
-    fetchWideBreakpoint();
     clockInterval = setInterval(() => { utcNow = new Date().toISOString().slice(0, 19).replace("T", " ") + "z"; }, 1000);
     window.addEventListener("hashchange", onHashChange);
     window.addEventListener("resize", onResize);
@@ -1119,8 +1120,7 @@
     dualSplit = parseFloat(storageGet("dualSplit")) || 50;
     if (logbookOpen) {
       applyTheme();
-    } else {
-      applySystemTheme();
+      fetchWideBreakpoint();
     }
     if (logbookOpen) {
       await startAppServices();
@@ -1190,6 +1190,8 @@
         </div>
       </div>
     </div>
+  {:else if !logbookReady}
+    <!-- waiting for logbook mode check -->
   {:else if pickerMode && !logbookOpen}
     <header>
       <div class="header-left">
