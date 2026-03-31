@@ -54,12 +54,15 @@ def _is_locked(db_path) -> bool:
 @router.get("/")
 async def list_logbooks():
     dbs = []
-    for f in sorted(DB_DIR.glob("*.db")):
+    for f in DB_DIR.glob("*.db"):
+        stat = f.stat()
         dbs.append({
             "name": f.stem,
-            "size_bytes": f.stat().st_size,
+            "size_bytes": stat.st_size,
             "locked": _is_locked(f),
+            "last_accessed": stat.st_atime,
         })
+    dbs.sort(key=lambda d: d["last_accessed"], reverse=True)
     return dbs
 
 
