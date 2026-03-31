@@ -1173,7 +1173,7 @@
   {#if activeTab === "appearance"}
   <div class="tab-content">
   <section class="settings-section">
-    <h3>Appearance</h3>
+    <h3>Theme</h3>
     <div class="setting-row toggle-row">
       <label>Theme</label>
       <button class="theme-toggle" on:click={toggleTheme}>
@@ -1196,6 +1196,9 @@
         <option value="conditions">Conditions</option>
       </select>
     </div>
+  </section>
+  <section class="settings-section">
+    <h3>Map Tiles</h3>
     <div class="setting-row">
       <label for="map_theme">Map Tiles</label>
       <select id="map_theme" bind:value={map_theme} on:change={onMapThemeChange}>
@@ -1211,6 +1214,9 @@
       </div>
     {/if}
     <div class="map-preview" bind:this={previewEl}></div>
+  </section>
+  <section class="settings-section">
+    <h3>Wide Mode</h3>
     <div class="setting-row toggle-row">
       <label>
         <input type="checkbox" bind:checked={wide_mode_enabled} on:change={onWideModeEnabledChange} />
