@@ -809,6 +809,7 @@
   function navigate(p) {
     if (p === "back") {
       if (previousHash) {
+        navigating = true;
         window.location.hash = previousHash;
         previousHash = "";
         const parsed = parseHash();
@@ -817,6 +818,7 @@
         editId = null;
         menuOpen = false;
         fetchCallsign();
+        setTimeout(() => { navigating = false; }, 0);
         return;
       }
       p = previousPage;
