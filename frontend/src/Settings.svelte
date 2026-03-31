@@ -6,6 +6,7 @@
   import L from "leaflet";
   import "leaflet/dist/leaflet.css";
   import GridMap from "./GridMap.svelte";
+  import "vanilla-colorful/hex-color-picker.js";
 
   let showGridPicker = false;
 
@@ -431,6 +432,16 @@
   async function saveCustomColors() {
     const colors = JSON.stringify({ bg: customBg, text: customText, accent: customAccent, vfo: customVfo });
     await saveSetting("custom_theme_colors", colors);
+  }
+
+  function colorPicker(node, { getValue, setValue }) {
+    node.setAttribute("color", getValue());
+    const handler = (e) => { setValue(e.detail.value); onCustomColorChange(); };
+    node.addEventListener("color-changed", handler);
+    return {
+      update({ getValue }) { node.setAttribute("color", getValue()); },
+      destroy() { node.removeEventListener("color-changed", handler); },
+    };
   }
 
   async function clearCache() {
@@ -1250,21 +1261,27 @@
       </select>
     </div>
     {:else}
-    <div class="setting-row">
-      <label for="custom_bg">Background</label>
-      <input id="custom_bg" type="color" bind:value={customBg} on:input={onCustomColorChange} />
-    </div>
-    <div class="setting-row">
-      <label for="custom_text">Text</label>
-      <input id="custom_text" type="color" bind:value={customText} on:input={onCustomColorChange} />
-    </div>
-    <div class="setting-row">
-      <label for="custom_accent">Accent</label>
-      <input id="custom_accent" type="color" bind:value={customAccent} on:input={onCustomColorChange} />
-    </div>
-    <div class="setting-row">
-      <label for="custom_vfo">VFO</label>
-      <input id="custom_vfo" type="color" bind:value={customVfo} on:input={onCustomColorChange} />
+    <div class="color-pickers">
+      <div class="color-picker-group">
+        <label>Background</label>
+        <hex-color-picker use:colorPicker={{ getValue: () => customBg, setValue: (v) => { customBg = v; } }}></hex-color-picker>
+        <input type="text" class="color-hex-input" bind:value={customBg} on:input={onCustomColorChange} maxlength="7" />
+      </div>
+      <div class="color-picker-group">
+        <label>Text</label>
+        <hex-color-picker use:colorPicker={{ getValue: () => customText, setValue: (v) => { customText = v; } }}></hex-color-picker>
+        <input type="text" class="color-hex-input" bind:value={customText} on:input={onCustomColorChange} maxlength="7" />
+      </div>
+      <div class="color-picker-group">
+        <label>Accent</label>
+        <hex-color-picker use:colorPicker={{ getValue: () => customAccent, setValue: (v) => { customAccent = v; } }}></hex-color-picker>
+        <input type="text" class="color-hex-input" bind:value={customAccent} on:input={onCustomColorChange} maxlength="7" />
+      </div>
+      <div class="color-picker-group">
+        <label>VFO</label>
+        <hex-color-picker use:colorPicker={{ getValue: () => customVfo, setValue: (v) => { customVfo = v; } }}></hex-color-picker>
+        <input type="text" class="color-hex-input" bind:value={customVfo} on:input={onCustomColorChange} maxlength="7" />
+      </div>
     </div>
     {/if}
     <div class="setting-row">
@@ -1702,14 +1719,34 @@
     accent-color: var(--accent);
   }
 
-  input[type="color"] {
-    width: 4rem;
-    height: 2rem;
-    padding: 2px;
-    border: 1px solid var(--border-input);
-    border-radius: 3px;
-    background: var(--bg-input);
-    cursor: pointer;
+  .color-pickers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .color-picker-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .color-picker-group label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: bold;
+  }
+
+  .color-picker-group hex-color-picker {
+    width: 120px;
+    height: 120px;
+  }
+
+  .color-hex-input {
+    width: 5.5rem !important;
+    text-align: center;
+    font-size: 0.8rem !important;
   }
 
   .theme-mode-switch {
