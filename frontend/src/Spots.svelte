@@ -719,6 +719,7 @@
     for (const line of selectionLines) leafletMap.removeLayer(line);
     selectionLines = [];
     _distLabels = [];
+    _markerLabels = [];
   }
 
   function clearAll() {
@@ -818,6 +819,7 @@
   }
 
   let _distLabels = []; // { marker, from, to, span }
+  let _markerLabels = []; // { ll }
 
   function _labelAngle(from, to) {
     const p1 = leafletMap.latLngToContainerPoint(from);
@@ -830,14 +832,23 @@
 
   function _updateDistLabels() {
     if (!leafletMap) return;
+    // Collect all callsign label pixel positions (always shown)
+    const occupied = [];
+    for (const ml of _markerLabels) {
+      occupied.push(leafletMap.latLngToContainerPoint(ml.ll));
+    }
+    // Show distance labels only if far enough from all occupied positions
     for (const dl of _distLabels) {
       const angle = _labelAngle(dl.from, dl.to);
+      dl.span.style.transform = `rotate(${angle}deg)`;
       const pxFrom = leafletMap.latLngToContainerPoint(dl.from);
       const pxTo = leafletMap.latLngToContainerPoint(dl.to);
-      const pxDist = Math.hypot(pxTo.x - pxFrom.x, pxTo.y - pxFrom.y);
-      const visible = pxDist > 80;
-      dl.span.style.transform = `rotate(${angle}deg)`;
-      dl.span.style.display = visible ? "" : "none";
+      const linePx = Math.hypot(pxTo.x - pxFrom.x, pxTo.y - pxFrom.y);
+      if (linePx < 80) { dl.span.style.display = "none"; continue; }
+      const mid = { x: (pxFrom.x + pxTo.x) / 2, y: (pxFrom.y + pxTo.y) / 2 };
+      const tooClose = occupied.some(p => Math.hypot(p.x - mid.x, p.y - mid.y) < 60);
+      dl.span.style.display = tooClose ? "none" : "";
+      if (!tooClose) occupied.push(mid);
     }
   }
 
@@ -867,7 +878,9 @@
       iconSize: [0, 0],
       iconAnchor: [0, 16],
     });
-    return L.marker(ll, { icon, interactive: false }).addTo(leafletMap);
+    const m = L.marker(ll, { icon, interactive: false }).addTo(leafletMap);
+    _markerLabels.push({ ll });
+    return m;
   }
 
   function drawTriangleForSpot(spot) {
