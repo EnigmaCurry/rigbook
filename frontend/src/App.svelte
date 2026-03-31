@@ -481,11 +481,7 @@
     try {
       await fetch("/api/logbooks/close", { method: "POST" });
     } catch {}
-    stopAppServices();
-    logbookOpen = false;
-    currentLogbook = "";
-    page = "picker";
-    applySystemTheme();
+    location.reload();
   }
 
   function resetSseHeartbeat() {
