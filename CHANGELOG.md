@@ -6,15 +6,29 @@
 
 - Download and install updates from GitHub releases with automatic restart
 - Updates tab with confirmation before applying
+- Skip button to dismiss a specific version update
+- Check write permissions before offering in-app update (handles sticky bit and file ownership)
+- Show last check time and next automatic check time on Updates tab
 - Version in header links to Updates tab
-- Header updates in real-time when a new version is detected
+- Header updates in real-time when a new version is detected via SSE
+- About page shows version with link to check for updates
+- Restart running instance when same version but different git SHA
 
 ### Instance Management
 
 - Detect already-running instance on start and open browser to it
 - Auto-kill older running instance when starting a newer version
 - Error with instructions on lineage mismatch between different builds
-- `--version` flag to print version without starting the server
+- `--version` flag to print version and build origin without starting the server
+
+### Shutdown & Session Management
+
+- Auto-shutdown setting with configurable idle timeout
+- `RIGBOOK_NO_SHUTDOWN` env var and automatic `NO_SHUTDOWN` in `--pick` mode
+- Shutdown action in main menu, hidden when shutdown is disabled
+- Connected client count on Shutdown card with live SSE updates
+- Disconnect other clients button with count in confirmation
+- Only show shutdown screen on successful shutdown API response
 
 ### Build Origin Tracking
 
@@ -27,10 +41,15 @@
 - Hide console window on Windows, log to file instead
 - Colorize log output: warnings in orange, errors in red
 - Consistent log formatting across uvicorn and application logs
+- Split Appearance settings into separate Theme, Map Tiles, and Wide Mode cards
 - RBN auto-disconnect when disabled
 - Bold theme-aware text for Settings tab labels
 - `just build-binary` recipe for local PyInstaller builds
 - Incremental builds: skip frontend/binary if sources unchanged
+- Fix cancel from edit form returning to home instead of previous page
+- Fix SSE client disconnect detection with active polling
+- Fix spurious backup settings saves on initial load
+- Reset to system theme when viewing logbook picker
 
 ## v0.1.27
 
