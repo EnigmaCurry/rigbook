@@ -609,10 +609,10 @@
     const r = Math.round(0x88 + t * (0xff - 0x88));
     const g = Math.round(0x66 + t * (0xee - 0x66));
     const b = Math.round(0x00 + t * (0x00 - 0x00));
-    const bg = approx ? "transparent" : `rgb(${r},${g},${b})`;
+    const bg = approx ? `rgba(${r},${g},${b},0.35)` : `rgb(${r},${g},${b})`;
     const br = Math.round(0x55 + t * (0x99 - 0x55));
     const bg2 = Math.round(0x33 + t * (0x77 - 0x33));
-    const border = `rgb(${br},${bg2},0)`;
+    const border = approx ? `rgb(${r},${g},${b})` : `rgb(${br},${bg2},0)`;
     const borderStyle = approx ? "2px dashed" : "2px solid";
     const size = spotterCount > 10 ? 15 : Math.round(10 + (spotterCount / 10) * 5);
     const half = Math.round(size / 2);
