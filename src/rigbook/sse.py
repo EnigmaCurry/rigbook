@@ -116,12 +116,14 @@ def notify_shutdown() -> None:
     evt.set()
 
 
-async def _sse_generator(queue: asyncio.Queue[str]):
+async def _sse_generator(queue: asyncio.Queue[str], request: Request):
     shutdown_evt = _get_shutdown_event()
     try:
         while not shutdown_evt.is_set():
+            if await request.is_disconnected():
+                return
             try:
-                msg = await asyncio.wait_for(queue.get(), timeout=30)
+                msg = await asyncio.wait_for(queue.get(), timeout=5)
                 yield msg
             except asyncio.TimeoutError:
                 # Send keepalive comment to detect dead connections
@@ -169,7 +171,7 @@ async def event_stream(request: Request):
     async def cleanup_generator():
         global _last_client_disconnected_at
         try:
-            async for msg in _sse_generator(queue):
+            async for msg in _sse_generator(queue, request):
                 yield msg
         except (asyncio.CancelledError, GeneratorExit):
             pass
