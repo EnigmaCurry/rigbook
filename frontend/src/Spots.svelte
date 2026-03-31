@@ -940,6 +940,7 @@
         distanceLabel(myLL, homeLL, "#ffaa00"),
       );
     }
+    _updateDistLabels();
   }
 
   function drawTrianglesForSpotter(call) {
@@ -976,6 +977,7 @@
         distanceLabel(myLL, sLL, "#00ccff", 0.67),
       );
     }
+    _updateDistLabels();
   }
 
   function onSpotHover(spot) {
