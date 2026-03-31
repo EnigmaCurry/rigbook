@@ -364,19 +364,19 @@
     scheduleAutoReconnect();
   }
 
-  function startCountdown(seconds) {
-    reconnectCountdown = seconds;
-    clearInterval(countdownInterval);
-    countdownInterval = setInterval(() => {
-      reconnectCountdown = Math.max(0, reconnectCountdown - 1);
-      if (reconnectCountdown <= 0) clearInterval(countdownInterval);
-    }, 1000);
-  }
-
   function scheduleAutoReconnect() {
     const delaySec = Math.round(autoReconnectDelay / 1000);
-    startCountdown(delaySec);
+    reconnectCountdown = delaySec;
+    clearInterval(countdownInterval);
+    if (delaySec > 1) {
+      countdownInterval = setInterval(() => {
+        reconnectCountdown = Math.max(0, reconnectCountdown - 1);
+        if (reconnectCountdown <= 0) clearInterval(countdownInterval);
+      }, 1000);
+    }
     autoReconnectTimer = setTimeout(async () => {
+      clearInterval(countdownInterval);
+      reconnectCountdown = 0;
       reconnecting = true;
       await attemptReconnect();
       reconnecting = false;
@@ -390,10 +390,10 @@
   function stopAutoReconnect() {
     clearTimeout(autoReconnectTimer);
     autoReconnectTimer = null;
-    autoReconnectDelay = 1000;
-    reconnectCountdown = 0;
     clearInterval(countdownInterval);
     countdownInterval = null;
+    autoReconnectDelay = 1000;
+    reconnectCountdown = 0;
   }
 
   function stopAppServices() {
