@@ -1420,6 +1420,46 @@
   {#if activeTab === "appearance"}
   <div class="tab-content">
   <section class="settings-section">
+    <h3>Maps</h3>
+    <div class="map-preview" bind:this={previewEl}></div>
+    <div class="setting-row">
+      <label for="map_theme">Map Tiles</label>
+      <select id="map_theme" bind:value={map_theme} on:change={onMapThemeChange}>
+        {#each TILE_THEMES as t}
+          <option value={t.value}>{t.label}</option>
+        {/each}
+      </select>
+    </div>
+    {#if map_theme === "custom"}
+      <div class="setting-row">
+        <label for="map_custom_url">Tile URL</label>
+        <input id="map_custom_url" type="text" bind:value={map_custom_url} on:input={onMapCustomUrlInput} on:blur={() => onFieldBlur("map_custom_url")} placeholder="https://&#123;s&#125;.tile.example.com/&#123;z&#125;/&#123;x&#125;/&#123;y&#125;.png" />
+      </div>
+    {/if}
+    <div class="color-pickers spot-map-colors">
+      <div class="color-picker-group">
+        <label>QTH</label>
+        <hex-color-picker use:mapColorPicker={{ getValue: () => spotMapQth, setValue: (v) => { spotMapQth = v; } }}></hex-color-picker>
+        <input type="text" class="color-hex-input" bind:value={spotMapQth} on:input={onMapColorInput} on:blur={onMapColorCommit} maxlength="7" />
+      </div>
+      <div class="color-picker-group">
+        <label>Station</label>
+        <hex-color-picker use:mapColorPicker={{ getValue: () => spotMapStation, setValue: (v) => { spotMapStation = v; } }}></hex-color-picker>
+        <input type="text" class="color-hex-input" bind:value={spotMapStation} on:input={onMapColorInput} on:blur={onMapColorCommit} maxlength="7" />
+      </div>
+      <div class="color-picker-group">
+        <label>Spotter</label>
+        <hex-color-picker use:mapColorPicker={{ getValue: () => spotMapSpotter, setValue: (v) => { spotMapSpotter = v; } }}></hex-color-picker>
+        <input type="text" class="color-hex-input" bind:value={spotMapSpotter} on:input={onMapColorInput} on:blur={onMapColorCommit} maxlength="7" />
+      </div>
+      <div class="color-picker-group">
+        <label>2nd Spotter</label>
+        <hex-color-picker use:mapColorPicker={{ getValue: () => spotMapSecondary, setValue: (v) => { spotMapSecondary = v; } }}></hex-color-picker>
+        <input type="text" class="color-hex-input" bind:value={spotMapSecondary} on:input={onMapColorInput} on:blur={onMapColorCommit} maxlength="7" />
+      </div>
+    </div>
+  </section>
+  <section class="settings-section">
     <h3>Theme</h3>
     <div class="setting-row toggle-row">
       <label>Mode</label>
@@ -1480,46 +1520,6 @@
         <option value="conditions">Conditions</option>
       </select>
     </div>
-  </section>
-  <section class="settings-section">
-    <h3>Maps</h3>
-    <div class="setting-row">
-      <label for="map_theme">Map Tiles</label>
-      <select id="map_theme" bind:value={map_theme} on:change={onMapThemeChange}>
-        {#each TILE_THEMES as t}
-          <option value={t.value}>{t.label}</option>
-        {/each}
-      </select>
-    </div>
-    {#if map_theme === "custom"}
-      <div class="setting-row">
-        <label for="map_custom_url">Tile URL</label>
-        <input id="map_custom_url" type="text" bind:value={map_custom_url} on:input={onMapCustomUrlInput} on:blur={() => onFieldBlur("map_custom_url")} placeholder="https://&#123;s&#125;.tile.example.com/&#123;z&#125;/&#123;x&#125;/&#123;y&#125;.png" />
-      </div>
-    {/if}
-    <div class="color-pickers spot-map-colors">
-      <div class="color-picker-group">
-        <label>QTH</label>
-        <hex-color-picker use:mapColorPicker={{ getValue: () => spotMapQth, setValue: (v) => { spotMapQth = v; } }}></hex-color-picker>
-        <input type="text" class="color-hex-input" bind:value={spotMapQth} on:input={onMapColorInput} on:blur={onMapColorCommit} maxlength="7" />
-      </div>
-      <div class="color-picker-group">
-        <label>Station</label>
-        <hex-color-picker use:mapColorPicker={{ getValue: () => spotMapStation, setValue: (v) => { spotMapStation = v; } }}></hex-color-picker>
-        <input type="text" class="color-hex-input" bind:value={spotMapStation} on:input={onMapColorInput} on:blur={onMapColorCommit} maxlength="7" />
-      </div>
-      <div class="color-picker-group">
-        <label>Spotter</label>
-        <hex-color-picker use:mapColorPicker={{ getValue: () => spotMapSpotter, setValue: (v) => { spotMapSpotter = v; } }}></hex-color-picker>
-        <input type="text" class="color-hex-input" bind:value={spotMapSpotter} on:input={onMapColorInput} on:blur={onMapColorCommit} maxlength="7" />
-      </div>
-      <div class="color-picker-group">
-        <label>2nd Spotter</label>
-        <hex-color-picker use:mapColorPicker={{ getValue: () => spotMapSecondary, setValue: (v) => { spotMapSecondary = v; } }}></hex-color-picker>
-        <input type="text" class="color-hex-input" bind:value={spotMapSecondary} on:input={onMapColorInput} on:blur={onMapColorCommit} maxlength="7" />
-      </div>
-    </div>
-    <div class="map-preview" bind:this={previewEl}></div>
   </section>
   <section class="settings-section">
     <h3>Wide Mode</h3>
