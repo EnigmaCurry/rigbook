@@ -900,14 +900,20 @@
   }
 
   .tab:hover {
-    color: var(--text);
-    background: none;
+    background: var(--accent);
+    color: #000;
+    font-weight: bold;
   }
 
   .tab.active {
     color: var(--accent);
     border-bottom-color: var(--accent);
     background: none;
+  }
+
+  .tab.active:hover {
+    background: var(--accent);
+    color: #000;
   }
 
   .main-layout {

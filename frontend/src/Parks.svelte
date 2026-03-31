@@ -931,13 +931,20 @@
   }
 
   .tab:hover {
-    color: var(--text);
+    background: var(--accent);
+    color: #000;
+    font-weight: bold;
   }
 
   .tab.active {
     color: var(--accent);
     border-bottom-color: var(--accent);
     font-weight: bold;
+  }
+
+  .tab.active:hover {
+    background: var(--accent);
+    color: #000;
   }
 
   .tab-content {
