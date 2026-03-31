@@ -143,7 +143,7 @@ NO_SHUTDOWN = os.environ.get("RIGBOOK_NO_SHUTDOWN", "").lower() in ("1", "true",
 
 @app.get("/api/version")
 async def get_version():
-    return {"version": version("rigbook"), "no_shutdown": NO_SHUTDOWN}
+    return {"version": version("rigbook"), "no_shutdown": NO_SHUTDOWN, "frozen": getattr(sys, "frozen", False)}
 
 
 GITHUB_REPO = BUILD_ORIGIN_REPO or "EnigmaCurry/rigbook"
