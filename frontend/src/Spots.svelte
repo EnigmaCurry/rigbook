@@ -201,10 +201,11 @@
     const hc = homeHoneycomb.get(callsign);
     if (hc) {
       const zoom = leafletMap ? leafletMap.getZoom() : 4;
-      // ~20px offset at any zoom: convert pixels to degrees
+      // ~20px offset at any zoom, but cap at 0.5° so zoomed-out views don't scatter markers
       const pixelStep = 20;
       const degreesPerPixel = 360 / (256 * Math.pow(2, zoom));
-      const step = pixelStep * degreesPerPixel * hc.ring;
+      const maxDeg = 0.5;
+      const step = Math.min(pixelStep * degreesPerPixel * hc.ring, maxDeg * hc.ring);
       const dlat = Math.sin(hc.angle) * step;
       const dlon = Math.cos(hc.angle) * step / Math.cos(pos.lat * Math.PI / 180);
       return { lat: pos.lat + dlat, lon: pos.lon + dlon };
