@@ -671,20 +671,32 @@
     return [pt[0], nearLon(baseLon, pt[1])];
   }
 
+  // Scale markers based on zoom: 1x at zoom 4, grows up to 2x at zoom 12+
+  function zoomScale() {
+    const zoom = leafletMap ? leafletMap.getZoom() : 4;
+    return 1 + Math.max(0, Math.min(zoom - 4, 8)) * 0.125;
+  }
+
   function getSpotterIcon() {
-    return L.divIcon({ className: "spot-marker", html: `<div class="spot-marker-dot" style="width:8px;height:8px;background:${mapColors.spotter};border:2px solid ${darkenColor(mapColors.spotter)};border-radius:50%"></div>`, iconSize: [10, 10], iconAnchor: [5, 5] });
+    const s = zoomScale();
+    const w = Math.round(8 * s); const sz = Math.round(10 * s); const h = Math.round(sz / 2);
+    return L.divIcon({ className: "spot-marker", html: `<div class="spot-marker-dot" style="width:${w}px;height:${w}px;background:${mapColors.spotter};border:2px solid ${darkenColor(mapColors.spotter)};border-radius:50%"></div>`, iconSize: [sz, sz], iconAnchor: [h, h] });
   }
   function getSecondaryIcon() {
-    return L.divIcon({ className: "spot-marker", html: `<div class="spot-marker-dot" style="width:8px;height:8px;background:${mapColors.secondary};border:2px solid ${darkenColor(mapColors.secondary)};border-radius:50%"></div>`, iconSize: [10, 10], iconAnchor: [5, 5] });
+    const s = zoomScale();
+    const w = Math.round(8 * s); const sz = Math.round(10 * s); const h = Math.round(sz / 2);
+    return L.divIcon({ className: "spot-marker", html: `<div class="spot-marker-dot" style="width:${w}px;height:${w}px;background:${mapColors.secondary};border:2px solid ${darkenColor(mapColors.secondary)};border-radius:50%"></div>`, iconSize: [sz, sz], iconAnchor: [h, h] });
   }
   function homeLocIcon(spotterCount, approx = false) {
+    const sc = zoomScale();
     const color = mapColors.station;
     const borderColor = darkenColor(color);
     const bg = approx ? color + "88" : color;
     const border = approx ? color : borderColor;
     const borderStyle = approx ? "2px dashed" : "2px solid";
     const qColor = mapColors.strokeStation === "white" ? "#fff" : "#000";
-    const size = spotterCount > 10 ? 15 : Math.round(10 + (spotterCount / 10) * 5);
+    const baseSize = spotterCount > 10 ? 15 : Math.round(10 + (spotterCount / 10) * 5);
+    const size = Math.round(baseSize * sc);
     const half = Math.round(size / 2);
     return L.divIcon({
       className: "spot-marker",
@@ -694,18 +706,23 @@
     });
   }
   function getHomeActiveIcon(approx = false) {
-    const size = 13;
+    const sc = zoomScale();
+    const size = Math.round(13 * sc);
+    const outer = size + 2;
+    const half = Math.round(outer / 2);
     const qColor = mapColors.strokeStation === "white" ? "#fff" : "#000";
     const inner = approx ? "" : `<span style="color:${qColor};font-size:${Math.max(size-5,6)}px;font-weight:bold;line-height:1">@</span>`;
     return L.divIcon({
       className: "spot-marker",
       html: `<div class="spot-marker-dot" style="width:${size}px;height:${size}px;background:${mapColors.station};border:2px solid ${darkenColor(mapColors.station)};border-radius:50%;display:flex;align-items:center;justify-content:center">${inner}</div>`,
-      iconSize: [15, 15],
-      iconAnchor: [7, 7],
+      iconSize: [outer, outer],
+      iconAnchor: [half, half],
     });
   }
   function getMyIcon() {
-    return L.divIcon({ className: "spot-marker", html: `<div class="spot-marker-dot" style="width:12px;height:12px;background:${mapColors.qth};border:2px solid ${darkenColor(mapColors.qth)};border-radius:50%;box-shadow:0 0 8px ${mapColors.qth}99"></div>`, iconSize: [14, 14], iconAnchor: [7, 7] });
+    const sc = zoomScale();
+    const w = Math.round(12 * sc); const sz = Math.round(14 * sc); const h = Math.round(sz / 2);
+    return L.divIcon({ className: "spot-marker", html: `<div class="spot-marker-dot" style="width:${w}px;height:${w}px;background:${mapColors.qth};border:2px solid ${darkenColor(mapColors.qth)};border-radius:50%;box-shadow:0 0 8px ${mapColors.qth}99"></div>`, iconSize: [sz, sz], iconAnchor: [h, h] });
   }
 
   function addExpandControl(map, wrapEl) {
@@ -912,6 +929,19 @@
     if (a > 90) a -= 180;
     else if (a < -90) a += 180;
     return a;
+  }
+
+  function _refreshMarkerSizes() {
+    if (!leafletMap) return;
+    const closest = globalClosestCalls();
+    for (const [call, marker] of Object.entries(spotterMarkers)) {
+      marker.setIcon(closest.has(call) ? getSpotterIcon() : getSecondaryIcon());
+    }
+    for (const [call, marker] of Object.entries(homeMarkers)) {
+      const count = homeSpotterCounts.get(call) || 1;
+      marker.setIcon(homeLocIcon(count, homeApproxSet.has(call)));
+    }
+    if (myMarker) myMarker.setIcon(getMyIcon());
   }
 
   function _repositionHoneycomb() {
@@ -1201,6 +1231,7 @@
     leafletMap.on("zoomanim", _updateDistLabels);
     leafletMap.on("zoomend", _updateDistLabels);
     leafletMap.on("zoomend", _repositionHoneycomb);
+    leafletMap.on("zoomend", _refreshMarkerSizes);
     addExpandControl(leafletMap, mapEl.parentElement);
     mapResizeObserver = new ResizeObserver(() => { leafletMap?.invalidateSize(); });
     mapResizeObserver.observe(mapEl);
