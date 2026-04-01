@@ -944,6 +944,11 @@
     if (myMarker) myMarker.setIcon(getMyIcon());
   }
 
+  function _redrawTriangle() {
+    if (lockedSpot) drawTriangleForSpot(lockedSpot);
+    else if (selectedSpotter) drawTrianglesForSpotter(selectedSpotter);
+  }
+
   function _repositionHoneycomb() {
     if (!leafletMap) return;
     const lockedCall = lockedSpot?.callsign;
@@ -1262,6 +1267,7 @@
     leafletMap.on("zoomend", _updateDistLabels);
     leafletMap.on("zoomend", _repositionHoneycomb);
     leafletMap.on("zoomend", _refreshMarkerSizes);
+    leafletMap.on("zoomend", _redrawTriangle);
     addExpandControl(leafletMap, mapEl.parentElement);
     mapResizeObserver = new ResizeObserver(() => { leafletMap?.invalidateSize(); });
     mapResizeObserver.observe(mapEl);
