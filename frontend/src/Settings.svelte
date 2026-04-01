@@ -14,6 +14,7 @@
   export let pickerMode = false;
   export let needsSetup = false;
   export let initialTab = null;
+  export let highlightSection = null;
   export let clientCount = 0;
 
   const dispatch = createEventDispatcher();
@@ -108,6 +109,17 @@
 
   $: if (initialTab && validTabs.includes(initialTab)) activeTab = initialTab;
   $: if (needsSetup) activeTab = "station";
+  $: if (highlightSection && settingsLoaded) {
+    tick().then(() => {
+      const el = document.querySelector(`[data-section="${highlightSection}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        el.classList.add("highlight-flash");
+        el.addEventListener("animationend", () => el.classList.remove("highlight-flash"), { once: true });
+      }
+      highlightSection = null;
+    });
+  }
 
   let updateCheckLoaded = false;
   $: if (settingsLoaded && !updateCheckLoaded) {
@@ -1416,7 +1428,7 @@
 
   {#if activeTab === "station"}
   <div class="tab-content" use:masonry>
-  <section class="settings-section">
+  <section class="settings-section" data-section="station">
     <h3>Station</h3>
     <div class="setting-row">
       <label for="my_callsign">My Callsign{#if needsSetup && !my_callsign.trim()} <span class="required">*</span>{/if}</label>
@@ -1746,7 +1758,7 @@
     </div>
     {/if}
   </section>
-  <section class="settings-section">
+  <section class="settings-section" data-section="content">
     <h3>Content</h3>
     <div class="setting-row">
       <label for="custom_header">Custom Header</label>
@@ -2094,6 +2106,13 @@
     border-radius: 4px;
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
+  }
+  .settings-section.highlight-flash {
+    animation: highlight-pulse 1.5s ease-out;
+  }
+  @keyframes highlight-pulse {
+    0%, 20% { border-color: var(--accent); box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 40%, transparent); }
+    100% { border-color: var(--border); box-shadow: none; }
   }
 
   h3 {
