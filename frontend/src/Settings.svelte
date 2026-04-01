@@ -166,10 +166,10 @@
 
   function previewApproxDot(ll, color, size = 12) {
     const half = Math.round(size / 2);
-    const border = darkenColor(color);
+    const qColor = spotMapStrokeStation === "white" ? "#fff" : "#000";
     const icon = L.divIcon({
       className: "",
-      html: `<div style="width:${size}px;height:${size}px;background:${color}59;border:2px dashed ${color};border-radius:50%;display:flex;align-items:center;justify-content:center"><span style="color:${border};font-size:${Math.max(size-4,7)}px;font-weight:bold;line-height:1">?</span></div>`,
+      html: `<div style="width:${size}px;height:${size}px;background:${color}88;border:2px dashed ${color};border-radius:50%;display:flex;align-items:center;justify-content:center"><span style="color:${qColor};font-size:${Math.max(size-2,8)}px;font-weight:bold;line-height:1">?</span></div>`,
       iconSize: [size, size],
       iconAnchor: [half, half],
     });
