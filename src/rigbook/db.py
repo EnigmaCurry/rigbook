@@ -582,7 +582,7 @@ async def init_db() -> None:
                     )
                 )
             ).scalar_one_or_none()
-            if row and row.value == "true":
+            if not row or row.value != "false":
                 db_manager.picker_mode = True
     if db_manager.picker_mode:
         return
