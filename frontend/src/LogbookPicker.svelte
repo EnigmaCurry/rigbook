@@ -22,10 +22,13 @@
 
   async function shutdownServer() {
     shuttingDown = true;
+    dispatch("shutdown-pending");
     try {
       const res = await fetch("/api/logbooks/shutdown", { method: "POST" });
       if (res.ok) dispatch("shutdown");
-    } catch {}
+    } catch {
+      dispatch("shutdown");
+    }
   }
 
   async function fetchLogbooks() {

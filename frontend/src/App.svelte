@@ -328,6 +328,7 @@
   function clearShutdownState() {
     serverShutdown = false;
     logbookClosed = false;
+    shutdownPendingSince = 0;
     document.title = "Rigbook";
     const link = document.querySelector("link[rel~='icon']");
     if (link) link.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📻</text></svg>";
@@ -439,6 +440,7 @@
 
   let serverShutdown = false;
   let serverDisconnected = false;
+  let shutdownPendingSince = 0;
   let logbookClosed = false;
   let autoReconnectTimer = null;
   let autoReconnectDelay = 1000;
@@ -475,10 +477,13 @@
 
   async function shutdownFromMenu() {
     menuOpen = false;
+    shutdownPendingSince = Date.now();
     try {
       const res = await fetch("/api/logbooks/shutdown", { method: "POST" });
       if (res.ok) setShutdownState();
-    } catch {}
+    } catch {
+      setShutdownState();
+    }
   }
 
   async function closeLogbook() {
@@ -492,7 +497,12 @@
   function resetSseHeartbeat() {
     clearTimeout(sseHeartbeatTimer);
     sseHeartbeatTimer = setTimeout(() => {
-      if (!serverShutdown && !serverDisconnected) setDisconnectedState();
+      if (serverShutdown || serverDisconnected) return;
+      if (shutdownPendingSince && Date.now() - shutdownPendingSince < 30000) {
+        setShutdownState();
+      } else {
+        setDisconnectedState();
+      }
     }, SSE_TIMEOUT_MS);
   }
 
@@ -1316,7 +1326,7 @@
   {:else if !logbookReady}
     <!-- waiting for logbook mode check -->
   {:else if pickerMode && !logbookOpen}
-    <LogbookPicker on:logbookopened={handleLogbookOpened} on:shutdown={setShutdownState} showShutdown={!noShutdown} />
+    <LogbookPicker on:logbookopened={handleLogbookOpened} on:shutdown-pending={() => { shutdownPendingSince = Date.now(); }} on:shutdown={setShutdownState} showShutdown={!noShutdown} />
   {:else}
   <header>
     <div class="header-left">
@@ -1478,7 +1488,7 @@
     {:else if page === "notifications"}
       <Notifications on:countchange={() => fetchUnreadCount()} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
     {:else if page === "settings"}
-      <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} initialTab={settingsTab} {clientCount} on:disconnect-others={async () => { const nonce = Math.random().toString(36).slice(2); disconnectNonce = nonce; try { await fetch("/api/events/disconnect-others", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nonce }) }); } catch {} }} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { stopAppServices(); logbookOpen = false; currentLogbook = ""; page = "picker"; applySystemTheme(); } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchSqlQueryEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { fetchCallsign(); fetchCustomHeader(); fetchDefaultPage(); applyTheme(); fetchPopupNotifEnabled(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchSqlQueryEnabled(); await fetchFlrigEnabled(); fetchShutdownMenuEnabled(); fetchUpdateCheck(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; vfoFreq = ""; vfoMode = ""; vfoConnected = false; } }} on:shutdown={() => { setShutdownState(); }} />
+      <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} initialTab={settingsTab} {clientCount} on:disconnect-others={async () => { const nonce = Math.random().toString(36).slice(2); disconnectNonce = nonce; try { await fetch("/api/events/disconnect-others", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nonce }) }); } catch {} }} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { stopAppServices(); logbookOpen = false; currentLogbook = ""; page = "picker"; applySystemTheme(); } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchSqlQueryEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { fetchCallsign(); fetchCustomHeader(); fetchDefaultPage(); applyTheme(); fetchPopupNotifEnabled(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchSqlQueryEnabled(); await fetchFlrigEnabled(); fetchShutdownMenuEnabled(); fetchUpdateCheck(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; vfoFreq = ""; vfoMode = ""; vfoConnected = false; } }} on:shutdown-pending={() => { shutdownPendingSince = Date.now(); }} on:shutdown={() => { setShutdownState(); }} />
     {:else if page === "links"}
       <Links />
     {:else if page === "conditions"}
