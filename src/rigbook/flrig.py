@@ -27,12 +27,19 @@ _sim_freq: str = "14074000"
 _sim_mode: str = "CW"
 
 
-async def is_simulate(session: AsyncSession) -> bool:
+async def is_simulate(session: AsyncSession, gdb: AsyncSession) -> bool:
     result = await session.execute(
         select(Setting.value).where(Setting.key == "flrig_simulate")
     )
     val = result.scalar_one_or_none()
-    return val == "true"
+    if val:
+        return val == "true"
+    # Fall back to global default
+    gdb_result = await gdb.execute(
+        select(GlobalSetting.value).where(GlobalSetting.key == "flrig_simulate")
+    )
+    gdb_val = gdb_result.scalar_one_or_none()
+    return gdb_val == "true"
 
 
 async def get_flrig_url(
@@ -121,8 +128,9 @@ class FlrigSet(BaseModel):
 async def flrig_status(
     url: str = Depends(get_flrig_url),
     session: AsyncSession = Depends(get_session),
+    gdb: AsyncSession = Depends(get_global_session),
 ):
-    if await is_simulate(session):
+    if await is_simulate(session, gdb):
         return FlrigStatus(freq=_sim_freq, mode=_sim_mode, connected=True)
     loop = asyncio.get_event_loop()
     client = FlrigClient(url)
@@ -136,8 +144,9 @@ async def flrig_status(
 async def flrig_modes(
     url: str = Depends(get_flrig_url),
     session: AsyncSession = Depends(get_session),
+    gdb: AsyncSession = Depends(get_global_session),
 ):
-    if await is_simulate(session):
+    if await is_simulate(session, gdb):
         return SIMULATED_MODES
     loop = asyncio.get_event_loop()
     client = FlrigClient(url)
@@ -149,9 +158,10 @@ async def flrig_set_vfo(
     data: FlrigSet,
     url: str = Depends(get_flrig_url),
     session: AsyncSession = Depends(get_session),
+    gdb: AsyncSession = Depends(get_global_session),
 ):
     global _sim_freq, _sim_mode
-    if await is_simulate(session):
+    if await is_simulate(session, gdb):
         if data.freq is not None:
             _sim_freq = data.freq
         if data.mode is not None:
