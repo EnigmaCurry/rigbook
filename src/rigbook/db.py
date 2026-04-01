@@ -42,6 +42,7 @@ GLOBAL_ONLY_KEYS = {
     "update_skip_version",
     "shutdown_in_menu",
     "auto_shutdown_on_disconnect",
+    "welcome_acknowledged",
 }
 
 

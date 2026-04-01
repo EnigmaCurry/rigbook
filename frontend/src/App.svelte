@@ -14,6 +14,7 @@
   import Notifications from "./Notifications.svelte";
   import Spots from "./Spots.svelte";
   import LogbookPicker from "./LogbookPicker.svelte";
+  import Welcome from "./Welcome.svelte";
   import SearchResults from "./SearchResults.svelte";
   import Query from "./Query.svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
@@ -230,11 +231,51 @@
   let popupNotifEnabled = false;
   let showPopup = false;
   let activeDesktopNotif = null;
+  let welcomeAcknowledged = true; // assume true until checked
+  let welcomeChecked = false;
   let pickerMode = false;
   let logbookReady = false;
   let logbookOpen = false;
   let currentLogbook = "";
   let pendingLogbook = "";
+
+  async function checkWelcome() {
+    try {
+      const res = await fetch("/api/global-settings/welcome_acknowledged");
+      if (res.ok) {
+        const data = await res.json();
+        welcomeAcknowledged = data.value === "true";
+      }
+    } catch {}
+    welcomeChecked = true;
+  }
+
+  async function handleWelcomeComplete(e) {
+    welcomeAcknowledged = true;
+    const logbook = e.detail.logbook;
+    if (logbook) {
+      currentLogbook = logbook;
+      logbookOpen = true;
+      logbookReady = true;
+      setLogbook(logbook);
+      applyTheme();
+      await startAppServices();
+      await checkNeedsSetup();
+      navigate(isWide() ? "dual" : "log");
+    } else {
+      // Skip was clicked — proceed with normal startup
+      await checkLogbookMode();
+      if (logbookOpen) {
+        setLogbook(currentLogbook);
+        applyTheme();
+        fetchWideBreakpoint();
+        await startAppServices();
+        await checkNeedsSetup();
+      } else if (pickerMode) {
+        page = "picker";
+      }
+    }
+  }
 
   async function checkLogbookMode() {
     try {
@@ -1256,6 +1297,8 @@
     clockInterval = setInterval(() => { utcNow = new Date().toISOString().slice(0, 19).replace("T", " ") + "z"; }, 1000);
     window.addEventListener("hashchange", onHashChange);
     window.addEventListener("resize", onResize);
+    await checkWelcome();
+    if (!welcomeAcknowledged) return; // Welcome screen will handle the rest
     await checkLogbookMode();
     setLogbook(currentLogbook);
     dualSplit = parseFloat(storageGet("dualSplit")) || 50;
@@ -1309,6 +1352,8 @@
         <button class="welcome-btn" on:click={reloadIfAlive}>Reconnect</button>
       </div>
     </div>
+  {:else if welcomeChecked && !welcomeAcknowledged}
+    <Welcome on:complete={handleWelcomeComplete} />
   {:else if pendingLogbook}
     <header>
       <div class="header-left">
