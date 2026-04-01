@@ -1,0 +1,5 @@
+## v0.2.3 — 2026-04-01
+
+- Map visualization overhaul with color presets and marker improvements
+- Fix self-update restart on macOS
+- Add Claude Code skills for merge and release workflows
