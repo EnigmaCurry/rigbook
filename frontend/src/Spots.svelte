@@ -688,7 +688,7 @@
     const half = Math.round(size / 2);
     return L.divIcon({
       className: "spot-marker",
-      html: `<div class="spot-marker-dot" style="width:${size-2}px;height:${size-2}px;background:${bg};border:${borderStyle} ${border};border-radius:50%;display:flex;align-items:center;justify-content:center">${approx ? `<span style="color:${qColor};font-size:${Math.max(size-2,8)}px;font-weight:bold;line-height:1">?</span>` : `<span style="color:${qColor};font-size:${Math.max(size-2,8)}px;font-weight:bold;line-height:1">@</span>`}</div>`,
+      html: `<div class="spot-marker-dot" style="width:${size-2}px;height:${size-2}px;background:${bg};border:${borderStyle} ${border};border-radius:50%;display:flex;align-items:center;justify-content:center">${approx ? `<span style="color:${qColor};font-size:${Math.max(size-2,8)}px;font-weight:bold;line-height:1">?</span>` : `<span style="color:${qColor};font-size:${Math.max(size-5,6)}px;font-weight:bold;line-height:1">@</span>`}</div>`,
       iconSize: [size, size],
       iconAnchor: [half, half],
     });
@@ -696,7 +696,7 @@
   function getHomeActiveIcon(approx = false) {
     const size = 13;
     const qColor = mapColors.strokeStation === "white" ? "#fff" : "#000";
-    const inner = approx ? "" : `<span style="color:${qColor};font-size:${Math.max(size-2,8)}px;font-weight:bold;line-height:1">@</span>`;
+    const inner = approx ? "" : `<span style="color:${qColor};font-size:${Math.max(size-5,6)}px;font-weight:bold;line-height:1">@</span>`;
     return L.divIcon({
       className: "spot-marker",
       html: `<div class="spot-marker-dot" style="width:${size}px;height:${size}px;background:${mapColors.station};border:2px solid ${darkenColor(mapColors.station)};border-radius:50%;display:flex;align-items:center;justify-content:center">${inner}</div>`,

@@ -262,7 +262,7 @@
       const qColor = spotMapStrokeStation === "white" ? "#fff" : "#000";
       const icon = L.divIcon({
         className: "",
-        html: `<div style="width:${size}px;height:${size}px;background:${spotMapStation};border:2px solid ${staBorder};border-radius:50%;display:flex;align-items:center;justify-content:center"><span style="color:${qColor};font-size:${Math.max(size-2,8)}px;font-weight:bold;line-height:1">@</span></div>`,
+        html: `<div style="width:${size}px;height:${size}px;background:${spotMapStation};border:2px solid ${staBorder};border-radius:50%;display:flex;align-items:center;justify-content:center"><span style="color:${qColor};font-size:${Math.max(size-5,6)}px;font-weight:bold;line-height:1">@</span></div>`,
         iconSize: [size, size],
         iconAnchor: [half, half],
       });
