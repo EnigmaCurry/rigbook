@@ -933,6 +933,8 @@
 
   function _refreshMarkerSizes() {
     if (!leafletMap) return;
+    // Skip generic refresh if a spot/spotter is selected — _redrawTriangle handles it
+    if (lockedSpot || selectedSpotter) return;
     const closest = globalClosestCalls();
     for (const [call, marker] of Object.entries(spotterMarkers)) {
       marker.setIcon(closest.has(call) ? getSpotterIcon() : getSecondaryIcon());
@@ -945,6 +947,7 @@
   }
 
   function _redrawTriangle() {
+    if (myMarker) myMarker.setIcon(getMyIcon());
     if (lockedSpot) drawTriangleForSpot(lockedSpot);
     else if (selectedSpotter) drawTrianglesForSpotter(selectedSpotter);
   }
