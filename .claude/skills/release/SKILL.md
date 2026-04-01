@@ -1,7 +1,7 @@
 ---
 name: release
 description: "Release a new version: bump version, generate changelog, tag, and push"
-allowed-tools: Bash(git *, uv *, cd *), Read, Edit, Write, AskUserQuestion
+allowed-tools: Bash(git *, gh *, uv *, cd *), Read, Edit, Write, AskUserQuestion
 ---
 
 # Release New Version
@@ -69,4 +69,10 @@ allowed-tools: Bash(git *, uv *, cd *), Read, Edit, Write, AskUserQuestion
    git push --tags
    ```
 
-10. **Report success** with the new version and tag.
+10. **Watch the GitHub Actions build in the background:**
+    ```bash
+    gh run watch $(gh run list --limit 1 --json databaseId -q '.[0].databaseId')
+    ```
+    Run this with `run_in_background: true` so the user isn't blocked. When notified of completion, report the build result.
+
+11. **Report success** with the new version and tag.
