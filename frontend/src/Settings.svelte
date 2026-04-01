@@ -22,6 +22,7 @@
   let my_callsign = "";
   let my_grid = "";
   let default_rst = "599";
+  let qrz_username = "";
   let qrz_password = "";
   let hasQrzPassword = false;
   let pota_enabled = false;
@@ -107,6 +108,7 @@
   let global_my_callsign = "";
   let global_my_grid = "";
   let global_default_rst = "599";
+  let global_qrz_username = "";
   let global_qrz_password = "";
   let global_hasQrzPassword = false;
   let global_hamalert_username = "";
@@ -947,6 +949,10 @@
     default_rst: async () => {
       await saveSetting("default_rst", default_rst.trim());
     },
+    qrz_username: async () => {
+      await saveSetting("qrz_username", qrz_username.trim().toUpperCase());
+      dispatch("saved");
+    },
     flrig_host: async () => {
       if (flrig_enabled && flrig_host.trim() && flrig_port.trim()) {
         await saveSetting("flrig_host", flrig_host.trim());
@@ -1222,6 +1228,7 @@
           if (s.key === "flrig_port") { if (isGlobal) { globalPlaceholders.flrig_port = s.value; flrig_port = ""; } else flrig_port = s.value || "12345"; }
           if (s.key === "hamalert_username") { if (isGlobal) { globalPlaceholders.hamalert_username = s.value; hamalert_username = ""; } else hamalert_username = s.value || ""; }
           // Boolean/password fields: inherit global value normally
+          if (s.key === "qrz_username") { if (isGlobal) { globalPlaceholders.qrz_username = s.value; qrz_username = ""; } else qrz_username = s.value || ""; }
           if (s.key === "qrz_password") hasQrzPassword = !!s.value && s.value !== "";
           if (s.key === "pota_enabled") pota_enabled = s.value !== "false";
           if (s.key === "solar_enabled") solar_enabled = s.value === "true";
@@ -1309,6 +1316,7 @@
           if (s.key === "my_callsign") global_my_callsign = s.value || "";
           if (s.key === "my_grid") global_my_grid = s.value || "";
           if (s.key === "default_rst") global_default_rst = s.value || "599";
+          if (s.key === "qrz_username") global_qrz_username = s.value || "";
           if (s.key === "qrz_password") global_hasQrzPassword = !!s.value && s.value !== "";
           if (s.key === "hamalert_username") global_hamalert_username = s.value || "";
           if (s.key === "hamalert_password") global_hasHamalertPassword = !!s.value && s.value !== "";
@@ -1551,12 +1559,17 @@
   <section class="settings-section">
     <h3>QRZ</h3>
     <div class="setting-row">
+      <label for="qrz_username">QRZ Username{#if settingSources.qrz_username === "global"} <span class="global-hint">(global default)</span>{/if}</label>
+      <input id="qrz_username" type="text" bind:value={qrz_username} on:input={() => markDirty("qrz_username")} on:keydown={onFieldKeydown} on:blur={() => onFieldBlur("qrz_username")} autocomplete="off" style="text-transform: uppercase; max-width: 10rem" placeholder={globalPlaceholders.qrz_username || effectiveSetting(my_callsign, "my_callsign")} />
+      <span class="hint">Defaults to My Callsign if blank</span>
+    </div>
+    <div class="setting-row">
       <label for="qrz_password">{hasQrzPassword ? "Change QRZ Password" : "QRZ Password"}</label>
-      <input id="qrz_password" type="password" bind:value={qrz_password} autocomplete="off" disabled={!my_callsign.trim()} placeholder={hasQrzPassword ? "Leave blank to keep current" : "unset"} style="min-width: 8ch" />
+      <input id="qrz_password" type="password" bind:value={qrz_password} autocomplete="off" placeholder={hasQrzPassword ? "Leave blank to keep current" : "unset"} style="min-width: 8ch" />
     </div>
     <div class="setting-row">
       {#if qrz_password.trim()}<button type="button" class="theme-toggle" on:click={loginQrz}>Login</button>{/if}
-      <span class="hint">{#if !my_callsign.trim()}Set My Callsign first{:else if hasQrzPassword}Leave blank to remain unchanged{:else}Your QRZ account password (uses My Callsign as username){/if}</span>
+      <span class="hint">{#if hasQrzPassword}Leave blank to remain unchanged{:else}Your QRZ account password{/if}</span>
     </div>
     {#if hasQrzPassword}
       <div class="setting-row qrz-status-row">
@@ -2086,6 +2099,11 @@
 
   <section class="settings-section">
     <h3>Default Credentials</h3>
+    <div class="setting-row">
+      <label for="global_qrz_username">Default QRZ Username</label>
+      <input id="global_qrz_username" type="text" bind:value={global_qrz_username} on:blur={() => saveGlobalSetting("qrz_username", global_qrz_username.trim().toUpperCase())} autocomplete="off" style="text-transform: uppercase; max-width: 14rem" />
+      <span class="hint">Defaults to Default Callsign if blank</span>
+    </div>
     <div class="setting-row">
       <label>Default QRZ Password</label>
       {#if global_hasQrzPassword}
