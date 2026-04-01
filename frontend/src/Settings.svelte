@@ -2111,7 +2111,9 @@
     animation: highlight-pulse 1.5s ease-out;
   }
   @keyframes highlight-pulse {
-    0%, 20% { border-color: var(--accent); box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 40%, transparent); }
+    0%, 10% { border-color: var(--accent); box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 40%, transparent); }
+    30% { border-color: var(--border); box-shadow: none; }
+    50%, 60% { border-color: var(--accent); box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 40%, transparent); }
     100% { border-color: var(--border); box-shadow: none; }
   }
 
