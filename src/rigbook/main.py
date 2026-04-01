@@ -410,6 +410,9 @@ def run() -> None:
                 ).lower() in ("1", "true", "yes")
                 lock_info = db_manager.read_lock_info(db_path)
                 replaced = False
+                same_lineage = True
+                running_version = None
+                running_origin = None
 
                 if lock_info and "host" in lock_info:
                     import json as _json
