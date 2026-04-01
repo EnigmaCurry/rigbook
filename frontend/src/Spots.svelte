@@ -870,9 +870,9 @@
     return result;
   }
 
-  function spotterLine(from, to, stationCall) {
+  function spotterLine(from, to, stationCall, color) {
     const dash = cqDash(stationCall);
-    const line = L.polyline([from, to], { color: mapColors.spotter, weight: 2, opacity: 0.6, dashArray: dash.dashArray, className: "line-spotter" }).addTo(leafletMap);
+    const line = L.polyline([from, to], { color: color || mapColors.spotter, weight: 2, opacity: 0.6, dashArray: dash.dashArray, className: "line-spotter" }).addTo(leafletMap);
     const el = line.getElement();
     if (el) {
       const speed = 34;
@@ -1006,15 +1006,17 @@
     const homeLL = homePos ? nearLL(baseLon, [homePos.lat, homePos.lon]) : null;
     const spotterLL = spotterPos ? nearLL(baseLon, [spotterPos.lat, spotterPos.lon]) : null;
 
-    // Draw dashed cyan lines from secondary spotters first (lower z-order)
+    // Draw secondary spotter lines first (lower z-order)
     // Lines point FROM spotter TO station so animation flows toward station
     if (homeLL && spot.spotter_grids) {
       for (const [call, grid] of Object.entries(spot.spotter_grids)) {
         if (call === spot.closest_call) continue;
         const pos = gridToLatLon(grid);
         if (!pos) continue;
+        const secLL = nearLL(baseLon, [pos.lat, pos.lon]);
         selectionLines.push(
-          spotterLine(nearLL(baseLon, [pos.lat, pos.lon]), homeLL, spot.callsign),
+          spotterLine(secLL, homeLL, spot.callsign, mapColors.secondary),
+          markerLabel(secLL, call, mapColors.secondary, mapColors.strokeSecondary),
         );
       }
     }
@@ -1061,9 +1063,14 @@
     const rawLL = spotterMarker.getLatLng();
     const sLL = nearLL(baseLon, [rawLL.lat, rawLL.lng]);
 
+    // Determine if this spotter is primary or secondary (could be both for different spots)
+    const isPrimaryForAny = spots.some(s => s.closest_call === call);
+    const spotterColor = isPrimaryForAny ? mapColors.spotter : mapColors.secondary;
+    const spotterStroke = isPrimaryForAny ? mapColors.strokeSpotter : mapColors.strokeSecondary;
+
     selectionLines.push(
       markerLabel(myLL, myCallsign || "QTH", mapColors.qth, mapColors.strokeQth),
-      markerLabel(sLL, call, mapColors.spotter, mapColors.strokeSpotter),
+      markerLabel(sLL, call, spotterColor, spotterStroke),
     );
 
     for (const s of spots) {
@@ -1073,14 +1080,17 @@
       const homePos = homeLatLon(s.callsign, hg);
       if (!homePos) continue;
       const homeLL = nearLL(baseLon, [homePos.lat, homePos.lon]);
+      const isPrimary = s.closest_call === call;
+      const lineColor = isPrimary ? mapColors.spotter : mapColors.secondary;
+      const lineStroke = isPrimary ? mapColors.strokeSpotter : mapColors.strokeSecondary;
       selectionLines.push(
         markerLabel(homeLL, s.callsign, mapColors.station, mapColors.strokeStation),
-        spotterLine(sLL, homeLL, s.callsign),
-        distanceLabel(sLL, homeLL, mapColors.spotter, mapColors.strokeSpotter, 0.33),
+        spotterLine(sLL, homeLL, s.callsign, lineColor),
+        distanceLabel(sLL, homeLL, lineColor, lineStroke, 0.33),
         hunterLine(homeLL, myLL),
         distanceLabel(homeLL, myLL, mapColors.station, mapColors.strokeStation, 0.5),
-        L.polyline([myLL, sLL], { color: mapColors.spotter, weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
-        distanceLabel(myLL, sLL, mapColors.spotter, mapColors.strokeSpotter, 0.67),
+        L.polyline([myLL, sLL], { color: lineColor, weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
+        distanceLabel(myLL, sLL, lineColor, lineStroke, 0.67),
       );
     }
     _updateDistLabels();
