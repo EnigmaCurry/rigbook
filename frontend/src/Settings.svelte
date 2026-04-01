@@ -249,7 +249,7 @@
   function updatePreview() {
     if (!previewEl) return;
     const tiles = resolveTileConfig(map_theme, map_custom_url);
-    const pos = gridToLatLon(my_grid || globalPlaceholders.my_grid || "");
+    const pos = gridToLatLon(effectiveSetting(my_grid, "my_grid"));
     const center = pos ? [pos.lat, pos.lon] : [39, -98];
     // Reinitialize if the DOM node changed (tab switch destroys/recreates it)
     if (previewMap && previewMapEl !== previewEl) {
@@ -319,7 +319,7 @@
       previewDot(secLL, spotMapSecondary, secBorder, 8),
     );
 
-    const callLabel = (my_callsign.trim() || globalPlaceholders.my_callsign || "").toUpperCase() || "QTH";
+    const callLabel = effectiveSetting(my_callsign.trim(), "my_callsign", "QTH").toUpperCase();
     add(
       previewLabel(staLL, "W1AW", spotMapStation, spotMapStrokeStation),
       previewLabel(sptLL, "K3LR", spotMapSpotter, spotMapStrokeSpotter),
@@ -814,6 +814,11 @@
     } catch {}
     settingSources = settingSources;
     globalPlaceholders = globalPlaceholders;
+  }
+
+  /** Return the effective value for a setting: local value, global placeholder, or fallback. */
+  function effectiveSetting(localValue, key, fallback = "") {
+    return localValue || globalPlaceholders[key] || fallback;
   }
 
   const dirtyFields = new Set();

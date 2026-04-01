@@ -10,12 +10,10 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from rigbook.db import (
-    GLOBAL_DEFAULTABLE_KEYS,
     GlobalCache,
-    GlobalSetting,
-    Setting,
     get_global_session,
     get_session,
+    resolve_setting,
 )
 
 logger = logging.getLogger("rigbook")
@@ -31,30 +29,12 @@ NAMESPACE = "qrz"
 _session_key: str | None = None
 
 
-async def _get_credentials(
-    session: AsyncSession, gdb: AsyncSession
-) -> tuple[str, str]:
+async def _get_credentials(session: AsyncSession) -> tuple[str, str]:
     """Return (username, api_key) from settings with global-default fallback."""
-    cred_keys = {"qrz_password", "qrz_username", "my_callsign"}
-    result = await session.execute(select(Setting).where(Setting.key.in_(cred_keys)))
-    values: dict[str, str] = {}
-    for s in result.scalars():
-        if s.value:
-            values[s.key] = s.value
-
-    # Fall back to global defaults for missing keys
-    missing = cred_keys - values.keys()
-    defaultable_missing = missing & GLOBAL_DEFAULTABLE_KEYS
-    if defaultable_missing:
-        global_result = await gdb.execute(
-            select(GlobalSetting).where(GlobalSetting.key.in_(defaultable_missing))
-        )
-        for ms in global_result.scalars():
-            if ms.value:
-                values[ms.key] = ms.value
-
-    api_key = values.get("qrz_password", "")
-    username = values.get("qrz_username", "") or values.get("my_callsign", "")
+    api_key = await resolve_setting("qrz_password", session)
+    username = await resolve_setting("qrz_username", session)
+    if not username:
+        username = await resolve_setting("my_callsign", session)
     return username, api_key
 
 
@@ -217,7 +197,7 @@ async def qrz_lookup(
         if cached:
             return cached
 
-        username, api_key = await _get_credentials(session, gdb)
+        username, api_key = await _get_credentials(session)
         if not username:
             return {"error": "Set My Callsign in Settings (used as QRZ username)"}
         if not api_key:
@@ -239,10 +219,9 @@ async def qrz_lookup(
 @router.get("/status")
 async def qrz_status(
     session: AsyncSession = Depends(get_session),
-    gdb: AsyncSession = Depends(get_global_session),
 ):
     global _session_key
-    username, api_key = await _get_credentials(session, gdb)
+    username, api_key = await _get_credentials(session)
     if not username:
         return {"ok": False, "error": "No callsign configured"}
     if not api_key:

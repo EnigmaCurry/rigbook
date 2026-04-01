@@ -541,6 +541,25 @@ def global_async_session():
     return db_manager._global_session_factory()
 
 
+async def resolve_setting(
+    key: str, session: AsyncSession, default: str = ""
+) -> str:
+    """Read a setting from the logbook DB, falling back to global DB if blank/missing."""
+    result = await session.execute(select(Setting).where(Setting.key == key))
+    row = result.scalar_one_or_none()
+    if row and row.value:
+        return row.value
+    if key in GLOBAL_DEFAULTABLE_KEYS and db_manager._global_session_factory:
+        async with db_manager._global_session_factory() as gdb:
+            gdb_result = await gdb.execute(
+                select(GlobalSetting).where(GlobalSetting.key == key)
+            )
+            gdb_row = gdb_result.scalar_one_or_none()
+            if gdb_row and gdb_row.value:
+                return gdb_row.value
+    return default
+
+
 async def init_db() -> None:
     DB_DIR.mkdir(parents=True, exist_ok=True)
     await db_manager.open_global()

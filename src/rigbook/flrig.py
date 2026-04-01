@@ -3,16 +3,9 @@ import xmlrpc.client
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from rigbook.db import (
-    GLOBAL_DEFAULTABLE_KEYS,
-    GlobalSetting,
-    Setting,
-    get_global_session,
-    get_session,
-)
+from rigbook.db import get_session, resolve_setting
 
 router = APIRouter(prefix="/api/flrig", tags=["flrig"])
 
@@ -27,44 +20,14 @@ _sim_freq: str = "14074000"
 _sim_mode: str = "CW"
 
 
-async def is_simulate(session: AsyncSession, gdb: AsyncSession) -> bool:
-    result = await session.execute(
-        select(Setting.value).where(Setting.key == "flrig_simulate")
-    )
-    val = result.scalar_one_or_none()
-    if val:
-        return val == "true"
-    # Fall back to global default
-    gdb_result = await gdb.execute(
-        select(GlobalSetting.value).where(GlobalSetting.key == "flrig_simulate")
-    )
-    gdb_val = gdb_result.scalar_one_or_none()
-    return gdb_val == "true"
+async def is_simulate(session: AsyncSession) -> bool:
+    val = await resolve_setting("flrig_simulate", session)
+    return val == "true"
 
 
-async def get_flrig_url(
-    session: AsyncSession = Depends(get_session),
-    gdb: AsyncSession = Depends(get_global_session),
-) -> str:
-    host = DEFAULT_FLRIG_HOST
-    port = DEFAULT_FLRIG_PORT
-    flrig_keys = {"flrig_host", "flrig_port"}
-    result = await session.execute(select(Setting).where(Setting.key.in_(flrig_keys)))
-    values: dict[str, str] = {}
-    for s in result.scalars():
-        if s.value:
-            values[s.key] = s.value
-    # Fall back to global defaults for missing keys
-    missing = (flrig_keys - values.keys()) & GLOBAL_DEFAULTABLE_KEYS
-    if missing:
-        global_result = await gdb.execute(
-            select(GlobalSetting).where(GlobalSetting.key.in_(missing))
-        )
-        for ms in global_result.scalars():
-            if ms.value:
-                values[ms.key] = ms.value
-    host = values.get("flrig_host", host)
-    port = values.get("flrig_port", port)
+async def get_flrig_url(session: AsyncSession = Depends(get_session)) -> str:
+    host = await resolve_setting("flrig_host", session, DEFAULT_FLRIG_HOST)
+    port = await resolve_setting("flrig_port", session, DEFAULT_FLRIG_PORT)
     return f"http://{host}:{port}"
 
 
@@ -128,9 +91,8 @@ class FlrigSet(BaseModel):
 async def flrig_status(
     url: str = Depends(get_flrig_url),
     session: AsyncSession = Depends(get_session),
-    gdb: AsyncSession = Depends(get_global_session),
 ):
-    if await is_simulate(session, gdb):
+    if await is_simulate(session):
         return FlrigStatus(freq=_sim_freq, mode=_sim_mode, connected=True)
     loop = asyncio.get_event_loop()
     client = FlrigClient(url)
@@ -144,9 +106,8 @@ async def flrig_status(
 async def flrig_modes(
     url: str = Depends(get_flrig_url),
     session: AsyncSession = Depends(get_session),
-    gdb: AsyncSession = Depends(get_global_session),
 ):
-    if await is_simulate(session, gdb):
+    if await is_simulate(session):
         return SIMULATED_MODES
     loop = asyncio.get_event_loop()
     client = FlrigClient(url)
@@ -158,10 +119,9 @@ async def flrig_set_vfo(
     data: FlrigSet,
     url: str = Depends(get_flrig_url),
     session: AsyncSession = Depends(get_session),
-    gdb: AsyncSession = Depends(get_global_session),
 ):
     global _sim_freq, _sim_mode
-    if await is_simulate(session, gdb):
+    if await is_simulate(session):
         if data.freq is not None:
             _sim_freq = data.freq
         if data.mode is not None:

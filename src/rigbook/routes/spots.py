@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from rigbook.db import Cache, Setting, get_session
+from rigbook.db import Cache, Setting, get_session, resolve_setting
 from rigbook.geo_centers import approx_grid_for_country, approx_grid_for_state
 from rigbook.routes.qrz import qrz_lookup
 from rigbook.routes.skcc import _ensure_cache as ensure_skcc_cache
@@ -108,10 +108,7 @@ async def query_spots(
         spots = [s for s in spots if s.get("skcc")]
 
     # Enrich with closest spotter distance
-    result = await session.execute(
-        select(Setting.value).where(Setting.key == "my_grid")
-    )
-    my_grid = (result.scalar_one_or_none() or "").strip()
+    my_grid = (await resolve_setting("my_grid", session)).strip()
     if my_grid:
         await spotter_grids.ensure_loaded()
         all_spotters = []
@@ -202,10 +199,7 @@ async def query_spots(
                 s["qrz_grid"] = approx
                 s["qrz_grid_approx"] = True
 
-    result = await session.execute(
-        select(Setting.value).where(Setting.key == "my_callsign")
-    )
-    my_callsign = (result.scalar_one_or_none() or "").strip()
+    my_callsign = (await resolve_setting("my_callsign", session)).strip()
 
     return {"my_grid": my_grid, "my_callsign": my_callsign, "spots": spots}
 
