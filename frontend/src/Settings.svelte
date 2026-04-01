@@ -799,9 +799,20 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ value }),
     });
-    settingSources[key] = "logbook";
+    // Re-check source: if saved value is blank, it may fall back to global
+    try {
+      const res = await fetch(`/api/settings/${key}`);
+      if (res.ok) {
+        const data = await res.json();
+        settingSources[key] = data.source || "logbook";
+        if (data.source === "global" && data.value) {
+          globalPlaceholders[key] = data.value;
+        } else {
+          delete globalPlaceholders[key];
+        }
+      }
+    } catch {}
     settingSources = settingSources;
-    delete globalPlaceholders[key];
     globalPlaceholders = globalPlaceholders;
   }
 
