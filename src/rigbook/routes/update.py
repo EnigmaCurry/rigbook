@@ -63,14 +63,10 @@ def _spawn_and_exit(exe_path: str) -> None:
         else:
             if "--no-browser" not in args:
                 args = args + ["--no-browser"]
-            devnull = open(os.devnull, "w")
             subprocess.Popen(
                 [exe_path] + args,
                 env=env,
                 start_new_session=True,
-                stdin=subprocess.DEVNULL,
-                stdout=devnull,
-                stderr=devnull,
             )
         logger.info("Spawned new process, shutting down...")
         os._exit(0)
