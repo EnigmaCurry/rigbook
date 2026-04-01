@@ -195,6 +195,7 @@ jobs:
 
   docker:
     needs: release
+    if: github.repository == 'EnigmaCurry/rigbook'
     runs-on: ubuntu-latest
     permissions:
       contents: read
