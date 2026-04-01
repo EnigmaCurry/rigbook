@@ -2222,7 +2222,7 @@
     <div class="setting-row toggle-row">
       <label>
         <input type="checkbox" bind:checked={global_open_browser_on_startup} on:change={() => saveGlobalSetting("open_browser_on_startup", global_open_browser_on_startup ? "true" : "false")} />
-        Open browser on startup
+        Open browser on startup (unless <code>--no-browser</code> argument given)
       </label>
     </div>
     <div class="setting-row">
