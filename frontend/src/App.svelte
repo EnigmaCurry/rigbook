@@ -1297,6 +1297,7 @@
     clockInterval = setInterval(() => { utcNow = new Date().toISOString().slice(0, 19).replace("T", " ") + "z"; }, 1000);
     window.addEventListener("hashchange", onHashChange);
     window.addEventListener("resize", onResize);
+    connectSSE(); // connect early to prevent auto-shutdown during welcome
     await checkWelcome();
     if (!welcomeAcknowledged) return; // Welcome screen will handle the rest
     await checkLogbookMode();
