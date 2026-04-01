@@ -1053,12 +1053,15 @@
     }
   }
 
-  onMount(() => {
+  onMount(async () => {
+    await fetchDefaultRst();
     fetchContacts();
-    fetchDefaultRst();
     fetchCountries();
     fetchModes();
-    if (!editingId) startRollingClock();
+    if (!editingId) {
+      startRollingClock();
+      addOriginal = formSnapshot();
+    }
   });
 
   onDestroy(() => {
