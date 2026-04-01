@@ -92,11 +92,20 @@ jobs:
             'DIR="$(dirname "$0")"' \
             'HOST="${RIGBOOK_HOST:-127.0.0.1}"' \
             'PORT="${RIGBOOK_PORT:-8073}"' \
-            'if curl -s -o /dev/null --connect-timeout 1 "http://${HOST}:${PORT}/api/version"; then' \
-            '    open "http://${HOST}:${PORT}"' \
-            'else' \
-            '    exec "$DIR/rigbook" "$@"' \
-            'fi' > Rigbook.app/Contents/MacOS/launch
+            'URL="http://${HOST}:${PORT}"' \
+            'if curl -s -o /dev/null --connect-timeout 1 "${URL}/api/version"; then' \
+            '    open "${URL}"' \
+            '    exit 0' \
+            'fi' \
+            '("$DIR/rigbook" "$@" &)' \
+            'for i in $(seq 1 30); do' \
+            '    sleep 0.5' \
+            '    if curl -s -o /dev/null --connect-timeout 1 "${URL}/api/version"; then' \
+            '        open "${URL}"' \
+            '        break' \
+            '    fi' \
+            'done' \
+            'wait' > Rigbook.app/Contents/MacOS/launch
           chmod +x Rigbook.app/Contents/MacOS/launch
           cat > Rigbook.app/Contents/Info.plist << 'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
