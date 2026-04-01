@@ -88,44 +88,44 @@ jobs:
           version=$(grep -m1 '^version' pyproject.toml | sed 's/.*"\(.*\)".*/\1/')
           mkdir -p Rigbook.app/Contents/MacOS
           cp dist/rigbook-${{ matrix.target }} Rigbook.app/Contents/MacOS/rigbook
-          cat > Rigbook.app/Contents/MacOS/launch << 'LAUNCHER'
-          #!/bin/bash
-          DIR="$(dirname "$0")"
-          HOST="${RIGBOOK_HOST:-127.0.0.1}"
-          PORT="${RIGBOOK_PORT:-8073}"
-          if curl -s -o /dev/null --connect-timeout 1 "http://${HOST}:${PORT}/api/version"; then
-              open "http://${HOST}:${PORT}"
-          else
-              exec "$DIR/rigbook" "$@"
-          fi
-          LAUNCHER
+          cat > Rigbook.app/Contents/MacOS/launch <<'LAUNCHER'
+#!/bin/bash
+DIR="$(dirname "$0")"
+HOST="${RIGBOOK_HOST:-127.0.0.1}"
+PORT="${RIGBOOK_PORT:-8073}"
+if curl -s -o /dev/null --connect-timeout 1 "http://${HOST}:${PORT}/api/version"; then
+    open "http://${HOST}:${PORT}"
+else
+    exec "$DIR/rigbook" "$@"
+fi
+LAUNCHER
           chmod +x Rigbook.app/Contents/MacOS/launch
-          cat > Rigbook.app/Contents/Info.plist << PLIST
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>CFBundleExecutable</key>
-              <string>launch</string>
-              <key>CFBundleIdentifier</key>
-              <string>com.enigmacurry.rigbook</string>
-              <key>CFBundleName</key>
-              <string>Rigbook</string>
-              <key>CFBundleDisplayName</key>
-              <string>Rigbook</string>
-              <key>CFBundleVersion</key>
-              <string>${version}</string>
-              <key>CFBundleShortVersionString</key>
-              <string>${version}</string>
-              <key>CFBundlePackageType</key>
-              <string>APPL</string>
-              <key>LSUIElement</key>
-              <true/>
-              <key>NSHighResolutionCapable</key>
-              <true/>
-          </dict>
-          </plist>
-          PLIST
+          cat > Rigbook.app/Contents/Info.plist <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>launch</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.enigmacurry.rigbook</string>
+    <key>CFBundleName</key>
+    <string>Rigbook</string>
+    <key>CFBundleDisplayName</key>
+    <string>Rigbook</string>
+    <key>CFBundleVersion</key>
+    <string>${version}</string>
+    <key>CFBundleShortVersionString</key>
+    <string>${version}</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+</dict>
+</plist>
+PLIST
           cd dist && zip -r rigbook-macos-arm64.app.zip ../Rigbook.app
 
       - uses: actions/upload-artifact@v6
