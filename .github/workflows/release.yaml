@@ -86,8 +86,20 @@ jobs:
         if: matrix.target == 'macos-arm64'
         run: |
           version=$(grep -m1 '^version' pyproject.toml | sed 's/.*"\(.*\)".*/\1/')
-          mkdir -p Rigbook.app/Contents/MacOS
+          mkdir -p Rigbook.app/Contents/MacOS Rigbook.app/Contents/Resources
           cp dist/rigbook-${{ matrix.target }} Rigbook.app/Contents/MacOS/rigbook
+          mkdir -p rigbook_icon.iconset
+          sips -z 1024 1024 rigbook.png --out rigbook_icon.iconset/icon_512x512@2x.png
+          sips -z 512 512 rigbook.png --out rigbook_icon.iconset/icon_512x512.png
+          sips -z 512 512 rigbook.png --out rigbook_icon.iconset/icon_256x256@2x.png
+          sips -z 256 256 rigbook.png --out rigbook_icon.iconset/icon_256x256.png
+          sips -z 256 256 rigbook.png --out rigbook_icon.iconset/icon_128x128@2x.png
+          sips -z 128 128 rigbook.png --out rigbook_icon.iconset/icon_128x128.png
+          sips -z 64 64 rigbook.png --out rigbook_icon.iconset/icon_32x32@2x.png
+          sips -z 32 32 rigbook.png --out rigbook_icon.iconset/icon_32x32.png
+          sips -z 32 32 rigbook.png --out rigbook_icon.iconset/icon_16x16@2x.png
+          sips -z 16 16 rigbook.png --out rigbook_icon.iconset/icon_16x16.png
+          iconutil -c icns rigbook_icon.iconset -o Rigbook.app/Contents/Resources/rigbook.icns
           printf '%s\n' '#!/bin/bash' \
             'DIR="$(dirname "$0")"' \
             'HOST="${RIGBOOK_HOST:-127.0.0.1}"' \
@@ -124,6 +136,8 @@ jobs:
               <string>VERSIONPLACEHOLDER</string>
               <key>CFBundleShortVersionString</key>
               <string>VERSIONPLACEHOLDER</string>
+              <key>CFBundleIconFile</key>
+              <string>rigbook</string>
               <key>CFBundlePackageType</key>
               <string>APPL</string>
               <key>LSUIElement</key>
