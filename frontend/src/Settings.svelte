@@ -257,11 +257,12 @@
     function add(...items) { for (const l of items) layers.push(l); }
 
     // Bullseye helper for exact stations
-    function bullseye(ll, size = 11) {
+    function exactDot(ll, size = 11) {
       const half = Math.round(size / 2);
+      const qColor = spotMapStrokeStation === "white" ? "#fff" : "#000";
       const icon = L.divIcon({
         className: "",
-        html: `<div style="width:${size}px;height:${size}px;background:${spotMapStation};border:2px solid ${staBorder};border-radius:50%;display:flex;align-items:center;justify-content:center"><div style="width:${Math.max(Math.round(size*0.3),2)}px;height:${Math.max(Math.round(size*0.3),2)}px;background:${spotMapQth};border-radius:50%"></div></div>`,
+        html: `<div style="width:${size}px;height:${size}px;background:${spotMapStation};border:2px solid ${staBorder};border-radius:50%;display:flex;align-items:center;justify-content:center"><span style="color:${qColor};font-size:${Math.max(size-2,8)}px;font-weight:bold;line-height:1">@</span></div>`,
         iconSize: [size, size],
         iconAnchor: [half, half],
       });
@@ -278,7 +279,7 @@
 
     // Triangle dots + labels
     add(
-      bullseye(staLL, 12),
+      exactDot(staLL, 12),
       previewDot(sptLL, spotMapSpotter, sptBorder, 10),
       previewDot(secLL, spotMapSecondary, secBorder, 8),
     );
@@ -295,10 +296,10 @@
     // --- Scattered unconnected dots (no lines, no labels) ---
     // Exact stations with bullseye
     add(
-      bullseye([qthLL[0] - 5, qthLL[1] - 4], 10),
-      bullseye([qthLL[0] + 7, qthLL[1] - 6], 11),
-      bullseye([qthLL[0] + 2, qthLL[1] + 14], 10),
-      bullseye([qthLL[0] - 3, qthLL[1] - 9], 12),
+      exactDot([qthLL[0] - 5, qthLL[1] - 4], 10),
+      exactDot([qthLL[0] + 7, qthLL[1] - 6], 11),
+      exactDot([qthLL[0] + 2, qthLL[1] + 14], 10),
+      exactDot([qthLL[0] - 3, qthLL[1] - 9], 12),
     );
     // Approximate stations
     add(
