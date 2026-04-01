@@ -125,7 +125,7 @@ jobs:
           </plist>
           PLIST
           sed -i '' "s/VERSIONPLACEHOLDER/${version}/g" Rigbook.app/Contents/Info.plist
-          cd dist && zip -r rigbook-macos-arm64.app.zip ../Rigbook.app
+          zip -r dist/rigbook-macos-arm64.app.zip Rigbook.app
 
       - uses: actions/upload-artifact@v6
         with:
