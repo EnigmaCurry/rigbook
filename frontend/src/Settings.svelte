@@ -249,7 +249,7 @@
   function updatePreview() {
     if (!previewEl) return;
     const tiles = resolveTileConfig(map_theme, map_custom_url);
-    const pos = gridToLatLon(my_grid);
+    const pos = gridToLatLon(my_grid || globalPlaceholders.my_grid || "");
     const center = pos ? [pos.lat, pos.lon] : [39, -98];
     // Reinitialize if the DOM node changed (tab switch destroys/recreates it)
     if (previewMap && previewMapEl !== previewEl) {
@@ -319,7 +319,7 @@
       previewDot(secLL, spotMapSecondary, secBorder, 8),
     );
 
-    const callLabel = my_callsign.trim().toUpperCase() || "QTH";
+    const callLabel = (my_callsign.trim() || globalPlaceholders.my_callsign || "").toUpperCase() || "QTH";
     add(
       previewLabel(staLL, "W1AW", spotMapStation, spotMapStrokeStation),
       previewLabel(sptLL, "K3LR", spotMapSpotter, spotMapStrokeSpotter),
