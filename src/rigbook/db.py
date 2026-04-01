@@ -237,20 +237,26 @@ class DatabaseManager:
             )
 
     def read_lock_info(self, db_path: Path) -> dict | None:
-        """Read lock file contents. Returns dict with pid, host, port or None."""
-        lock_path = db_path.with_suffix(".lock")
-        if not lock_path.exists():
-            return None
-        try:
-            parts = lock_path.read_text().strip().split()
-            info = {"pid": int(parts[0])}
-            if len(parts) > 1:
-                host, _, port = parts[1].rpartition(":")
-                info["host"] = host
-                info["port"] = int(port)
-            return info
-        except (ValueError, OSError, IndexError):
-            return None
+        """Read lock file contents. Returns dict with pid, host, port or None.
+
+        Falls back to .addr file if the .lock file can't be read (Windows
+        holds an exclusive byte-range lock that blocks reads).
+        """
+        for suffix in (".lock", ".addr"):
+            path = db_path.with_suffix(suffix)
+            if not path.exists():
+                continue
+            try:
+                parts = path.read_text().strip().split()
+                info = {"pid": int(parts[0])}
+                if len(parts) > 1:
+                    host, _, port = parts[1].rpartition(":")
+                    info["host"] = host
+                    info["port"] = int(port)
+                return info
+            except (ValueError, OSError, IndexError):
+                continue
+        return None
 
     def read_lock_pid(self, db_path: Path) -> int | None:
         """Read the PID from a lock file, or None if not locked."""
@@ -262,6 +268,7 @@ class DatabaseManager:
         self._host = host
         self._port = port
         self._write_lock_content()
+        self._write_addr_file()
 
     def _write_lock_content(self) -> None:
         """Write current pid and optional host:port to the lock file."""
@@ -274,6 +281,16 @@ class DatabaseManager:
             content += f" {self._host}:{self._port}"
         self._lock_file.write(content)
         self._lock_file.flush()
+
+    def _write_addr_file(self) -> None:
+        """Write pid and host:port to a separate unlocked file for Windows."""
+        if not self._lock_file:
+            return
+        addr_path = Path(self._lock_file.name).with_suffix(".addr")
+        content = str(os.getpid())
+        if self._host is not None and self._port is not None:
+            content += f" {self._host}:{self._port}"
+        addr_path.write_text(content)
 
     def _acquire_lock(self, db_path: Path) -> None:
         """Acquire an exclusive file lock to prevent concurrent access."""
@@ -297,6 +314,7 @@ class DatabaseManager:
                 lock_path = Path(self._lock_file.name)
                 self._lock_file.close()
                 lock_path.unlink(missing_ok=True)
+                lock_path.with_suffix(".addr").unlink(missing_ok=True)
             except OSError:
                 pass
             self._lock_file = None
