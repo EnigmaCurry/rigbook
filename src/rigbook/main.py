@@ -638,12 +638,15 @@ def run() -> None:
 
                 if META_DB_PATH.exists():
                     conn = sqlite3.connect(str(META_DB_PATH))
-                    row = conn.execute(
-                        "SELECT value FROM settings WHERE key = 'browser_url_override'"
-                    ).fetchone()
+                    rows = conn.execute(
+                        "SELECT key, value FROM settings WHERE key IN ('browser_url_override', 'open_browser_on_startup')"
+                    ).fetchall()
                     conn.close()
-                    if row and row[0]:
-                        url = row[0]
+                    settings = dict(rows)
+                    if settings.get("open_browser_on_startup") == "false":
+                        return
+                    if settings.get("browser_url_override"):
+                        url = settings["browser_url_override"]
             except Exception:
                 pass
             browser_name = _detect_browser_name()

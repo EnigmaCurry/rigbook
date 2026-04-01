@@ -121,6 +121,7 @@
   let global_default_pick_mode = false;
   let global_default_port = "8073";
   let global_default_logbook_name = "rigbook";
+  let global_open_browser_on_startup = true;
   let global_browser_url_override = "";
   let availableLogbooks = [];
   let globalSettingsLoaded = false;
@@ -1355,6 +1356,7 @@
           if (s.key === "default_pick_mode") global_default_pick_mode = s.value === "true";
           if (s.key === "default_port") global_default_port = s.value || "8073";
           if (s.key === "default_logbook_name") global_default_logbook_name = s.value || "rigbook";
+          if (s.key === "open_browser_on_startup") global_open_browser_on_startup = s.value !== "false";
           if (s.key === "browser_url_override") global_browser_url_override = s.value || "";
           if (s.key === "shutdown_in_menu") shutdownInMenu = s.value === "true";
           if (s.key === "auto_shutdown_on_disconnect") autoShutdownOnDisconnect = s.value === "true";
@@ -2212,6 +2214,12 @@
     <div class="setting-row">
       <label for="global_default_port">Default Port</label>
       <input id="global_default_port" type="text" bind:value={global_default_port} on:blur={() => saveGlobalSetting("default_port", global_default_port.trim())} autocomplete="off" style="max-width: 6rem" />
+    </div>
+    <div class="setting-row toggle-row">
+      <label>
+        <input type="checkbox" bind:checked={global_open_browser_on_startup} on:change={() => saveGlobalSetting("open_browser_on_startup", global_open_browser_on_startup ? "true" : "false")} />
+        Open browser on startup
+      </label>
     </div>
     <div class="setting-row">
       <label for="global_browser_url">Browser URL Override</label>

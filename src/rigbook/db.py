@@ -45,6 +45,7 @@ GLOBAL_ONLY_KEYS = {
     "welcome_acknowledged",
     "default_logbook_name",
     "browser_url_override",
+    "open_browser_on_startup",
 }
 
 
