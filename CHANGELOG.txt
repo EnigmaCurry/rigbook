@@ -1,3 +1,12 @@
+## v0.2.6 — 2026-04-01
+
+- macOS .app bundle: launch from Finder as a desktop app, reopen opens a new browser tab
+- App icon for macOS (.icns) and Windows (.ico)
+- Fix Windows second-launch not opening browser (lock file unreadable due to byte-range lock)
+- Fix Windows shutdown not navigating to shutdown page (SSE event never received)
+- Fix crash on second launch when lock info missing host key
+- Document CLI symlink for macOS app in README
+
 ## v0.2.5 — 2026-04-01
 
 - Fix macOS self-update opening an extra browser tab
