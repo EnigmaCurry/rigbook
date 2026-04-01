@@ -2104,7 +2104,7 @@
     <h3>Default Credentials</h3>
     <div class="setting-row">
       <label for="global_qrz_username">Default QRZ Username</label>
-      <input id="global_qrz_username" type="text" bind:value={global_qrz_username} on:blur={() => saveGlobalSetting("qrz_username", global_qrz_username.trim().toUpperCase())} autocomplete="off" style="text-transform: uppercase; max-width: 14rem" />
+      <input id="global_qrz_username" type="text" bind:value={global_qrz_username} on:blur={() => saveGlobalSetting("qrz_username", global_qrz_username.trim().toUpperCase())} autocomplete="nope" data-1p-ignore data-lpignore="true" style="text-transform: uppercase; max-width: 14rem" />
       <span class="hint">Defaults to Default Callsign if blank</span>
     </div>
     <div class="setting-row">
@@ -2113,13 +2113,13 @@
         <span class="hint">Saved</span>
         <button class="check-now-btn" on:click={async () => { await saveGlobalSetting("qrz_password", ""); global_hasQrzPassword = false; global_qrz_password = ""; }}>Clear</button>
       {:else}
-        <input type="password" bind:value={global_qrz_password} placeholder="QRZ API key" autocomplete="off" style="max-width: 14rem" />
+        <input type="password" bind:value={global_qrz_password} placeholder="QRZ API key" autocomplete="new-password" data-1p-ignore data-lpignore="true" style="max-width: 14rem" />
         <button class="check-now-btn" on:click={async () => { if (global_qrz_password.trim()) { await saveGlobalSetting("qrz_password", global_qrz_password.trim()); global_hasQrzPassword = true; global_qrz_password = ""; } }}>Save</button>
       {/if}
     </div>
     <div class="setting-row">
       <label for="global_hamalert_username">Default HamAlert Username</label>
-      <input id="global_hamalert_username" type="text" bind:value={global_hamalert_username} on:blur={() => saveGlobalSetting("hamalert_username", global_hamalert_username.trim())} autocomplete="off" style="max-width: 14rem" />
+      <input id="global_hamalert_username" type="text" bind:value={global_hamalert_username} on:blur={() => saveGlobalSetting("hamalert_username", global_hamalert_username.trim())} autocomplete="nope" data-1p-ignore data-lpignore="true" style="max-width: 14rem" />
     </div>
     <div class="setting-row">
       <label>Default HamAlert Password</label>
@@ -2127,7 +2127,7 @@
         <span class="hint">Saved</span>
         <button class="check-now-btn" on:click={async () => { await saveGlobalSetting("hamalert_password", ""); global_hasHamalertPassword = false; global_hamalert_password = ""; }}>Clear</button>
       {:else}
-        <input type="password" bind:value={global_hamalert_password} placeholder="HamAlert password" autocomplete="off" style="max-width: 14rem" />
+        <input type="password" bind:value={global_hamalert_password} placeholder="HamAlert password" autocomplete="new-password" data-1p-ignore data-lpignore="true" style="max-width: 14rem" />
         <button class="check-now-btn" on:click={async () => { if (global_hamalert_password.trim()) { await saveGlobalSetting("hamalert_password", global_hamalert_password.trim()); global_hasHamalertPassword = true; global_hamalert_password = ""; } }}>Save</button>
       {/if}
     </div>
