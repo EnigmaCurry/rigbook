@@ -1,7 +1,9 @@
 <script>
-  import { onMount, onDestroy, createEventDispatcher } from "svelte";
+  import { onMount, createEventDispatcher } from "svelte";
 
   const dispatch = createEventDispatcher();
+
+  export let refreshTrigger = 0;
 
   let view = "inbox";
   let notifications = [];
@@ -72,22 +74,13 @@
     dispatch("addqso", meta);
   }
 
-  let eventSource;
-
   onMount(() => {
     fetchInbox();
-    eventSource = new EventSource("/api/events/stream");
-    eventSource.addEventListener("notification", () => {
-      if (view === "inbox") fetchInbox();
-    });
-    eventSource.addEventListener("unread", () => {
-      if (view === "inbox") fetchInbox();
-    });
   });
 
-  onDestroy(() => {
-    if (eventSource) eventSource.close();
-  });
+  $: if (refreshTrigger) {
+    if (view === "inbox") fetchInbox();
+  }
 </script>
 
 <div class="notifications">
