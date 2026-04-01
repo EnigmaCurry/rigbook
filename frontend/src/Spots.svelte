@@ -660,6 +660,12 @@
     return lon;
   }
 
+  function validLL(ll) {
+    if (Array.isArray(ll)) return !isNaN(ll[0]) && !isNaN(ll[1]);
+    if (ll && typeof ll === "object") return !isNaN(ll.lat) && !isNaN(ll.lon || ll.lng);
+    return false;
+  }
+
   /** Normalize a [lat, lon] point relative to a base longitude. */
   function nearLL(baseLon, pt) {
     return [pt[0], nearLon(baseLon, pt[1])];
@@ -919,6 +925,7 @@
       const hpos = homeLatLon(call, grid);
       if (!hpos) continue;
       const ll = nearLL(baseLon, [hpos.lat, hpos.lon]);
+      if (!validLL(ll)) continue;
       marker.setLatLng(ll);
     }
   }
@@ -946,6 +953,7 @@
   }
 
   function distanceLabel(from, to, color = "white", strokeName = "black", t = 0.5) {
+    if (!validLL(from) || !validLL(to)) return L.layerGroup(); // noop
     const mi = haversineMi(from, to);
     const mid = [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t];
     const angle = _labelAngle(from, to);
@@ -968,6 +976,7 @@
   }
 
   function markerLabel(ll, text, color, strokeName = "black") {
+    if (!validLL(ll)) return L.layerGroup(); // noop
     const stroke = strokeRgba(strokeName);
     const icon = L.divIcon({
       className: "marker-label",
@@ -1244,6 +1253,7 @@
       const pos = gridToLatLon(grid);
       if (!pos) continue;
       const ll = nearLL(baseLon, [pos.lat, pos.lon]);
+      if (!validLL(ll)) continue;
       if (spotterMarkers[call]) {
         spotterMarkers[call].setIcon(icon);
         spotterMarkers[call].setLatLng(ll);
@@ -1290,6 +1300,7 @@
       const hpos = homeLatLon(call, grid);
       if (!hpos) continue;
       let ll = nearLL(baseLon, [hpos.lat, hpos.lon]);
+      if (!validLL(ll)) continue;
       if (homeMarkers[call]) {
         homeMarkers[call].setIcon(icon);
         // Don't move the locked station's marker
@@ -1305,8 +1316,8 @@
     // Fit bounds on first load only
     if (!mapInitialFitDone) {
       const allLatLngs = [[myPos.lat, myPos.lon]];
-      for (const m of Object.values(spotterMarkers)) { const ll = m.getLatLng(); allLatLngs.push([ll.lat, ll.lng]); }
-      for (const m of Object.values(homeMarkers)) { const ll = m.getLatLng(); allLatLngs.push([ll.lat, ll.lng]); }
+      for (const m of Object.values(spotterMarkers)) { const ll = m.getLatLng(); if (validLL([ll.lat, ll.lng])) allLatLngs.push([ll.lat, ll.lng]); }
+      for (const m of Object.values(homeMarkers)) { const ll = m.getLatLng(); if (validLL([ll.lat, ll.lng])) allLatLngs.push([ll.lat, ll.lng]); }
       if (allLatLngs.length > 1) {
         leafletMap.fitBounds(allLatLngs, { padding: [30, 30], maxZoom: 8 });
         mapInitialFitDone = true;
