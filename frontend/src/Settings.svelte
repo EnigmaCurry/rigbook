@@ -1026,7 +1026,7 @@
   }
 
   function onGridInput() {
-    stripGrid();
+    my_grid = normalizeGrid(my_grid.slice(0, 6));
     markDirty("my_grid");
   }
 
@@ -1545,7 +1545,7 @@
     <div class="setting-row">
       <label for="my_grid">My Grid Square{#if needsSetup && !my_grid.trim()} <span class="required">*</span>{/if}{#if settingSources.my_grid === "global"} <span class="global-hint">(global default)</span>{/if}</label>
       <div class="grid-input-row">
-        <input id="my_grid" type="text" bind:value={my_grid} on:input={onGridInput} on:keydown={onFieldKeydown} on:blur={() => onFieldBlur("my_grid")} autocomplete="off" style="max-width: 7rem" class:input-required={needsSetup && !my_grid.trim()} placeholder={globalPlaceholders.my_grid || ""} />
+        <input id="my_grid" type="text" bind:value={my_grid} on:input={onGridInput} on:keydown={onFieldKeydown} on:blur={() => onFieldBlur("my_grid")} autocomplete="off" maxlength="6" style="max-width: 7rem" class:input-required={needsSetup && !my_grid.trim()} placeholder={globalPlaceholders.my_grid || ""} />
         <button type="button" class="grid-picker-btn" on:click={() => showGridPicker = !showGridPicker} title="Pick from map">🌍</button>
       </div>
       {#if showGridPicker}
@@ -2105,7 +2105,7 @@
     </div>
     <div class="setting-row">
       <label for="global_my_grid">Default Grid Square</label>
-      <input id="global_my_grid" type="text" bind:value={global_my_grid} on:blur={() => { global_my_grid = normalizeGrid(global_my_grid.trim()); saveGlobalSetting("my_grid", global_my_grid); }} autocomplete="off" style="max-width: 7rem" />
+      <input id="global_my_grid" type="text" bind:value={global_my_grid} on:input={() => { global_my_grid = normalizeGrid(global_my_grid.slice(0, 6)); }} on:blur={() => { global_my_grid = normalizeGrid(global_my_grid.trim()); saveGlobalSetting("my_grid", global_my_grid); }} autocomplete="off" maxlength="6" style="max-width: 7rem" />
     </div>
     <div class="setting-row">
       <label for="global_default_rst">Default RST</label>

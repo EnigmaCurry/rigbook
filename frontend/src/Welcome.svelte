@@ -122,7 +122,7 @@
 
       <div class="field">
         <label for="w-grid">My Grid Square</label>
-        <input id="w-grid" type="text" bind:value={grid} autocomplete="nope" data-1p-ignore data-lpignore="true" style="max-width: 10rem" placeholder="e.g. AB12xy" />
+        <input id="w-grid" type="text" bind:value={grid} on:input={() => { grid = normalizeGrid(grid.slice(0, 6)); }} autocomplete="nope" data-1p-ignore data-lpignore="true" maxlength="6" style="max-width: 10rem" placeholder="e.g. AB12xy" />
       </div>
 
       <div class="field">
