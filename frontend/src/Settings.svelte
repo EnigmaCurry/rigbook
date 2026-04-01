@@ -794,12 +794,19 @@
   $: stripGrid = () => { my_grid = my_grid.replace(/[^A-Za-z0-9]/g, ""); };
 
   function normalizeGrid(g) {
-    // Maidenhead: AA00aa — first 2 upper, 2 digits, last 2 lower
-    g = g.replace(/[^A-Za-z0-9]/g, "");
-    if (g.length < 2) return g.toUpperCase();
-    let out = g.slice(0, 2).toUpperCase() + g.slice(2, 4);
-    if (g.length > 4) out += g.slice(4, 6).toLowerCase();
-    if (g.length > 6) out += g.slice(6).toUpperCase(); // extended grids
+    // Maidenhead: AA99aa — pos 0-1 letters, 2-3 digits, 4-5 letters
+    let out = "";
+    for (let i = 0; i < g.length && out.length < 6; i++) {
+      const c = g[i];
+      const pos = out.length;
+      if (pos < 2) {
+        if (/[A-Ra-r]/.test(c)) out += c.toUpperCase();
+      } else if (pos < 4) {
+        if (/[0-9]/.test(c)) out += c;
+      } else {
+        if (/[A-Xa-x]/.test(c)) out += c.toLowerCase();
+      }
+    }
     return out;
   }
 
