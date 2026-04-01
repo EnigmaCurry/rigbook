@@ -1021,7 +1021,7 @@
   }
 
   /** Check if a pixel position is too close to any occupied positions */
-  function _isTooClose(px, occupied, minDist = 50) {
+  function _isTooClose(px, occupied, minDist = 60) {
     return occupied.some(p => Math.hypot(p.x - px.x, p.y - px.y) < minDist);
   }
 
@@ -1113,10 +1113,14 @@
     const spotterColor = isPrimaryForAny ? mapColors.spotter : mapColors.secondary;
     const spotterStroke = isPrimaryForAny ? mapColors.strokeSpotter : mapColors.strokeSecondary;
 
+    // Primary labels (QTH, spotter) always shown at high z-order
+    const occupied = [];
     selectionLines.push(
-      markerLabel(myLL, myCallsign || "QTH", mapColors.qth, mapColors.strokeQth),
-      markerLabel(sLL, call, spotterColor, spotterStroke),
+      markerLabel(myLL, myCallsign || "QTH", mapColors.qth, mapColors.strokeQth, 4000),
+      markerLabel(sLL, call, spotterColor, spotterStroke, 3500),
     );
+    occupied.push(leafletMap.latLngToContainerPoint(myLL));
+    occupied.push(leafletMap.latLngToContainerPoint(sLL));
 
     for (const s of spots) {
       const hg = spotHomeGrid(s);
@@ -1128,15 +1132,23 @@
       const isPrimary = s.closest_call === call;
       const lineColor = isPrimary ? mapColors.spotter : mapColors.secondary;
       const lineStroke = isPrimary ? mapColors.strokeSpotter : mapColors.strokeSecondary;
+      // Always draw lines
       selectionLines.push(
-        markerLabel(homeLL, s.callsign, mapColors.station, mapColors.strokeStation),
         spotterLine(sLL, homeLL, s.callsign, lineColor),
-        distanceLabel(sLL, homeLL, lineColor, lineStroke, 0.33),
         hunterLine(homeLL, myLL),
-        distanceLabel(homeLL, myLL, mapColors.station, mapColors.strokeStation, 0.5),
         L.polyline([myLL, sLL], { color: lineColor, weight: 2, opacity: 0.6, dashArray: "2 16", lineCap: "round" }).addTo(leafletMap),
-        distanceLabel(myLL, sLL, lineColor, lineStroke, 0.67),
       );
+      // Only show station label if it won't overlap existing labels
+      const homePx = leafletMap.latLngToContainerPoint(homeLL);
+      if (!_isTooClose(homePx, occupied)) {
+        selectionLines.push(markerLabel(homeLL, s.callsign, mapColors.station, mapColors.strokeStation, 2000));
+        selectionLines.push(
+          distanceLabel(sLL, homeLL, lineColor, lineStroke, 0.33),
+          distanceLabel(homeLL, myLL, mapColors.station, mapColors.strokeStation, 0.5),
+          distanceLabel(myLL, sLL, lineColor, lineStroke, 0.67),
+        );
+        occupied.push(homePx);
+      }
     }
     _updateDistLabels();
   }
