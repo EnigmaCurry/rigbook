@@ -528,9 +528,13 @@ def run() -> None:
                 return f"{color}{msg}{self.RESET}"
             return msg
 
-    # On Windows frozen builds, log to a file (console will be hidden)
-    _windowed = getattr(sys, "frozen", False) and sys.platform == "win32"
-    if _windowed:
+    # Log to file when there's no usable console (Windows windowed build,
+    # or macOS .app launched from Finder with no tty).
+    _log_to_file = getattr(sys, "frozen", False) and (
+        sys.platform == "win32"
+        or (sys.platform == "darwin" and not sys.stderr.isatty())
+    )
+    if _log_to_file:
         from rigbook.db import DB_DIR
 
         DB_DIR.mkdir(parents=True, exist_ok=True)
@@ -576,11 +580,5 @@ def run() -> None:
             webbrowser.open(url)
 
         threading.Thread(target=open_browser, daemon=True).start()
-
-    # Detach from the console on Windows frozen builds so the window disappears.
-    # ShowWindow(SW_HIDE) only works with conhost; FreeConsole fully detaches.
-    if getattr(sys, "frozen", False) and sys.platform == "win32":
-        import ctypes
-        ctypes.windll.kernel32.FreeConsole()
 
     uvicorn.run(app, host=host, port=port, access_log=False, log_config=None)

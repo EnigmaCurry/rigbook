@@ -51,13 +51,19 @@ def _spawn_and_exit(exe_path: str) -> None:
                     env.pop(ldvar)
         args = sys.argv[1:]
         if sys.platform == "darwin":
-            # On macOS, use `open` to relaunch so the user gets a fresh
-            # Terminal.app window (the old one closes due to `; exit;`
-            # that Finder injects).  Pass --args to forward CLI flags.
+            # On macOS, use `open` to relaunch.  If running inside a .app
+            # bundle, open the .app itself so macOS treats it as an app
+            # launch (no Terminal window).
+            launch_target = exe_path
+            exe_dir = os.path.dirname(exe_path)
+            if exe_dir.endswith("/Contents/MacOS"):
+                app_dir = os.path.dirname(os.path.dirname(exe_dir))
+                if app_dir.endswith(".app"):
+                    launch_target = app_dir
             if "--no-browser" not in args:
                 args = args + ["--no-browser"]
             subprocess.Popen(
-                ["open", exe_path, "--args"] + args,
+                ["open", launch_target, "--args"] + args,
                 env=env,
                 start_new_session=True,
             )
