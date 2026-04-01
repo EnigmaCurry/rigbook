@@ -962,6 +962,10 @@
     markDirty("default_rst");
   }
 
+  function onFieldKeydown(e) {
+    if (e.key === "Enter") e.target.blur();
+  }
+
   async function onFieldBlur(key) {
     clearTimeout(debounceTimers[key]);
     if (dirtyFields.has(key) && fieldSavers[key]) {
@@ -1416,12 +1420,12 @@
     <h3>Station</h3>
     <div class="setting-row">
       <label for="my_callsign">My Callsign{#if needsSetup && !my_callsign.trim()} <span class="required">*</span>{/if}</label>
-      <input id="my_callsign" type="text" bind:value={my_callsign} on:input={onCallsignInput} on:blur={() => onFieldBlur("my_callsign")} maxlength="10" autocomplete="off" style="text-transform: uppercase; max-width: 7rem" class:input-required={needsSetup && !my_callsign.trim()} />
+      <input id="my_callsign" type="text" bind:value={my_callsign} on:input={onCallsignInput} on:keydown={onFieldKeydown} on:blur={() => onFieldBlur("my_callsign")} maxlength="10" autocomplete="off" style="text-transform: uppercase; max-width: 7rem" class:input-required={needsSetup && !my_callsign.trim()} />
     </div>
     <div class="setting-row">
       <label for="my_grid">My Grid Square{#if needsSetup && !my_grid.trim()} <span class="required">*</span>{/if}</label>
       <div class="grid-input-row">
-        <input id="my_grid" type="text" bind:value={my_grid} on:input={onGridInput} on:blur={() => onFieldBlur("my_grid")} autocomplete="off" style="text-transform: uppercase; max-width: 7rem" class:input-required={needsSetup && !my_grid.trim()} />
+        <input id="my_grid" type="text" bind:value={my_grid} on:input={onGridInput} on:keydown={onFieldKeydown} on:blur={() => onFieldBlur("my_grid")} autocomplete="off" style="text-transform: uppercase; max-width: 7rem" class:input-required={needsSetup && !my_grid.trim()} />
         <button type="button" class="grid-picker-btn" on:click={() => showGridPicker = !showGridPicker} title="Pick from map">🌍</button>
       </div>
       {#if showGridPicker}
@@ -1441,7 +1445,7 @@
     </div>
     <div class="setting-row">
       <label for="default_rst">Default RST</label>
-      <input id="default_rst" type="text" bind:value={default_rst} on:input={onDefaultRstInput} on:blur={() => onFieldBlur("default_rst")} autocomplete="off" style="max-width: 7rem" />
+      <input id="default_rst" type="text" bind:value={default_rst} on:input={onDefaultRstInput} on:keydown={onFieldKeydown} on:blur={() => onFieldBlur("default_rst")} autocomplete="off" style="max-width: 7rem" />
     </div>
   </section>
 
@@ -1488,11 +1492,11 @@
     </div>
     <div class="setting-row">
       <label for="flrig_host">flrig Host</label>
-      <input id="flrig_host" type="text" bind:value={flrig_host} on:input={onFlrigHostInput} on:blur={() => onFieldBlur("flrig_host")} autocomplete="off" disabled={!flrig_enabled || flrig_simulate} style="max-width: 7rem" />
+      <input id="flrig_host" type="text" bind:value={flrig_host} on:input={onFlrigHostInput} on:keydown={onFieldKeydown} on:blur={() => onFieldBlur("flrig_host")} autocomplete="off" disabled={!flrig_enabled || flrig_simulate} style="max-width: 7rem" />
     </div>
     <div class="setting-row">
       <label for="flrig_port">flrig Port</label>
-      <input id="flrig_port" type="text" bind:value={flrig_port} on:input={onFlrigPortInput} on:blur={() => onFieldBlur("flrig_port")} autocomplete="off" inputmode="numeric" disabled={!flrig_enabled || flrig_simulate} style="max-width: 7rem" />
+      <input id="flrig_port" type="text" bind:value={flrig_port} on:input={onFlrigPortInput} on:keydown={onFieldKeydown} on:blur={() => onFieldBlur("flrig_port")} autocomplete="off" inputmode="numeric" disabled={!flrig_enabled || flrig_simulate} style="max-width: 7rem" />
     </div>
   </section>
   </div>
@@ -1578,14 +1582,14 @@
     </div>
     <div class="setting-row">
       <label for="rbn_host">RBN Host</label>
-      <input id="rbn_host" type="text" bind:value={rbn_host} on:input={onRbnHostInput} on:blur={() => onFieldBlur("rbn_host")} autocomplete="off" disabled={!rbn_enabled} />
+      <input id="rbn_host" type="text" bind:value={rbn_host} on:input={onRbnHostInput} on:keydown={onFieldKeydown} on:blur={() => onFieldBlur("rbn_host")} autocomplete="off" disabled={!rbn_enabled} />
     </div>
     <div class="setting-row toggle-row">
       <label><input type="checkbox" bind:checked={skcc_skimmer_enabled} on:change={onSkccSkimmerEnabledChange} disabled={!rbn_enabled} /> Show SKCC Skimmer on Hunting page</label>
     </div>
     <div class="setting-row">
       <label for="skcc_distance">SKCC Skimmer max distance (miles)</label>
-      <input id="skcc_distance" type="text" bind:value={skcc_skimmer_distance} on:input={onSkccSkimmerDistanceInput} on:blur={() => onFieldBlur("skcc_skimmer_distance")} autocomplete="off" inputmode="numeric" disabled={!rbn_enabled || !skcc_skimmer_enabled} style="max-width: 7rem" />
+      <input id="skcc_distance" type="text" bind:value={skcc_skimmer_distance} on:input={onSkccSkimmerDistanceInput} on:keydown={onFieldKeydown} on:blur={() => onFieldBlur("skcc_skimmer_distance")} autocomplete="off" inputmode="numeric" disabled={!rbn_enabled || !skcc_skimmer_enabled} style="max-width: 7rem" />
     </div>
     <div class="setting-row toggle-row">
       <label>
@@ -1595,7 +1599,7 @@
     </div>
     <div class="setting-row">
       <label for="rbn_idle_timeout">Idle timeout (minutes)</label>
-      <input id="rbn_idle_timeout" type="text" bind:value={rbn_idle_timeout_minutes} on:input={onRbnIdleTimeoutHoursInput} on:blur={() => onFieldBlur("rbn_idle_timeout_minutes")} autocomplete="off" inputmode="numeric" disabled={!rbn_enabled || !rbn_idle_timeout_enabled} style="max-width: 7rem" />
+      <input id="rbn_idle_timeout" type="text" bind:value={rbn_idle_timeout_minutes} on:input={onRbnIdleTimeoutHoursInput} on:keydown={onFieldKeydown} on:blur={() => onFieldBlur("rbn_idle_timeout_minutes")} autocomplete="off" inputmode="numeric" disabled={!rbn_enabled || !rbn_idle_timeout_enabled} style="max-width: 7rem" />
     </div>
     <p class="hint">Uses {my_callsign.trim().toUpperCase() || "your callsign"} to authenticate.</p>
   </section>
@@ -1614,15 +1618,15 @@
     </div>
     <div class="setting-row">
       <label for="hamalert_host">Host</label>
-      <input id="hamalert_host" type="text" bind:value={hamalert_host} on:input={onHamalertHostInput} on:blur={() => onFieldBlur("hamalert_host")} autocomplete="off" disabled={!hamalert_enabled} />
+      <input id="hamalert_host" type="text" bind:value={hamalert_host} on:input={onHamalertHostInput} on:keydown={onFieldKeydown} on:blur={() => onFieldBlur("hamalert_host")} autocomplete="off" disabled={!hamalert_enabled} />
     </div>
     <div class="setting-row">
       <label for="hamalert_port">Port</label>
-      <input id="hamalert_port" type="text" bind:value={hamalert_port} on:input={onHamalertPortInput} on:blur={() => onFieldBlur("hamalert_port")} autocomplete="off" inputmode="numeric" disabled={!hamalert_enabled} />
+      <input id="hamalert_port" type="text" bind:value={hamalert_port} on:input={onHamalertPortInput} on:keydown={onFieldKeydown} on:blur={() => onFieldBlur("hamalert_port")} autocomplete="off" inputmode="numeric" disabled={!hamalert_enabled} />
     </div>
     <div class="setting-row">
       <label for="hamalert_username">Telnet Username</label>
-      <input id="hamalert_username" type="text" bind:value={hamalert_username} on:input={onHamalertUsernameInput} on:blur={() => onFieldBlur("hamalert_username")} autocomplete="off" disabled={!hamalert_enabled} />
+      <input id="hamalert_username" type="text" bind:value={hamalert_username} on:input={onHamalertUsernameInput} on:keydown={onFieldKeydown} on:blur={() => onFieldBlur("hamalert_username")} autocomplete="off" disabled={!hamalert_enabled} />
     </div>
     <div class="setting-row">
       <label for="hamalert_password">{hasHamalertPassword ? "Change Telnet Password" : "Telnet Password"}</label>
@@ -1651,7 +1655,7 @@
     {#if map_theme === "custom"}
       <div class="setting-row">
         <label for="map_custom_url">Tile URL</label>
-        <input id="map_custom_url" type="text" bind:value={map_custom_url} on:input={onMapCustomUrlInput} on:blur={() => onFieldBlur("map_custom_url")} placeholder="https://&#123;s&#125;.tile.example.com/&#123;z&#125;/&#123;x&#125;/&#123;y&#125;.png" />
+        <input id="map_custom_url" type="text" bind:value={map_custom_url} on:input={onMapCustomUrlInput} on:keydown={onFieldKeydown} on:blur={() => onFieldBlur("map_custom_url")} placeholder="https://&#123;s&#125;.tile.example.com/&#123;z&#125;/&#123;x&#125;/&#123;y&#125;.png" />
       </div>
     {/if}
     <div class="setting-row toggle-row">
@@ -1746,7 +1750,7 @@
     <h3>Content</h3>
     <div class="setting-row">
       <label for="custom_header">Custom Header</label>
-      <input id="custom_header" type="text" bind:value={custom_header} on:input={onCustomHeaderInput} on:blur={() => onFieldBlur("custom_header")} autocomplete="off" placeholder={my_callsign.trim().toUpperCase() || "Callsign"} />
+      <input id="custom_header" type="text" bind:value={custom_header} on:input={onCustomHeaderInput} on:keydown={onFieldKeydown} on:blur={() => onFieldBlur("custom_header")} autocomplete="off" placeholder={my_callsign.trim().toUpperCase() || "Callsign"} />
       <span class="hint">Replaces the callsign in the header. Leave blank to show your callsign.</span>
     </div>
     <div class="setting-row">
