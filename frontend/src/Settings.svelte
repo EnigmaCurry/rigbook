@@ -2675,6 +2675,7 @@
     border-radius: 4px;
     background: var(--bg-input, transparent);
     color: var(--text);
+    align-self: flex-start;
   }
   .check-now-btn:disabled {
     opacity: 0.5;
