@@ -626,29 +626,31 @@ def run() -> None:
     ).lower() in ("1", "true", "yes")
     if not no_browser:
         default_url = f"http://{host}:{port}"
+        env_browser_url = os.environ.get("RIGBOOK_BROWSER_URL", "").strip()
 
         def open_browser():
             import sqlite3
             import time
 
             time.sleep(1)
-            url = default_url
-            try:
-                from rigbook.db import META_DB_PATH
+            url = env_browser_url or default_url
+            if not env_browser_url:
+                try:
+                    from rigbook.db import META_DB_PATH
 
-                if META_DB_PATH.exists():
-                    conn = sqlite3.connect(str(META_DB_PATH))
-                    rows = conn.execute(
-                        "SELECT key, value FROM settings WHERE key IN ('browser_url_override', 'open_browser_on_startup')"
-                    ).fetchall()
-                    conn.close()
-                    settings = dict(rows)
-                    if settings.get("open_browser_on_startup") == "false":
-                        return
-                    if settings.get("browser_url_override"):
-                        url = settings["browser_url_override"]
-            except Exception:
-                pass
+                    if META_DB_PATH.exists():
+                        conn = sqlite3.connect(str(META_DB_PATH))
+                        rows = conn.execute(
+                            "SELECT key, value FROM settings WHERE key IN ('browser_url_override', 'open_browser_on_startup')"
+                        ).fetchall()
+                        conn.close()
+                        settings = dict(rows)
+                        if settings.get("open_browser_on_startup") == "false":
+                            return
+                        if settings.get("browser_url_override"):
+                            url = settings["browser_url_override"]
+                except Exception:
+                    pass
             browser_name = _detect_browser_name()
             logger.info("Opening %s in %s", url, browser_name)
             webbrowser.open(url)

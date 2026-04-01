@@ -199,6 +199,7 @@ instead.
 | `RIGBOOK_NO_BROWSER` | `true` to skip opening the browser |
 | `RIGBOOK_HOST` | Bind address (default: `127.0.0.1`) |
 | `RIGBOOK_PORT` | Port (default: `8073`) |
+| `RIGBOOK_BROWSER_URL` | Override the URL opened in the browser (e.g. `https://rigbook.local`) |
 
 ## Getting started
 
