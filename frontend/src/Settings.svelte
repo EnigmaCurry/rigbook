@@ -2195,7 +2195,7 @@
     <div class="setting-row toggle-row">
       <label>
         <input type="checkbox" bind:checked={global_default_pick_mode} on:change={() => saveGlobalSetting("default_pick_mode", global_default_pick_mode ? "true" : "false")} />
-        Start in picker mode by default
+        Ask which logbook to open on start
       </label>
     </div>
     <div class="setting-row">
