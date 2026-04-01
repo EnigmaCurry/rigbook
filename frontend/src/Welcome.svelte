@@ -124,7 +124,7 @@
     <div class="fields">
       <div class="field">
         <label for="w-callsign">My Callsign</label>
-        <input id="w-callsign" type="text" bind:value={callsign} on:input={() => { callsign = callsign.toUpperCase(); }} autocomplete="nope" data-1p-ignore data-lpignore="true" style="max-width: 10rem" placeholder="e.g. W1AW" />
+        <input id="w-callsign" type="text" bind:value={callsign} on:input={() => { callsign = callsign.replace(/\s/g, "").toUpperCase(); }} autocomplete="nope" data-1p-ignore data-lpignore="true" style="max-width: 10rem" placeholder="e.g. W1AW" />
       </div>
 
       <div class="field">
