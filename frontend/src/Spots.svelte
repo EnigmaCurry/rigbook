@@ -1020,8 +1020,12 @@
     return m;
   }
 
-  /** Check if a pixel position is too close to any occupied positions */
-  function _isTooClose(px, occupied, minDist = 60) {
+  /** Check if a pixel position is too close to any occupied positions.
+   *  Min distance shrinks as you zoom in (more room), grows when zoomed out. */
+  function _isTooClose(px, occupied) {
+    const zoom = leafletMap ? leafletMap.getZoom() : 4;
+    // 100px at zoom 3, shrinking to 40px at zoom 10+
+    const minDist = Math.max(40, 100 - (zoom - 3) * 8.5);
     return occupied.some(p => Math.hypot(p.x - px.x, p.y - px.y) < minDist);
   }
 
