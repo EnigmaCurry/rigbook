@@ -50,13 +50,24 @@ def _spawn_and_exit(exe_path: str) -> None:
                 else:
                     env.pop(ldvar)
         args = sys.argv[1:]
-        if "--no-browser" not in args:
-            args = args + ["--no-browser"]
-        subprocess.Popen(
-            [exe_path] + args,
-            env=env,
-            start_new_session=True,
-        )
+        if sys.platform == "darwin":
+            # On macOS, use `open` to relaunch so the user gets a fresh
+            # Terminal.app window (the old one closes due to `; exit;`
+            # that Finder injects).  `open` doesn't forward CLI args, so
+            # skip --no-browser — reopening the tab is fine for an update.
+            subprocess.Popen(
+                ["open", exe_path],
+                env=env,
+                start_new_session=True,
+            )
+        else:
+            if "--no-browser" not in args:
+                args = args + ["--no-browser"]
+            subprocess.Popen(
+                [exe_path] + args,
+                env=env,
+                start_new_session=True,
+            )
         logger.info("Spawned new process, shutting down...")
         os._exit(0)
 
