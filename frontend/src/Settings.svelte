@@ -1568,7 +1568,7 @@
       <input id="qrz_password" type="password" bind:value={qrz_password} autocomplete="off" placeholder={hasQrzPassword ? "Leave blank to keep current" : "unset"} style="min-width: 8ch" />
     </div>
     <div class="setting-row">
-      {#if qrz_password.trim()}<button type="button" class="theme-toggle" on:click={loginQrz}>Login</button>{/if}
+      {#if qrz_password.trim()}<button type="button" class="check-now-btn" on:click={loginQrz}>Login</button>{/if}
       <span class="hint">{#if hasQrzPassword}Leave blank to remain unchanged{:else}Your QRZ account password{/if}</span>
     </div>
     {#if hasQrzPassword}
@@ -2111,7 +2111,7 @@
         <button class="check-now-btn" on:click={async () => { await saveGlobalSetting("qrz_password", ""); global_hasQrzPassword = false; global_qrz_password = ""; }}>Clear</button>
       {:else}
         <input type="password" bind:value={global_qrz_password} placeholder="QRZ API key" autocomplete="off" style="max-width: 14rem" />
-        <button class="check-now-btn" style="width: 14rem" on:click={async () => { if (global_qrz_password.trim()) { await saveGlobalSetting("qrz_password", global_qrz_password.trim()); global_hasQrzPassword = true; global_qrz_password = ""; } }}>Save</button>
+        <button class="check-now-btn" on:click={async () => { if (global_qrz_password.trim()) { await saveGlobalSetting("qrz_password", global_qrz_password.trim()); global_hasQrzPassword = true; global_qrz_password = ""; } }}>Save</button>
       {/if}
     </div>
     <div class="setting-row">
@@ -2125,7 +2125,7 @@
         <button class="check-now-btn" on:click={async () => { await saveGlobalSetting("hamalert_password", ""); global_hasHamalertPassword = false; global_hamalert_password = ""; }}>Clear</button>
       {:else}
         <input type="password" bind:value={global_hamalert_password} placeholder="HamAlert password" autocomplete="off" style="max-width: 14rem" />
-        <button class="check-now-btn" style="width: 14rem" on:click={async () => { if (global_hamalert_password.trim()) { await saveGlobalSetting("hamalert_password", global_hamalert_password.trim()); global_hasHamalertPassword = true; global_hamalert_password = ""; } }}>Save</button>
+        <button class="check-now-btn" on:click={async () => { if (global_hamalert_password.trim()) { await saveGlobalSetting("hamalert_password", global_hamalert_password.trim()); global_hasHamalertPassword = true; global_hamalert_password = ""; } }}>Save</button>
       {/if}
     </div>
   </section>
