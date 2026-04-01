@@ -89,6 +89,12 @@ xattr -cr /Applications/Rigbook.app
 Then open Rigbook from your Applications folder. It launches as a
 standalone desktop app (no terminal window).
 
+To add the `rigbook` CLI to your PATH:
+
+```bash
+sudo ln -sf /Applications/Rigbook.app/Contents/MacOS/rigbook /usr/local/bin/rigbook
+```
+
 > The release also includes a standalone `rigbook-macos-arm64` binary.
 > This is used by the built-in updater and can also be run directly
 > from the command line if you prefer.
