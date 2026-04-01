@@ -73,4 +73,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon="rigbook.ico" if Path("rigbook.ico").exists() else None,
 )

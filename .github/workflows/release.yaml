@@ -71,6 +71,10 @@ jobs:
           pip install pyinstaller
           pip install .
 
+      - name: Convert icon for Windows
+        if: runner.os == 'Windows'
+        run: pip install Pillow && python -c "from PIL import Image; img = Image.open('rigbook.png'); img.save('rigbook.ico', sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])"
+
       - name: Build binary
         run: pyinstaller rigbook.spec
 
