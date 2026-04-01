@@ -39,8 +39,9 @@ GLOBAL_ONLY_KEYS = {
     "update_check_enabled",
     "default_pick_mode",
     "default_port",
-    "default_shutdown_in_menu",
     "update_skip_version",
+    "shutdown_in_menu",
+    "auto_shutdown_on_disconnect",
 }
 
 

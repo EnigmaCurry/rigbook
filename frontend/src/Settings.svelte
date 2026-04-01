@@ -118,7 +118,6 @@
   let global_flrig_port = "12345";
   let global_default_pick_mode = false;
   let global_default_port = "8073";
-  let global_default_shutdown_in_menu = false;
   let globalSettingsLoaded = false;
 
   // Track which per-logbook settings are from global defaults
@@ -1295,8 +1294,6 @@
             } catch {}
           }
           if (s.key === "popup_notifications_enabled") popupNotifEnabled = s.value === "true";
-          if (s.key === "auto_shutdown_on_disconnect") autoShutdownOnDisconnect = s.value === "true";
-          if (s.key === "shutdown_in_menu") shutdownInMenu = s.value === "true";
         }
       }
       settingsLoaded = true;
@@ -1321,7 +1318,8 @@
           if (s.key === "flrig_port") global_flrig_port = s.value || "12345";
           if (s.key === "default_pick_mode") global_default_pick_mode = s.value === "true";
           if (s.key === "default_port") global_default_port = s.value || "8073";
-          if (s.key === "default_shutdown_in_menu") global_default_shutdown_in_menu = s.value === "true";
+          if (s.key === "shutdown_in_menu") shutdownInMenu = s.value === "true";
+          if (s.key === "auto_shutdown_on_disconnect") autoShutdownOnDisconnect = s.value === "true";
           if (s.key === "update_check_enabled") update_check_enabled = s.value !== "false";
         }
         globalSettingsLoaded = true;
@@ -1977,13 +1975,6 @@
 
   {#if activeTab === "system"}
   <div class="tab-content" use:masonry>
-  <section class="settings-section">
-    <h3>Cache</h3>
-    <p class="hint">Cached data: QRZ callsign lookups, SKCC member list. Clearing forces fresh lookups on next use.</p>
-    <div class="setting-row toggle-row">
-      <button class="theme-toggle" on:click={clearCache}>Clear Cache</button>
-    </div>
-  </section>
 
   <section class="settings-section">
     <h3>Backup</h3>
@@ -2038,22 +2029,6 @@
         <button class="warning-btn" on:click={disconnectOthers}>Disconnect all other clients</button>
       </div>
     {/if}
-    <div class="setting-row toggle-row">
-      <label class="toggle-label">
-        <input type="checkbox" bind:checked={autoShutdownOnDisconnect} on:change={() => saveSetting("auto_shutdown_on_disconnect", autoShutdownOnDisconnect ? "true" : "false")} />
-        Shutdown automatically when last client disconnects
-      </label>
-    </div>
-    <p class="hint">When enabled, the server will shut down after 15 seconds with no connected clients.</p>
-    <div class="setting-row toggle-row">
-      <label class="toggle-label">
-        <input type="checkbox" bind:checked={shutdownInMenu} on:change={() => { saveSetting("shutdown_in_menu", shutdownInMenu ? "true" : "false"); dispatch("saved"); }} />
-        Add Shutdown action to the main menu
-      </label>
-    </div>
-    <div class="setting-row">
-      <button class="danger-btn" on:click={shutdownServer}>Shutdown Now</button>
-    </div>
   </section>
   {/if}
 
@@ -2173,11 +2148,33 @@
       <label for="global_default_port">Default Port</label>
       <input id="global_default_port" type="text" bind:value={global_default_port} on:blur={() => saveGlobalSetting("default_port", global_default_port.trim())} autocomplete="off" style="max-width: 6rem" />
     </div>
+  </section>
+
+  <section class="settings-section">
+    <h3>Cache</h3>
+    <p class="hint">Cached data: QRZ callsign lookups, SKCC member list. Clearing forces fresh lookups on next use.</p>
     <div class="setting-row toggle-row">
-      <label>
-        <input type="checkbox" bind:checked={global_default_shutdown_in_menu} on:change={() => saveGlobalSetting("default_shutdown_in_menu", global_default_shutdown_in_menu ? "true" : "false")} />
-        Show shutdown in menu by default
+      <button class="theme-toggle" on:click={clearCache}>Clear Cache</button>
+    </div>
+  </section>
+
+  <section class="settings-section">
+    <h3>Shutdown</h3>
+    <div class="setting-row toggle-row">
+      <label class="toggle-label">
+        <input type="checkbox" bind:checked={autoShutdownOnDisconnect} on:change={() => saveGlobalSetting("auto_shutdown_on_disconnect", autoShutdownOnDisconnect ? "true" : "false")} />
+        Shutdown automatically when last client disconnects
       </label>
+    </div>
+    <p class="hint">When enabled, the server will shut down after 15 seconds with no connected clients.</p>
+    <div class="setting-row toggle-row">
+      <label class="toggle-label">
+        <input type="checkbox" bind:checked={shutdownInMenu} on:change={() => { saveGlobalSetting("shutdown_in_menu", shutdownInMenu ? "true" : "false"); }} />
+        Add Shutdown action to the main menu
+      </label>
+    </div>
+    <div class="setting-row">
+      <button class="danger-btn" on:click={shutdownServer}>Shutdown Now</button>
     </div>
   </section>
   </div>

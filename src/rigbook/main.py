@@ -19,8 +19,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from rigbook.db import (
     DatabaseLockError,
     GlobalCache,
+    GlobalSetting,
     Setting,
-    async_session,
     db_manager,
     get_global_session,
     get_session,
@@ -116,11 +116,11 @@ async def lifespan(app: FastAPI):
         await start_feeds()
         await start_auto_backup()
         if not NO_SHUTDOWN:
-            async with async_session() as session:
+            async with global_async_session() as gdb:
                 row = (
-                    await session.execute(
-                        select(Setting).where(
-                            Setting.key == "auto_shutdown_on_disconnect"
+                    await gdb.execute(
+                        select(GlobalSetting).where(
+                            GlobalSetting.key == "auto_shutdown_on_disconnect"
                         )
                     )
                 ).scalar_one_or_none()

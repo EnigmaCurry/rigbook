@@ -897,7 +897,7 @@
 
   async function fetchShutdownMenuEnabled() {
     try {
-      const res = await fetch("/api/settings/shutdown_in_menu");
+      const res = await fetch("/api/global-settings/shutdown_in_menu");
       if (res.ok) {
         const data = await res.json();
         shutdownMenuEnabled = data.value === "true";
