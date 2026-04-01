@@ -409,6 +409,11 @@ def run() -> None:
                     "RIGBOOK_NO_BROWSER", ""
                 ).lower() in ("1", "true", "yes")
                 lock_info = db_manager.read_lock_info(db_path)
+                if not lock_info or "host" not in lock_info:
+                    # Fallback: can't read lock/addr file (Windows byte-range lock)
+                    lock_info = lock_info or {}
+                    lock_info.setdefault("host", os.environ.get("RIGBOOK_HOST", "127.0.0.1"))
+                    lock_info.setdefault("port", int(os.environ.get("RIGBOOK_PORT", "8073")))
                 replaced = False
                 same_lineage = True
                 running_version = None
