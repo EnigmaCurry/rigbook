@@ -1,3 +1,7 @@
+## v0.2.7 — 2026-04-01
+
+- Test release to verify upgrade from v0.2.6
+
 ## v0.2.6 — 2026-04-01
 
 - macOS .app bundle: launch from Finder as a desktop app, reopen opens a new browser tab
