@@ -82,6 +82,12 @@ config-grid grid: _check-curl
 config-show: _check-curl
     @curl -s http://localhost:8073/api/settings | python -m json.tool
 
+# Reset local dev branch to match remote
+reset-dev:
+    git fetch origin
+    git checkout dev
+    git reset --hard origin/dev
+
 # Remove build artifacts and stamp files
 clean:
     rm -rf dist/ build/
