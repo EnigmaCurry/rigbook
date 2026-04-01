@@ -687,10 +687,12 @@
       iconAnchor: [half, half],
     });
   }
-  function getHomeActiveIcon() {
+  function getHomeActiveIcon(approx = false) {
+    const size = 13;
+    const bullseye = approx ? "" : `<div style="width:${Math.max(Math.round(size*0.3),2)}px;height:${Math.max(Math.round(size*0.3),2)}px;background:${mapColors.qth};border-radius:50%"></div>`;
     return L.divIcon({
       className: "spot-marker",
-      html: `<div class="spot-marker-dot" style="width:13px;height:13px;background:${mapColors.station};border:2px solid ${darkenColor(mapColors.station)};border-radius:50%"></div>`,
+      html: `<div class="spot-marker-dot" style="width:${size}px;height:${size}px;background:${mapColors.station};border:2px solid ${darkenColor(mapColors.station)};border-radius:50%;display:flex;align-items:center;justify-content:center">${bullseye}</div>`,
       iconSize: [15, 15],
       iconAnchor: [7, 7],
     });
@@ -824,7 +826,7 @@
     for (const [call, marker] of Object.entries(homeMarkers)) {
       const active = call === spot.callsign;
       setMarkerVisible(marker, active);
-      if (active) marker.setIcon(getHomeActiveIcon());
+      if (active) marker.setIcon(getHomeActiveIcon(homeApproxSet.has(call)));
     }
   }
 
