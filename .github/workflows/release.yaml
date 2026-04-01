@@ -108,16 +108,25 @@ jobs:
             'DIR="$(dirname "$0")"' \
             'HOST="${RIGBOOK_HOST:-127.0.0.1}"' \
             'PORT="${RIGBOOK_PORT:-8073}"' \
-            'URL="http://${HOST}:${PORT}"' \
-            'if curl -s -o /dev/null --connect-timeout 1 "${URL}/api/version"; then' \
-            '    open "${URL}"' \
+            'URL="${RIGBOOK_BROWSER_URL:-}"' \
+            'OPEN_BROWSER=true' \
+            'GLOBAL_DB="$HOME/.local/rigbook/__global.db"' \
+            'if [ -z "$URL" ] && [ -f "$GLOBAL_DB" ] && command -v sqlite3 >/dev/null 2>&1; then' \
+            '    DB_URL=$(sqlite3 "$GLOBAL_DB" "SELECT value FROM settings WHERE key='"'"'browser_url_override'"'"'" 2>/dev/null)' \
+            '    DB_OPEN=$(sqlite3 "$GLOBAL_DB" "SELECT value FROM settings WHERE key='"'"'open_browser_on_startup'"'"'" 2>/dev/null)' \
+            '    [ -n "$DB_URL" ] && URL="$DB_URL"' \
+            '    [ "$DB_OPEN" = "false" ] && OPEN_BROWSER=false' \
+            'fi' \
+            '[ -z "$URL" ] && URL="http://${HOST}:${PORT}"' \
+            'if curl -s -o /dev/null --connect-timeout 1 "${URL}/api/version" 2>/dev/null || curl -s -o /dev/null --connect-timeout 1 "http://${HOST}:${PORT}/api/version" 2>/dev/null; then' \
+            '    [ "$OPEN_BROWSER" = "true" ] && open "${URL}"' \
             '    exit 0' \
             'fi' \
-            '("$DIR/rigbook" "$@" &)' \
+            '("$DIR/rigbook" --no-browser "$@" &)' \
             'for i in $(seq 1 30); do' \
             '    sleep 0.5' \
-            '    if curl -s -o /dev/null --connect-timeout 1 "${URL}/api/version"; then' \
-            '        open "${URL}"' \
+            '    if curl -s -o /dev/null --connect-timeout 1 "http://${HOST}:${PORT}/api/version" 2>/dev/null; then' \
+            '        [ "$OPEN_BROWSER" = "true" ] && open "${URL}"' \
             '        break' \
             '    fi' \
             'done' \
