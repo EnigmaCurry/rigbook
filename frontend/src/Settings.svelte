@@ -2107,7 +2107,7 @@
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
   }
-  .settings-section.highlight-flash {
+  .settings-section:global(.highlight-flash) {
     animation: highlight-pulse 1.5s ease-out;
   }
   @keyframes highlight-pulse {
