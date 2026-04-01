@@ -797,6 +797,8 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ value }),
     });
+    settingSources[key] = "logbook";
+    settingSources = settingSources; // trigger reactivity
   }
 
   const dirtyFields = new Set();
