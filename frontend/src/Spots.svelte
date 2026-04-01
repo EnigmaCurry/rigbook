@@ -1006,7 +1006,7 @@
     return marker;
   }
 
-  function markerLabel(ll, text, color, strokeName = "black") {
+  function markerLabel(ll, text, color, strokeName = "black", zOffset = 2000) {
     if (!validLL(ll)) return L.layerGroup(); // noop
     const stroke = strokeRgba(strokeName);
     const icon = L.divIcon({
@@ -1015,9 +1015,14 @@
       iconSize: [0, 0],
       iconAnchor: [0, 16],
     });
-    const m = L.marker(ll, { icon, interactive: false, zIndexOffset: 2000 }).addTo(leafletMap);
+    const m = L.marker(ll, { icon, interactive: false, zIndexOffset: zOffset }).addTo(leafletMap);
     _markerLabels.push({ ll });
     return m;
+  }
+
+  /** Check if a pixel position is too close to any occupied positions */
+  function _isTooClose(px, occupied, minDist = 50) {
+    return occupied.some(p => Math.hypot(p.x - px.x, p.y - px.y) < minDist);
   }
 
   function drawTriangleForSpot(spot) {
@@ -1037,27 +1042,36 @@
     const homeLL = homePos ? nearLL(baseLon, [homePos.lat, homePos.lon]) : null;
     const spotterLL = spotterPos ? nearLL(baseLon, [spotterPos.lat, spotterPos.lon]) : null;
 
-    // Draw secondary spotter lines first (lower z-order)
-    // Lines point FROM spotter TO station so animation flows toward station
+    // --- Primary labels first (highest z-order) ---
+    // These are always shown: QTH, station, closest spotter
+    const primaryPositions = []; // pixel positions of primary labels
+    selectionLines.push(markerLabel(myLL, myCallsign || "QTH", mapColors.qth, mapColors.strokeQth, 4000));
+    primaryPositions.push(leafletMap.latLngToContainerPoint(myLL));
+    if (homeLL) {
+      selectionLines.push(markerLabel(homeLL, spot.callsign, mapColors.station, mapColors.strokeStation, 3500));
+      primaryPositions.push(leafletMap.latLngToContainerPoint(homeLL));
+    }
+    if (spotterLL) {
+      selectionLines.push(markerLabel(spotterLL, spot.closest_call, mapColors.spotter, mapColors.strokeSpotter, 3000));
+      primaryPositions.push(leafletMap.latLngToContainerPoint(spotterLL));
+    }
+
+    // --- Secondary spotter lines and labels (lower z-order, culled if overlapping) ---
     if (homeLL && spot.spotter_grids) {
       for (const [call, grid] of Object.entries(spot.spotter_grids)) {
         if (call === spot.closest_call) continue;
         const pos = gridToLatLon(grid);
         if (!pos) continue;
         const secLL = nearLL(baseLon, [pos.lat, pos.lon]);
-        selectionLines.push(
-          spotterLine(secLL, homeLL, spot.callsign, mapColors.secondary),
-          markerLabel(secLL, call, mapColors.secondary, mapColors.strokeSecondary),
-        );
+        selectionLines.push(spotterLine(secLL, homeLL, spot.callsign, mapColors.secondary));
+        // Only show label if it won't overlap primary labels
+        const secPx = leafletMap.latLngToContainerPoint(secLL);
+        if (!_isTooClose(secPx, primaryPositions)) {
+          selectionLines.push(markerLabel(secLL, call, mapColors.secondary, mapColors.strokeSecondary, 1000));
+          primaryPositions.push(secPx); // prevent subsequent secondaries from overlapping each other too
+        }
       }
     }
-
-    // Primary triangle lines drawn last (higher z-order)
-    // Spotter->Station, Station->QTH, QTH->Spotter — all animate toward their endpoint
-    // Site labels
-    selectionLines.push(markerLabel(myLL, myCallsign || "QTH", mapColors.qth, mapColors.strokeQth));
-    if (homeLL) selectionLines.push(markerLabel(homeLL, spot.callsign, mapColors.station, mapColors.strokeStation));
-    if (spotterLL) selectionLines.push(markerLabel(spotterLL, spot.closest_call, mapColors.spotter, mapColors.strokeSpotter));
 
     if (spotterLL && homeLL) {
       selectionLines.push(
