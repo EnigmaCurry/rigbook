@@ -235,6 +235,58 @@ async def qrz_status(session: AsyncSession = Depends(get_session)):
     return {"ok": False, "error": "Login failed — check password"}
 
 
+@router.get("/cache/stats")
+async def cache_stats(session: AsyncSession = Depends(get_session)):
+    """Return QRZ cache statistics for diagnostics."""
+    from sqlalchemy import func
+
+    now = time.time()
+    # Total cached entries (including expired)
+    total = (
+        await session.execute(select(func.count()).where(Cache.namespace == NAMESPACE))
+    ).scalar() or 0
+    # Valid (non-expired) entries
+    valid = (
+        await session.execute(
+            select(func.count()).where(
+                Cache.namespace == NAMESPACE, Cache.expires_at > now
+            )
+        )
+    ).scalar() or 0
+    # Expired entries
+    expired = total - valid
+    # Not-found entries (valid only)
+    not_found_count = 0
+    if valid > 0:
+        rows = (
+            (
+                await session.execute(
+                    select(Cache.value).where(
+                        Cache.namespace == NAMESPACE, Cache.expires_at > now
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        for v in rows:
+            try:
+                d = json.loads(v)
+                if d.get("error") == "Callsign not found":
+                    not_found_count += 1
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+    return {
+        "total_entries": total,
+        "valid_entries": valid,
+        "expired_entries": expired,
+        "not_found_entries": not_found_count,
+        "found_entries": valid - not_found_count,
+        "ttl_seconds": CACHE_TTL,
+    }
+
+
 @router.delete("/cache")
 async def clear_cache(session: AsyncSession = Depends(get_session)):
     await session.execute(delete(Cache).where(Cache.namespace == NAMESPACE))
