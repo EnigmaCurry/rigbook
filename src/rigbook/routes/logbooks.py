@@ -5,7 +5,14 @@ import signal
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from rigbook.db import DB_DIR, DatabaseLockError, _read_last_opened, db_manager
+from rigbook.db import (
+    DB_DIR,
+    DatabaseLockError,
+    _lock_exclusive,
+    _read_last_opened,
+    _unlock,
+    db_manager,
+)
 from rigbook.spots import start_feeds, stop_feeds
 from rigbook.sse import notify_shutdown
 
@@ -40,15 +47,13 @@ async def get_mode():
 
 def _is_locked(db_path) -> bool:
     """Check if a logbook database is locked by another process."""
-    import fcntl
-
     lock_path = db_path.with_suffix(".lock")
     if not lock_path.exists():
         return False
     try:
         with open(lock_path, "r+") as f:
-            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            fcntl.flock(f, fcntl.LOCK_UN)
+            _lock_exclusive(f)
+            _unlock(f)
         return False
     except OSError:
         return True
