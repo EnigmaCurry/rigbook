@@ -28,9 +28,9 @@
     { label: "POTA activations", sql: "SELECT pota_park, count(*) AS count FROM contacts WHERE pota_park IS NOT NULL AND pota_park != '' GROUP BY pota_park ORDER BY count DESC" },
     { label: "States worked", sql: "SELECT state, count(*) AS count FROM contacts WHERE state IS NOT NULL AND state != '' GROUP BY state ORDER BY count DESC" },
     { label: "Countries worked", sql: "SELECT country, count(*) AS count FROM contacts WHERE country IS NOT NULL AND country != '' GROUP BY country ORDER BY count DESC" },
-    { label: "All POTA parks", sql: "SELECT reference, name, location_desc, grid, latitude, longitude FROM pota_parks ORDER BY reference" },
-    { label: "QRZ cache lookup", sql: "SELECT key AS call, value FROM cache WHERE namespace = 'qrz' AND key = 'YOURCALL' LIMIT 1" },
-    { label: "SKCC member lookup", sql: "SELECT key AS call, value FROM cache WHERE namespace = 'skcc' AND key = 'YOURCALL' LIMIT 1" },
+    { label: "All POTA parks", sql: "SELECT reference, name, location_desc, grid, latitude, longitude FROM meta.pota_parks ORDER BY reference" },
+    { label: "QRZ cache lookup", sql: "SELECT key AS call, value FROM meta.cache WHERE namespace = 'qrz' AND key = 'YOURCALL' LIMIT 1" },
+    { label: "SKCC member lookup", sql: "SELECT key AS call, value FROM meta.cache WHERE namespace = 'skcc' AND key = 'YOURCALL' LIMIT 1" },
     { label: "All notifications", sql: "SELECT * FROM notifications ORDER BY timestamp DESC" },
     { label: "Blocked Access: settings table", sql: "-- Blocked: the settings table is not in the allowed table list\nSELECT value FROM settings WHERE key = 'qrz_password'" },
     { label: "Blocked Access: insert QSO", sql: "-- Blocked: only SELECT statements are allowed (read-only connection)\nINSERT INTO contacts (call, freq, mode, timestamp) VALUES ('W1AW', '14.060', 'CW', '2026-01-01 00:00:00')" },
@@ -201,7 +201,7 @@
       </div>
       <details class="hint-details">
         <summary>Query Information</summary>
-        <p class="hint">Read-only access to the tables: <code>cache</code>, <code>contacts</code>, <code>notifications</code>, <code>pota_programs</code>, <code>pota_locations</code>, <code>pota_parks</code>.<br>Max 10000 rows shown on this page. Downloading JSON/CSV returns all rows.<br>After writing your query, you may bookmark this page, and the query will be saved in the bookmark.</p>
+        <p class="hint">Read-only access to logbook tables: <code>contacts</code>, <code>notifications</code>. Global tables (via <code>meta.</code> prefix): <code>meta.cache</code>, <code>meta.pota_programs</code>, <code>meta.pota_locations</code>, <code>meta.pota_parks</code>.<br>Max 10000 rows shown on this page. Downloading JSON/CSV returns all rows.<br>After writing your query, you may bookmark this page, and the query will be saved in the bookmark.</p>
       </details>
       <div class="buttons">
         <select class="canned-select" bind:value={cannedSelect} on:change={applyCanned}>
