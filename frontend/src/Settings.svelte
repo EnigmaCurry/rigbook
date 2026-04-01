@@ -1564,12 +1564,12 @@
       <span class="hint">Defaults to My Callsign if blank</span>
     </div>
     <div class="setting-row">
-      <label for="rb-qrz-key">{hasQrzPassword ? "Change QRZ Key" : "QRZ Key"}</label>
+      <label for="rb-qrz-key">{hasQrzPassword ? "Change QRZ Password" : "QRZ Password"}</label>
       <input id="rb-qrz-key" type="text" class="secret-field" bind:value={qrz_password} autocomplete="new-password" data-1p-ignore data-lpignore="true" data-form-type="other" placeholder={hasQrzPassword ? "Leave blank to keep current" : "unset"} style="min-width: 8ch" />
     </div>
     <div class="setting-row">
       {#if qrz_password.trim()}<button type="button" class="check-now-btn" on:click={loginQrz}>Login</button>{/if}
-      <span class="hint">{#if hasQrzPassword}Leave blank to remain unchanged{:else}Your QRZ API key{/if}</span>
+      <span class="hint">{#if hasQrzPassword}Leave blank to remain unchanged{:else}Your QRZ account password{/if}</span>
     </div>
     {#if hasQrzPassword}
       <div class="setting-row qrz-status-row">
@@ -2108,12 +2108,12 @@
       <span class="hint">Defaults to Default Callsign if blank</span>
     </div>
     <div class="setting-row">
-      <label>Default QRZ Key</label>
+      <label>Default QRZ Password</label>
       {#if global_hasQrzPassword}
         <span class="hint">Saved</span>
         <button class="check-now-btn" on:click={async () => { await saveGlobalSetting("qrz_password", ""); global_hasQrzPassword = false; global_qrz_password = ""; }}>Clear</button>
       {:else}
-        <input id="rb-def-qrz-key" type="text" class="secret-field" bind:value={global_qrz_password} placeholder="QRZ API key" autocomplete="new-password" data-1p-ignore data-lpignore="true" data-form-type="other" style="max-width: 14rem" />
+        <input id="rb-def-qrz-key" type="text" class="secret-field" bind:value={global_qrz_password} placeholder="QRZ password" autocomplete="new-password" data-1p-ignore data-lpignore="true" data-form-type="other" style="max-width: 14rem" />
         <button class="check-now-btn" on:click={async () => { if (global_qrz_password.trim()) { await saveGlobalSetting("qrz_password", global_qrz_password.trim()); global_hasQrzPassword = true; global_qrz_password = ""; } }}>Save</button>
       {/if}
     </div>
@@ -2122,12 +2122,12 @@
       <input id="rb-def-ha-acct" type="text" bind:value={global_hamalert_username} on:blur={() => saveGlobalSetting("hamalert_username", global_hamalert_username.trim())} autocomplete="nope" data-1p-ignore data-lpignore="true" data-form-type="other" style="max-width: 14rem" />
     </div>
     <div class="setting-row">
-      <label>Default HamAlert Key</label>
+      <label>Default HamAlert Password</label>
       {#if global_hasHamalertPassword}
         <span class="hint">Saved</span>
         <button class="check-now-btn" on:click={async () => { await saveGlobalSetting("hamalert_password", ""); global_hasHamalertPassword = false; global_hamalert_password = ""; }}>Clear</button>
       {:else}
-        <input id="rb-def-ha-key" type="text" class="secret-field" bind:value={global_hamalert_password} placeholder="HamAlert key" autocomplete="new-password" data-1p-ignore data-lpignore="true" data-form-type="other" style="max-width: 14rem" />
+        <input id="rb-def-ha-key" type="text" class="secret-field" bind:value={global_hamalert_password} placeholder="HamAlert password" autocomplete="new-password" data-1p-ignore data-lpignore="true" data-form-type="other" style="max-width: 14rem" />
         <button class="check-now-btn" on:click={async () => { if (global_hamalert_password.trim()) { await saveGlobalSetting("hamalert_password", global_hamalert_password.trim()); global_hasHamalertPassword = true; global_hamalert_password = ""; } }}>Save</button>
       {/if}
     </div>

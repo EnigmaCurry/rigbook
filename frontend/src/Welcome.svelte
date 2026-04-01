@@ -96,7 +96,7 @@
       </div>
 
       <div class="field">
-        <label for="w-qrz">QRZ API Key <span class="optional">(optional)</span></label>
+        <label for="w-qrz">QRZ Password <span class="optional">(optional)</span></label>
         <input id="w-qrz" type="text" class="secret-field" bind:value={qrzKey} autocomplete="nope" data-1p-ignore data-lpignore="true" data-form-type="other" placeholder="For callsign lookups" />
       </div>
 
