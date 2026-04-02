@@ -635,6 +635,11 @@
       setShutdownState();
     });
     eventSource.addEventListener("theme-changed", () => applyTheme());
+    eventSource.addEventListener("theme-preview", (e) => {
+      const { key, value } = JSON.parse(e.data);
+      _themeState[key] = value;
+      applyThemeFromState(_themeState);
+    });
     eventSource.addEventListener("logbook-changed", () => {
       if (switchingLogbook) return; // this client initiated the switch
       // Navigate home before reloading — the new logbook may not support the current page
@@ -1261,36 +1266,39 @@
     applyThemeVars(theme);
   }
 
+  let _themeState = {};
+
+  function applyThemeFromState(s) {
+    const contrast = parseInt(s.theme_contrast) || 50;
+    const brightness = parseInt(s.theme_brightness) || 50;
+    const hue = parseInt(s.theme_hue) || 0;
+    if (s.theme_mode === "custom" && s.custom_theme_colors) {
+      try {
+        const c = JSON.parse(s.custom_theme_colors);
+        if (c.bg && c.text && c.accent && c.vfo) {
+          applyCustomThemeVars(c.bg, c.text, c.accent, c.vfo, contrast, brightness, hue);
+          storageSet("rigbook-theme", "custom");
+          return;
+        }
+      } catch {}
+    }
+    if (s.theme) {
+      storageSet("rigbook-theme", s.theme);
+      applyThemeVars(s.theme, contrast, brightness, hue);
+    }
+  }
+
   async function applyTheme() {
     applyThemeFromCache();
     try {
-      const settings = {};
       const res = await fetch("/api/settings/");
       if (res.ok) {
         const data = await res.json();
-        for (const s of data) settings[s.key] = s.value;
+        _themeState = {};
+        for (const s of data) _themeState[s.key] = s.value;
       }
-      if (settings.theme_mode === "custom" && settings.custom_theme_colors) {
-        try {
-          const c = JSON.parse(settings.custom_theme_colors);
-          if (c.bg && c.text && c.accent && c.vfo) {
-            const contrast = parseInt(settings.theme_contrast) || 50;
-            const brightness = parseInt(settings.theme_brightness) || 50;
-            const hue = parseInt(settings.theme_hue) || 0;
-            applyCustomThemeVars(c.bg, c.text, c.accent, c.vfo, contrast, brightness, hue);
-            storageSet("rigbook-theme", "custom");
-            return;
-          }
-        } catch {}
-      }
-      if (settings.theme) {
-        const contrast = parseInt(settings.theme_contrast) || 50;
-        const brightness = parseInt(settings.theme_brightness) || 50;
-        const hue = parseInt(settings.theme_hue) || 0;
-        storageSet("rigbook-theme", settings.theme);
-        applyThemeVars(settings.theme, contrast, brightness, hue);
-        return;
-      }
+      applyThemeFromState(_themeState);
+      return;
     } catch {}
     const sysPref = resolveDefaultTheme();
     storageSet("rigbook-theme", sysPref);

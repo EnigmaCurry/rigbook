@@ -664,21 +664,38 @@
     }
   }
 
-  function onContrastInput() { applyCurrentTheme(); }
+  function broadcastThemePreview(key, value) {
+    fetch(`/api/settings/theme-preview?key=${encodeURIComponent(key)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ value }),
+    }).catch(() => {});
+  }
+
+  function onContrastInput() {
+    applyCurrentTheme();
+    broadcastThemePreview("theme_contrast", String(themeContrast));
+  }
   async function onContrastCommit() {
     applyCurrentTheme();
     await saveSetting("theme_contrast", String(themeContrast));
     dispatch("saved");
   }
 
-  function onBrightnessInput() { applyCurrentTheme(); }
+  function onBrightnessInput() {
+    applyCurrentTheme();
+    broadcastThemePreview("theme_brightness", String(themeBrightness));
+  }
   async function onBrightnessCommit() {
     applyCurrentTheme();
     await saveSetting("theme_brightness", String(themeBrightness));
     dispatch("saved");
   }
 
-  function onHueInput() { applyCurrentTheme(); }
+  function onHueInput() {
+    applyCurrentTheme();
+    broadcastThemePreview("theme_hue", String(themeHue));
+  }
   async function onHueCommit() {
     applyCurrentTheme();
     await saveSetting("theme_hue", String(themeHue));
