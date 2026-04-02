@@ -2786,7 +2786,6 @@
 
   .danger-zone {
     border-color: #ff4444;
-    margin-top: 2rem;
   }
 
   .danger-zone h3 {
