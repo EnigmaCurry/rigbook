@@ -678,7 +678,7 @@ export function applyThemeVars(themeName, contrast = 50, brightness = 50, hue = 
   }
   _setAccentText(style);
   _setGradient(style, gradient);
-  _setGrain(grain);
+  _setGrain(grain, scanlines);
   _setGlow(style, glow);
   _setScanlines(scanlines);
 }
@@ -710,8 +710,12 @@ function _setGradient(style, gradient) {
   }
 }
 
-function _setGrain(grain) {
+let _grainRaf = null;
+
+function _setGrain(grain, scanlines) {
   let overlay = document.getElementById("rigbook-grain-overlay");
+  // Stop any running animation
+  if (_grainRaf) { cancelAnimationFrame(_grainRaf); _grainRaf = null; }
   if (grain === 0) {
     if (overlay) overlay.style.display = "none";
     return;
@@ -722,7 +726,7 @@ function _setGrain(grain) {
     svg.setAttribute("width", "0");
     svg.setAttribute("height", "0");
     svg.style.position = "absolute";
-    svg.innerHTML = `<filter id="rigbook-noise"><feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="4" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter>`;
+    svg.innerHTML = `<filter id="rigbook-noise"><feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="4" stitchTiles="stitch" seed="0"/><feColorMatrix type="saturate" values="0"/></filter>`;
     document.body.appendChild(svg);
     // Create overlay div
     overlay = document.createElement("div");
@@ -732,6 +736,22 @@ function _setGrain(grain) {
   }
   overlay.style.display = "block";
   overlay.style.opacity = String(grain / 100);
+  // Animate grain when scanlines > 0
+  if (scanlines > 0) {
+    const turb = document.querySelector("#rigbook-noise feTurbulence");
+    if (turb) {
+      const fps = 4 + Math.round(scanlines / 45 * 12); // 4–16 fps based on scanlines
+      const interval = 1000 / fps;
+      let last = 0;
+      function tick(now) {
+        _grainRaf = requestAnimationFrame(tick);
+        if (now - last < interval) return;
+        last = now;
+        turb.setAttribute("seed", String(Math.random() * 1000 | 0));
+      }
+      _grainRaf = requestAnimationFrame(tick);
+    }
+  }
 }
 
 function _setGlow(style, glow) {
@@ -912,7 +932,7 @@ export function applyCustomThemeVars(bg, text, accent, vfo, contrast = 50, brigh
   }
   _setAccentText(style);
   _setGradient(style, gradient);
-  _setGrain(grain);
+  _setGrain(grain, scanlines);
   _setGlow(style, glow);
   _setScanlines(scanlines);
   return theme;
