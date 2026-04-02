@@ -676,6 +676,14 @@ export function applyThemeVars(themeName, contrast = 50, brightness = 50, hue = 
   for (const [prop, val] of Object.entries(theme.vars)) {
     style.setProperty(prop, _adjustColor(val, contrast, brightness, hue));
   }
+  _setAccentText(style);
+}
+
+function _setAccentText(style) {
+  const accent = style.getPropertyValue("--accent").trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(accent)) {
+    style.setProperty("--accent-text", luminance(accent) > 0.5 ? "#000000" : "#ffffff");
+  }
 }
 
 function _adjustColor(hex, contrast, brightness, hue) {
@@ -817,5 +825,6 @@ export function applyCustomThemeVars(bg, text, accent, vfo, contrast = 50, brigh
   for (const [prop, val] of Object.entries(theme.vars)) {
     style.setProperty(prop, _adjustColor(val, contrast, brightness, hue));
   }
+  _setAccentText(style);
   return theme;
 }

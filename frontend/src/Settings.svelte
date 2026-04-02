@@ -50,7 +50,6 @@
   let themeContrast = 50;
   let themeBrightness = 50;
   let themeHue = 0;
-  let accentTextBrightness = 0;
   let themeMode = "preset"; // "preset" or "custom"
   let customBg = "#24252b";
   let customText = "#eaeaea";
@@ -657,21 +656,6 @@
     if (map_theme === "default") updatePreview();
   }
 
-  function applyAccentText() {
-    const hex = accentTextBrightness.toString(16).padStart(2, "0");
-    document.documentElement.style.setProperty("--accent-text", `#${hex}${hex}${hex}`);
-  }
-
-  function onAccentTextInput() {
-    applyAccentText();
-    broadcastThemePreview("accent_text_brightness", String(accentTextBrightness));
-  }
-
-  async function onAccentTextCommit() {
-    applyAccentText();
-    await saveSetting("accent_text_brightness", String(accentTextBrightness));
-    dispatch("saved");
-  }
 
   function applyCurrentTheme() {
     if (themeMode === "preset") {
@@ -1415,7 +1399,6 @@
           if (s.key === "theme_contrast") themeContrast = parseInt(s.value) || 50;
           if (s.key === "theme_brightness") themeBrightness = parseInt(s.value) || 50;
           if (s.key === "theme_hue") themeHue = parseInt(s.value) || 0;
-          if (s.key === "accent_text_brightness") { accentTextBrightness = parseInt(s.value) || 0; applyAccentText(); }
           if (s.key === "theme_mode") themeMode = s.value || "preset";
           if (s.key === "custom_theme_colors") {
             try {
@@ -2029,15 +2012,6 @@
           <button class="contrast-reset" on:click={() => { themeHue = 0; onHueCommit(); }} disabled={themeHue === 0}>Reset</button>
         </div>
       </div>
-      {#if themeMode === "preset"}
-      <div class="slider-group">
-        <label for="accent_text_slider">Button Text</label>
-        <div class="slider-control">
-          <input id="accent_text_slider" type="range" min="0" max="255" bind:value={accentTextBrightness} on:input={onAccentTextInput} on:change={onAccentTextCommit} />
-          <button class="contrast-reset" on:click={() => { accentTextBrightness = 0; onAccentTextCommit(); }} disabled={accentTextBrightness === 0}>Reset</button>
-        </div>
-      </div>
-      {/if}
     </div>
   </section>
   <section class="settings-section" data-section="content">

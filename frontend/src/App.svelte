@@ -1272,9 +1272,6 @@
     const contrast = parseInt(s.theme_contrast) || 50;
     const brightness = parseInt(s.theme_brightness) || 50;
     const hue = parseInt(s.theme_hue) || 0;
-    const atb = Math.max(0, Math.min(255, parseInt(s.accent_text_brightness) || 0));
-    const atHex = atb.toString(16).padStart(2, "0");
-    document.documentElement.style.setProperty("--accent-text", `#${atHex}${atHex}${atHex}`);
     if (s.theme_mode === "custom" && s.custom_theme_colors) {
       try {
         const c = JSON.parse(s.custom_theme_colors);
