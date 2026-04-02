@@ -506,7 +506,10 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
       });
-      if (res.ok) location.reload();
+      if (res.ok) {
+          window.location.hash = "/";
+          location.reload();
+        }
     } catch {}
     switchingLogbook = false;
   }
