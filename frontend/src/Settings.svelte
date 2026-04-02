@@ -2315,16 +2315,17 @@
     flex-wrap: wrap;
   }
   .cache-stat-card {
-    background: var(--bg-secondary, #f5f5f5);
-    border: 1px solid var(--border-color, #ddd);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
     border-radius: 6px;
     padding: 0.6rem 1rem;
     min-width: 10rem;
+    color: var(--text);
   }
   .cache-stat-card h4 {
     margin: 0 0 0.4rem 0;
     font-size: 0.85rem;
-    opacity: 0.7;
+    color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.03em;
   }
@@ -2336,10 +2337,11 @@
     padding: 0.1rem 0;
   }
   .stat-label {
-    opacity: 0.7;
+    color: var(--text-muted);
   }
   .stat-value {
     font-weight: 600;
+    color: var(--text);
   }
 
   .tab-bar {
