@@ -2264,6 +2264,7 @@
         <div class="stat-row"><span class="stat-label">Found</span><span class="stat-value">{qrzCacheStats.found_entries}</span></div>
         <div class="stat-row"><span class="stat-label">Not found</span><span class="stat-value">{qrzCacheStats.not_found_entries}</span></div>
         <div class="stat-row"><span class="stat-label">Expired</span><span class="stat-value">{qrzCacheStats.expired_entries}</span></div>
+        <div class="stat-row"><span class="stat-label">TTL</span><span class="stat-value">{Math.round(qrzCacheStats.ttl_seconds / 86400)}d</span></div>
       </div>
       {/if}
       {#if skccCacheStats}
@@ -2271,6 +2272,7 @@
         <h4>SKCC</h4>
         <div class="stat-row"><span class="stat-label">Cached members</span><span class="stat-value">{skccCacheStats.valid_entries.toLocaleString()}</span></div>
         <div class="stat-row"><span class="stat-label">Expired</span><span class="stat-value">{skccCacheStats.expired_entries.toLocaleString()}</span></div>
+        <div class="stat-row"><span class="stat-label">TTL</span><span class="stat-value">{Math.round(skccCacheStats.ttl_seconds / 3600)}h</span></div>
       </div>
       {/if}
     </div>
