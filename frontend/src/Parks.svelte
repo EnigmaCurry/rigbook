@@ -932,7 +932,7 @@
 
   .tab:hover {
     background: var(--accent);
-    color: #000;
+    color: var(--accent-text);
     font-weight: bold;
   }
 
@@ -944,7 +944,7 @@
 
   .tab.active:hover {
     background: var(--accent);
-    color: #000;
+    color: var(--accent-text);
   }
 
   .tab-content {
@@ -1072,7 +1072,7 @@
   }
 
   .map-toggle-btn:hover { background: var(--btn-secondary-hover); }
-  .map-toggle-btn.active { background: var(--accent); color: var(--bg); }
+  .map-toggle-btn.active { background: var(--accent); color: var(--accent-text); }
 
   :global(.park-marker-dot) {
     width: 10px;
@@ -1287,7 +1287,7 @@
 
   .update-btn {
     background: var(--accent);
-    color: var(--bg);
+    color: var(--accent-text);
   }
 
   .update-btn:hover:not(:disabled) {

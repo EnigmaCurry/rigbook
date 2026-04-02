@@ -237,7 +237,7 @@
   .bp-btn:hover,
   .bp-btn.bp-active {
     background: var(--accent);
-    color: var(--bg);
+    color: var(--accent-text);
   }
 
   .segments {

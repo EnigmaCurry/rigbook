@@ -1272,6 +1272,7 @@
     const contrast = parseInt(s.theme_contrast) || 50;
     const brightness = parseInt(s.theme_brightness) || 50;
     const hue = parseInt(s.theme_hue) || 0;
+    document.documentElement.style.setProperty("--accent-text", s.light_accent_text === "true" ? "#ffffff" : "#000000");
     if (s.theme_mode === "custom" && s.custom_theme_colors) {
       try {
         const c = JSON.parse(s.custom_theme_colors);
@@ -1700,6 +1701,7 @@
     --accent-delete: #cc3333;
     --accent-delete-hover: #aa2222;
     --accent-error: #ff6b6b;
+    --accent-text: #000000;
     --btn-secondary: #6e7080;
     --btn-secondary-hover: #5a5c6a;
     --row-hover: #44465a;
@@ -2037,7 +2039,7 @@
 
   .vfo-btn.save {
     background: var(--accent-vfo);
-    color: var(--bg);
+    color: var(--accent-text);
   }
 
   .vfo-btn.cancel {
@@ -2497,7 +2499,7 @@
 
   .popup-btn-go {
     background: var(--accent);
-    color: var(--bg);
+    color: var(--accent-text);
     font-weight: bold;
   }
 

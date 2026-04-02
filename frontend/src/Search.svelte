@@ -363,7 +363,7 @@
   .result-item:hover,
   .result-item.highlighted {
     background: var(--accent);
-    color: var(--bg);
+    color: var(--accent-text);
   }
 
   .result-call {
@@ -374,7 +374,7 @@
 
   .result-item:hover .result-call,
   .result-item.highlighted .result-call {
-    color: var(--bg);
+    color: var(--accent-text);
   }
 
   .result-detail {
@@ -387,7 +387,7 @@
 
   .result-item:hover .result-detail,
   .result-item.highlighted .result-detail {
-    color: var(--bg);
+    color: var(--accent-text);
   }
 
   .qrz-hint {

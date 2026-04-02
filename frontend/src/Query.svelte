@@ -392,7 +392,7 @@
   }
   .run-btn {
     background: var(--accent);
-    color: var(--bg);
+    color: var(--accent-text);
     border-color: var(--accent);
     font-weight: bold;
   }
