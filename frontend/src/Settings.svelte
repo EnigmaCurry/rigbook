@@ -48,6 +48,7 @@
   let wide_mode_enabled = true;
   let theme = "dark";
   let themeContrast = 50;
+  let themeBrightness = 50;
   let themeMode = "preset"; // "preset" or "custom"
   let customBg = "#24252b";
   let customText = "#eaeaea";
@@ -646,7 +647,7 @@
   let spotStatusInterval;
 
   async function onThemeChange() {
-    applyThemeVars(theme, themeContrast);
+    applyThemeVars(theme, themeContrast, themeBrightness);
     storageSet("rigbook-theme", theme);
     await saveSetting("theme", theme);
     await saveSetting("theme_mode", "preset");
@@ -655,18 +656,28 @@
   }
 
   function onContrastInput() {
-    applyThemeVars(theme, themeContrast);
+    applyThemeVars(theme, themeContrast, themeBrightness);
   }
 
   async function onContrastCommit() {
-    applyThemeVars(theme, themeContrast);
+    applyThemeVars(theme, themeContrast, themeBrightness);
     await saveSetting("theme_contrast", String(themeContrast));
+    dispatch("saved");
+  }
+
+  function onBrightnessInput() {
+    applyThemeVars(theme, themeContrast, themeBrightness);
+  }
+
+  async function onBrightnessCommit() {
+    applyThemeVars(theme, themeContrast, themeBrightness);
+    await saveSetting("theme_brightness", String(themeBrightness));
     dispatch("saved");
   }
 
   async function onThemeModeChange() {
     if (themeMode === "preset") {
-      applyThemeVars(theme, themeContrast);
+      applyThemeVars(theme, themeContrast, themeBrightness);
       storageSet("rigbook-theme", theme);
       await saveSetting("theme_mode", "preset");
     } else {
@@ -1358,6 +1369,7 @@
           if (s.key === "default_page") default_page = s.value || "log";
           if (s.key === "theme") theme = s.value || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
           if (s.key === "theme_contrast") themeContrast = parseInt(s.value) || 50;
+          if (s.key === "theme_brightness") themeBrightness = parseInt(s.value) || 50;
           if (s.key === "theme_mode") themeMode = s.value || "preset";
           if (s.key === "custom_theme_colors") {
             try {
@@ -1926,6 +1938,11 @@
       <label for="contrast_slider">Contrast</label>
       <input id="contrast_slider" type="range" min="40" max="60" bind:value={themeContrast} on:input={onContrastInput} on:change={onContrastCommit} />
       <button class="contrast-reset" on:click={() => { themeContrast = 50; onContrastCommit(); }} disabled={themeContrast === 50}>Reset</button>
+    </div>
+    <div class="setting-row contrast-row">
+      <label for="brightness_slider">Brightness</label>
+      <input id="brightness_slider" type="range" min="40" max="60" bind:value={themeBrightness} on:input={onBrightnessInput} on:change={onBrightnessCommit} />
+      <button class="contrast-reset" on:click={() => { themeBrightness = 50; onBrightnessCommit(); }} disabled={themeBrightness === 50}>Reset</button>
     </div>
     {:else}
     <div class="color-pickers">

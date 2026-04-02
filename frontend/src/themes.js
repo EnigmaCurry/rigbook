@@ -669,24 +669,38 @@ export const THEMES = {
 export const THEME_NAMES = Object.keys(THEMES);
 
 /** Apply a theme's CSS variables to document.documentElement.
- *  contrast: 0–100 slider, 50 = unchanged, 0 = flat gray, 100 = max contrast. */
-export function applyThemeVars(themeName, contrast = 50) {
+ *  contrast: 0–100, 50 = unchanged. brightness: 0–100, 50 = unchanged. */
+export function applyThemeVars(themeName, contrast = 50, brightness = 50) {
   const theme = THEMES[themeName] || THEMES.dark;
   const style = document.documentElement.style;
   for (const [prop, val] of Object.entries(theme.vars)) {
-    style.setProperty(prop, _adjustContrast(val, contrast));
+    style.setProperty(prop, _adjustColor(val, contrast, brightness));
   }
 }
 
-/** Adjust a hex color's contrast around mid-gray.
- *  50 = unchanged, 0 = everything mid-gray, 100 = maximum contrast. */
-function _adjustContrast(hex, contrast) {
-  if (contrast === 50) return hex;
+function _adjustColor(hex, contrast, brightness) {
+  if (contrast === 50 && brightness === 50) return hex;
   if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return hex;
-  const [r, g, b] = hex.replace("#", "").match(/.{2}/g).map(c => parseInt(c, 16));
-  const factor = contrast / 50;
-  const adj = (c) => Math.max(0, Math.min(255, Math.round(128 + (c - 128) * factor)));
-  return "#" + [r, g, b].map(adj).map(c => c.toString(16).padStart(2, "0")).join("");
+  let [r, g, b] = hex.replace("#", "").match(/.{2}/g).map(c => parseInt(c, 16));
+  // Contrast: scale around mid-gray
+  if (contrast !== 50) {
+    const cf = contrast / 50;
+    r = 128 + (r - 128) * cf;
+    g = 128 + (g - 128) * cf;
+    b = 128 + (b - 128) * cf;
+  }
+  // Brightness: shift toward black (<50) or white (>50)
+  if (brightness !== 50) {
+    if (brightness < 50) {
+      const t = brightness / 50;
+      r *= t; g *= t; b *= t;
+    } else {
+      const t = (brightness - 50) / 50;
+      r += (255 - r) * t; g += (255 - g) * t; b += (255 - b) * t;
+    }
+  }
+  const clamp = (c) => Math.max(0, Math.min(255, Math.round(c)));
+  return "#" + [r, g, b].map(clamp).map(c => c.toString(16).padStart(2, "0")).join("");
 }
 
 /** Resolve a theme name from storage/system-preference, falling back to "dark"/"light". */
