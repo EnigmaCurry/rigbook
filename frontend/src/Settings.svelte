@@ -401,6 +401,7 @@
 
   // Shutdown
   let noShutdown = false;
+  let disableShutdown = false;
   let autoShutdownOnDisconnect = false;
   let shutdownInMenu = false;
 
@@ -1394,6 +1395,7 @@
           if (s.key === "browser_url_override") global_browser_url_override = s.value || "";
           if (s.key === "shutdown_in_menu") shutdownInMenu = s.value === "true";
           if (s.key === "auto_shutdown_on_disconnect") autoShutdownOnDisconnect = s.value === "true";
+          if (s.key === "disable_shutdown") disableShutdown = s.value === "true";
           if (s.key === "update_check_enabled") update_check_enabled = s.value !== "false";
         }
         globalSettingsLoaded = true;
@@ -1552,6 +1554,11 @@
         noShutdown = !!data.no_shutdown;
       }
     } catch {}
+  }
+
+  async function toggleDisableShutdown() {
+    await saveGlobalSetting("disable_shutdown", disableShutdown ? "true" : "false");
+    await fetchNoShutdown();
   }
 
   onMount(() => {
@@ -2312,18 +2319,24 @@
     <h3>Shutdown</h3>
     <div class="setting-row toggle-row">
       <label class="toggle-label">
-        <input type="checkbox" bind:checked={autoShutdownOnDisconnect} on:change={() => saveGlobalSetting("auto_shutdown_on_disconnect", autoShutdownOnDisconnect ? "true" : "false")} />
+        <input type="checkbox" bind:checked={disableShutdown} on:change={toggleDisableShutdown} />
+        Disable shutdown
+      </label>
+    </div>
+    <div class="setting-row toggle-row">
+      <label class="toggle-label">
+        <input type="checkbox" bind:checked={autoShutdownOnDisconnect} on:change={() => saveGlobalSetting("auto_shutdown_on_disconnect", autoShutdownOnDisconnect ? "true" : "false")} disabled={disableShutdown} />
         Shutdown automatically when no clients are connected
       </label>
     </div>
     <div class="setting-row">
       <label for="global_shutdown_delay">Shutdown delay (seconds)</label>
-      <input id="global_shutdown_delay" type="number" min="5" bind:value={global_auto_shutdown_delay} on:blur={() => { const v = Math.max(5, parseInt(global_auto_shutdown_delay) || 300); global_auto_shutdown_delay = String(v); saveGlobalSetting("auto_shutdown_delay", String(v)); }} autocomplete="off" style="max-width: 5rem" disabled={!autoShutdownOnDisconnect} />
+      <input id="global_shutdown_delay" type="number" min="5" bind:value={global_auto_shutdown_delay} on:blur={() => { const v = Math.max(5, parseInt(global_auto_shutdown_delay) || 300); global_auto_shutdown_delay = String(v); saveGlobalSetting("auto_shutdown_delay", String(v)); }} autocomplete="off" style="max-width: 5rem" disabled={disableShutdown || !autoShutdownOnDisconnect} />
     </div>
     <p class="hint">Shuts down the server after {global_auto_shutdown_delay} consecutive seconds with no connected clients.</p>
     <div class="setting-row toggle-row">
       <label class="toggle-label">
-        <input type="checkbox" bind:checked={shutdownInMenu} on:change={() => { saveGlobalSetting("shutdown_in_menu", shutdownInMenu ? "true" : "false"); }} />
+        <input type="checkbox" bind:checked={shutdownInMenu} on:change={() => { saveGlobalSetting("shutdown_in_menu", shutdownInMenu ? "true" : "false"); }} disabled={disableShutdown} />
         Add Shutdown action to the main menu
       </label>
     </div>
