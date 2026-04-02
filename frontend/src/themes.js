@@ -694,8 +694,8 @@ function _setGradient(style, gradient) {
   }
   const bg = style.getPropertyValue("--bg").trim();
   if (!/^#[0-9a-fA-F]{6}$/.test(bg)) { style.setProperty("--bg-gradient", bg); return; }
-  // intensity: 0 at center (50), up to 0.15 at edges (0 or 100)
-  const intensity = Math.abs(gradient - 50) / 50 * 0.15;
+  // intensity: 0 at center (50), up to 0.5 at edges (0 or 100)
+  const intensity = Math.abs(gradient - 50) / 50 * 0.5;
   const lighter = mix(bg, "#ffffff", intensity);
   const darker = mix(bg, "#000000", intensity);
   if (gradient > 50) {
