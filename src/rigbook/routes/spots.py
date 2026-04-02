@@ -216,6 +216,7 @@ async def skcc_skimmer(
     band: str | None = None,
     limit: int = 50,
     session: AsyncSession = Depends(get_session),
+    gdb: AsyncSession = Depends(get_global_session),
 ):
     """Pre-filtered SKCC skimmer view with stable TTL.
 
@@ -242,6 +243,7 @@ async def skcc_skimmer(
             max_distance=max_dist if max_dist > 0 else None,
             limit=200,
             session=session,
+            gdb=gdb,
         )
     )["spots"]
 
