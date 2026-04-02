@@ -1924,7 +1924,7 @@
     </div>
     <div class="setting-row contrast-row">
       <label for="contrast_slider">Contrast</label>
-      <input id="contrast_slider" type="range" min="0" max="100" bind:value={themeContrast} on:input={onContrastInput} on:change={onContrastCommit} />
+      <input id="contrast_slider" type="range" min="40" max="60" bind:value={themeContrast} on:input={onContrastInput} on:change={onContrastCommit} />
       <button class="contrast-reset" on:click={() => { themeContrast = 50; onContrastCommit(); }} disabled={themeContrast === 50}>Reset</button>
     </div>
     {:else}
