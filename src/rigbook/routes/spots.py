@@ -98,7 +98,7 @@ async def query_spots(
         if any(s["callsign"].upper() == c and s["mode"] == "CW" for s in spots)
     ]
     if cw_calls:
-        await ensure_skcc_cache(session)
+        await ensure_skcc_cache(gdb)
     skcc_map = await _batch_cache_lookup("skcc", cw_calls, gdb) if cw_calls else {}
 
     for s in spots:
