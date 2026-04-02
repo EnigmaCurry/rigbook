@@ -136,7 +136,7 @@
   // Store global default values for use as placeholders
   let globalPlaceholders = {};
 
-  const validTabs = ["station", "features", "appearance", "updates", "system", "global"];
+  const validTabs = ["station", "features", "appearance", "updates", "data", "global"];
   let activeTab = (initialTab && validTabs.includes(initialTab)) ? initialTab : "station";
   let settingsLoaded = false;
 
@@ -1675,7 +1675,7 @@
     <button class="tab" class:active={activeTab === "features"} on:click={() => switchTab("features")}>Features</button>
     <button class="tab" class:active={activeTab === "appearance"} on:click={() => switchTab("appearance")}>Appearance</button>
     <button class="tab" class:active={activeTab === "updates"} on:click={() => switchTab("updates")}>Updates</button>
-    <button class="tab" class:active={activeTab === "system"} on:click={() => switchTab("system")}>System</button>
+    <button class="tab" class:active={activeTab === "data"} on:click={() => switchTab("data")}>Data</button>
     <button class="tab" class:active={activeTab === "global"} on:click={() => switchTab("global")}>Global</button>
   </div>
 
@@ -2176,7 +2176,7 @@
   </div>
   {/if}
 
-  {#if activeTab === "system"}
+  {#if activeTab === "data"}
   <div class="tab-content" use:masonry>
 
   <section class="settings-section">
