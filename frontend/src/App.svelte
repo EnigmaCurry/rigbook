@@ -1269,10 +1269,10 @@
   let _themeState = {};
 
   function applyThemeFromState(s) {
-    const contrast = parseInt(s.theme_contrast) || 50;
-    const brightness = parseInt(s.theme_brightness) || 50;
-    const hue = parseInt(s.theme_hue) || 0;
-    const saturation = parseInt(s.theme_saturation) || 50;
+    const contrast = isNaN(parseInt(s.theme_contrast)) ? 50 : parseInt(s.theme_contrast);
+    const brightness = isNaN(parseInt(s.theme_brightness)) ? 50 : parseInt(s.theme_brightness);
+    const hue = isNaN(parseInt(s.theme_hue)) ? 0 : parseInt(s.theme_hue);
+    const saturation = isNaN(parseInt(s.theme_saturation)) ? 50 : parseInt(s.theme_saturation);
     if (s.theme_mode === "custom" && s.custom_theme_colors) {
       try {
         const c = JSON.parse(s.custom_theme_colors);

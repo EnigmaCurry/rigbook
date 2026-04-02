@@ -1407,10 +1407,10 @@
           if (s.key === "custom_header") custom_header = s.value || "";
           if (s.key === "default_page") default_page = s.value || "log";
           if (s.key === "theme") theme = s.value || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
-          if (s.key === "theme_contrast") themeContrast = parseInt(s.value) || 50;
-          if (s.key === "theme_brightness") themeBrightness = parseInt(s.value) || 50;
-          if (s.key === "theme_hue") themeHue = parseInt(s.value) || 0;
-          if (s.key === "theme_saturation") themeSaturation = parseInt(s.value) || 50;
+          if (s.key === "theme_contrast") { const v = parseInt(s.value); themeContrast = isNaN(v) ? 50 : v; }
+          if (s.key === "theme_brightness") { const v = parseInt(s.value); themeBrightness = isNaN(v) ? 50 : v; }
+          if (s.key === "theme_hue") { const v = parseInt(s.value); themeHue = isNaN(v) ? 0 : v; }
+          if (s.key === "theme_saturation") { const v = parseInt(s.value); themeSaturation = isNaN(v) ? 50 : v; }
           if (s.key === "theme_mode") themeMode = s.value || "preset";
           if (s.key === "custom_theme_colors") {
             try {
