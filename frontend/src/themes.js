@@ -736,6 +736,14 @@ function _setGrain(grain, scanlines) {
   }
   overlay.style.display = "block";
   overlay.style.opacity = String(grain / 100);
+  // Paper mode (scrolls with page) vs static mode (fixed)
+  if (scanlines > 0) {
+    overlay.style.position = "fixed";
+    overlay.style.height = "100%";
+  } else {
+    overlay.style.position = "absolute";
+    overlay.style.height = document.documentElement.scrollHeight + "px";
+  }
   // Animate grain when scanlines > 0
   if (scanlines > 0) {
     const turb = document.querySelector("#rigbook-noise feTurbulence");
