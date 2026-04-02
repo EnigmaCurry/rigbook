@@ -51,6 +51,7 @@
   let themeBrightness = 50;
   let themeHue = 0;
   let themeSaturation = 50;
+  let themeGradient = 50;
   let themeMode = "preset"; // "preset" or "custom"
   let customBg = "#24252b";
   let customText = "#eaeaea";
@@ -649,7 +650,7 @@
   let spotStatusInterval;
 
   async function onThemeChange() {
-    applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation);
+    applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient);
     storageSet("rigbook-theme", theme);
     await saveSetting("theme", theme);
     await saveSetting("theme_mode", "preset");
@@ -660,9 +661,9 @@
 
   function applyCurrentTheme() {
     if (themeMode === "preset") {
-      applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation);
+      applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient);
     } else {
-      applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation);
+      applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient);
     }
   }
 
@@ -714,28 +715,40 @@
     dispatch("saved");
   }
 
+  function onGradientInput() {
+    applyCurrentTheme();
+    broadcastThemePreview("theme_gradient", String(themeGradient));
+  }
+  async function onGradientCommit() {
+    applyCurrentTheme();
+    await saveSetting("theme_gradient", String(themeGradient));
+    dispatch("saved");
+  }
+
   async function resetSliders() {
     themeContrast = 50;
     themeBrightness = 50;
     themeHue = 0;
     themeSaturation = 50;
+    themeGradient = 50;
     applyCurrentTheme();
     await Promise.all([
       saveSetting("theme_contrast", "50"),
       saveSetting("theme_brightness", "50"),
       saveSetting("theme_hue", "0"),
       saveSetting("theme_saturation", "50"),
+      saveSetting("theme_gradient", "50"),
     ]);
     dispatch("saved");
   }
 
   async function onThemeModeChange() {
     if (themeMode === "preset") {
-      applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation);
+      applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient);
       storageSet("rigbook-theme", theme);
       await saveSetting("theme_mode", "preset");
     } else {
-      applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation);
+      applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient);
       storageSet("rigbook-theme", "custom");
       await saveSetting("theme_mode", "custom");
       await saveCustomColors();
@@ -745,7 +758,7 @@
   }
 
   function onCustomColorInput() {
-    applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation);
+    applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient);
     storageSet("rigbook-theme", "custom");
     broadcastThemePreview("custom_theme_colors", JSON.stringify({ bg: customBg, text: customText, accent: customAccent, vfo: customVfo }));
   }
@@ -1427,6 +1440,7 @@
           if (s.key === "theme_brightness") { const v = parseInt(s.value); themeBrightness = isNaN(v) ? 50 : v; }
           if (s.key === "theme_hue") { const v = parseInt(s.value); themeHue = isNaN(v) ? 0 : v; }
           if (s.key === "theme_saturation") { const v = parseInt(s.value); themeSaturation = isNaN(v) ? 50 : v; }
+          if (s.key === "theme_gradient") { const v = parseInt(s.value); themeGradient = isNaN(v) ? 50 : v; }
           if (s.key === "theme_mode") themeMode = s.value || "preset";
           if (s.key === "custom_theme_colors") {
             try {
@@ -1992,7 +2006,7 @@
             <option value={t}>{THEMES[t].label}{t !== "dark" && t !== "light" ? ` (${THEMES[t].base})` : ""}</option>
           {/each}
         </select>
-        <button class="contrast-reset" on:click={resetSliders} disabled={themeContrast === 50 && themeBrightness === 50 && themeHue === 0 && themeSaturation === 50}>Reset Sliders</button>
+        <button class="contrast-reset" on:click={resetSliders} disabled={themeContrast === 50 && themeBrightness === 50 && themeHue === 0 && themeSaturation === 50 && themeGradient === 50}>Reset Sliders</button>
       </div>
     </div>
     {:else}
@@ -2046,6 +2060,15 @@
           <input id="saturation_slider" type="range" min="0" max="100" bind:value={themeSaturation} on:input={onSaturationInput} on:change={onSaturationCommit} />
         </div>
       </div>
+    </div>
+    <div class="slider-pair">
+      <div class="slider-group">
+        <label for="gradient_slider">Gradient <span class="slider-value">{themeGradient - 50}</span></label>
+        <div class="slider-control">
+          <input id="gradient_slider" type="range" min="0" max="100" bind:value={themeGradient} on:input={onGradientInput} on:change={onGradientCommit} />
+        </div>
+      </div>
+      <div class="slider-group"></div>
     </div>
   </section>
   <section class="settings-section" data-section="content">

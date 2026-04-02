@@ -670,19 +670,40 @@ export const THEME_NAMES = Object.keys(THEMES);
 
 /** Apply a theme's CSS variables to document.documentElement.
  *  contrast: 0–100, 50 = unchanged. brightness: 0–100, 50 = unchanged. hue: 0–360, 0 = unchanged. */
-export function applyThemeVars(themeName, contrast = 50, brightness = 50, hue = 0, saturation = 50) {
+export function applyThemeVars(themeName, contrast = 50, brightness = 50, hue = 0, saturation = 50, gradient = 50) {
   const theme = THEMES[themeName] || THEMES.dark;
   const style = document.documentElement.style;
   for (const [prop, val] of Object.entries(theme.vars)) {
     style.setProperty(prop, _adjustColor(val, contrast, brightness, hue, saturation));
   }
   _setAccentText(style);
+  _setGradient(style, gradient);
 }
 
 function _setAccentText(style) {
   const accent = style.getPropertyValue("--accent").trim();
   if (/^#[0-9a-fA-F]{6}$/.test(accent)) {
     style.setProperty("--accent-text", luminance(accent) > 0.5 ? "#000000" : "#ffffff");
+  }
+}
+
+function _setGradient(style, gradient) {
+  if (gradient === 50) {
+    style.setProperty("--bg-gradient", "var(--bg)");
+    return;
+  }
+  const bg = style.getPropertyValue("--bg").trim();
+  if (!/^#[0-9a-fA-F]{6}$/.test(bg)) { style.setProperty("--bg-gradient", bg); return; }
+  // intensity: 0 at center (50), up to 0.15 at edges (0 or 100)
+  const intensity = Math.abs(gradient - 50) / 50 * 0.15;
+  const lighter = mix(bg, "#ffffff", intensity);
+  const darker = mix(bg, "#000000", intensity);
+  if (gradient > 50) {
+    // top lighter, bottom darker
+    style.setProperty("--bg-gradient", `linear-gradient(to bottom, ${lighter}, ${darker})`);
+  } else {
+    // top darker, bottom lighter
+    style.setProperty("--bg-gradient", `linear-gradient(to bottom, ${darker}, ${lighter})`);
   }
 }
 
@@ -820,12 +841,13 @@ export function generateCustomTheme(bg, text, accent, vfo) {
 }
 
 /** Apply a custom theme's vars with optional modifiers. */
-export function applyCustomThemeVars(bg, text, accent, vfo, contrast = 50, brightness = 50, hue = 0, saturation = 50) {
+export function applyCustomThemeVars(bg, text, accent, vfo, contrast = 50, brightness = 50, hue = 0, saturation = 50, gradient = 50) {
   const theme = generateCustomTheme(bg, text, accent, vfo);
   const style = document.documentElement.style;
   for (const [prop, val] of Object.entries(theme.vars)) {
     style.setProperty(prop, _adjustColor(val, contrast, brightness, hue, saturation));
   }
   _setAccentText(style);
+  _setGradient(style, gradient);
   return theme;
 }

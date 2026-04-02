@@ -1273,11 +1273,12 @@
     const brightness = isNaN(parseInt(s.theme_brightness)) ? 50 : parseInt(s.theme_brightness);
     const hue = isNaN(parseInt(s.theme_hue)) ? 0 : parseInt(s.theme_hue);
     const saturation = isNaN(parseInt(s.theme_saturation)) ? 50 : parseInt(s.theme_saturation);
+    const gradient = isNaN(parseInt(s.theme_gradient)) ? 50 : parseInt(s.theme_gradient);
     if (s.theme_mode === "custom" && s.custom_theme_colors) {
       try {
         const c = JSON.parse(s.custom_theme_colors);
         if (c.bg && c.text && c.accent && c.vfo) {
-          applyCustomThemeVars(c.bg, c.text, c.accent, c.vfo, contrast, brightness, hue, saturation);
+          applyCustomThemeVars(c.bg, c.text, c.accent, c.vfo, contrast, brightness, hue, saturation, gradient);
           storageSet("rigbook-theme", "custom");
           return;
         }
@@ -1285,7 +1286,7 @@
     }
     if (s.theme) {
       storageSet("rigbook-theme", s.theme);
-      applyThemeVars(s.theme, contrast, brightness, hue, saturation);
+      applyThemeVars(s.theme, contrast, brightness, hue, saturation, gradient);
     }
   }
 
@@ -1702,6 +1703,7 @@
     --accent-delete-hover: #aa2222;
     --accent-error: #ff6b6b;
     --accent-text: #000000;
+    --bg-gradient: var(--bg);
     --btn-secondary: #6e7080;
     --btn-secondary-hover: #5a5c6a;
     --row-hover: #44465a;
@@ -1718,7 +1720,8 @@
   :global(body) {
     margin: 0;
     padding: 0;
-    background: var(--bg);
+    background: var(--bg-gradient, var(--bg));
+    background-attachment: fixed;
     color: var(--text);
     font-family: "Courier New", Courier, monospace;
     font-size: 14px;
