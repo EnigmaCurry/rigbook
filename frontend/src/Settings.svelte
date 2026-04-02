@@ -50,6 +50,7 @@
   let themeContrast = 50;
   let themeBrightness = 50;
   let themeHue = 0;
+  let themeSaturation = 50;
   let themeMode = "preset"; // "preset" or "custom"
   let customBg = "#24252b";
   let customText = "#eaeaea";
@@ -648,7 +649,7 @@
   let spotStatusInterval;
 
   async function onThemeChange() {
-    applyThemeVars(theme, themeContrast, themeBrightness, themeHue);
+    applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation);
     storageSet("rigbook-theme", theme);
     await saveSetting("theme", theme);
     await saveSetting("theme_mode", "preset");
@@ -659,9 +660,9 @@
 
   function applyCurrentTheme() {
     if (themeMode === "preset") {
-      applyThemeVars(theme, themeContrast, themeBrightness, themeHue);
+      applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation);
     } else {
-      applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue);
+      applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation);
     }
   }
 
@@ -703,13 +704,23 @@
     dispatch("saved");
   }
 
+  function onSaturationInput() {
+    applyCurrentTheme();
+    broadcastThemePreview("theme_saturation", String(themeSaturation));
+  }
+  async function onSaturationCommit() {
+    applyCurrentTheme();
+    await saveSetting("theme_saturation", String(themeSaturation));
+    dispatch("saved");
+  }
+
   async function onThemeModeChange() {
     if (themeMode === "preset") {
-      applyThemeVars(theme, themeContrast, themeBrightness, themeHue);
+      applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation);
       storageSet("rigbook-theme", theme);
       await saveSetting("theme_mode", "preset");
     } else {
-      applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue);
+      applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation);
       storageSet("rigbook-theme", "custom");
       await saveSetting("theme_mode", "custom");
       await saveCustomColors();
@@ -719,7 +730,7 @@
   }
 
   function onCustomColorInput() {
-    applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue);
+    applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation);
     storageSet("rigbook-theme", "custom");
   }
 
@@ -1399,6 +1410,7 @@
           if (s.key === "theme_contrast") themeContrast = parseInt(s.value) || 50;
           if (s.key === "theme_brightness") themeBrightness = parseInt(s.value) || 50;
           if (s.key === "theme_hue") themeHue = parseInt(s.value) || 0;
+          if (s.key === "theme_saturation") themeSaturation = parseInt(s.value) || 50;
           if (s.key === "theme_mode") themeMode = s.value || "preset";
           if (s.key === "custom_theme_colors") {
             try {
@@ -2012,7 +2024,13 @@
           <button class="contrast-reset" on:click={() => { themeHue = 0; onHueCommit(); }} disabled={themeHue === 0}>Reset</button>
         </div>
       </div>
-      <div class="slider-group"></div>
+      <div class="slider-group">
+        <label for="saturation_slider">Saturation</label>
+        <div class="slider-control">
+          <input id="saturation_slider" type="range" min="40" max="60" bind:value={themeSaturation} on:input={onSaturationInput} on:change={onSaturationCommit} />
+          <button class="contrast-reset" on:click={() => { themeSaturation = 50; onSaturationCommit(); }} disabled={themeSaturation === 50}>Reset</button>
+        </div>
+      </div>
     </div>
   </section>
   <section class="settings-section" data-section="content">

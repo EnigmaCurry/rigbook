@@ -1272,11 +1272,12 @@
     const contrast = parseInt(s.theme_contrast) || 50;
     const brightness = parseInt(s.theme_brightness) || 50;
     const hue = parseInt(s.theme_hue) || 0;
+    const saturation = parseInt(s.theme_saturation) || 50;
     if (s.theme_mode === "custom" && s.custom_theme_colors) {
       try {
         const c = JSON.parse(s.custom_theme_colors);
         if (c.bg && c.text && c.accent && c.vfo) {
-          applyCustomThemeVars(c.bg, c.text, c.accent, c.vfo, contrast, brightness, hue);
+          applyCustomThemeVars(c.bg, c.text, c.accent, c.vfo, contrast, brightness, hue, saturation);
           storageSet("rigbook-theme", "custom");
           return;
         }
@@ -1284,7 +1285,7 @@
     }
     if (s.theme) {
       storageSet("rigbook-theme", s.theme);
-      applyThemeVars(s.theme, contrast, brightness, hue);
+      applyThemeVars(s.theme, contrast, brightness, hue, saturation);
     }
   }
 

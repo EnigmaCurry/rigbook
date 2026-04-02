@@ -670,11 +670,11 @@ export const THEME_NAMES = Object.keys(THEMES);
 
 /** Apply a theme's CSS variables to document.documentElement.
  *  contrast: 0–100, 50 = unchanged. brightness: 0–100, 50 = unchanged. hue: 0–360, 0 = unchanged. */
-export function applyThemeVars(themeName, contrast = 50, brightness = 50, hue = 0) {
+export function applyThemeVars(themeName, contrast = 50, brightness = 50, hue = 0, saturation = 50) {
   const theme = THEMES[themeName] || THEMES.dark;
   const style = document.documentElement.style;
   for (const [prop, val] of Object.entries(theme.vars)) {
-    style.setProperty(prop, _adjustColor(val, contrast, brightness, hue));
+    style.setProperty(prop, _adjustColor(val, contrast, brightness, hue, saturation));
   }
   _setAccentText(style);
 }
@@ -686,14 +686,15 @@ function _setAccentText(style) {
   }
 }
 
-function _adjustColor(hex, contrast, brightness, hue) {
-  if (contrast === 50 && brightness === 50 && hue === 0) return hex;
+function _adjustColor(hex, contrast, brightness, hue, saturation) {
+  if (contrast === 50 && brightness === 50 && hue === 0 && saturation === 50) return hex;
   if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return hex;
   let [r, g, b] = hex.replace("#", "").match(/.{2}/g).map(c => parseInt(c, 16));
-  // Hue shift in HSL space
-  if (hue !== 0) {
+  // Hue shift and saturation in HSL space
+  if (hue !== 0 || saturation !== 50) {
     let [h, s, l] = _rgbToHsl(r, g, b);
-    h = (h + hue) % 360;
+    if (hue !== 0) h = (h + hue) % 360;
+    if (saturation !== 50) s = Math.min(1, s * (saturation / 50));
     [r, g, b] = _hslToRgb(h, s, l);
   }
   // Contrast: scale around mid-gray
@@ -819,11 +820,11 @@ export function generateCustomTheme(bg, text, accent, vfo) {
 }
 
 /** Apply a custom theme's vars with optional modifiers. */
-export function applyCustomThemeVars(bg, text, accent, vfo, contrast = 50, brightness = 50, hue = 0) {
+export function applyCustomThemeVars(bg, text, accent, vfo, contrast = 50, brightness = 50, hue = 0, saturation = 50) {
   const theme = generateCustomTheme(bg, text, accent, vfo);
   const style = document.documentElement.style;
   for (const [prop, val] of Object.entries(theme.vars)) {
-    style.setProperty(prop, _adjustColor(val, contrast, brightness, hue));
+    style.setProperty(prop, _adjustColor(val, contrast, brightness, hue, saturation));
   }
   _setAccentText(style);
   return theme;
