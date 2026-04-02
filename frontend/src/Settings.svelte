@@ -50,6 +50,7 @@
   let themeContrast = 50;
   let themeBrightness = 50;
   let themeHue = 0;
+  let lightAccentText = false;
   let themeMode = "preset"; // "preset" or "custom"
   let customBg = "#24252b";
   let customText = "#eaeaea";
@@ -654,6 +655,16 @@
     await saveSetting("theme_mode", "preset");
     dispatch("saved");
     if (map_theme === "default") updatePreview();
+  }
+
+  function applyAccentText() {
+    document.documentElement.style.setProperty("--accent-text", lightAccentText ? "#ffffff" : "#000000");
+  }
+
+  async function onAccentTextToggle() {
+    applyAccentText();
+    await saveSetting("light_accent_text", lightAccentText ? "true" : "false");
+    dispatch("saved");
   }
 
   function applyCurrentTheme() {
@@ -1398,6 +1409,7 @@
           if (s.key === "theme_contrast") themeContrast = parseInt(s.value) || 50;
           if (s.key === "theme_brightness") themeBrightness = parseInt(s.value) || 50;
           if (s.key === "theme_hue") themeHue = parseInt(s.value) || 0;
+          if (s.key === "light_accent_text") { lightAccentText = s.value === "true"; applyAccentText(); }
           if (s.key === "theme_mode") themeMode = s.value || "preset";
           if (s.key === "custom_theme_colors") {
             try {
@@ -2012,6 +2024,12 @@
         </div>
       </div>
     </div>
+    <div class="setting-row toggle-row">
+      <label class="toggle-label">
+        <input type="checkbox" bind:checked={lightAccentText} on:change={onAccentTextToggle} />
+        Light text on accent buttons
+      </label>
+    </div>
   </section>
   <section class="settings-section" data-section="content">
     <h3>Content</h3>
@@ -2486,7 +2504,7 @@
 
   .tab:hover {
     background: var(--accent);
-    color: #000;
+    color: var(--accent-text);
     font-weight: bold;
   }
 
@@ -2497,7 +2515,7 @@
 
   .tab.active:hover {
     background: var(--accent);
-    color: #000;
+    color: var(--accent-text);
   }
 
   .tab-content {
@@ -2806,7 +2824,7 @@
 
   .mode-btn.active {
     background: var(--accent);
-    color: #000;
+    color: var(--accent-text);
   }
 
   .mode-btn:hover:not(.active) {
@@ -2822,7 +2840,7 @@
 
   button {
     background: var(--accent);
-    color: var(--bg);
+    color: var(--accent-text);
     border: none;
     padding: 0.5rem 1.5rem;
     font-family: inherit;
@@ -3018,7 +3036,7 @@
   }
   .apply-update-btn {
     background: #2ecc40;
-    color: #000;
+    color: var(--accent-text);
     font-weight: bold;
     border-color: #2ecc40;
     margin-left: 0.5rem;
