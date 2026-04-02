@@ -750,10 +750,14 @@ function _setGlow(style, glow) {
 
 function _setScanlines(scanlines) {
   let overlay = document.getElementById("rigbook-scanlines-overlay");
+  let wave = document.getElementById("rigbook-scanline-wave");
+  let styleEl = document.getElementById("rigbook-scanline-style");
   if (scanlines === 0) {
     if (overlay) overlay.style.display = "none";
+    if (wave) wave.style.display = "none";
     return;
   }
+  // Static scanlines
   if (!overlay) {
     overlay = document.createElement("div");
     overlay.id = "rigbook-scanlines-overlay";
@@ -763,6 +767,33 @@ function _setScanlines(scanlines) {
   overlay.style.display = "block";
   const opacity = (scanlines / 100 * 0.3).toFixed(3);
   overlay.style.background = `repeating-linear-gradient(to bottom, transparent, transparent 2px, rgba(0,0,0,${opacity}) 2px, rgba(0,0,0,${opacity}) 4px)`;
+  // Animated wave distortion band
+  if (!styleEl) {
+    styleEl = document.createElement("style");
+    styleEl.id = "rigbook-scanline-style";
+    styleEl.textContent = `
+      @keyframes rigbook-scanline-wave {
+        0% { top: -15%; }
+        100% { top: 115%; }
+      }
+    `;
+    document.head.appendChild(styleEl);
+  }
+  if (!wave) {
+    wave = document.createElement("div");
+    wave.id = "rigbook-scanline-wave";
+    wave.style.cssText = "position:fixed;left:-5%;width:110%;pointer-events:none;z-index:99998;";
+    document.body.appendChild(wave);
+  }
+  wave.style.display = "block";
+  const waveOpacity = (scanlines / 100 * 0.12).toFixed(3);
+  const waveHeight = Math.round(4 + scanlines / 100 * 6);
+  const skew = (scanlines / 100 * 2).toFixed(1);
+  const speed = (8 - scanlines / 100 * 4).toFixed(1);
+  wave.style.height = `${waveHeight}vh`;
+  wave.style.background = `linear-gradient(to bottom, transparent, rgba(255,255,255,${waveOpacity}) 40%, rgba(255,255,255,${waveOpacity}) 60%, transparent)`;
+  wave.style.transform = `skewX(${skew}deg)`;
+  wave.style.animation = `rigbook-scanline-wave ${speed}s linear infinite`;
 }
 
 function _adjustColor(hex, contrast, brightness, hue, saturation) {
