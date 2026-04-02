@@ -747,6 +747,7 @@
   function onCustomColorInput() {
     applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation);
     storageSet("rigbook-theme", "custom");
+    broadcastThemePreview("custom_theme_colors", JSON.stringify({ bg: customBg, text: customText, accent: customAccent, vfo: customVfo }));
   }
 
   async function onCustomColorCommit() {
