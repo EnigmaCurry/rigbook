@@ -2820,6 +2820,9 @@
     border-radius: 3px;
     cursor: pointer;
   }
+  .contrast-reset:hover:not(:disabled) {
+    color: var(--accent-text);
+  }
   .contrast-reset:disabled {
     opacity: 0.4;
     cursor: default;
