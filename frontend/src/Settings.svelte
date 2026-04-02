@@ -714,6 +714,21 @@
     dispatch("saved");
   }
 
+  async function resetSliders() {
+    themeContrast = 50;
+    themeBrightness = 50;
+    themeHue = 0;
+    themeSaturation = 50;
+    applyCurrentTheme();
+    await Promise.all([
+      saveSetting("theme_contrast", "50"),
+      saveSetting("theme_brightness", "50"),
+      saveSetting("theme_hue", "0"),
+      saveSetting("theme_saturation", "50"),
+    ]);
+    dispatch("saved");
+  }
+
   async function onThemeModeChange() {
     if (themeMode === "preset") {
       applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation);
@@ -1975,6 +1990,7 @@
           <option value={t}>{THEMES[t].label}{t !== "dark" && t !== "light" ? ` (${THEMES[t].base})` : ""}</option>
         {/each}
       </select>
+      <button class="contrast-reset" on:click={resetSliders} disabled={themeContrast === 50 && themeBrightness === 50 && themeHue === 0 && themeSaturation === 50}>Reset Sliders</button>
     </div>
     {:else}
     <div class="color-pickers">
@@ -2002,33 +2018,29 @@
     {/if}
     <div class="slider-pair">
       <div class="slider-group">
-        <label for="contrast_slider">Contrast</label>
+        <label for="contrast_slider">Contrast <span class="slider-value">{themeContrast}</span></label>
         <div class="slider-control">
           <input id="contrast_slider" type="range" min="40" max="60" bind:value={themeContrast} on:input={onContrastInput} on:change={onContrastCommit} />
-          <button class="contrast-reset" on:click={() => { themeContrast = 50; onContrastCommit(); }} disabled={themeContrast === 50}>Reset</button>
         </div>
       </div>
       <div class="slider-group">
-        <label for="brightness_slider">Brightness</label>
+        <label for="brightness_slider">Brightness <span class="slider-value">{themeBrightness}</span></label>
         <div class="slider-control">
           <input id="brightness_slider" type="range" min="40" max="60" bind:value={themeBrightness} on:input={onBrightnessInput} on:change={onBrightnessCommit} />
-          <button class="contrast-reset" on:click={() => { themeBrightness = 50; onBrightnessCommit(); }} disabled={themeBrightness === 50}>Reset</button>
         </div>
       </div>
     </div>
     <div class="slider-pair">
       <div class="slider-group">
-        <label for="hue_slider">Hue Shift</label>
+        <label for="hue_slider">Hue Shift <span class="slider-value">{themeHue}°</span></label>
         <div class="slider-control">
           <input id="hue_slider" type="range" min="0" max="360" bind:value={themeHue} on:input={onHueInput} on:change={onHueCommit} class="hue-range" />
-          <button class="contrast-reset" on:click={() => { themeHue = 0; onHueCommit(); }} disabled={themeHue === 0}>Reset</button>
         </div>
       </div>
       <div class="slider-group">
-        <label for="saturation_slider">Saturation</label>
+        <label for="saturation_slider">Saturation <span class="slider-value">{themeSaturation}</span></label>
         <div class="slider-control">
           <input id="saturation_slider" type="range" min="0" max="100" bind:value={themeSaturation} on:input={onSaturationInput} on:change={onSaturationCommit} />
-          <button class="contrast-reset" on:click={() => { themeSaturation = 50; onSaturationCommit(); }} disabled={themeSaturation === 50}>Reset</button>
         </div>
       </div>
     </div>
@@ -2752,6 +2764,10 @@
     font-size: 0.85rem;
     margin-bottom: 0.25rem;
     color: var(--text-muted);
+  }
+  .slider-value {
+    opacity: 0.6;
+    font-size: 0.8rem;
   }
   .hue-range {
     -webkit-appearance: none;
