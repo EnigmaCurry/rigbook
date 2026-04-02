@@ -43,6 +43,7 @@ GLOBAL_ONLY_KEYS = {
     "shutdown_in_menu",
     "auto_shutdown_on_disconnect",
     "welcome_acknowledged",
+    "auto_shutdown_delay",
     "default_logbook_name",
     "browser_url_override",
     "open_browser_on_startup",

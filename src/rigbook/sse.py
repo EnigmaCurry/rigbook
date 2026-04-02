@@ -27,7 +27,8 @@ _on_disconnect_callbacks: list[Callable[[], None]] = []
 _ever_had_client: bool = False
 _auto_shutdown_task: asyncio.Task | None = None
 
-AUTO_SHUTDOWN_DELAY = 15  # seconds
+AUTO_SHUTDOWN_DELAY_DEFAULT = 300  # seconds
+_auto_shutdown_delay: int = AUTO_SHUTDOWN_DELAY_DEFAULT
 
 
 def subscriber_count() -> int:
@@ -68,7 +69,7 @@ def broadcast(event: str, data: dict) -> None:
 async def _auto_shutdown_loop() -> None:
     """Background task: shut down server when no SSE clients are connected.
 
-    Triggers after AUTO_SHUTDOWN_DELAY seconds with zero clients, whether
+    Triggers after the configured delay seconds with zero clients, whether
     a client connected and then left, or no client ever connected at all.
     """
     started_at = time.time()
@@ -79,7 +80,7 @@ async def _auto_shutdown_loop() -> None:
         # Use last-disconnect time if a client was seen, otherwise use start time
         reference = _last_client_disconnected_at if _ever_had_client else started_at
         elapsed = time.time() - reference
-        if elapsed >= AUTO_SHUTDOWN_DELAY:
+        if elapsed >= _auto_shutdown_delay:
             logger.info(
                 "No SSE clients for %.0fs — shutting down now", elapsed
             )
@@ -90,11 +91,29 @@ async def _auto_shutdown_loop() -> None:
 
 async def start_auto_shutdown() -> None:
     """Start the auto-shutdown watcher task."""
-    global _auto_shutdown_task
+    global _auto_shutdown_task, _auto_shutdown_delay
     if _auto_shutdown_task is not None:
         return
+    # Read delay from global DB
+    try:
+        from rigbook.db import GlobalSetting, global_async_session
+
+        async with global_async_session() as gdb:
+            from sqlalchemy import select
+
+            row = (
+                await gdb.execute(
+                    select(GlobalSetting.value).where(
+                        GlobalSetting.key == "auto_shutdown_delay"
+                    )
+                )
+            ).scalar_one_or_none()
+            if row:
+                _auto_shutdown_delay = max(5, int(row))
+    except Exception:
+        pass
     _auto_shutdown_task = asyncio.create_task(_auto_shutdown_loop())
-    logger.info("Auto-shutdown watcher started (delay=%ds)", AUTO_SHUTDOWN_DELAY)
+    logger.info("Auto-shutdown watcher started (delay=%ds)", _auto_shutdown_delay)
 
 
 async def stop_auto_shutdown() -> None:

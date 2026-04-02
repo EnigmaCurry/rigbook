@@ -122,6 +122,7 @@
   let global_default_port = "8073";
   let global_default_logbook_name = "rigbook";
   let global_open_browser_on_startup = true;
+  let global_auto_shutdown_delay = "300";
   let global_browser_url_override = "";
   let availableLogbooks = [];
   let globalSettingsLoaded = false;
@@ -1357,6 +1358,7 @@
           if (s.key === "default_port") global_default_port = s.value || "8073";
           if (s.key === "default_logbook_name") global_default_logbook_name = s.value || "rigbook";
           if (s.key === "open_browser_on_startup") global_open_browser_on_startup = s.value !== "false";
+          if (s.key === "auto_shutdown_delay") global_auto_shutdown_delay = s.value || "300";
           if (s.key === "browser_url_override") global_browser_url_override = s.value || "";
           if (s.key === "shutdown_in_menu") shutdownInMenu = s.value === "true";
           if (s.key === "auto_shutdown_on_disconnect") autoShutdownOnDisconnect = s.value === "true";
@@ -2248,7 +2250,11 @@
         Shutdown automatically when no clients are connected
       </label>
     </div>
-    <p class="hint">Shuts down the server after 15 consecutive seconds with no connected clients.</p>
+    <div class="setting-row">
+      <label for="global_shutdown_delay">Shutdown delay (seconds)</label>
+      <input id="global_shutdown_delay" type="number" min="5" bind:value={global_auto_shutdown_delay} on:blur={() => { const v = Math.max(5, parseInt(global_auto_shutdown_delay) || 300); global_auto_shutdown_delay = String(v); saveGlobalSetting("auto_shutdown_delay", String(v)); }} autocomplete="off" style="max-width: 5rem" disabled={!autoShutdownOnDisconnect} />
+    </div>
+    <p class="hint">Shuts down the server after {global_auto_shutdown_delay} consecutive seconds with no connected clients.</p>
     <div class="setting-row toggle-row">
       <label class="toggle-label">
         <input type="checkbox" bind:checked={shutdownInMenu} on:change={() => { saveGlobalSetting("shutdown_in_menu", shutdownInMenu ? "true" : "false"); }} />
