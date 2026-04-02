@@ -1552,6 +1552,8 @@
       if (res.ok) {
         const data = await res.json();
         noShutdown = !!data.no_shutdown;
+        await tick();
+        window.dispatchEvent(new Event("resize"));
       }
     } catch {}
   }
