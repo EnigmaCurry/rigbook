@@ -50,7 +50,7 @@
   let themeContrast = 50;
   let themeBrightness = 50;
   let themeHue = 0;
-  let lightAccentText = false;
+  let accentTextBrightness = 0;
   let themeMode = "preset"; // "preset" or "custom"
   let customBg = "#24252b";
   let customText = "#eaeaea";
@@ -658,12 +658,18 @@
   }
 
   function applyAccentText() {
-    document.documentElement.style.setProperty("--accent-text", lightAccentText ? "#ffffff" : "#000000");
+    const hex = accentTextBrightness.toString(16).padStart(2, "0");
+    document.documentElement.style.setProperty("--accent-text", `#${hex}${hex}${hex}`);
   }
 
-  async function onAccentTextToggle() {
+  function onAccentTextInput() {
     applyAccentText();
-    await saveSetting("light_accent_text", lightAccentText ? "true" : "false");
+    broadcastThemePreview("accent_text_brightness", String(accentTextBrightness));
+  }
+
+  async function onAccentTextCommit() {
+    applyAccentText();
+    await saveSetting("accent_text_brightness", String(accentTextBrightness));
     dispatch("saved");
   }
 
@@ -1409,7 +1415,7 @@
           if (s.key === "theme_contrast") themeContrast = parseInt(s.value) || 50;
           if (s.key === "theme_brightness") themeBrightness = parseInt(s.value) || 50;
           if (s.key === "theme_hue") themeHue = parseInt(s.value) || 0;
-          if (s.key === "light_accent_text") { lightAccentText = s.value === "true"; applyAccentText(); }
+          if (s.key === "accent_text_brightness") { accentTextBrightness = parseInt(s.value) || 0; applyAccentText(); }
           if (s.key === "theme_mode") themeMode = s.value || "preset";
           if (s.key === "custom_theme_colors") {
             try {
@@ -2016,19 +2022,22 @@
       </div>
     </div>
     <div class="slider-pair">
-      <div class="slider-group hue-slider-group">
+      <div class="slider-group">
         <label for="hue_slider">Hue Shift</label>
         <div class="slider-control">
           <input id="hue_slider" type="range" min="0" max="360" bind:value={themeHue} on:input={onHueInput} on:change={onHueCommit} class="hue-range" />
           <button class="contrast-reset" on:click={() => { themeHue = 0; onHueCommit(); }} disabled={themeHue === 0}>Reset</button>
         </div>
       </div>
-    </div>
-    <div class="setting-row toggle-row">
-      <label class="toggle-label">
-        <input type="checkbox" bind:checked={lightAccentText} on:change={onAccentTextToggle} />
-        Light text on accent buttons
-      </label>
+      {#if themeMode === "preset"}
+      <div class="slider-group">
+        <label for="accent_text_slider">Button Text</label>
+        <div class="slider-control">
+          <input id="accent_text_slider" type="range" min="0" max="255" bind:value={accentTextBrightness} on:input={onAccentTextInput} on:change={onAccentTextCommit} />
+          <button class="contrast-reset" on:click={() => { accentTextBrightness = 0; onAccentTextCommit(); }} disabled={accentTextBrightness === 0}>Reset</button>
+        </div>
+      </div>
+      {/if}
     </div>
   </section>
   <section class="settings-section" data-section="content">
@@ -2750,9 +2759,6 @@
     font-size: 0.85rem;
     margin-bottom: 0.25rem;
     color: var(--text-muted);
-  }
-  .hue-slider-group {
-    flex: 2;
   }
   .hue-range {
     -webkit-appearance: none;
