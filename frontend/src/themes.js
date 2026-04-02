@@ -670,7 +670,7 @@ export const THEME_NAMES = Object.keys(THEMES);
 
 /** Apply a theme's CSS variables to document.documentElement.
  *  contrast: 0–100, 50 = unchanged. brightness: 0–100, 50 = unchanged. hue: 0–360, 0 = unchanged. */
-export function applyThemeVars(themeName, contrast = 50, brightness = 50, hue = 0, saturation = 50, gradient = 50) {
+export function applyThemeVars(themeName, contrast = 50, brightness = 50, hue = 0, saturation = 50, gradient = 50, grain = 0) {
   const theme = THEMES[themeName] || THEMES.dark;
   const style = document.documentElement.style;
   for (const [prop, val] of Object.entries(theme.vars)) {
@@ -678,6 +678,7 @@ export function applyThemeVars(themeName, contrast = 50, brightness = 50, hue = 
   }
   _setAccentText(style);
   _setGradient(style, gradient);
+  _setGrain(grain);
 }
 
 function _setAccentText(style) {
@@ -705,6 +706,30 @@ function _setGradient(style, gradient) {
     // top darker, bottom lighter
     style.setProperty("--bg-gradient", `linear-gradient(to bottom, ${darker}, ${lighter})`);
   }
+}
+
+function _setGrain(grain) {
+  let overlay = document.getElementById("rigbook-grain-overlay");
+  if (grain === 0) {
+    if (overlay) overlay.style.display = "none";
+    return;
+  }
+  if (!overlay) {
+    // Create SVG noise filter
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("width", "0");
+    svg.setAttribute("height", "0");
+    svg.style.position = "absolute";
+    svg.innerHTML = `<filter id="rigbook-noise"><feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="4" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter>`;
+    document.body.appendChild(svg);
+    // Create overlay div
+    overlay = document.createElement("div");
+    overlay.id = "rigbook-grain-overlay";
+    overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:99999;filter:url(#rigbook-noise);mix-blend-mode:overlay;";
+    document.body.appendChild(overlay);
+  }
+  overlay.style.display = "block";
+  overlay.style.opacity = String(grain / 100);
 }
 
 function _adjustColor(hex, contrast, brightness, hue, saturation) {
@@ -841,7 +866,7 @@ export function generateCustomTheme(bg, text, accent, vfo) {
 }
 
 /** Apply a custom theme's vars with optional modifiers. */
-export function applyCustomThemeVars(bg, text, accent, vfo, contrast = 50, brightness = 50, hue = 0, saturation = 50, gradient = 50) {
+export function applyCustomThemeVars(bg, text, accent, vfo, contrast = 50, brightness = 50, hue = 0, saturation = 50, gradient = 50, grain = 0) {
   const theme = generateCustomTheme(bg, text, accent, vfo);
   const style = document.documentElement.style;
   for (const [prop, val] of Object.entries(theme.vars)) {
@@ -849,5 +874,6 @@ export function applyCustomThemeVars(bg, text, accent, vfo, contrast = 50, brigh
   }
   _setAccentText(style);
   _setGradient(style, gradient);
+  _setGrain(grain);
   return theme;
 }

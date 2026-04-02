@@ -19,7 +19,7 @@ from rigbook.db import (
 
 logger = logging.getLogger("rigbook")
 
-THEME_BROADCAST_KEYS = {"theme", "theme_mode", "theme_contrast", "theme_brightness", "theme_hue", "theme_saturation", "theme_gradient", "custom_theme_colors"}
+THEME_BROADCAST_KEYS = {"theme", "theme_mode", "theme_contrast", "theme_brightness", "theme_hue", "theme_saturation", "theme_gradient", "theme_grain", "custom_theme_colors"}
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 

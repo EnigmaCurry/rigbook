@@ -52,6 +52,7 @@
   let themeHue = 0;
   let themeSaturation = 50;
   let themeGradient = 50;
+  let themeGrain = 0;
   let themeMode = "preset"; // "preset" or "custom"
   let customBg = "#24252b";
   let customText = "#eaeaea";
@@ -650,7 +651,7 @@
   let spotStatusInterval;
 
   async function onThemeChange() {
-    applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient);
+    applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient, themeGrain);
     storageSet("rigbook-theme", theme);
     await saveSetting("theme", theme);
     await saveSetting("theme_mode", "preset");
@@ -661,9 +662,9 @@
 
   function applyCurrentTheme() {
     if (themeMode === "preset") {
-      applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient);
+      applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient, themeGrain);
     } else {
-      applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient);
+      applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient, themeGrain);
     }
   }
 
@@ -725,12 +726,23 @@
     dispatch("saved");
   }
 
+  function onGrainInput() {
+    applyCurrentTheme();
+    broadcastThemePreview("theme_grain", String(themeGrain));
+  }
+  async function onGrainCommit() {
+    applyCurrentTheme();
+    await saveSetting("theme_grain", String(themeGrain));
+    dispatch("saved");
+  }
+
   async function resetSliders() {
     themeContrast = 50;
     themeBrightness = 50;
     themeHue = 0;
     themeSaturation = 50;
     themeGradient = 50;
+    themeGrain = 0;
     applyCurrentTheme();
     await Promise.all([
       saveSetting("theme_contrast", "50"),
@@ -738,17 +750,18 @@
       saveSetting("theme_hue", "0"),
       saveSetting("theme_saturation", "50"),
       saveSetting("theme_gradient", "50"),
+      saveSetting("theme_grain", "0"),
     ]);
     dispatch("saved");
   }
 
   async function onThemeModeChange() {
     if (themeMode === "preset") {
-      applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient);
+      applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient, themeGrain);
       storageSet("rigbook-theme", theme);
       await saveSetting("theme_mode", "preset");
     } else {
-      applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient);
+      applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient, themeGrain);
       storageSet("rigbook-theme", "custom");
       await saveSetting("theme_mode", "custom");
       await saveCustomColors();
@@ -758,7 +771,7 @@
   }
 
   function onCustomColorInput() {
-    applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient);
+    applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient, themeGrain);
     storageSet("rigbook-theme", "custom");
     broadcastThemePreview("custom_theme_colors", JSON.stringify({ bg: customBg, text: customText, accent: customAccent, vfo: customVfo }));
   }
@@ -1441,6 +1454,7 @@
           if (s.key === "theme_hue") { const v = parseInt(s.value); themeHue = isNaN(v) ? 0 : v; }
           if (s.key === "theme_saturation") { const v = parseInt(s.value); themeSaturation = isNaN(v) ? 50 : v; }
           if (s.key === "theme_gradient") { const v = parseInt(s.value); themeGradient = isNaN(v) ? 50 : v; }
+          if (s.key === "theme_grain") { const v = parseInt(s.value); themeGrain = isNaN(v) ? 0 : v; }
           if (s.key === "theme_mode") themeMode = s.value || "preset";
           if (s.key === "custom_theme_colors") {
             try {
@@ -2006,7 +2020,7 @@
             <option value={t}>{THEMES[t].label}{t !== "dark" && t !== "light" ? ` (${THEMES[t].base})` : ""}</option>
           {/each}
         </select>
-        <button class="contrast-reset" on:click={resetSliders} disabled={themeContrast === 50 && themeBrightness === 50 && themeHue === 0 && themeSaturation === 50 && themeGradient === 50}>Reset Sliders</button>
+        <button class="contrast-reset" on:click={resetSliders} disabled={themeContrast === 50 && themeBrightness === 50 && themeHue === 0 && themeSaturation === 50 && themeGradient === 50 && themeGrain === 0}>Reset Sliders</button>
       </div>
     </div>
     {:else}
@@ -2068,7 +2082,12 @@
           <input id="gradient_slider" type="range" min="0" max="100" bind:value={themeGradient} on:input={onGradientInput} on:change={onGradientCommit} />
         </div>
       </div>
-      <div class="slider-group"></div>
+      <div class="slider-group">
+        <label for="grain_slider">Grain <span class="slider-value">{themeGrain}</span></label>
+        <div class="slider-control">
+          <input id="grain_slider" type="range" min="0" max="100" bind:value={themeGrain} on:input={onGrainInput} on:change={onGrainCommit} />
+        </div>
+      </div>
     </div>
   </section>
   <section class="settings-section" data-section="content">
