@@ -2127,7 +2127,7 @@
       <div class="slider-group">
         <label for="scanlines_slider">Scanlines <span class="slider-value">{themeScanlines}</span></label>
         <div class="slider-control">
-          <input id="scanlines_slider" type="range" min="0" max="100" bind:value={themeScanlines} on:input={onScanlinesInput} on:change={onScanlinesCommit} />
+          <input id="scanlines_slider" type="range" min="0" max="45" bind:value={themeScanlines} on:input={onScanlinesInput} on:change={onScanlinesCommit} />
         </div>
       </div>
     </div>
