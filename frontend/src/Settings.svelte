@@ -802,6 +802,16 @@
     } catch {}
   }
 
+  async function clearExpiredCache() {
+    try {
+      await Promise.all([
+        fetch("/api/qrz/cache/expired", { method: "DELETE" }),
+        fetch("/api/skcc/cache/expired", { method: "DELETE" }),
+      ]);
+      await fetchCacheStats();
+    } catch {}
+  }
+
   async function clearCache() {
     try {
       await Promise.all([
@@ -810,6 +820,7 @@
       ]);
       qrzCacheStats = null;
       skccCacheStats = null;
+      solarCacheStats = null;
       await fetchCacheStats();
     } catch {}
   }
@@ -2291,7 +2302,8 @@
     </div>
     {/if}
     <div class="setting-row toggle-row">
-      <button class="theme-toggle" on:click={clearCache}>Clear Cache</button>
+      <button class="theme-toggle" on:click={clearExpiredCache}>Clear Expired Only</button>
+      <button class="theme-toggle" on:click={clearCache}>Clear All Cache</button>
     </div>
   </section>
 

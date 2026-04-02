@@ -151,6 +151,17 @@ async def skcc_cache_stats(session: AsyncSession = Depends(get_global_session)):
     }
 
 
+@router.delete("/cache/expired")
+async def clear_expired_skcc_cache(session: AsyncSession = Depends(get_global_session)):
+    result = await session.execute(
+        delete(GlobalCache).where(
+            GlobalCache.namespace == NAMESPACE, GlobalCache.expires_at <= time.time()
+        )
+    )
+    await session.commit()
+    return {"ok": True, "deleted": result.rowcount}
+
+
 @router.delete("/cache")
 async def clear_skcc_cache(session: AsyncSession = Depends(get_global_session)):
     await session.execute(delete(GlobalCache).where(GlobalCache.namespace == NAMESPACE))

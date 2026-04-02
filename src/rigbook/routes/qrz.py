@@ -286,6 +286,17 @@ async def cache_stats(gdb: AsyncSession = Depends(get_global_session)):
     }
 
 
+@router.delete("/cache/expired")
+async def clear_expired_cache(gdb: AsyncSession = Depends(get_global_session)):
+    result = await gdb.execute(
+        delete(GlobalCache).where(
+            GlobalCache.namespace == NAMESPACE, GlobalCache.expires_at <= time.time()
+        )
+    )
+    await gdb.commit()
+    return {"ok": True, "deleted": result.rowcount}
+
+
 @router.delete("/cache")
 async def clear_cache(gdb: AsyncSession = Depends(get_global_session)):
     await gdb.execute(delete(GlobalCache).where(GlobalCache.namespace == NAMESPACE))
