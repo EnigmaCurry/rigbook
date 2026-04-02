@@ -2027,7 +2027,7 @@
       <div class="slider-group">
         <label for="saturation_slider">Saturation</label>
         <div class="slider-control">
-          <input id="saturation_slider" type="range" min="40" max="60" bind:value={themeSaturation} on:input={onSaturationInput} on:change={onSaturationCommit} />
+          <input id="saturation_slider" type="range" min="0" max="100" bind:value={themeSaturation} on:input={onSaturationInput} on:change={onSaturationCommit} />
           <button class="contrast-reset" on:click={() => { themeSaturation = 50; onSaturationCommit(); }} disabled={themeSaturation === 50}>Reset</button>
         </div>
       </div>
