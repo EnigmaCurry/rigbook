@@ -1946,6 +1946,7 @@
   </section>
   <section class="settings-section">
     <h3>Theme</h3>
+    <p class="hint">Theme changes sync live to all open windows. Try opening Rigbook side-by-side in another window to preview your changes on any page.</p>
     <div class="setting-row toggle-row">
       <label>Mode</label>
       <div class="theme-mode-switch">
