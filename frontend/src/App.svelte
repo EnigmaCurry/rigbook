@@ -634,6 +634,7 @@
       if (eventSource) { eventSource.close(); eventSource = null; }
       setShutdownState();
     });
+    eventSource.addEventListener("theme-changed", () => applyTheme());
     eventSource.addEventListener("logbook-changed", () => {
       if (switchingLogbook) return; // this client initiated the switch
       // Navigate home before reloading — the new logbook may not support the current page

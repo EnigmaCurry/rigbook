@@ -117,6 +117,11 @@ async def upsert_setting(
     log_value = "***" if key in HIDDEN_KEYS else data.value
     logger.info("Setting changed: %s = %s", key, log_value)
 
+    THEME_KEYS = {"theme", "theme_mode", "theme_contrast", "theme_brightness", "theme_hue", "custom_theme_colors"}
+    if key in THEME_KEYS:
+        from rigbook.sse import broadcast
+        broadcast("theme-changed", {})
+
     return setting
 
 
