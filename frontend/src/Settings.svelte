@@ -817,6 +817,7 @@
       await Promise.all([
         fetch("/api/qrz/cache", { method: "DELETE" }),
         fetch("/api/skcc/cache", { method: "DELETE" }),
+        fetch("/api/solar/cache", { method: "DELETE" }),
       ]);
       qrzCacheStats = null;
       skccCacheStats = null;

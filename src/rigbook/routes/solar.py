@@ -96,6 +96,14 @@ async def get_conditions():
             return {"error": str(e)}
 
 
+@router.delete("/cache")
+async def clear_solar_cache():
+    global _cache, _fetched_at
+    _cache = None
+    _fetched_at = 0
+    return {"ok": True}
+
+
 @router.get("/cache/stats")
 async def solar_cache_stats():
     """Return solar cache statistics."""
