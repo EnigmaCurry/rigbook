@@ -183,7 +183,7 @@
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 6px;
-    z-index: 200;
+    z-index: 1100;
     padding: 0.25rem 0;
   }
 
