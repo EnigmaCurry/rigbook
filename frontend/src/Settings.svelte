@@ -1985,12 +1985,14 @@
     {#if themeMode === "preset"}
     <div class="setting-row">
       <label for="theme_select">Theme</label>
-      <select id="theme_select" bind:value={theme} on:change={onThemeChange}>
-        {#each THEME_NAMES as t}
-          <option value={t}>{THEMES[t].label}{t !== "dark" && t !== "light" ? ` (${THEMES[t].base})` : ""}</option>
-        {/each}
-      </select>
-      <button class="contrast-reset" on:click={resetSliders} disabled={themeContrast === 50 && themeBrightness === 50 && themeHue === 0 && themeSaturation === 50}>Reset Sliders</button>
+      <div class="theme-select-row">
+        <select id="theme_select" bind:value={theme} on:change={onThemeChange}>
+          {#each THEME_NAMES as t}
+            <option value={t}>{THEMES[t].label}{t !== "dark" && t !== "light" ? ` (${THEMES[t].base})` : ""}</option>
+          {/each}
+        </select>
+        <button class="contrast-reset" on:click={resetSliders} disabled={themeContrast === 50 && themeBrightness === 50 && themeHue === 0 && themeSaturation === 50}>Reset Sliders</button>
+      </div>
     </div>
     {:else}
     <div class="color-pickers">
@@ -2802,6 +2804,11 @@
   .slider-control input[type="range"] {
     flex: 1;
     accent-color: var(--accent);
+  }
+  .theme-select-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
   .contrast-reset {
     font-family: inherit;
