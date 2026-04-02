@@ -787,15 +787,18 @@
 
   let qrzCacheStats = null;
   let skccCacheStats = null;
+  let solarCacheStats = null;
 
   async function fetchCacheStats() {
     try {
-      const [qrzRes, skccRes] = await Promise.all([
+      const [qrzRes, skccRes, solarRes] = await Promise.all([
         fetch("/api/qrz/cache/stats"),
         fetch("/api/skcc/cache/stats"),
+        fetch("/api/solar/cache/stats"),
       ]);
       if (qrzRes.ok) qrzCacheStats = await qrzRes.json();
       if (skccRes.ok) skccCacheStats = await skccRes.json();
+      if (solarRes.ok) solarCacheStats = await solarRes.json();
     } catch {}
   }
 
@@ -2255,7 +2258,7 @@
   <section class="settings-section">
     <h3>Cache</h3>
     <p class="hint">Cached data: QRZ callsign lookups, SKCC member list. Clearing forces fresh lookups on next use.</p>
-    {#if qrzCacheStats || skccCacheStats}
+    {#if qrzCacheStats || skccCacheStats || solarCacheStats}
     <div class="cache-stats-grid">
       {#if qrzCacheStats}
       <div class="cache-stat-card">
@@ -2273,6 +2276,16 @@
         <div class="stat-row"><span class="stat-label">Cached members</span><span class="stat-value">{skccCacheStats.valid_entries.toLocaleString()}</span></div>
         <div class="stat-row"><span class="stat-label">Expired</span><span class="stat-value">{skccCacheStats.expired_entries.toLocaleString()}</span></div>
         <div class="stat-row"><span class="stat-label">TTL</span><span class="stat-value">{Math.round(skccCacheStats.ttl_seconds / 3600)}h</span></div>
+      </div>
+      {/if}
+      {#if solarCacheStats}
+      <div class="cache-stat-card">
+        <h4>Solar (HamQSL)</h4>
+        <div class="stat-row"><span class="stat-label">Status</span><span class="stat-value">{solarCacheStats.cached ? "Cached" : "Empty"}</span></div>
+        {#if solarCacheStats.age_seconds != null}
+        <div class="stat-row"><span class="stat-label">Age</span><span class="stat-value">{solarCacheStats.age_seconds < 60 ? solarCacheStats.age_seconds + "s" : Math.round(solarCacheStats.age_seconds / 60) + "m"}</span></div>
+        {/if}
+        <div class="stat-row"><span class="stat-label">TTL</span><span class="stat-value">{Math.round(solarCacheStats.ttl_seconds / 60)}m</span></div>
       </div>
       {/if}
     </div>
