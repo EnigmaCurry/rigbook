@@ -1282,8 +1282,9 @@
       if (settings.theme) {
         const contrast = parseInt(settings.theme_contrast) || 50;
         const brightness = parseInt(settings.theme_brightness) || 50;
+        const hue = parseInt(settings.theme_hue) || 0;
         storageSet("rigbook-theme", settings.theme);
-        applyThemeVars(settings.theme, contrast, brightness);
+        applyThemeVars(settings.theme, contrast, brightness, hue);
         return;
       }
     } catch {}

@@ -669,19 +669,25 @@ export const THEMES = {
 export const THEME_NAMES = Object.keys(THEMES);
 
 /** Apply a theme's CSS variables to document.documentElement.
- *  contrast: 0–100, 50 = unchanged. brightness: 0–100, 50 = unchanged. */
-export function applyThemeVars(themeName, contrast = 50, brightness = 50) {
+ *  contrast: 0–100, 50 = unchanged. brightness: 0–100, 50 = unchanged. hue: 0–360, 0 = unchanged. */
+export function applyThemeVars(themeName, contrast = 50, brightness = 50, hue = 0) {
   const theme = THEMES[themeName] || THEMES.dark;
   const style = document.documentElement.style;
   for (const [prop, val] of Object.entries(theme.vars)) {
-    style.setProperty(prop, _adjustColor(val, contrast, brightness));
+    style.setProperty(prop, _adjustColor(val, contrast, brightness, hue));
   }
 }
 
-function _adjustColor(hex, contrast, brightness) {
-  if (contrast === 50 && brightness === 50) return hex;
+function _adjustColor(hex, contrast, brightness, hue) {
+  if (contrast === 50 && brightness === 50 && hue === 0) return hex;
   if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return hex;
   let [r, g, b] = hex.replace("#", "").match(/.{2}/g).map(c => parseInt(c, 16));
+  // Hue shift in HSL space
+  if (hue !== 0) {
+    let [h, s, l] = _rgbToHsl(r, g, b);
+    h = (h + hue) % 360;
+    [r, g, b] = _hslToRgb(h, s, l);
+  }
   // Contrast: scale around mid-gray
   if (contrast !== 50) {
     const cf = contrast / 50;
@@ -701,6 +707,38 @@ function _adjustColor(hex, contrast, brightness) {
   }
   const clamp = (c) => Math.max(0, Math.min(255, Math.round(c)));
   return "#" + [r, g, b].map(clamp).map(c => c.toString(16).padStart(2, "0")).join("");
+}
+
+function _rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, l];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h;
+  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) * 60;
+  else if (max === g) h = ((b - r) / d + 2) * 60;
+  else h = ((r - g) / d + 4) * 60;
+  return [h, s, l];
+}
+
+function _hslToRgb(h, s, l) {
+  if (s === 0) { const v = Math.round(l * 255); return [v, v, v]; }
+  const hueToRgb = (p, q, t) => {
+    if (t < 0) t += 1; if (t > 1) t -= 1;
+    if (t < 1/6) return p + (q - p) * 6 * t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+    return p;
+  };
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  return [
+    Math.round(hueToRgb(p, q, h / 360 + 1/3) * 255),
+    Math.round(hueToRgb(p, q, h / 360) * 255),
+    Math.round(hueToRgb(p, q, h / 360 - 1/3) * 255),
+  ];
 }
 
 /** Resolve a theme name from storage/system-preference, falling back to "dark"/"light". */

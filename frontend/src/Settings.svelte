@@ -49,6 +49,7 @@
   let theme = "dark";
   let themeContrast = 50;
   let themeBrightness = 50;
+  let themeHue = 0;
   let themeMode = "preset"; // "preset" or "custom"
   let customBg = "#24252b";
   let customText = "#eaeaea";
@@ -647,7 +648,7 @@
   let spotStatusInterval;
 
   async function onThemeChange() {
-    applyThemeVars(theme, themeContrast, themeBrightness);
+    applyThemeVars(theme, themeContrast, themeBrightness, themeHue);
     storageSet("rigbook-theme", theme);
     await saveSetting("theme", theme);
     await saveSetting("theme_mode", "preset");
@@ -656,28 +657,38 @@
   }
 
   function onContrastInput() {
-    applyThemeVars(theme, themeContrast, themeBrightness);
+    applyThemeVars(theme, themeContrast, themeBrightness, themeHue);
   }
 
   async function onContrastCommit() {
-    applyThemeVars(theme, themeContrast, themeBrightness);
+    applyThemeVars(theme, themeContrast, themeBrightness, themeHue);
     await saveSetting("theme_contrast", String(themeContrast));
     dispatch("saved");
   }
 
   function onBrightnessInput() {
-    applyThemeVars(theme, themeContrast, themeBrightness);
+    applyThemeVars(theme, themeContrast, themeBrightness, themeHue);
   }
 
   async function onBrightnessCommit() {
-    applyThemeVars(theme, themeContrast, themeBrightness);
+    applyThemeVars(theme, themeContrast, themeBrightness, themeHue);
     await saveSetting("theme_brightness", String(themeBrightness));
+    dispatch("saved");
+  }
+
+  function onHueInput() {
+    applyThemeVars(theme, themeContrast, themeBrightness, themeHue);
+  }
+
+  async function onHueCommit() {
+    applyThemeVars(theme, themeContrast, themeBrightness, themeHue);
+    await saveSetting("theme_hue", String(themeHue));
     dispatch("saved");
   }
 
   async function onThemeModeChange() {
     if (themeMode === "preset") {
-      applyThemeVars(theme, themeContrast, themeBrightness);
+      applyThemeVars(theme, themeContrast, themeBrightness, themeHue);
       storageSet("rigbook-theme", theme);
       await saveSetting("theme_mode", "preset");
     } else {
@@ -1370,6 +1381,7 @@
           if (s.key === "theme") theme = s.value || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
           if (s.key === "theme_contrast") themeContrast = parseInt(s.value) || 50;
           if (s.key === "theme_brightness") themeBrightness = parseInt(s.value) || 50;
+          if (s.key === "theme_hue") themeHue = parseInt(s.value) || 0;
           if (s.key === "theme_mode") themeMode = s.value || "preset";
           if (s.key === "custom_theme_colors") {
             try {
@@ -1947,6 +1959,15 @@
         <div class="slider-control">
           <input id="brightness_slider" type="range" min="40" max="60" bind:value={themeBrightness} on:input={onBrightnessInput} on:change={onBrightnessCommit} />
           <button class="contrast-reset" on:click={() => { themeBrightness = 50; onBrightnessCommit(); }} disabled={themeBrightness === 50}>Reset</button>
+        </div>
+      </div>
+    </div>
+    <div class="slider-pair">
+      <div class="slider-group hue-slider-group">
+        <label for="hue_slider">Hue Shift</label>
+        <div class="slider-control">
+          <input id="hue_slider" type="range" min="0" max="360" bind:value={themeHue} on:input={onHueInput} on:change={onHueCommit} class="hue-range" />
+          <button class="contrast-reset" on:click={() => { themeHue = 0; onHueCommit(); }} disabled={themeHue === 0}>Reset</button>
         </div>
       </div>
     </div>
@@ -2694,6 +2715,34 @@
     font-size: 0.85rem;
     margin-bottom: 0.25rem;
     color: var(--text-muted);
+  }
+  .hue-slider-group {
+    flex: 2;
+  }
+  .hue-range {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+    outline: none;
+  }
+  .hue-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--text);
+    border: 2px solid var(--bg);
+    cursor: pointer;
+  }
+  .hue-range::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--text);
+    border: 2px solid var(--bg);
+    cursor: pointer;
   }
   .slider-control {
     display: flex;
