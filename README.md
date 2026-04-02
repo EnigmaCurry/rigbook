@@ -51,8 +51,9 @@ duplicate detection, and a comment template system for structured fields
 with round-trip safety.
 
 **Multiple logbooks** — Each logbook is a separate SQLite database.
-Switch between them with `--pick` mode or pass a name on the command
-line. Copy a logbook file to use it as a template for new ones.
+The logbook picker is shown by default on startup; pass a name on the
+command line to open a specific logbook directly. Switch between
+logbooks from the header link.
 
 **Layout** — Dual-pane mode on wide screens with a draggable divider.
 Light and dark themes. Keyboard shortcuts for all major actions.
@@ -197,6 +198,7 @@ instead.
 | `RIGBOOK_DB` | Logbook name (e.g. `field-day` opens `~/.local/rigbook/field-day.db`) |
 | `RIGBOOK_PICKER` | `true` to start in logbook picker mode |
 | `RIGBOOK_NO_BROWSER` | `true` to skip opening the browser |
+| `RIGBOOK_NO_SHUTDOWN` | `true` to disable the shutdown endpoint and auto-shutdown |
 | `RIGBOOK_HOST` | Bind address (default: `127.0.0.1`) |
 | `RIGBOOK_PORT` | Port (default: `8073`) |
 | `RIGBOOK_BROWSER_URL` | Override the URL opened in the browser (e.g. `https://rigbook.local`) |
@@ -204,8 +206,8 @@ instead.
 ## Getting started
 
 1. Open http://localhost:8073
-2. Go to **Settings** — enter your callsign and grid square
-3. Optionally configure flrig, QRZ, RBN, and HamAlert connections
+2. The welcome screen will guide you through entering your callsign and grid square
+3. Optionally configure flrig, QRZ, RBN, and HamAlert connections in **Settings**
 4. Click **+** to log your first QSO
 
 ## Development
