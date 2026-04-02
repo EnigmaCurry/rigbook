@@ -291,7 +291,7 @@ async def skcc_skimmer(
     # Prefetch QRZ data for spots missing location
     for s in results:
         if not s.get("country") and not s.get("qrz_status"):
-            data = await qrz_lookup(s["callsign"], session)
+            data = await qrz_lookup(s["callsign"], session, gdb)
             if isinstance(data, dict):
                 if data.get("error") == "Callsign not found":
                     s["qrz_status"] = "not_found"
