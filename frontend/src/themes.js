@@ -669,31 +669,24 @@ export const THEMES = {
 export const THEME_NAMES = Object.keys(THEMES);
 
 /** Apply a theme's CSS variables to document.documentElement.
- *  brightness: 0–100 slider, 50 = unchanged, 0 = full dark, 100 = full light. */
-export function applyThemeVars(themeName, brightness = 50) {
+ *  contrast: 0–100 slider, 50 = unchanged, 0 = flat gray, 100 = max contrast. */
+export function applyThemeVars(themeName, contrast = 50) {
   const theme = THEMES[themeName] || THEMES.dark;
   const style = document.documentElement.style;
   for (const [prop, val] of Object.entries(theme.vars)) {
-    style.setProperty(prop, _adjustColor(val, brightness));
+    style.setProperty(prop, _adjustContrast(val, contrast));
   }
 }
 
-/** Adjust a hex color by brightness (50 = unchanged, <50 = darker, >50 = lighter). */
-function _adjustColor(hex, brightness) {
-  if (brightness === 50) return hex;
+/** Adjust a hex color's contrast around mid-gray.
+ *  50 = unchanged, 0 = everything mid-gray, 100 = maximum contrast. */
+function _adjustContrast(hex, contrast) {
+  if (contrast === 50) return hex;
   if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return hex;
   const [r, g, b] = hex.replace("#", "").match(/.{2}/g).map(c => parseInt(c, 16));
-  if (brightness < 50) {
-    // 0 = black, 50 = original
-    const t = brightness / 50;
-    const adj = (c) => Math.round(c * t);
-    return "#" + [r, g, b].map(adj).map(c => c.toString(16).padStart(2, "0")).join("");
-  } else {
-    // 50 = original, 100 = white
-    const t = (brightness - 50) / 50;
-    const adj = (c) => Math.round(c + (255 - c) * t);
-    return "#" + [r, g, b].map(adj).map(c => c.toString(16).padStart(2, "0")).join("");
-  }
+  const factor = contrast / 50;
+  const adj = (c) => Math.max(0, Math.min(255, Math.round(128 + (c - 128) * factor)));
+  return "#" + [r, g, b].map(adj).map(c => c.toString(16).padStart(2, "0")).join("");
 }
 
 /** Resolve a theme name from storage/system-preference, falling back to "dark"/"light". */

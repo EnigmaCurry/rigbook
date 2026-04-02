@@ -1280,9 +1280,9 @@
         } catch {}
       }
       if (settings.theme) {
-        const brightness = parseInt(settings.theme_brightness) || 50;
+        const contrast = parseInt(settings.theme_contrast) || 50;
         storageSet("rigbook-theme", settings.theme);
-        applyThemeVars(settings.theme, brightness);
+        applyThemeVars(settings.theme, contrast);
         return;
       }
     } catch {}
