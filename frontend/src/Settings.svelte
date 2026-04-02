@@ -1934,15 +1934,21 @@
         {/each}
       </select>
     </div>
-    <div class="setting-row contrast-row">
-      <label for="contrast_slider">Contrast</label>
-      <input id="contrast_slider" type="range" min="40" max="60" bind:value={themeContrast} on:input={onContrastInput} on:change={onContrastCommit} />
-      <button class="contrast-reset" on:click={() => { themeContrast = 50; onContrastCommit(); }} disabled={themeContrast === 50}>Reset</button>
-    </div>
-    <div class="setting-row contrast-row">
-      <label for="brightness_slider">Brightness</label>
-      <input id="brightness_slider" type="range" min="40" max="60" bind:value={themeBrightness} on:input={onBrightnessInput} on:change={onBrightnessCommit} />
-      <button class="contrast-reset" on:click={() => { themeBrightness = 50; onBrightnessCommit(); }} disabled={themeBrightness === 50}>Reset</button>
+    <div class="slider-pair">
+      <div class="slider-group">
+        <label for="contrast_slider">Contrast</label>
+        <div class="slider-control">
+          <input id="contrast_slider" type="range" min="40" max="60" bind:value={themeContrast} on:input={onContrastInput} on:change={onContrastCommit} />
+          <button class="contrast-reset" on:click={() => { themeContrast = 50; onContrastCommit(); }} disabled={themeContrast === 50}>Reset</button>
+        </div>
+      </div>
+      <div class="slider-group">
+        <label for="brightness_slider">Brightness</label>
+        <div class="slider-control">
+          <input id="brightness_slider" type="range" min="40" max="60" bind:value={themeBrightness} on:input={onBrightnessInput} on:change={onBrightnessCommit} />
+          <button class="contrast-reset" on:click={() => { themeBrightness = 50; onBrightnessCommit(); }} disabled={themeBrightness === 50}>Reset</button>
+        </div>
+      </div>
     </div>
     {:else}
     <div class="color-pickers">
@@ -2674,14 +2680,28 @@
     font-size: 0.8rem !important;
   }
 
-  .contrast-row {
+  .slider-pair {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .slider-group {
+    flex: 1;
+    min-width: 10rem;
+  }
+  .slider-group label {
+    display: block;
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+    color: var(--text-muted);
+  }
+  .slider-control {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
   }
-  .contrast-row input[type="range"] {
+  .slider-control input[type="range"] {
     flex: 1;
-    max-width: 16rem;
     accent-color: var(--accent);
   }
   .contrast-reset {
