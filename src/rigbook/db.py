@@ -296,6 +296,20 @@ def _get_last_migrated_by(conn, table="settings") -> str:
         return "unknown"
 
 
+def _backup_before_migration(db_path: Path, current_version: int, target_version: int):
+    """Create a backup of the database before running migrations."""
+    import shutil
+
+    backup_dir = db_path.parent / "backups"
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M%Sz")
+    backup_name = f"{db_path.stem}_premigrate_v{current_version}_to_v{target_version}_{ts}{db_path.suffix}"
+    backup_path = backup_dir / backup_name
+    shutil.copy2(str(db_path), str(backup_path))
+    size_kb = backup_path.stat().st_size / 1024
+    logger.info("Pre-migration backup: %s (%.1f KB)", backup_name, size_kb)
+
+
 def _run_migrations(conn, migrations, table="settings") -> bool:
     """Run pending migrations and update schema version. Returns True if any ran."""
     current = _get_schema_version(conn, table)
@@ -495,6 +509,23 @@ class DatabaseManager:
         db_path.parent.mkdir(parents=True, exist_ok=True)
         self._acquire_lock(db_path)
         self.db_path = db_path
+        # Back up before migration if needed
+        if db_path.exists():
+            import sqlite3
+
+            _conn = sqlite3.connect(str(db_path))
+            try:
+                row = _conn.execute(
+                    "SELECT value FROM settings WHERE key = '_schema_version'"
+                ).fetchone()
+                current_v = int(row[0]) if row and row[0] else 0
+            except Exception:
+                current_v = 0
+            _conn.close()
+            if current_v < len(LOGBOOK_MIGRATIONS):
+                _backup_before_migration(
+                    db_path, current_v, len(LOGBOOK_MIGRATIONS)
+                )
         self.engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}")
         self._session_factory = async_sessionmaker(self.engine, expire_on_commit=False)
         migrated = [False]
@@ -540,6 +571,23 @@ class DatabaseManager:
         if self.global_engine is not None:
             return
         META_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+        # Back up before migration if needed
+        if META_DB_PATH.exists() and GLOBAL_MIGRATIONS:
+            import sqlite3
+
+            _conn = sqlite3.connect(str(META_DB_PATH))
+            try:
+                row = _conn.execute(
+                    "SELECT value FROM settings WHERE key = '_schema_version'"
+                ).fetchone()
+                current_v = int(row[0]) if row and row[0] else 0
+            except Exception:
+                current_v = 0
+            _conn.close()
+            if current_v < len(GLOBAL_MIGRATIONS):
+                _backup_before_migration(
+                    META_DB_PATH, current_v, len(GLOBAL_MIGRATIONS)
+                )
         self.global_engine = create_async_engine(f"sqlite+aiosqlite:///{META_DB_PATH}")
         self._global_session_factory = async_sessionmaker(
             self.global_engine, expire_on_commit=False
