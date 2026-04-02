@@ -2066,7 +2066,7 @@
   }
 
   .add-btn {
-    background: #394942;
+    background: color-mix(in srgb, var(--accent) 15%, var(--bg-card));
     color: #fff;
     border: none;
     font-size: 1.2rem;
@@ -2092,7 +2092,7 @@
   }
 
   .add-btn:hover {
-    background: #4a5f55;
+    background: color-mix(in srgb, var(--accent) 30%, var(--bg-card));
   }
 
   .notification-btn {
