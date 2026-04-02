@@ -2181,6 +2181,7 @@
 
   <section class="settings-section">
     <h3>Backup</h3>
+    <p class="hint">Backup settings are configured separately for each logbook.</p>
     {#if dbInfo}
       <p class="hint">Database: {dbInfo.path} ({formatSize(dbInfo.size)})</p>
       <p class="hint">Backups: {dbInfo.directory}</p>
