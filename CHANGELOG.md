@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.2.8 — 2026-04-02
+
+- Global database for common settings shared across logbooks
+- Logbook picker shown by default on startup (--pick)
+- QRZ, SKCC, and POTA cache data stored in global database
+- Quick logbook switching from header link
+- Database migration support
+
 ## v0.2.7 — 2026-04-01
 
 - Test release to verify upgrade from v0.2.6
