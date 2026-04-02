@@ -754,21 +754,9 @@ function _setGlow(style, glow) {
 
 function _setScanlines(scanlines) {
   let overlay = document.getElementById("rigbook-scanlines-overlay");
-  let styleEl = document.getElementById("rigbook-scanline-style");
   if (scanlines === 0) {
     if (overlay) overlay.style.display = "none";
     return;
-  }
-  if (!styleEl) {
-    styleEl = document.createElement("style");
-    styleEl.id = "rigbook-scanline-style";
-    styleEl.textContent = `
-      @keyframes rigbook-scanline-scroll {
-        0% { background-position: 0 0; }
-        100% { background-position: 0 40px; }
-      }
-    `;
-    document.head.appendChild(styleEl);
   }
   if (!overlay) {
     overlay = document.createElement("div");
@@ -777,17 +765,9 @@ function _setScanlines(scanlines) {
     document.body.appendChild(overlay);
   }
   overlay.style.display = "block";
-  const t = scanlines / 100;
-  const darkAlpha = (t * 0.4).toFixed(3);
-  const lightAlpha = (t * 0.06).toFixed(3);
-  // Two overlapping line patterns at different scales create a moiré interference
-  overlay.style.background = [
-    `repeating-linear-gradient(to bottom, transparent, transparent 2px, rgba(0,0,0,${darkAlpha}) 2px, rgba(0,0,0,${darkAlpha}) 3px)`,
-    `repeating-linear-gradient(to bottom, transparent, transparent 7px, rgba(255,255,255,${lightAlpha}) 7px, rgba(255,255,255,${lightAlpha}) 8px)`,
-  ].join(", ");
-  // Slowly scroll the second layer to create a drifting interference pattern
-  overlay.style.backgroundSize = "100% 5px, 100% 40px";
-  overlay.style.animation = `rigbook-scanline-scroll ${(10 - t * 6).toFixed(1)}s linear infinite`;
+  const opacity = (scanlines / 100 * 0.3).toFixed(3);
+  overlay.style.background = `repeating-linear-gradient(to bottom, transparent, transparent 2px, rgba(0,0,0,${opacity}) 2px, rgba(0,0,0,${opacity}) 4px)`;
+  overlay.style.animation = "none";
 }
 
 function _adjustColor(hex, contrast, brightness, hue, saturation) {
