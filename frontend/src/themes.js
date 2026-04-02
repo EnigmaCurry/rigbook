@@ -737,14 +737,18 @@ function _setGrain(grain) {
 function _setGlow(style, glow) {
   if (glow === 0) {
     style.setProperty("--glow-shadow", "none");
+    style.setProperty("--glow-shadow-sm", "none");
     style.setProperty("--glow-text-shadow", "none");
     return;
   }
   const accent = style.getPropertyValue("--accent").trim();
   const spread = Math.round(glow / 100 * 20);
+  const spreadSm = Math.round(glow / 100 * 6);
   const blur = Math.round(glow / 100 * 12);
   const opacity = Math.round(glow / 100 * 80) / 100;
+  const opacitySm = Math.round(glow / 100 * 50) / 100;
   style.setProperty("--glow-shadow", `0 0 ${spread}px color-mix(in srgb, ${accent} ${Math.round(opacity * 100)}%, transparent)`);
+  style.setProperty("--glow-shadow-sm", `0 0 ${spreadSm}px color-mix(in srgb, ${accent} ${Math.round(opacitySm * 100)}%, transparent)`);
   style.setProperty("--glow-text-shadow", `0 0 ${blur}px ${accent}`);
 }
 

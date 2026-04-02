@@ -1708,6 +1708,7 @@
     --accent-text: #000000;
     --bg-gradient: var(--bg);
     --glow-shadow: none;
+    --glow-shadow-sm: none;
     --glow-text-shadow: none;
     --btn-secondary: #6e7080;
     --btn-secondary-hover: #5a5c6a;
@@ -2077,7 +2078,7 @@
 
   .add-btn {
     background: color-mix(in srgb, var(--accent) 15%, var(--bg-card));
-    box-shadow: var(--glow-shadow);
+    box-shadow: var(--glow-shadow-sm);
     color: #fff;
     border: none;
     font-size: 1.2rem;
