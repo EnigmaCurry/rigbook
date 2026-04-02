@@ -142,7 +142,7 @@ async def lifespan(app: FastAPI):
     await db_manager.close_global()
 
 
-app = FastAPI(title="Rigbook", lifespan=lifespan)
+app = FastAPI(title="Rigbook", version=version("rigbook"), lifespan=lifespan)
 
 
 @app.middleware("http")
