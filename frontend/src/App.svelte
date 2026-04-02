@@ -633,7 +633,7 @@
     });
     eventSource.addEventListener("logbook-changed", () => {
       if (switchingLogbook) return; // this client initiated the switch
-      location.reload();
+      setTimeout(() => location.reload(), 100);
     });
     eventSource.onerror = () => {
       if (serverShutdown) return;
