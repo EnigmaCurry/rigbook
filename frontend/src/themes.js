@@ -752,62 +752,42 @@ function _setGlow(style, glow) {
   style.setProperty("--glow-text-shadow", `0 0 ${blur}px ${accent}`);
 }
 
-let _scanlineState = { raf: null, canvas: null, overlay: null, intensity: 0 };
-
 function _setScanlines(scanlines) {
-  const st = _scanlineState;
+  let overlay = document.getElementById("rigbook-scanlines-overlay");
+  let styleEl = document.getElementById("rigbook-scanline-style");
   if (scanlines === 0) {
-    if (st.overlay) st.overlay.style.display = "none";
-    if (st.raf) { cancelAnimationFrame(st.raf); st.raf = null; }
-    st.intensity = 0;
+    if (overlay) overlay.style.display = "none";
     return;
   }
-  // Create elements once
-  if (!st.overlay) {
-    st.overlay = document.createElement("div");
-    st.overlay.id = "rigbook-scanlines-overlay";
-    st.overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:99998;image-rendering:pixelated;";
-    document.body.appendChild(st.overlay);
+  if (!styleEl) {
+    styleEl = document.createElement("style");
+    styleEl.id = "rigbook-scanline-style";
+    styleEl.textContent = `
+      @keyframes rigbook-scanline-scroll {
+        0% { background-position: 0 0; }
+        100% { background-position: 0 40px; }
+      }
+    `;
+    document.head.appendChild(styleEl);
   }
-  if (!st.canvas) {
-    st.canvas = document.createElement("canvas");
-    st.canvas.width = 1;
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "rigbook-scanlines-overlay";
+    overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:99998;";
+    document.body.appendChild(overlay);
   }
-  st.overlay.style.display = "block";
-  st.intensity = scanlines;
-  // Start animation loop if not running
-  if (!st.raf) {
-    let lastFrame = 0;
-    const fps = 12;
-    const interval = 1000 / fps;
-    function tick(now) {
-      st.raf = requestAnimationFrame(tick);
-      if (now - lastFrame < interval) return;
-      lastFrame = now;
-      _drawScanlines(st);
-    }
-    st.raf = requestAnimationFrame(tick);
-  }
-  _drawScanlines(st);
-}
-
-function _drawScanlines(st) {
-  const h = Math.ceil(window.innerHeight / 2);
-  const canvas = st.canvas;
-  if (canvas.height !== h) canvas.height = h;
-  const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, 1, h);
-  const maxAlpha = st.intensity / 100 * 0.35;
-  for (let y = 0; y < h; y += 2) {
-    // Every other row is a scanline; randomize which ones flicker
-    const flicker = 0.4 + Math.random() * 0.6;
-    const a = maxAlpha * flicker;
-    ctx.fillStyle = `rgba(0,0,0,${a.toFixed(3)})`;
-    ctx.fillRect(0, y, 1, 1);
-  }
-  st.overlay.style.backgroundImage = `url(${canvas.toDataURL()})`;
-  st.overlay.style.backgroundSize = "1px auto";
-  st.overlay.style.backgroundRepeat = "repeat";
+  overlay.style.display = "block";
+  const t = scanlines / 100;
+  const darkAlpha = (t * 0.4).toFixed(3);
+  const lightAlpha = (t * 0.06).toFixed(3);
+  // Two overlapping line patterns at different scales create a moiré interference
+  overlay.style.background = [
+    `repeating-linear-gradient(to bottom, transparent, transparent 2px, rgba(0,0,0,${darkAlpha}) 2px, rgba(0,0,0,${darkAlpha}) 3px)`,
+    `repeating-linear-gradient(to bottom, transparent, transparent 7px, rgba(255,255,255,${lightAlpha}) 7px, rgba(255,255,255,${lightAlpha}) 8px)`,
+  ].join(", ");
+  // Slowly scroll the second layer to create a drifting interference pattern
+  overlay.style.backgroundSize = "100% 5px, 100% 40px";
+  overlay.style.animation = `rigbook-scanline-scroll ${(10 - t * 6).toFixed(1)}s linear infinite`;
 }
 
 function _adjustColor(hex, contrast, brightness, hue, saturation) {
