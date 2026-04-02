@@ -748,52 +748,62 @@ function _setGlow(style, glow) {
   style.setProperty("--glow-text-shadow", `0 0 ${blur}px ${accent}`);
 }
 
+let _scanlineState = { raf: null, canvas: null, overlay: null, intensity: 0 };
+
 function _setScanlines(scanlines) {
-  let overlay = document.getElementById("rigbook-scanlines-overlay");
-  let wave = document.getElementById("rigbook-scanline-wave");
-  let styleEl = document.getElementById("rigbook-scanline-style");
+  const st = _scanlineState;
   if (scanlines === 0) {
-    if (overlay) overlay.style.display = "none";
-    if (wave) wave.style.display = "none";
+    if (st.overlay) st.overlay.style.display = "none";
+    if (st.raf) { cancelAnimationFrame(st.raf); st.raf = null; }
+    st.intensity = 0;
     return;
   }
-  // Static scanlines
-  if (!overlay) {
-    overlay = document.createElement("div");
-    overlay.id = "rigbook-scanlines-overlay";
-    overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:99998;";
-    document.body.appendChild(overlay);
+  // Create elements once
+  if (!st.overlay) {
+    st.overlay = document.createElement("div");
+    st.overlay.id = "rigbook-scanlines-overlay";
+    st.overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:99998;image-rendering:pixelated;";
+    document.body.appendChild(st.overlay);
   }
-  overlay.style.display = "block";
-  const opacity = (scanlines / 100 * 0.3).toFixed(3);
-  overlay.style.background = `repeating-linear-gradient(to bottom, transparent, transparent 2px, rgba(0,0,0,${opacity}) 2px, rgba(0,0,0,${opacity}) 4px)`;
-  // Animated wave distortion band
-  if (!styleEl) {
-    styleEl = document.createElement("style");
-    styleEl.id = "rigbook-scanline-style";
-    styleEl.textContent = `
-      @keyframes rigbook-scanline-wave {
-        0% { top: -15%; }
-        100% { top: 115%; }
-      }
-    `;
-    document.head.appendChild(styleEl);
+  if (!st.canvas) {
+    st.canvas = document.createElement("canvas");
+    st.canvas.width = 1;
   }
-  if (!wave) {
-    wave = document.createElement("div");
-    wave.id = "rigbook-scanline-wave";
-    wave.style.cssText = "position:fixed;left:-5%;width:110%;pointer-events:none;z-index:99998;";
-    document.body.appendChild(wave);
+  st.overlay.style.display = "block";
+  st.intensity = scanlines;
+  // Start animation loop if not running
+  if (!st.raf) {
+    let lastFrame = 0;
+    const fps = 12;
+    const interval = 1000 / fps;
+    function tick(now) {
+      st.raf = requestAnimationFrame(tick);
+      if (now - lastFrame < interval) return;
+      lastFrame = now;
+      _drawScanlines(st);
+    }
+    st.raf = requestAnimationFrame(tick);
   }
-  wave.style.display = "block";
-  const waveOpacity = (scanlines / 100 * 0.12).toFixed(3);
-  const waveHeight = Math.round(4 + scanlines / 100 * 6);
-  const skew = (scanlines / 100 * 2).toFixed(1);
-  const speed = (8 - scanlines / 100 * 4).toFixed(1);
-  wave.style.height = `${waveHeight}vh`;
-  wave.style.background = `linear-gradient(to bottom, transparent, rgba(255,255,255,${waveOpacity}) 40%, rgba(255,255,255,${waveOpacity}) 60%, transparent)`;
-  wave.style.transform = `skewX(${skew}deg)`;
-  wave.style.animation = `rigbook-scanline-wave ${speed}s linear infinite`;
+  _drawScanlines(st);
+}
+
+function _drawScanlines(st) {
+  const h = Math.ceil(window.innerHeight / 2);
+  const canvas = st.canvas;
+  if (canvas.height !== h) canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, 1, h);
+  const maxAlpha = st.intensity / 100 * 0.35;
+  for (let y = 0; y < h; y += 2) {
+    // Every other row is a scanline; randomize which ones flicker
+    const flicker = 0.4 + Math.random() * 0.6;
+    const a = maxAlpha * flicker;
+    ctx.fillStyle = `rgba(0,0,0,${a.toFixed(3)})`;
+    ctx.fillRect(0, y, 1, 1);
+  }
+  st.overlay.style.backgroundImage = `url(${canvas.toDataURL()})`;
+  st.overlay.style.backgroundSize = "1px auto";
+  st.overlay.style.backgroundRepeat = "repeat";
 }
 
 function _adjustColor(hex, contrast, brightness, hue, saturation) {
