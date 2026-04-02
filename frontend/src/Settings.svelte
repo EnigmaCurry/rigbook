@@ -2245,10 +2245,10 @@
     <div class="setting-row toggle-row">
       <label class="toggle-label">
         <input type="checkbox" bind:checked={autoShutdownOnDisconnect} on:change={() => saveGlobalSetting("auto_shutdown_on_disconnect", autoShutdownOnDisconnect ? "true" : "false")} />
-        Shutdown automatically when last client disconnects
+        Shutdown automatically when no clients are connected
       </label>
     </div>
-    <p class="hint">When enabled, the server will shut down after 15 seconds with no connected clients.</p>
+    <p class="hint">Shuts down the server after 15 consecutive seconds with no connected clients.</p>
     <div class="setting-row toggle-row">
       <label class="toggle-label">
         <input type="checkbox" bind:checked={shutdownInMenu} on:change={() => { saveGlobalSetting("shutdown_in_menu", shutdownInMenu ? "true" : "false"); }} />
