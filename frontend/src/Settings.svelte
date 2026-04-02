@@ -2012,6 +2012,7 @@
           <button class="contrast-reset" on:click={() => { themeHue = 0; onHueCommit(); }} disabled={themeHue === 0}>Reset</button>
         </div>
       </div>
+      <div class="slider-group"></div>
     </div>
   </section>
   <section class="settings-section" data-section="content">
