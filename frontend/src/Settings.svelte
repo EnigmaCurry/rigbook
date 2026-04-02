@@ -785,12 +785,29 @@
     dispatch("saved");
   }
 
+  let qrzCacheStats = null;
+  let skccCacheStats = null;
+
+  async function fetchCacheStats() {
+    try {
+      const [qrzRes, skccRes] = await Promise.all([
+        fetch("/api/qrz/cache/stats"),
+        fetch("/api/skcc/cache/stats"),
+      ]);
+      if (qrzRes.ok) qrzCacheStats = await qrzRes.json();
+      if (skccRes.ok) skccCacheStats = await skccRes.json();
+    } catch {}
+  }
+
   async function clearCache() {
     try {
       await Promise.all([
         fetch("/api/qrz/cache", { method: "DELETE" }),
         fetch("/api/skcc/cache", { method: "DELETE" }),
       ]);
+      qrzCacheStats = null;
+      skccCacheStats = null;
+      await fetchCacheStats();
     } catch {}
   }
 
@@ -1531,6 +1548,7 @@
     loadDbInfo();
     loadBackupStatus();
     fetchNoShutdown();
+    fetchCacheStats();
     spotStatusInterval = setInterval(fetchSpotStatus, 5000);
   });
 
@@ -2237,6 +2255,26 @@
   <section class="settings-section">
     <h3>Cache</h3>
     <p class="hint">Cached data: QRZ callsign lookups, SKCC member list. Clearing forces fresh lookups on next use.</p>
+    {#if qrzCacheStats || skccCacheStats}
+    <div class="cache-stats-grid">
+      {#if qrzCacheStats}
+      <div class="cache-stat-card">
+        <h4>QRZ</h4>
+        <div class="stat-row"><span class="stat-label">Cached lookups</span><span class="stat-value">{qrzCacheStats.valid_entries}</span></div>
+        <div class="stat-row"><span class="stat-label">Found</span><span class="stat-value">{qrzCacheStats.found_entries}</span></div>
+        <div class="stat-row"><span class="stat-label">Not found</span><span class="stat-value">{qrzCacheStats.not_found_entries}</span></div>
+        <div class="stat-row"><span class="stat-label">Expired</span><span class="stat-value">{qrzCacheStats.expired_entries}</span></div>
+      </div>
+      {/if}
+      {#if skccCacheStats}
+      <div class="cache-stat-card">
+        <h4>SKCC</h4>
+        <div class="stat-row"><span class="stat-label">Cached members</span><span class="stat-value">{skccCacheStats.valid_entries.toLocaleString()}</span></div>
+        <div class="stat-row"><span class="stat-label">Expired</span><span class="stat-value">{skccCacheStats.expired_entries.toLocaleString()}</span></div>
+      </div>
+      {/if}
+    </div>
+    {/if}
     <div class="setting-row toggle-row">
       <button class="theme-toggle" on:click={clearCache}>Clear Cache</button>
     </div>
@@ -2268,6 +2306,40 @@
 
 <style>
   .settings {
+  }
+
+  .cache-stats-grid {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .cache-stat-card {
+    background: var(--bg-secondary, #f5f5f5);
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 6px;
+    padding: 0.6rem 1rem;
+    min-width: 10rem;
+  }
+  .cache-stat-card h4 {
+    margin: 0 0 0.4rem 0;
+    font-size: 0.85rem;
+    opacity: 0.7;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.85rem;
+    padding: 0.1rem 0;
+  }
+  .stat-label {
+    opacity: 0.7;
+  }
+  .stat-value {
+    font-weight: 600;
   }
 
   .tab-bar {
