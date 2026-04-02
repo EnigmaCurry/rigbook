@@ -296,8 +296,8 @@ def _get_last_migrated_by(conn, table="settings") -> str:
         return "unknown"
 
 
-def _run_migrations(conn, migrations, table="settings"):
-    """Run pending migrations and update schema version. Raises DatabaseTooNewError."""
+def _run_migrations(conn, migrations, table="settings") -> bool:
+    """Run pending migrations and update schema version. Returns True if any ran."""
     current = _get_schema_version(conn, table)
     expected = len(migrations)
     if current > expected:
@@ -315,6 +315,8 @@ def _run_migrations(conn, migrations, table="settings"):
         logger.info(
             "Migrated %s schema: v%d → v%d", table, current, expected
         )
+        return True
+    return False
 
 
 # --- Logbook migrations ---
@@ -495,11 +497,14 @@ class DatabaseManager:
         self.db_path = db_path
         self.engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}")
         self._session_factory = async_sessionmaker(self.engine, expire_on_commit=False)
+        migrated = [False]
         async with self.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
             await conn.run_sync(_add_missing_columns)
             await conn.run_sync(
-                lambda c: _run_migrations(c, LOGBOOK_MIGRATIONS, "settings")
+                lambda c: migrated.__setitem__(
+                    0, _run_migrations(c, LOGBOOK_MIGRATIONS, "settings")
+                )
             )
             await conn.execute(
                 text(
@@ -511,6 +516,10 @@ class DatabaseManager:
                     "UPDATE contacts SET uuid = lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)),2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6))) WHERE uuid IS NULL"
                 )
             )
+        if migrated[0]:
+            async with self.engine.begin() as conn:
+                await conn.execute(text("VACUUM"))
+                logger.info("Vacuumed logbook database after migration")
         async with self.engine.connect() as conn:
             sv = await conn.run_sync(
                 lambda c: _get_schema_version(c, "settings")
