@@ -252,7 +252,7 @@
 
   .add-qso-btn {
     background: var(--accent);
-    color: var(--bg);
+    color: var(--accent-text);
     border: none;
     padding: 0.3rem 0.8rem;
     font-family: inherit;

@@ -19,6 +19,8 @@ from rigbook.db import (
 
 logger = logging.getLogger("rigbook")
 
+THEME_BROADCAST_KEYS = {"theme", "theme_mode", "theme_contrast", "theme_brightness", "theme_hue", "theme_saturation", "theme_gradient", "theme_grain", "theme_glow", "theme_scanlines", "custom_theme_colors"}
+
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
 
@@ -117,7 +119,18 @@ async def upsert_setting(
     log_value = "***" if key in HIDDEN_KEYS else data.value
     logger.info("Setting changed: %s = %s", key, log_value)
 
+    if key in THEME_BROADCAST_KEYS:
+        from rigbook.sse import broadcast
+        broadcast("theme-changed", {})
+
     return setting
+
+
+@router.post("/theme-preview")
+async def theme_preview(data: SettingValue, key: str = ""):
+    """Broadcast a live theme preview value via SSE without saving to DB."""
+    from rigbook.sse import broadcast
+    broadcast("theme-preview", {"key": key, "value": data.value})
 
 
 @router.post("/backup")

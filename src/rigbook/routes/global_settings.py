@@ -77,6 +77,16 @@ async def upsert_global_setting(
     log_value = "***" if key in HIDDEN_KEYS else data.value
     logger.info("Global setting changed: %s = %s", key, log_value)
 
+    if key == "disable_shutdown":
+        import rigbook.main as _main
+        from rigbook.sse import stop_auto_shutdown
+
+        if data.value == "true":
+            _main.NO_SHUTDOWN = True
+            await stop_auto_shutdown()
+        else:
+            _main.NO_SHUTDOWN = False
+
     if key == "auto_shutdown_on_disconnect":
         from rigbook.main import NO_SHUTDOWN
         from rigbook.sse import start_auto_shutdown, stop_auto_shutdown

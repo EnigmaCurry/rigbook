@@ -94,3 +94,24 @@ async def get_conditions():
             if _cache is not None:
                 return _cache
             return {"error": str(e)}
+
+
+@router.delete("/cache")
+async def clear_solar_cache():
+    global _cache, _fetched_at
+    _cache = None
+    _fetched_at = 0
+    return {"ok": True}
+
+
+@router.get("/cache/stats")
+async def solar_cache_stats():
+    """Return solar cache statistics."""
+    now = time.time()
+    cached = _cache is not None
+    age = round(now - _fetched_at) if cached and _fetched_at else None
+    return {
+        "cached": cached,
+        "age_seconds": age,
+        "ttl_seconds": CACHE_TTL,
+    }

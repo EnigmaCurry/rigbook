@@ -1697,7 +1697,7 @@
     white-space: nowrap;
   }
   .default-btn:hover { background: var(--btn-secondary-hover); }
-  .default-btn.map-toggle.active { background: var(--accent); color: var(--bg); }
+  .default-btn.map-toggle.active { background: var(--accent); color: var(--accent-text); }
 
   .band-badge {
     padding: 0.15rem 0.5rem;

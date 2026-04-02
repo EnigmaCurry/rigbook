@@ -176,6 +176,6 @@
   li:hover,
   li.highlighted {
     background: var(--accent);
-    color: var(--bg);
+    color: var(--accent-text);
   }
 </style>

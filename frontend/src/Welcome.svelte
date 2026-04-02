@@ -270,7 +270,7 @@
 
   .continue-btn {
     background: var(--accent, #00ff88);
-    color: #000;
+    color: var(--accent-text);
     border: none;
     border-radius: 6px;
     padding: 0.5rem 1.5rem;

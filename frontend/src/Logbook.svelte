@@ -1513,7 +1513,7 @@
   }
   .btn-clock:hover:not(:disabled):not(.btn-clock-green):not(.btn-clock-red) {
     background: var(--accent, #f0c040);
-    color: var(--bg);
+    color: var(--accent-text);
   }
   .btn-clock.btn-clock-green {
     background: #4caf50;
@@ -1596,7 +1596,7 @@
 
   button {
     background: var(--accent);
-    color: var(--bg);
+    color: var(--accent-text);
     border: none;
     padding: 0.5rem 1.5rem;
     font-family: inherit;
@@ -1697,7 +1697,7 @@
 
   .log-tab.active {
     background: var(--accent);
-    color: var(--bg);
+    color: var(--accent-text);
   }
 
   .log-tab:not(.active):hover {
@@ -1756,7 +1756,7 @@
   .skcc-exch-btn.active {
     opacity: 1;
     background: var(--accent);
-    color: var(--bg);
+    color: var(--accent-text);
   }
 
   .grid-picker-btn {
@@ -2048,7 +2048,7 @@
   .pota-dropdown li:hover,
   .pota-dropdown li.highlighted {
     background: var(--accent);
-    color: var(--bg);
+    color: var(--accent-text);
   }
 
   .pota-ref {
@@ -2059,7 +2059,7 @@
 
   .pota-dropdown li:hover .pota-ref,
   .pota-dropdown li.highlighted .pota-ref {
-    color: var(--bg);
+    color: var(--accent-text);
   }
 
   .pota-name {
@@ -2077,7 +2077,7 @@
 
   .pota-dropdown li:hover .pota-loc,
   .pota-dropdown li.highlighted .pota-loc {
-    color: var(--bg);
+    color: var(--accent-text);
   }
 
 

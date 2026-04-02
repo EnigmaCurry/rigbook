@@ -901,7 +901,7 @@
 
   .tab:hover {
     background: var(--accent);
-    color: #000;
+    color: var(--accent-text);
     font-weight: bold;
   }
 
@@ -913,7 +913,7 @@
 
   .tab.active:hover {
     background: var(--accent);
-    color: #000;
+    color: var(--accent-text);
   }
 
   .main-layout {
@@ -1054,7 +1054,7 @@
 
   .action-btn {
     background: var(--accent);
-    color: var(--bg);
+    color: var(--accent-text);
     border: none;
     padding: 0.4rem 1.2rem;
     font-family: inherit;
@@ -1090,7 +1090,7 @@
 
   button {
     background: var(--accent);
-    color: var(--bg);
+    color: var(--accent-text);
     border: none;
     padding: 0.5rem 1.5rem;
     font-family: inherit;
@@ -1475,7 +1475,7 @@
   .file-label {
     display: inline-block;
     background: var(--accent);
-    color: var(--bg);
+    color: var(--accent-text);
     padding: 0.5rem 1.5rem;
     font-family: inherit;
     font-size: 0.9rem;
@@ -1535,7 +1535,7 @@
 
   .suggest-btn:hover:not(:disabled) {
     background: var(--accent);
-    color: var(--bg);
+    color: var(--accent-text);
   }
 
   .suggest-btn:disabled {

@@ -47,6 +47,14 @@
   let wide_breakpoint = "1200";
   let wide_mode_enabled = true;
   let theme = "dark";
+  let themeContrast = 50;
+  let themeBrightness = 50;
+  let themeHue = 0;
+  let themeSaturation = 50;
+  let themeGradient = 50;
+  let themeGrain = 0;
+  let themeGlow = 0;
+  let themeScanlines = 0;
   let themeMode = "preset"; // "preset" or "custom"
   let customBg = "#24252b";
   let customText = "#eaeaea";
@@ -132,7 +140,7 @@
   // Store global default values for use as placeholders
   let globalPlaceholders = {};
 
-  const validTabs = ["station", "features", "appearance", "updates", "system", "global"];
+  const validTabs = ["station", "features", "appearance", "updates", "data", "global"];
   let activeTab = (initialTab && validTabs.includes(initialTab)) ? initialTab : "station";
   let settingsLoaded = false;
 
@@ -401,6 +409,7 @@
 
   // Shutdown
   let noShutdown = false;
+  let disableShutdown = false;
   let autoShutdownOnDisconnect = false;
   let shutdownInMenu = false;
 
@@ -644,7 +653,7 @@
   let spotStatusInterval;
 
   async function onThemeChange() {
-    applyThemeVars(theme);
+    applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient, themeGrain, themeGlow, themeScanlines);
     storageSet("rigbook-theme", theme);
     await saveSetting("theme", theme);
     await saveSetting("theme_mode", "preset");
@@ -652,13 +661,133 @@
     if (map_theme === "default") updatePreview();
   }
 
+
+  function applyCurrentTheme() {
+    if (themeMode === "preset") {
+      applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient, themeGrain, themeGlow, themeScanlines);
+    } else {
+      applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient, themeGrain, themeGlow, themeScanlines);
+    }
+  }
+
+  function broadcastThemePreview(key, value) {
+    fetch(`/api/settings/theme-preview?key=${encodeURIComponent(key)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ value }),
+    }).catch(() => {});
+  }
+
+  function onContrastInput() {
+    applyCurrentTheme();
+    broadcastThemePreview("theme_contrast", String(themeContrast));
+  }
+  async function onContrastCommit() {
+    applyCurrentTheme();
+    await saveSetting("theme_contrast", String(themeContrast));
+    dispatch("saved");
+  }
+
+  function onBrightnessInput() {
+    applyCurrentTheme();
+    broadcastThemePreview("theme_brightness", String(themeBrightness));
+  }
+  async function onBrightnessCommit() {
+    applyCurrentTheme();
+    await saveSetting("theme_brightness", String(themeBrightness));
+    dispatch("saved");
+  }
+
+  function onHueInput() {
+    applyCurrentTheme();
+    broadcastThemePreview("theme_hue", String(themeHue));
+  }
+  async function onHueCommit() {
+    applyCurrentTheme();
+    await saveSetting("theme_hue", String(themeHue));
+    dispatch("saved");
+  }
+
+  function onSaturationInput() {
+    applyCurrentTheme();
+    broadcastThemePreview("theme_saturation", String(themeSaturation));
+  }
+  async function onSaturationCommit() {
+    applyCurrentTheme();
+    await saveSetting("theme_saturation", String(themeSaturation));
+    dispatch("saved");
+  }
+
+  function onGradientInput() {
+    applyCurrentTheme();
+    broadcastThemePreview("theme_gradient", String(themeGradient));
+  }
+  async function onGradientCommit() {
+    applyCurrentTheme();
+    await saveSetting("theme_gradient", String(themeGradient));
+    dispatch("saved");
+  }
+
+  function onGrainInput() {
+    applyCurrentTheme();
+    broadcastThemePreview("theme_grain", String(themeGrain));
+  }
+  async function onGrainCommit() {
+    applyCurrentTheme();
+    await saveSetting("theme_grain", String(themeGrain));
+    dispatch("saved");
+  }
+
+  function onGlowInput() {
+    applyCurrentTheme();
+    broadcastThemePreview("theme_glow", String(themeGlow));
+  }
+  async function onGlowCommit() {
+    applyCurrentTheme();
+    await saveSetting("theme_glow", String(themeGlow));
+    dispatch("saved");
+  }
+
+  function onScanlinesInput() {
+    applyCurrentTheme();
+    broadcastThemePreview("theme_scanlines", String(themeScanlines));
+  }
+  async function onScanlinesCommit() {
+    applyCurrentTheme();
+    await saveSetting("theme_scanlines", String(themeScanlines));
+    dispatch("saved");
+  }
+
+  async function resetSliders() {
+    themeContrast = 50;
+    themeBrightness = 50;
+    themeHue = 0;
+    themeSaturation = 50;
+    themeGradient = 50;
+    themeGrain = 0;
+    themeGlow = 0;
+    themeScanlines = 0;
+    applyCurrentTheme();
+    await Promise.all([
+      saveSetting("theme_contrast", "50"),
+      saveSetting("theme_brightness", "50"),
+      saveSetting("theme_hue", "0"),
+      saveSetting("theme_saturation", "50"),
+      saveSetting("theme_gradient", "50"),
+      saveSetting("theme_grain", "0"),
+      saveSetting("theme_glow", "0"),
+      saveSetting("theme_scanlines", "0"),
+    ]);
+    dispatch("saved");
+  }
+
   async function onThemeModeChange() {
     if (themeMode === "preset") {
-      applyThemeVars(theme);
+      applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient, themeGrain, themeGlow, themeScanlines);
       storageSet("rigbook-theme", theme);
       await saveSetting("theme_mode", "preset");
     } else {
-      applyCustomThemeVars(customBg, customText, customAccent, customVfo);
+      applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient, themeGrain, themeGlow, themeScanlines);
       storageSet("rigbook-theme", "custom");
       await saveSetting("theme_mode", "custom");
       await saveCustomColors();
@@ -668,8 +797,9 @@
   }
 
   function onCustomColorInput() {
-    applyCustomThemeVars(customBg, customText, customAccent, customVfo);
+    applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient, themeGrain, themeGlow, themeScanlines);
     storageSet("rigbook-theme", "custom");
+    broadcastThemePreview("custom_theme_colors", JSON.stringify({ bg: customBg, text: customText, accent: customAccent, vfo: customVfo }));
   }
 
   async function onCustomColorCommit() {
@@ -785,12 +915,44 @@
     dispatch("saved");
   }
 
+  let qrzCacheStats = null;
+  let skccCacheStats = null;
+  let solarCacheStats = null;
+
+  async function fetchCacheStats() {
+    try {
+      const [qrzRes, skccRes, solarRes] = await Promise.all([
+        fetch("/api/qrz/cache/stats"),
+        fetch("/api/skcc/cache/stats"),
+        fetch("/api/solar/cache/stats"),
+      ]);
+      if (qrzRes.ok) qrzCacheStats = await qrzRes.json();
+      if (skccRes.ok) skccCacheStats = await skccRes.json();
+      if (solarRes.ok) solarCacheStats = await solarRes.json();
+    } catch {}
+  }
+
+  async function clearExpiredCache() {
+    try {
+      await Promise.all([
+        fetch("/api/qrz/cache/expired", { method: "DELETE" }),
+        fetch("/api/skcc/cache/expired", { method: "DELETE" }),
+      ]);
+      await fetchCacheStats();
+    } catch {}
+  }
+
   async function clearCache() {
     try {
       await Promise.all([
         fetch("/api/qrz/cache", { method: "DELETE" }),
         fetch("/api/skcc/cache", { method: "DELETE" }),
+        fetch("/api/solar/cache", { method: "DELETE" }),
       ]);
+      qrzCacheStats = null;
+      skccCacheStats = null;
+      solarCacheStats = null;
+      await fetchCacheStats();
     } catch {}
   }
 
@@ -1313,6 +1475,14 @@
           if (s.key === "custom_header") custom_header = s.value || "";
           if (s.key === "default_page") default_page = s.value || "log";
           if (s.key === "theme") theme = s.value || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+          if (s.key === "theme_contrast") { const v = parseInt(s.value); themeContrast = isNaN(v) ? 50 : v; }
+          if (s.key === "theme_brightness") { const v = parseInt(s.value); themeBrightness = isNaN(v) ? 50 : v; }
+          if (s.key === "theme_hue") { const v = parseInt(s.value); themeHue = isNaN(v) ? 0 : v; }
+          if (s.key === "theme_saturation") { const v = parseInt(s.value); themeSaturation = isNaN(v) ? 50 : v; }
+          if (s.key === "theme_gradient") { const v = parseInt(s.value); themeGradient = isNaN(v) ? 50 : v; }
+          if (s.key === "theme_grain") { const v = parseInt(s.value); themeGrain = isNaN(v) ? 0 : v; }
+          if (s.key === "theme_glow") { const v = parseInt(s.value); themeGlow = isNaN(v) ? 0 : v; }
+          if (s.key === "theme_scanlines") { const v = parseInt(s.value); themeScanlines = isNaN(v) ? 0 : v; }
           if (s.key === "theme_mode") themeMode = s.value || "preset";
           if (s.key === "custom_theme_colors") {
             try {
@@ -1362,6 +1532,7 @@
           if (s.key === "browser_url_override") global_browser_url_override = s.value || "";
           if (s.key === "shutdown_in_menu") shutdownInMenu = s.value === "true";
           if (s.key === "auto_shutdown_on_disconnect") autoShutdownOnDisconnect = s.value === "true";
+          if (s.key === "disable_shutdown") disableShutdown = s.value === "true";
           if (s.key === "update_check_enabled") update_check_enabled = s.value !== "false";
         }
         globalSettingsLoaded = true;
@@ -1518,8 +1689,15 @@
       if (res.ok) {
         const data = await res.json();
         noShutdown = !!data.no_shutdown;
+        await tick();
+        window.dispatchEvent(new Event("resize"));
       }
     } catch {}
+  }
+
+  async function toggleDisableShutdown() {
+    await saveGlobalSetting("disable_shutdown", disableShutdown ? "true" : "false");
+    await fetchNoShutdown();
   }
 
   onMount(() => {
@@ -1531,6 +1709,7 @@
     loadDbInfo();
     loadBackupStatus();
     fetchNoShutdown();
+    fetchCacheStats();
     spotStatusInterval = setInterval(fetchSpotStatus, 5000);
   });
 
@@ -1552,7 +1731,7 @@
     <button class="tab" class:active={activeTab === "features"} on:click={() => switchTab("features")}>Features</button>
     <button class="tab" class:active={activeTab === "appearance"} on:click={() => switchTab("appearance")}>Appearance</button>
     <button class="tab" class:active={activeTab === "updates"} on:click={() => switchTab("updates")}>Updates</button>
-    <button class="tab" class:active={activeTab === "system"} on:click={() => switchTab("system")}>System</button>
+    <button class="tab" class:active={activeTab === "data"} on:click={() => switchTab("data")}>Data</button>
     <button class="tab" class:active={activeTab === "global"} on:click={() => switchTab("global")}>Global</button>
   </div>
 
@@ -1852,6 +2031,7 @@
   </section>
   <section class="settings-section">
     <h3>Theme</h3>
+    <p class="hint">Theme changes sync live to all open windows. Try opening Rigbook side-by-side in another window to preview your changes on any page.</p>
     <div class="setting-row toggle-row">
       <label>Mode</label>
       <div class="theme-mode-switch">
@@ -1862,11 +2042,14 @@
     {#if themeMode === "preset"}
     <div class="setting-row">
       <label for="theme_select">Theme</label>
-      <select id="theme_select" bind:value={theme} on:change={onThemeChange}>
-        {#each THEME_NAMES as t}
-          <option value={t}>{THEMES[t].label}{t !== "dark" && t !== "light" ? ` (${THEMES[t].base})` : ""}</option>
-        {/each}
-      </select>
+      <div class="theme-select-row">
+        <select id="theme_select" bind:value={theme} on:change={onThemeChange}>
+          {#each THEME_NAMES as t}
+            <option value={t}>{THEMES[t].label}{t !== "dark" && t !== "light" ? ` (${THEMES[t].base})` : ""}</option>
+          {/each}
+        </select>
+        <button class="contrast-reset" on:click={resetSliders} disabled={themeContrast === 50 && themeBrightness === 50 && themeHue === 0 && themeSaturation === 50 && themeGradient === 50 && themeGrain === 0 && themeGlow === 0 && themeScanlines === 0}>Reset Sliders</button>
+      </div>
     </div>
     {:else}
     <div class="color-pickers">
@@ -1892,6 +2075,63 @@
       </div>
     </div>
     {/if}
+    <div class="slider-pair">
+      <div class="slider-group">
+        <label for="contrast_slider">Contrast <span class="slider-value">{themeContrast}</span></label>
+        <div class="slider-control">
+          <input id="contrast_slider" type="range" min="40" max="60" bind:value={themeContrast} on:input={onContrastInput} on:change={onContrastCommit} />
+        </div>
+      </div>
+      <div class="slider-group">
+        <label for="brightness_slider">Brightness <span class="slider-value">{themeBrightness}</span></label>
+        <div class="slider-control">
+          <input id="brightness_slider" type="range" min="40" max="60" bind:value={themeBrightness} on:input={onBrightnessInput} on:change={onBrightnessCommit} />
+        </div>
+      </div>
+    </div>
+    <div class="slider-pair">
+      <div class="slider-group">
+        <label for="hue_slider">Hue Shift <span class="slider-value">{themeHue}°</span></label>
+        <div class="slider-control">
+          <input id="hue_slider" type="range" min="0" max="360" bind:value={themeHue} on:input={onHueInput} on:change={onHueCommit} class="hue-range" />
+        </div>
+      </div>
+      <div class="slider-group">
+        <label for="saturation_slider">Saturation <span class="slider-value">{themeSaturation}</span></label>
+        <div class="slider-control">
+          <input id="saturation_slider" type="range" min="0" max="100" bind:value={themeSaturation} on:input={onSaturationInput} on:change={onSaturationCommit} />
+        </div>
+      </div>
+    </div>
+    <div class="slider-pair">
+      <div class="slider-group">
+        <label for="gradient_slider">Gradient <span class="slider-value">{themeGradient - 50}</span></label>
+        <div class="slider-control">
+          <input id="gradient_slider" type="range" min="0" max="100" bind:value={themeGradient} on:input={onGradientInput} on:change={onGradientCommit} />
+        </div>
+      </div>
+      <div class="slider-group">
+        <label for="grain_slider">Grain <span class="slider-value">{themeGrain}</span></label>
+        <div class="slider-control">
+          <input id="grain_slider" type="range" min="0" max="100" bind:value={themeGrain} on:input={onGrainInput} on:change={onGrainCommit} />
+        </div>
+      </div>
+    </div>
+    <div class="slider-pair">
+      <div class="slider-group">
+        <label for="glow_slider">Glow <span class="slider-value">{themeGlow}</span></label>
+        <div class="slider-control">
+          <input id="glow_slider" type="range" min="0" max="100" bind:value={themeGlow} on:input={onGlowInput} on:change={onGlowCommit} />
+        </div>
+      </div>
+      <div class="slider-group">
+        <label for="scanlines_slider">Scanlines <span class="slider-value">{themeScanlines}</span></label>
+        <div class="slider-control">
+          <input id="scanlines_slider" type="range" min="0" max="45" bind:value={themeScanlines} on:input={onScanlinesInput} on:change={onScanlinesCommit} />
+        </div>
+      </div>
+    </div>
+    <p class="hint">Grain, Glow, and Scanlines may impact performance on low-powered devices. Set these to 0 to disable. Grain is paper-like unless combined with Scanlines to produce static.</p>
   </section>
   <section class="settings-section" data-section="content">
     <h3>Content</h3>
@@ -2021,11 +2261,12 @@
   </div>
   {/if}
 
-  {#if activeTab === "system"}
+  {#if activeTab === "data"}
   <div class="tab-content" use:masonry>
 
   <section class="settings-section">
     <h3>Backup</h3>
+    <p class="hint">Backup settings are configured separately for each logbook.</p>
     {#if dbInfo}
       <p class="hint">Database: {dbInfo.path} ({formatSize(dbInfo.size)})</p>
       <p class="hint">Backups: {dbInfo.directory}</p>
@@ -2237,8 +2478,41 @@
   <section class="settings-section">
     <h3>Cache</h3>
     <p class="hint">Cached data: QRZ callsign lookups, SKCC member list. Clearing forces fresh lookups on next use.</p>
+    {#if qrzCacheStats || skccCacheStats || solarCacheStats}
+    <div class="cache-stats-grid">
+      {#if qrzCacheStats}
+      <div class="cache-stat-card">
+        <h4>QRZ</h4>
+        <div class="stat-row"><span class="stat-label">Cached lookups</span><span class="stat-value">{qrzCacheStats.valid_entries}</span></div>
+        <div class="stat-row"><span class="stat-label">Found</span><span class="stat-value">{qrzCacheStats.found_entries}</span></div>
+        <div class="stat-row"><span class="stat-label">Not found</span><span class="stat-value">{qrzCacheStats.not_found_entries}</span></div>
+        <div class="stat-row"><span class="stat-label">Expired</span><span class="stat-value">{qrzCacheStats.expired_entries}</span></div>
+        <div class="stat-row"><span class="stat-label">TTL</span><span class="stat-value">{Math.round(qrzCacheStats.ttl_seconds / 86400)}d</span></div>
+      </div>
+      {/if}
+      {#if skccCacheStats}
+      <div class="cache-stat-card">
+        <h4>SKCC</h4>
+        <div class="stat-row"><span class="stat-label">Cached members</span><span class="stat-value">{skccCacheStats.valid_entries.toLocaleString()}</span></div>
+        <div class="stat-row"><span class="stat-label">Expired</span><span class="stat-value">{skccCacheStats.expired_entries.toLocaleString()}</span></div>
+        <div class="stat-row"><span class="stat-label">TTL</span><span class="stat-value">{Math.round(skccCacheStats.ttl_seconds / 3600)}h</span></div>
+      </div>
+      {/if}
+      {#if solarCacheStats}
+      <div class="cache-stat-card">
+        <h4>Solar (HamQSL)</h4>
+        <div class="stat-row"><span class="stat-label">Status</span><span class="stat-value">{solarCacheStats.cached ? "Cached" : "Empty"}</span></div>
+        {#if solarCacheStats.age_seconds != null}
+        <div class="stat-row"><span class="stat-label">Age</span><span class="stat-value">{solarCacheStats.age_seconds < 60 ? solarCacheStats.age_seconds + "s" : Math.round(solarCacheStats.age_seconds / 60) + "m"}</span></div>
+        {/if}
+        <div class="stat-row"><span class="stat-label">TTL</span><span class="stat-value">{Math.round(solarCacheStats.ttl_seconds / 60)}m</span></div>
+      </div>
+      {/if}
+    </div>
+    {/if}
     <div class="setting-row toggle-row">
-      <button class="theme-toggle" on:click={clearCache}>Clear Cache</button>
+      <button class="theme-toggle" on:click={clearExpiredCache}>Clear Expired Only</button>
+      <button class="theme-toggle" on:click={clearCache}>Clear All Cache</button>
     </div>
   </section>
 
@@ -2246,18 +2520,24 @@
     <h3>Shutdown</h3>
     <div class="setting-row toggle-row">
       <label class="toggle-label">
-        <input type="checkbox" bind:checked={autoShutdownOnDisconnect} on:change={() => saveGlobalSetting("auto_shutdown_on_disconnect", autoShutdownOnDisconnect ? "true" : "false")} />
+        <input type="checkbox" bind:checked={disableShutdown} on:change={toggleDisableShutdown} />
+        Disable shutdown
+      </label>
+    </div>
+    <div class="setting-row toggle-row">
+      <label class="toggle-label">
+        <input type="checkbox" bind:checked={autoShutdownOnDisconnect} on:change={() => saveGlobalSetting("auto_shutdown_on_disconnect", autoShutdownOnDisconnect ? "true" : "false")} disabled={disableShutdown} />
         Shutdown automatically when no clients are connected
       </label>
     </div>
     <div class="setting-row">
       <label for="global_shutdown_delay">Shutdown delay (seconds)</label>
-      <input id="global_shutdown_delay" type="number" min="5" bind:value={global_auto_shutdown_delay} on:blur={() => { const v = Math.max(5, parseInt(global_auto_shutdown_delay) || 300); global_auto_shutdown_delay = String(v); saveGlobalSetting("auto_shutdown_delay", String(v)); }} autocomplete="off" style="max-width: 5rem" disabled={!autoShutdownOnDisconnect} />
+      <input id="global_shutdown_delay" type="number" min="5" bind:value={global_auto_shutdown_delay} on:blur={() => { const v = Math.max(5, parseInt(global_auto_shutdown_delay) || 300); global_auto_shutdown_delay = String(v); saveGlobalSetting("auto_shutdown_delay", String(v)); }} autocomplete="off" style="max-width: 5rem" disabled={disableShutdown || !autoShutdownOnDisconnect} />
     </div>
     <p class="hint">Shuts down the server after {global_auto_shutdown_delay} consecutive seconds with no connected clients.</p>
     <div class="setting-row toggle-row">
       <label class="toggle-label">
-        <input type="checkbox" bind:checked={shutdownInMenu} on:change={() => { saveGlobalSetting("shutdown_in_menu", shutdownInMenu ? "true" : "false"); }} />
+        <input type="checkbox" bind:checked={shutdownInMenu} on:change={() => { saveGlobalSetting("shutdown_in_menu", shutdownInMenu ? "true" : "false"); }} disabled={disableShutdown} />
         Add Shutdown action to the main menu
       </label>
     </div>
@@ -2268,6 +2548,42 @@
 
 <style>
   .settings {
+  }
+
+  .cache-stats-grid {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .cache-stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.6rem 1rem;
+    min-width: 10rem;
+    color: var(--text);
+  }
+  .cache-stat-card h4 {
+    margin: 0 0 0.4rem 0;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.85rem;
+    padding: 0.1rem 0;
+  }
+  .stat-label {
+    color: var(--text-muted);
+  }
+  .stat-value {
+    font-weight: 600;
+    color: var(--text);
   }
 
   .tab-bar {
@@ -2291,7 +2607,7 @@
 
   .tab:hover {
     background: var(--accent);
-    color: #000;
+    color: var(--accent-text);
     font-weight: bold;
   }
 
@@ -2302,7 +2618,7 @@
 
   .tab.active:hover {
     background: var(--accent);
-    color: #000;
+    color: var(--accent-text);
   }
 
   .tab-content {
@@ -2523,6 +2839,82 @@
     font-size: 0.8rem !important;
   }
 
+  .slider-pair {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .slider-group {
+    flex: 1;
+    min-width: 10rem;
+  }
+  .slider-group label {
+    display: block;
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+    color: var(--text-muted);
+  }
+  .slider-value {
+    opacity: 0.6;
+    font-size: 0.8rem;
+  }
+  .hue-range {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+    outline: none;
+  }
+  .hue-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--text);
+    border: 2px solid var(--bg);
+    cursor: pointer;
+  }
+  .hue-range::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--text);
+    border: 2px solid var(--bg);
+    cursor: pointer;
+  }
+  .slider-control {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .slider-control input[type="range"] {
+    flex: 1;
+    accent-color: var(--accent);
+  }
+  .theme-select-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .contrast-reset {
+    font-family: inherit;
+    font-size: 0.8rem;
+    padding: 0.2rem 0.6rem;
+    background: var(--btn-secondary);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .contrast-reset:hover:not(:disabled) {
+    color: var(--accent-text);
+  }
+  .contrast-reset:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
   .theme-mode-switch {
     display: flex;
     gap: 0;
@@ -2544,7 +2936,7 @@
 
   .mode-btn.active {
     background: var(--accent);
-    color: #000;
+    color: var(--accent-text);
   }
 
   .mode-btn:hover:not(.active) {
@@ -2560,7 +2952,7 @@
 
   button {
     background: var(--accent);
-    color: var(--bg);
+    color: var(--accent-text);
     border: none;
     padding: 0.5rem 1.5rem;
     font-family: inherit;
@@ -2669,7 +3061,6 @@
 
   .danger-zone {
     border-color: #ff4444;
-    margin-top: 2rem;
   }
 
   .danger-zone h3 {
@@ -2757,7 +3148,7 @@
   }
   .apply-update-btn {
     background: #2ecc40;
-    color: #000;
+    color: var(--accent-text);
     font-weight: bold;
     border-color: #2ecc40;
     margin-left: 0.5rem;

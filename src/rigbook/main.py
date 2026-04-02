@@ -91,6 +91,7 @@ def _handle_shutdown_signal(sig, frame):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global NO_SHUTDOWN
     import signal
 
     signal.signal(signal.SIGINT, _handle_shutdown_signal)
@@ -120,6 +121,15 @@ async def lifespan(app: FastAPI):
             )
         )
         await gdb.commit()
+    if not NO_SHUTDOWN:
+        async with global_async_session() as gdb:
+            row = (
+                await gdb.execute(
+                    select(GlobalSetting).where(GlobalSetting.key == "disable_shutdown")
+                )
+            ).scalar_one_or_none()
+            if row and row.value == "true":
+                NO_SHUTDOWN = True
     if db_manager.is_open:
         await start_feeds()
         await start_auto_backup()
@@ -142,7 +152,7 @@ async def lifespan(app: FastAPI):
     await db_manager.close_global()
 
 
-app = FastAPI(title="Rigbook", lifespan=lifespan)
+app = FastAPI(title="Rigbook", version=version("rigbook"), lifespan=lifespan)
 
 
 @app.middleware("http")

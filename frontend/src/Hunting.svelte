@@ -613,7 +613,7 @@
 
   .badge.mode {
     background: #00ccff;
-    color: var(--bg);
+    color: var(--accent-text);
   }
 
   .badge.band {

@@ -634,6 +634,12 @@
       if (eventSource) { eventSource.close(); eventSource = null; }
       setShutdownState();
     });
+    eventSource.addEventListener("theme-changed", () => applyTheme());
+    eventSource.addEventListener("theme-preview", (e) => {
+      const { key, value } = JSON.parse(e.data);
+      _themeState[key] = value;
+      applyThemeFromState(_themeState);
+    });
     eventSource.addEventListener("logbook-changed", () => {
       if (switchingLogbook) return; // this client initiated the switch
       // Navigate home before reloading — the new logbook may not support the current page
@@ -1260,30 +1266,44 @@
     applyThemeVars(theme);
   }
 
+  let _themeState = {};
+
+  function applyThemeFromState(s) {
+    const contrast = isNaN(parseInt(s.theme_contrast)) ? 50 : parseInt(s.theme_contrast);
+    const brightness = isNaN(parseInt(s.theme_brightness)) ? 50 : parseInt(s.theme_brightness);
+    const hue = isNaN(parseInt(s.theme_hue)) ? 0 : parseInt(s.theme_hue);
+    const saturation = isNaN(parseInt(s.theme_saturation)) ? 50 : parseInt(s.theme_saturation);
+    const gradient = isNaN(parseInt(s.theme_gradient)) ? 50 : parseInt(s.theme_gradient);
+    const grain = isNaN(parseInt(s.theme_grain)) ? 0 : parseInt(s.theme_grain);
+    const glow = isNaN(parseInt(s.theme_glow)) ? 0 : parseInt(s.theme_glow);
+    const scanlines = isNaN(parseInt(s.theme_scanlines)) ? 0 : parseInt(s.theme_scanlines);
+    if (s.theme_mode === "custom" && s.custom_theme_colors) {
+      try {
+        const c = JSON.parse(s.custom_theme_colors);
+        if (c.bg && c.text && c.accent && c.vfo) {
+          applyCustomThemeVars(c.bg, c.text, c.accent, c.vfo, contrast, brightness, hue, saturation, gradient, grain, glow, scanlines);
+          storageSet("rigbook-theme", "custom");
+          return;
+        }
+      } catch {}
+    }
+    if (s.theme) {
+      storageSet("rigbook-theme", s.theme);
+      applyThemeVars(s.theme, contrast, brightness, hue, saturation, gradient, grain, glow, scanlines);
+    }
+  }
+
   async function applyTheme() {
     applyThemeFromCache();
     try {
-      const settings = {};
       const res = await fetch("/api/settings/");
       if (res.ok) {
         const data = await res.json();
-        for (const s of data) settings[s.key] = s.value;
+        _themeState = {};
+        for (const s of data) _themeState[s.key] = s.value;
       }
-      if (settings.theme_mode === "custom" && settings.custom_theme_colors) {
-        try {
-          const c = JSON.parse(settings.custom_theme_colors);
-          if (c.bg && c.text && c.accent && c.vfo) {
-            applyCustomThemeVars(c.bg, c.text, c.accent, c.vfo);
-            storageSet("rigbook-theme", "custom");
-            return;
-          }
-        } catch {}
-      }
-      if (settings.theme) {
-        storageSet("rigbook-theme", settings.theme);
-        applyThemeVars(settings.theme);
-        return;
-      }
+      applyThemeFromState(_themeState);
+      return;
     } catch {}
     const sysPref = resolveDefaultTheme();
     storageSet("rigbook-theme", sysPref);
@@ -1685,6 +1705,11 @@
     --accent-delete: #cc3333;
     --accent-delete-hover: #aa2222;
     --accent-error: #ff6b6b;
+    --accent-text: #000000;
+    --bg-gradient: var(--bg);
+    --glow-shadow: none;
+    --glow-shadow-sm: none;
+    --glow-text-shadow: none;
     --btn-secondary: #6e7080;
     --btn-secondary-hover: #5a5c6a;
     --row-hover: #44465a;
@@ -1701,7 +1726,8 @@
   :global(body) {
     margin: 0;
     padding: 0;
-    background: var(--bg);
+    background: var(--bg-gradient, var(--bg));
+    background-attachment: fixed;
     color: var(--text);
     font-family: "Courier New", Courier, monospace;
     font-size: 14px;
@@ -1773,6 +1799,7 @@
 
   .callsign {
     color: var(--accent-callsign);
+    text-shadow: var(--glow-text-shadow);
     font-size: 1.2rem;
     font-weight: bold;
   }
@@ -1914,13 +1941,14 @@
     border: 2px solid var(--vfo-border);
     border-radius: 6px;
     padding: 0.15rem 0.5rem;
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.05);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.05), var(--glow-shadow);
     position: relative;
     top: -2px;
   }
 
   .vfo-digit {
     color: var(--vfo-text);
+    text-shadow: var(--glow-text-shadow);
     font-size: 1.1rem;
     font-family: monospace;
     font-weight: bold;
@@ -2022,7 +2050,7 @@
 
   .vfo-btn.save {
     background: var(--accent-vfo);
-    color: var(--bg);
+    color: var(--accent-text);
   }
 
   .vfo-btn.cancel {
@@ -2049,7 +2077,8 @@
   }
 
   .add-btn {
-    background: #394942;
+    background: color-mix(in srgb, var(--accent) 15%, var(--bg-card));
+    box-shadow: var(--glow-shadow-sm);
     color: #fff;
     border: none;
     font-size: 1.2rem;
@@ -2075,7 +2104,7 @@
   }
 
   .add-btn:hover {
-    background: #4a5f55;
+    background: color-mix(in srgb, var(--accent) 30%, var(--bg-card));
   }
 
   .notification-btn {
@@ -2482,7 +2511,7 @@
 
   .popup-btn-go {
     background: var(--accent);
-    color: var(--bg);
+    color: var(--accent-text);
     font-weight: bold;
   }
 

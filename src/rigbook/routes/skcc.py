@@ -124,6 +124,44 @@ async def skcc_search(q: str = "", session: AsyncSession = Depends(get_global_se
     return [{"call": row.key, "skcc": row.value} for row in result.all()]
 
 
+@router.get("/cache/stats")
+async def skcc_cache_stats(session: AsyncSession = Depends(get_global_session)):
+    """Return SKCC cache statistics."""
+    from sqlalchemy import func
+
+    now = time.time()
+    total = (
+        await session.execute(
+            select(func.count()).where(GlobalCache.namespace == NAMESPACE)
+        )
+    ).scalar() or 0
+    valid = (
+        await session.execute(
+            select(func.count()).where(
+                GlobalCache.namespace == NAMESPACE, GlobalCache.expires_at > now
+            )
+        )
+    ).scalar() or 0
+    expired = total - valid
+    return {
+        "total_entries": total,
+        "valid_entries": valid,
+        "expired_entries": expired,
+        "ttl_seconds": CACHE_TTL,
+    }
+
+
+@router.delete("/cache/expired")
+async def clear_expired_skcc_cache(session: AsyncSession = Depends(get_global_session)):
+    result = await session.execute(
+        delete(GlobalCache).where(
+            GlobalCache.namespace == NAMESPACE, GlobalCache.expires_at <= time.time()
+        )
+    )
+    await session.commit()
+    return {"ok": True, "deleted": result.rowcount}
+
+
 @router.delete("/cache")
 async def clear_skcc_cache(session: AsyncSession = Depends(get_global_session)):
     await session.execute(delete(GlobalCache).where(GlobalCache.namespace == NAMESPACE))
