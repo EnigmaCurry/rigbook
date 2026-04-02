@@ -1273,7 +1273,10 @@
         try {
           const c = JSON.parse(settings.custom_theme_colors);
           if (c.bg && c.text && c.accent && c.vfo) {
-            applyCustomThemeVars(c.bg, c.text, c.accent, c.vfo);
+            const contrast = parseInt(settings.theme_contrast) || 50;
+            const brightness = parseInt(settings.theme_brightness) || 50;
+            const hue = parseInt(settings.theme_hue) || 0;
+            applyCustomThemeVars(c.bg, c.text, c.accent, c.vfo, contrast, brightness, hue);
             storageSet("rigbook-theme", "custom");
             return;
           }

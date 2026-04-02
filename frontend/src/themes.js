@@ -810,12 +810,12 @@ export function generateCustomTheme(bg, text, accent, vfo) {
   };
 }
 
-/** Apply a custom theme's vars directly. */
-export function applyCustomThemeVars(bg, text, accent, vfo) {
+/** Apply a custom theme's vars with optional modifiers. */
+export function applyCustomThemeVars(bg, text, accent, vfo, contrast = 50, brightness = 50, hue = 0) {
   const theme = generateCustomTheme(bg, text, accent, vfo);
   const style = document.documentElement.style;
   for (const [prop, val] of Object.entries(theme.vars)) {
-    style.setProperty(prop, val);
+    style.setProperty(prop, _adjustColor(val, contrast, brightness, hue));
   }
   return theme;
 }

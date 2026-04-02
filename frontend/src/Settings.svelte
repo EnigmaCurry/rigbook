@@ -656,32 +656,31 @@
     if (map_theme === "default") updatePreview();
   }
 
-  function onContrastInput() {
-    applyThemeVars(theme, themeContrast, themeBrightness, themeHue);
+  function applyCurrentTheme() {
+    if (themeMode === "preset") {
+      applyThemeVars(theme, themeContrast, themeBrightness, themeHue);
+    } else {
+      applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue);
+    }
   }
 
+  function onContrastInput() { applyCurrentTheme(); }
   async function onContrastCommit() {
-    applyThemeVars(theme, themeContrast, themeBrightness, themeHue);
+    applyCurrentTheme();
     await saveSetting("theme_contrast", String(themeContrast));
     dispatch("saved");
   }
 
-  function onBrightnessInput() {
-    applyThemeVars(theme, themeContrast, themeBrightness, themeHue);
-  }
-
+  function onBrightnessInput() { applyCurrentTheme(); }
   async function onBrightnessCommit() {
-    applyThemeVars(theme, themeContrast, themeBrightness, themeHue);
+    applyCurrentTheme();
     await saveSetting("theme_brightness", String(themeBrightness));
     dispatch("saved");
   }
 
-  function onHueInput() {
-    applyThemeVars(theme, themeContrast, themeBrightness, themeHue);
-  }
-
+  function onHueInput() { applyCurrentTheme(); }
   async function onHueCommit() {
-    applyThemeVars(theme, themeContrast, themeBrightness, themeHue);
+    applyCurrentTheme();
     await saveSetting("theme_hue", String(themeHue));
     dispatch("saved");
   }
@@ -692,7 +691,7 @@
       storageSet("rigbook-theme", theme);
       await saveSetting("theme_mode", "preset");
     } else {
-      applyCustomThemeVars(customBg, customText, customAccent, customVfo);
+      applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue);
       storageSet("rigbook-theme", "custom");
       await saveSetting("theme_mode", "custom");
       await saveCustomColors();
@@ -702,7 +701,7 @@
   }
 
   function onCustomColorInput() {
-    applyCustomThemeVars(customBg, customText, customAccent, customVfo);
+    applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue);
     storageSet("rigbook-theme", "custom");
   }
 
@@ -1946,6 +1945,30 @@
         {/each}
       </select>
     </div>
+    {:else}
+    <div class="color-pickers">
+      <div class="color-picker-group">
+        <label>Background</label>
+        <hex-color-picker use:colorPicker={{ getValue: () => customBg, setValue: (v) => { customBg = v; } }}></hex-color-picker>
+        <input type="text" class="color-hex-input" bind:value={customBg} on:input={onCustomColorInput} on:blur={onCustomColorCommit} maxlength="7" />
+      </div>
+      <div class="color-picker-group">
+        <label>Text</label>
+        <hex-color-picker use:colorPicker={{ getValue: () => customText, setValue: (v) => { customText = v; } }}></hex-color-picker>
+        <input type="text" class="color-hex-input" bind:value={customText} on:input={onCustomColorInput} on:blur={onCustomColorCommit} maxlength="7" />
+      </div>
+      <div class="color-picker-group">
+        <label>Accent</label>
+        <hex-color-picker use:colorPicker={{ getValue: () => customAccent, setValue: (v) => { customAccent = v; } }}></hex-color-picker>
+        <input type="text" class="color-hex-input" bind:value={customAccent} on:input={onCustomColorInput} on:blur={onCustomColorCommit} maxlength="7" />
+      </div>
+      <div class="color-picker-group">
+        <label>VFO</label>
+        <hex-color-picker use:colorPicker={{ getValue: () => customVfo, setValue: (v) => { customVfo = v; } }}></hex-color-picker>
+        <input type="text" class="color-hex-input" bind:value={customVfo} on:input={onCustomColorInput} on:blur={onCustomColorCommit} maxlength="7" />
+      </div>
+    </div>
+    {/if}
     <div class="slider-pair">
       <div class="slider-group">
         <label for="contrast_slider">Contrast</label>
@@ -1971,30 +1994,6 @@
         </div>
       </div>
     </div>
-    {:else}
-    <div class="color-pickers">
-      <div class="color-picker-group">
-        <label>Background</label>
-        <hex-color-picker use:colorPicker={{ getValue: () => customBg, setValue: (v) => { customBg = v; } }}></hex-color-picker>
-        <input type="text" class="color-hex-input" bind:value={customBg} on:input={onCustomColorInput} on:blur={onCustomColorCommit} maxlength="7" />
-      </div>
-      <div class="color-picker-group">
-        <label>Text</label>
-        <hex-color-picker use:colorPicker={{ getValue: () => customText, setValue: (v) => { customText = v; } }}></hex-color-picker>
-        <input type="text" class="color-hex-input" bind:value={customText} on:input={onCustomColorInput} on:blur={onCustomColorCommit} maxlength="7" />
-      </div>
-      <div class="color-picker-group">
-        <label>Accent</label>
-        <hex-color-picker use:colorPicker={{ getValue: () => customAccent, setValue: (v) => { customAccent = v; } }}></hex-color-picker>
-        <input type="text" class="color-hex-input" bind:value={customAccent} on:input={onCustomColorInput} on:blur={onCustomColorCommit} maxlength="7" />
-      </div>
-      <div class="color-picker-group">
-        <label>VFO</label>
-        <hex-color-picker use:colorPicker={{ getValue: () => customVfo, setValue: (v) => { customVfo = v; } }}></hex-color-picker>
-        <input type="text" class="color-hex-input" bind:value={customVfo} on:input={onCustomColorInput} on:blur={onCustomColorCommit} maxlength="7" />
-      </div>
-    </div>
-    {/if}
   </section>
   <section class="settings-section" data-section="content">
     <h3>Content</h3>
