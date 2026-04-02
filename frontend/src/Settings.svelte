@@ -53,6 +53,8 @@
   let themeSaturation = 50;
   let themeGradient = 50;
   let themeGrain = 0;
+  let themeGlow = 0;
+  let themeScanlines = 0;
   let themeMode = "preset"; // "preset" or "custom"
   let customBg = "#24252b";
   let customText = "#eaeaea";
@@ -651,7 +653,7 @@
   let spotStatusInterval;
 
   async function onThemeChange() {
-    applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient, themeGrain);
+    applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient, themeGrain, themeGlow, themeScanlines);
     storageSet("rigbook-theme", theme);
     await saveSetting("theme", theme);
     await saveSetting("theme_mode", "preset");
@@ -662,9 +664,9 @@
 
   function applyCurrentTheme() {
     if (themeMode === "preset") {
-      applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient, themeGrain);
+      applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient, themeGrain, themeGlow, themeScanlines);
     } else {
-      applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient, themeGrain);
+      applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient, themeGrain, themeGlow, themeScanlines);
     }
   }
 
@@ -736,6 +738,26 @@
     dispatch("saved");
   }
 
+  function onGlowInput() {
+    applyCurrentTheme();
+    broadcastThemePreview("theme_glow", String(themeGlow));
+  }
+  async function onGlowCommit() {
+    applyCurrentTheme();
+    await saveSetting("theme_glow", String(themeGlow));
+    dispatch("saved");
+  }
+
+  function onScanlinesInput() {
+    applyCurrentTheme();
+    broadcastThemePreview("theme_scanlines", String(themeScanlines));
+  }
+  async function onScanlinesCommit() {
+    applyCurrentTheme();
+    await saveSetting("theme_scanlines", String(themeScanlines));
+    dispatch("saved");
+  }
+
   async function resetSliders() {
     themeContrast = 50;
     themeBrightness = 50;
@@ -743,6 +765,8 @@
     themeSaturation = 50;
     themeGradient = 50;
     themeGrain = 0;
+    themeGlow = 0;
+    themeScanlines = 0;
     applyCurrentTheme();
     await Promise.all([
       saveSetting("theme_contrast", "50"),
@@ -751,17 +775,19 @@
       saveSetting("theme_saturation", "50"),
       saveSetting("theme_gradient", "50"),
       saveSetting("theme_grain", "0"),
+      saveSetting("theme_glow", "0"),
+      saveSetting("theme_scanlines", "0"),
     ]);
     dispatch("saved");
   }
 
   async function onThemeModeChange() {
     if (themeMode === "preset") {
-      applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient, themeGrain);
+      applyThemeVars(theme, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient, themeGrain, themeGlow, themeScanlines);
       storageSet("rigbook-theme", theme);
       await saveSetting("theme_mode", "preset");
     } else {
-      applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient, themeGrain);
+      applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient, themeGrain, themeGlow, themeScanlines);
       storageSet("rigbook-theme", "custom");
       await saveSetting("theme_mode", "custom");
       await saveCustomColors();
@@ -771,7 +797,7 @@
   }
 
   function onCustomColorInput() {
-    applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient, themeGrain);
+    applyCustomThemeVars(customBg, customText, customAccent, customVfo, themeContrast, themeBrightness, themeHue, themeSaturation, themeGradient, themeGrain, themeGlow, themeScanlines);
     storageSet("rigbook-theme", "custom");
     broadcastThemePreview("custom_theme_colors", JSON.stringify({ bg: customBg, text: customText, accent: customAccent, vfo: customVfo }));
   }
@@ -1455,6 +1481,8 @@
           if (s.key === "theme_saturation") { const v = parseInt(s.value); themeSaturation = isNaN(v) ? 50 : v; }
           if (s.key === "theme_gradient") { const v = parseInt(s.value); themeGradient = isNaN(v) ? 50 : v; }
           if (s.key === "theme_grain") { const v = parseInt(s.value); themeGrain = isNaN(v) ? 0 : v; }
+          if (s.key === "theme_glow") { const v = parseInt(s.value); themeGlow = isNaN(v) ? 0 : v; }
+          if (s.key === "theme_scanlines") { const v = parseInt(s.value); themeScanlines = isNaN(v) ? 0 : v; }
           if (s.key === "theme_mode") themeMode = s.value || "preset";
           if (s.key === "custom_theme_colors") {
             try {
@@ -2020,7 +2048,7 @@
             <option value={t}>{THEMES[t].label}{t !== "dark" && t !== "light" ? ` (${THEMES[t].base})` : ""}</option>
           {/each}
         </select>
-        <button class="contrast-reset" on:click={resetSliders} disabled={themeContrast === 50 && themeBrightness === 50 && themeHue === 0 && themeSaturation === 50 && themeGradient === 50 && themeGrain === 0}>Reset Sliders</button>
+        <button class="contrast-reset" on:click={resetSliders} disabled={themeContrast === 50 && themeBrightness === 50 && themeHue === 0 && themeSaturation === 50 && themeGradient === 50 && themeGrain === 0 && themeGlow === 0 && themeScanlines === 0}>Reset Sliders</button>
       </div>
     </div>
     {:else}
@@ -2089,6 +2117,21 @@
         </div>
       </div>
     </div>
+    <div class="slider-pair">
+      <div class="slider-group">
+        <label for="glow_slider">Glow <span class="slider-value">{themeGlow}</span></label>
+        <div class="slider-control">
+          <input id="glow_slider" type="range" min="0" max="100" bind:value={themeGlow} on:input={onGlowInput} on:change={onGlowCommit} />
+        </div>
+      </div>
+      <div class="slider-group">
+        <label for="scanlines_slider">Scanlines <span class="slider-value">{themeScanlines}</span></label>
+        <div class="slider-control">
+          <input id="scanlines_slider" type="range" min="0" max="100" bind:value={themeScanlines} on:input={onScanlinesInput} on:change={onScanlinesCommit} />
+        </div>
+      </div>
+    </div>
+    <p class="hint">Grain, Glow, and Scanlines may impact performance on low-powered devices.</p>
   </section>
   <section class="settings-section" data-section="content">
     <h3>Content</h3>

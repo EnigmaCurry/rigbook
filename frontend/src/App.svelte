@@ -1275,11 +1275,13 @@
     const saturation = isNaN(parseInt(s.theme_saturation)) ? 50 : parseInt(s.theme_saturation);
     const gradient = isNaN(parseInt(s.theme_gradient)) ? 50 : parseInt(s.theme_gradient);
     const grain = isNaN(parseInt(s.theme_grain)) ? 0 : parseInt(s.theme_grain);
+    const glow = isNaN(parseInt(s.theme_glow)) ? 0 : parseInt(s.theme_glow);
+    const scanlines = isNaN(parseInt(s.theme_scanlines)) ? 0 : parseInt(s.theme_scanlines);
     if (s.theme_mode === "custom" && s.custom_theme_colors) {
       try {
         const c = JSON.parse(s.custom_theme_colors);
         if (c.bg && c.text && c.accent && c.vfo) {
-          applyCustomThemeVars(c.bg, c.text, c.accent, c.vfo, contrast, brightness, hue, saturation, gradient, grain);
+          applyCustomThemeVars(c.bg, c.text, c.accent, c.vfo, contrast, brightness, hue, saturation, gradient, grain, glow, scanlines);
           storageSet("rigbook-theme", "custom");
           return;
         }
@@ -1287,7 +1289,7 @@
     }
     if (s.theme) {
       storageSet("rigbook-theme", s.theme);
-      applyThemeVars(s.theme, contrast, brightness, hue, saturation, gradient, grain);
+      applyThemeVars(s.theme, contrast, brightness, hue, saturation, gradient, grain, glow, scanlines);
     }
   }
 
@@ -1705,6 +1707,8 @@
     --accent-error: #ff6b6b;
     --accent-text: #000000;
     --bg-gradient: var(--bg);
+    --glow-shadow: none;
+    --glow-text-shadow: none;
     --btn-secondary: #6e7080;
     --btn-secondary-hover: #5a5c6a;
     --row-hover: #44465a;
@@ -1794,6 +1798,7 @@
 
   .callsign {
     color: var(--accent-callsign);
+    text-shadow: var(--glow-text-shadow);
     font-size: 1.2rem;
     font-weight: bold;
   }
@@ -1935,13 +1940,14 @@
     border: 2px solid var(--vfo-border);
     border-radius: 6px;
     padding: 0.15rem 0.5rem;
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.05);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.05), var(--glow-shadow);
     position: relative;
     top: -2px;
   }
 
   .vfo-digit {
     color: var(--vfo-text);
+    text-shadow: var(--glow-text-shadow);
     font-size: 1.1rem;
     font-family: monospace;
     font-weight: bold;
@@ -2071,6 +2077,7 @@
 
   .add-btn {
     background: color-mix(in srgb, var(--accent) 15%, var(--bg-card));
+    box-shadow: var(--glow-shadow);
     color: #fff;
     border: none;
     font-size: 1.2rem;

@@ -670,7 +670,7 @@ export const THEME_NAMES = Object.keys(THEMES);
 
 /** Apply a theme's CSS variables to document.documentElement.
  *  contrast: 0–100, 50 = unchanged. brightness: 0–100, 50 = unchanged. hue: 0–360, 0 = unchanged. */
-export function applyThemeVars(themeName, contrast = 50, brightness = 50, hue = 0, saturation = 50, gradient = 50, grain = 0) {
+export function applyThemeVars(themeName, contrast = 50, brightness = 50, hue = 0, saturation = 50, gradient = 50, grain = 0, glow = 0, scanlines = 0) {
   const theme = THEMES[themeName] || THEMES.dark;
   const style = document.documentElement.style;
   for (const [prop, val] of Object.entries(theme.vars)) {
@@ -679,6 +679,8 @@ export function applyThemeVars(themeName, contrast = 50, brightness = 50, hue = 
   _setAccentText(style);
   _setGradient(style, gradient);
   _setGrain(grain);
+  _setGlow(style, glow);
+  _setScanlines(scanlines);
 }
 
 function _setAccentText(style) {
@@ -730,6 +732,37 @@ function _setGrain(grain) {
   }
   overlay.style.display = "block";
   overlay.style.opacity = String(grain / 100);
+}
+
+function _setGlow(style, glow) {
+  if (glow === 0) {
+    style.setProperty("--glow-shadow", "none");
+    style.setProperty("--glow-text-shadow", "none");
+    return;
+  }
+  const accent = style.getPropertyValue("--accent").trim();
+  const spread = Math.round(glow / 100 * 20);
+  const blur = Math.round(glow / 100 * 12);
+  const opacity = Math.round(glow / 100 * 80) / 100;
+  style.setProperty("--glow-shadow", `0 0 ${spread}px color-mix(in srgb, ${accent} ${Math.round(opacity * 100)}%, transparent)`);
+  style.setProperty("--glow-text-shadow", `0 0 ${blur}px ${accent}`);
+}
+
+function _setScanlines(scanlines) {
+  let overlay = document.getElementById("rigbook-scanlines-overlay");
+  if (scanlines === 0) {
+    if (overlay) overlay.style.display = "none";
+    return;
+  }
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "rigbook-scanlines-overlay";
+    overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:99998;";
+    document.body.appendChild(overlay);
+  }
+  overlay.style.display = "block";
+  const opacity = (scanlines / 100 * 0.3).toFixed(3);
+  overlay.style.background = `repeating-linear-gradient(to bottom, transparent, transparent 2px, rgba(0,0,0,${opacity}) 2px, rgba(0,0,0,${opacity}) 4px)`;
 }
 
 function _adjustColor(hex, contrast, brightness, hue, saturation) {
@@ -866,7 +899,7 @@ export function generateCustomTheme(bg, text, accent, vfo) {
 }
 
 /** Apply a custom theme's vars with optional modifiers. */
-export function applyCustomThemeVars(bg, text, accent, vfo, contrast = 50, brightness = 50, hue = 0, saturation = 50, gradient = 50, grain = 0) {
+export function applyCustomThemeVars(bg, text, accent, vfo, contrast = 50, brightness = 50, hue = 0, saturation = 50, gradient = 50, grain = 0, glow = 0, scanlines = 0) {
   const theme = generateCustomTheme(bg, text, accent, vfo);
   const style = document.documentElement.style;
   for (const [prop, val] of Object.entries(theme.vars)) {
@@ -875,5 +908,7 @@ export function applyCustomThemeVars(bg, text, accent, vfo, contrast = 50, brigh
   _setAccentText(style);
   _setGradient(style, gradient);
   _setGrain(grain);
+  _setGlow(style, glow);
+  _setScanlines(scanlines);
   return theme;
 }
