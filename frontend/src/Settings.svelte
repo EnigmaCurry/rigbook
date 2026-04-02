@@ -47,6 +47,7 @@
   let wide_breakpoint = "1200";
   let wide_mode_enabled = true;
   let theme = "dark";
+  let themeBrightness = 50;
   let themeMode = "preset"; // "preset" or "custom"
   let customBg = "#24252b";
   let customText = "#eaeaea";
@@ -645,7 +646,7 @@
   let spotStatusInterval;
 
   async function onThemeChange() {
-    applyThemeVars(theme);
+    applyThemeVars(theme, themeBrightness);
     storageSet("rigbook-theme", theme);
     await saveSetting("theme", theme);
     await saveSetting("theme_mode", "preset");
@@ -653,9 +654,19 @@
     if (map_theme === "default") updatePreview();
   }
 
+  function onBrightnessInput() {
+    applyThemeVars(theme, themeBrightness);
+  }
+
+  async function onBrightnessCommit() {
+    applyThemeVars(theme, themeBrightness);
+    await saveSetting("theme_brightness", String(themeBrightness));
+    dispatch("saved");
+  }
+
   async function onThemeModeChange() {
     if (themeMode === "preset") {
-      applyThemeVars(theme);
+      applyThemeVars(theme, themeBrightness);
       storageSet("rigbook-theme", theme);
       await saveSetting("theme_mode", "preset");
     } else {
@@ -1346,6 +1357,7 @@
           if (s.key === "custom_header") custom_header = s.value || "";
           if (s.key === "default_page") default_page = s.value || "log";
           if (s.key === "theme") theme = s.value || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+          if (s.key === "theme_brightness") themeBrightness = parseInt(s.value) || 50;
           if (s.key === "theme_mode") themeMode = s.value || "preset";
           if (s.key === "custom_theme_colors") {
             try {
@@ -1909,6 +1921,11 @@
           <option value={t}>{THEMES[t].label}{t !== "dark" && t !== "light" ? ` (${THEMES[t].base})` : ""}</option>
         {/each}
       </select>
+    </div>
+    <div class="setting-row brightness-row">
+      <label for="brightness_slider">Brightness</label>
+      <input id="brightness_slider" type="range" min="0" max="100" bind:value={themeBrightness} on:input={onBrightnessInput} on:change={onBrightnessCommit} />
+      <button class="brightness-reset" on:click={() => { themeBrightness = 50; onBrightnessCommit(); }} disabled={themeBrightness === 50}>Reset</button>
     </div>
     {:else}
     <div class="color-pickers">
@@ -2638,6 +2655,31 @@
     width: 5.5rem !important;
     text-align: center;
     font-size: 0.8rem !important;
+  }
+
+  .brightness-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .brightness-row input[type="range"] {
+    flex: 1;
+    max-width: 16rem;
+    accent-color: var(--accent);
+  }
+  .brightness-reset {
+    font-family: inherit;
+    font-size: 0.8rem;
+    padding: 0.2rem 0.6rem;
+    background: var(--btn-secondary);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .brightness-reset:disabled {
+    opacity: 0.4;
+    cursor: default;
   }
 
   .theme-mode-switch {
