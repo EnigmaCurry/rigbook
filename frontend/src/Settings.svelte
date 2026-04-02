@@ -2131,7 +2131,7 @@
         </div>
       </div>
     </div>
-    <p class="hint">Grain, Glow, and Scanlines may impact performance on low-powered devices.</p>
+    <p class="hint">Grain, Glow, and Scanlines may impact performance on low-powered devices. Set these to 0 to disable. Grain is paper-like unless combined with Scanlines to produce static.</p>
   </section>
   <section class="settings-section" data-section="content">
     <h3>Content</h3>
