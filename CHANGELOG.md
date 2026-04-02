@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.2.9 — 2026-04-02
+
+- Theme modifier sliders: contrast, brightness, hue shift, saturation, gradient, grain, glow, and scanlines
+- Auto-computed button text color for contrast against accent backgrounds
+- Live theme sync across all open windows via SSE
+- Reworked light themes with more saturated, distinctive palettes
+- Cache statistics (QRZ, SKCC, Solar) on settings page with clear expired option
+- Global setting to prevent shutdown
+- Grain + scanlines combo produces animated static effect
+- Nav button backgrounds tinted with accent color
+- Renamed System tab to Data
+- Fixed session resolution bugs in SKCC skimmer and QRZ lookup
+
 ## v0.2.8 — 2026-04-02
 
 - Global database for common settings shared across logbooks
