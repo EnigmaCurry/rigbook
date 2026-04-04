@@ -1100,11 +1100,21 @@
       node.appendChild(col2);
     }
 
-    const raf = requestAnimationFrame(layout);
+    let lastMode = null; // "single" or "dual"
+
+    function layoutIfModeChanged() {
+      const width = node.parentElement?.offsetWidth || node.offsetWidth;
+      const mode = width < MIN_WIDTH ? "single" : "dual";
+      if (mode === lastMode) return;
+      lastMode = mode;
+      layout();
+    }
+
+    const raf = requestAnimationFrame(() => { layout(); lastMode = (node.parentElement?.offsetWidth || node.offsetWidth) < MIN_WIDTH ? "single" : "dual"; });
     let resizeTimer;
     const onResize = () => {
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => requestAnimationFrame(layout), 150);
+      resizeTimer = setTimeout(() => requestAnimationFrame(layoutIfModeChanged), 150);
     };
     window.addEventListener("resize", onResize);
 
