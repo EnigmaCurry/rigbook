@@ -2548,6 +2548,8 @@
 
 <style>
   .settings {
+    overflow-y: auto;
+    max-height: calc(100vh - 5rem);
   }
 
   .cache-stats-grid {
