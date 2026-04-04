@@ -1025,7 +1025,7 @@ async def _apply_settings(settings: dict[str, str]) -> None:
         if username and password:
             await hamalert_feed.start(
                 host=settings.get("hamalert_host", "hamalert.org"),
-                port=int(settings.get("hamalert_port", "7300")),
+                port=int(settings.get("hamalert_port", "") or "7300"),
                 username=username,
                 password=password,
             )
