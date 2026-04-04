@@ -2184,6 +2184,19 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    max-height: calc(100vh - 4rem);
+    overflow-y: auto;
+  }
+
+  @media (max-height: 600px) {
+    .menu {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-width: 280px;
+    }
+    .menu-separator {
+      grid-column: 1 / -1;
+    }
   }
 
   .menu-item {
