@@ -1779,8 +1779,12 @@
     flex-wrap: wrap;
     gap: 0.5rem;
     border-bottom: 1px solid var(--border);
-    padding-bottom: 0.5rem;
+    padding: 0.5rem 0;
     margin-bottom: 1rem;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 100;
   }
 
   .header-left {
