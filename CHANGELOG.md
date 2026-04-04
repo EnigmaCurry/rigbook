@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.2.10 — 2026-04-04
+
+- Settings page no longer scrolls the whole page — tab content scrolls independently with title and tabs fixed
+- Scrollbar positioned at window edge instead of centered content edge
+- Masonry layout only recalculates when crossing single/dual column threshold, debounced on resize
+- Double-column hamburger menu on short viewport heights
+- Graceful error handling for POTA spots and tile proxy on network/DNS failures
+- Fix crash when HamAlert port setting is empty
+
 ## v0.2.9 — 2026-04-02
 
 - Theme modifier sliders: contrast, brightness, hue shift, saturation, gradient, grain, glow, and scanlines
