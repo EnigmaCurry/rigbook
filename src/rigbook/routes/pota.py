@@ -84,29 +84,39 @@ async def get_spots():
         now = time.time()
         if _spots_cache is not None and now - _spots_fetched_at < SPOTS_TTL:
             return _spots_cache
-        async with httpx.AsyncClient(timeout=10) as client:
-            res = await client.get(
-                POTA_SPOTS_URL,
-                headers={"Accept": "application/json"},
-            )
-            res.raise_for_status()
-            _spots_cache = res.json()
-            _spots_fetched_at = time.time()
-            return _spots_cache
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                res = await client.get(
+                    POTA_SPOTS_URL,
+                    headers={"Accept": "application/json"},
+                )
+                res.raise_for_status()
+                _spots_cache = res.json()
+                _spots_fetched_at = time.time()
+                return _spots_cache
+        except (httpx.HTTPError, OSError) as e:
+            logger.warning("POTA spots fetch failed: %s", e)
+            if _spots_cache is not None:
+                return _spots_cache
+            return []
 
 
 async def _fetch_and_cache_programs(session: AsyncSession):
     now = time.time()
-    async with httpx.AsyncClient(timeout=30) as client:
-        prog_res = await client.get(
-            POTA_PROGRAMS_URL, headers={"Accept": "application/json"}
-        )
-        prog_res.raise_for_status()
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            prog_res = await client.get(
+                POTA_PROGRAMS_URL, headers={"Accept": "application/json"}
+            )
+            prog_res.raise_for_status()
 
-        loc_res = await client.get(
-            POTA_LOCATIONS_URL, headers={"Accept": "application/json"}
-        )
-        loc_res.raise_for_status()
+            loc_res = await client.get(
+                POTA_LOCATIONS_URL, headers={"Accept": "application/json"}
+            )
+            loc_res.raise_for_status()
+    except (httpx.HTTPError, OSError) as e:
+        logger.warning("POTA programs/locations fetch failed: %s", e)
+        return
 
     await session.execute(delete(GlobalPotaProgram))
     await session.execute(delete(GlobalPotaLocation))
