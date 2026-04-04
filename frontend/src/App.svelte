@@ -1760,6 +1760,10 @@
     box-sizing: border-box;
   }
 
+  :global(main.settings-mode) .page-content {
+    max-width: none;
+  }
+
   :global(main.export-mode),
   :global(main.query-mode) {
     display: flex;
