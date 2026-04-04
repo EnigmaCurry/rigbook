@@ -357,13 +357,18 @@
   }
 
   function setDisconnectedState() {
-    serverDisconnected = true;
-    stopAppServices();
-    document.title = "Disconnected";
-    startAutoReconnect();
+    if (disconnectedDebounce) return; // already pending
+    disconnectedDebounce = setTimeout(() => {
+      disconnectedDebounce = null;
+      serverDisconnected = true;
+      stopAppServices();
+      document.title = "Disconnected";
+      startAutoReconnect();
+    }, 3000);
   }
 
   function clearDisconnectedState() {
+    if (disconnectedDebounce) { clearTimeout(disconnectedDebounce); disconnectedDebounce = null; }
     serverDisconnected = false;
     reconnecting = false;
     stopAutoReconnect();
@@ -516,6 +521,7 @@
 
   let serverShutdown = false;
   let serverDisconnected = false;
+  let disconnectedDebounce = null;
   let shutdownPendingSince = 0;
   let logbookClosed = false;
   let autoReconnectTimer = null;
