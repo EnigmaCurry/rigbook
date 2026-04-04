@@ -347,6 +347,7 @@
   }
 
   function setShutdownState() {
+    console.error("DEBUG: setShutdownState() called", new Error().stack);
     serverShutdown = true;
     stopAppServices();
     document.title = "Close this tab";
@@ -357,6 +358,7 @@
   }
 
   function setDisconnectedState() {
+    console.error("DEBUG: setDisconnectedState() called", new Error().stack);
     serverDisconnected = true;
     stopAppServices();
     document.title = "Disconnected";
@@ -641,6 +643,7 @@
       applyThemeFromState(_themeState);
     });
     eventSource.addEventListener("logbook-changed", () => {
+      console.error("DEBUG: logbook-changed SSE event received", new Error().stack);
       if (switchingLogbook) return; // this client initiated the switch
       // Navigate home before reloading — the new logbook may not support the current page
       window.location.hash = "/";
