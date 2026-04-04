@@ -1101,12 +1101,17 @@
     }
 
     const raf = requestAnimationFrame(layout);
-    const onResize = () => requestAnimationFrame(layout);
+    let resizeTimer;
+    const onResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => requestAnimationFrame(layout), 150);
+    };
     window.addEventListener("resize", onResize);
 
     return {
       destroy() {
         cancelAnimationFrame(raf);
+        clearTimeout(resizeTimer);
         window.removeEventListener("resize", onResize);
         teardownColumns();
       },
