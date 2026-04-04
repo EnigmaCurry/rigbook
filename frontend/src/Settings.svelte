@@ -1100,13 +1100,28 @@
       node.appendChild(col2);
     }
 
-    const raf = requestAnimationFrame(layout);
-    const onResize = () => requestAnimationFrame(layout);
+    let lastMode = null; // "single" or "dual"
+
+    function layoutIfModeChanged() {
+      const width = node.parentElement?.offsetWidth || node.offsetWidth;
+      const mode = width < MIN_WIDTH ? "single" : "dual";
+      if (mode === lastMode) return;
+      lastMode = mode;
+      layout();
+    }
+
+    const raf = requestAnimationFrame(() => { layout(); lastMode = (node.parentElement?.offsetWidth || node.offsetWidth) < MIN_WIDTH ? "single" : "dual"; });
+    let resizeTimer;
+    const onResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => requestAnimationFrame(layoutIfModeChanged), 150);
+    };
     window.addEventListener("resize", onResize);
 
     return {
       destroy() {
         cancelAnimationFrame(raf);
+        clearTimeout(resizeTimer);
         window.removeEventListener("resize", onResize);
         teardownColumns();
       },
@@ -1736,7 +1751,7 @@
   </div>
 
   {#if activeTab === "station"}
-  <div class="tab-content" use:masonry>
+  <div class="tab-scroll"><div class="tab-content" use:masonry>
   <section class="settings-section" data-section="station">
     <h3>Station</h3>
     <div class="setting-row">
@@ -1825,11 +1840,11 @@
       <input id="flrig_port" type="text" bind:value={flrig_port} on:input={onFlrigPortInput} on:keydown={onFieldKeydown} on:blur={() => onFieldBlur("flrig_port")} autocomplete="off" inputmode="numeric" disabled={!flrig_enabled || flrig_simulate} style="max-width: 7rem" placeholder={globalPlaceholders.flrig_port || ""} />
     </div>
   </section>
-  </div>
+  </div></div>
   {/if}
 
   {#if activeTab === "features"}
-  <div class="tab-content" use:masonry>
+  <div class="tab-scroll"><div class="tab-content" use:masonry>
   <section class="settings-section">
     <h3>Parks on the Air (POTA)</h3>
     <div class="setting-row toggle-row">
@@ -1962,11 +1977,11 @@
       </div>
     </div>
   </section>
-  </div>
+  </div></div>
   {/if}
 
   {#if activeTab === "appearance"}
-  <div class="tab-content" use:masonry>
+  <div class="tab-scroll"><div class="tab-content" use:masonry>
   <section class="settings-section">
     <h3>Maps</h3>
     <div class="map-preview" bind:this={previewEl}></div>
@@ -2171,11 +2186,11 @@
       </label>
     </div>
   </section>
-  </div>
+  </div></div>
   {/if}
 
   {#if activeTab === "updates"}
-  <div class="tab-content" use:masonry>
+  <div class="tab-scroll"><div class="tab-content" use:masonry>
   <section class="settings-section">
     <h3>Update Checker</h3>
     {#if updateOfficialBuild}
@@ -2258,11 +2273,11 @@
       <p class="hint">Update checking is disabled for local builds.</p>
     {/if}
   </section>
-  </div>
+  </div></div>
   {/if}
 
   {#if activeTab === "data"}
-  <div class="tab-content" use:masonry>
+  <div class="tab-scroll"><div class="tab-content" use:masonry>
 
   <section class="settings-section">
     <h3>Backup</h3>
@@ -2353,11 +2368,11 @@
       </div>
     </section>
   {/if}
-  </div>
+  </div></div>
   {/if}
 
   {#if activeTab === "global"}
-  <p class="hint">Global defaults are used when a per-logbook setting is not set. Changes here apply across all logbooks.</p>
+  <div class="tab-scroll"><p class="hint" style="max-width:1100px;margin:0 auto;width:100%;box-sizing:border-box">Global defaults are used when a per-logbook setting is not set. Changes here apply across all logbooks.</p>
   <div class="tab-content" use:masonry>
 
   <section class="settings-section">
@@ -2542,12 +2557,25 @@
       </label>
     </div>
   </section>
-  </div>
+  </div></div>
   {/if}
 </div>
 
 <style>
   .settings {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 5rem);
+    overflow: hidden;
+  }
+  .settings > h2,
+  .settings > .setup-hint,
+  .settings > .tab-bar {
+    max-width: 1100px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
   }
 
   .cache-stats-grid {
@@ -2621,10 +2649,19 @@
     color: var(--accent-text);
   }
 
+  .tab-scroll {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+  }
   .tab-content {
     display: flex;
     flex-wrap: wrap;
     gap: 0 1rem;
+    max-width: 1100px;
+    width: 100%;
+    margin: 0 auto;
+    box-sizing: border-box;
   }
 
   /* Single-column fallback (no masonry columns created) */
@@ -2831,6 +2868,7 @@
   .color-picker-group hex-color-picker {
     width: 120px;
     height: 120px;
+    touch-action: none;
   }
 
   .color-hex-input {

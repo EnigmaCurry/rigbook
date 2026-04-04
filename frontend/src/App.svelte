@@ -347,6 +347,7 @@
   }
 
   function setShutdownState() {
+    console.error("DEBUG: setShutdownState() called", new Error().stack);
     serverShutdown = true;
     stopAppServices();
     document.title = "Close this tab";
@@ -357,6 +358,7 @@
   }
 
   function setDisconnectedState() {
+    console.error("DEBUG: setDisconnectedState() called", new Error().stack);
     serverDisconnected = true;
     stopAppServices();
     document.title = "Disconnected";
@@ -641,6 +643,7 @@
       applyThemeFromState(_themeState);
     });
     eventSource.addEventListener("logbook-changed", () => {
+      console.error("DEBUG: logbook-changed SSE event received", new Error().stack);
       if (switchingLogbook) return; // this client initiated the switch
       // Navigate home before reloading — the new logbook may not support the current page
       window.location.hash = "/";
@@ -1404,7 +1407,7 @@
   });
 </script>
 
-<main class:picker-mode={pickerMode && !logbookOpen} class:dual-mode={page === "dual"} class:parks-mode={page === "parks"} class:spots-mode={page === "spots"} class:grid-mode={page === "grid"} class:export-mode={page === "export"} class:search-mode={page === "search"} class:query-mode={page === "query"}>
+<main class:picker-mode={pickerMode && !logbookOpen} class:dual-mode={page === "dual"} class:parks-mode={page === "parks"} class:spots-mode={page === "spots"} class:grid-mode={page === "grid"} class:export-mode={page === "export"} class:search-mode={page === "search"} class:query-mode={page === "query"} class:settings-mode={page === "settings"}>
   {#if serverShutdown}
     <div class="welcome-container">
       <div class="welcome-card">
@@ -1749,6 +1752,16 @@
     padding: 0;
     height: 100vh;
     overflow: hidden;
+  }
+
+  :global(main.settings-mode) {
+    height: 100vh;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  :global(main.settings-mode) .page-content {
+    max-width: none;
   }
 
   :global(main.export-mode),

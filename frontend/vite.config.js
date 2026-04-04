@@ -14,6 +14,7 @@ export default defineConfig({
   build: {
     outDir: "../src/rigbook/static",
     emptyOutDir: true,
+    chunkSizeWarningLimit: 800,
   },
   server: {
     proxy: {
