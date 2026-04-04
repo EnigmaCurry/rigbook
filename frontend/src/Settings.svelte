@@ -2838,6 +2838,7 @@
   .color-picker-group hex-color-picker {
     width: 120px;
     height: 120px;
+    touch-action: none;
   }
 
   .color-hex-input {
