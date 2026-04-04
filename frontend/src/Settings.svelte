@@ -2548,8 +2548,10 @@
 
 <style>
   .settings {
-    overflow-y: auto;
-    max-height: calc(100vh - 5rem);
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 5rem);
+    overflow: hidden;
   }
 
   .cache-stats-grid {
@@ -2627,6 +2629,9 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0 1rem;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
   }
 
   /* Single-column fallback (no masonry columns created) */
