@@ -508,7 +508,8 @@ class BaseFeed:
             except asyncio.CancelledError:
                 raise
             except Exception as e:
-                logger.warning("%s connection error: %s", self.__class__.__name__, e)
+                msg = str(e) or type(e).__name__
+                logger.warning("%s connection error: %s", self.__class__.__name__, msg)
                 self._connected = False
             if self._should_run:
                 await asyncio.sleep(10)
