@@ -27,8 +27,6 @@ GLOBAL_DEFAULTABLE_KEYS = {
     "qrz_username",
     "qrz_password",
     "hamalert_enabled",
-    "hamalert_host",
-    "hamalert_port",
     "hamalert_username",
     "hamalert_password",
     "rbn_enabled",

@@ -106,8 +106,6 @@
 
   // HamAlert settings
   let hamalert_enabled = false;
-  let hamalert_host = "hamalert.org";
-  let hamalert_port = "7300";
   let hamalert_username = "";
   let hamalert_password = "";
   let hasHamalertPassword = false;
@@ -1191,16 +1189,6 @@
       await restartFeeds();
       dispatch("saved");
     },
-    hamalert_host: async () => {
-      await saveSetting("hamalert_host", hamalert_host.trim());
-      if (hamalert_enabled && hamalertFieldsFilled()) await restartFeeds();
-      dispatch("saved");
-    },
-    hamalert_port: async () => {
-      await saveSetting("hamalert_port", hamalert_port.trim());
-      if (hamalert_enabled && hamalertFieldsFilled()) await restartFeeds();
-      dispatch("saved");
-    },
     hamalert_username: async () => {
       await saveSetting("hamalert_username", hamalert_username.trim());
       if (hamalert_enabled && hamalertFieldsFilled()) await restartFeeds();
@@ -1361,7 +1349,7 @@
   }
 
   function hamalertFieldsFilled() {
-    return hamalert_host.trim() && hamalert_port.trim() && hamalert_username.trim() && hasHamalertPassword;
+    return hamalert_username.trim() && hasHamalertPassword;
   }
 
   async function onHamalertEnabledChange() {
@@ -1370,14 +1358,6 @@
       await restartFeeds();
     }
     dispatch("saved");
-  }
-
-  function onHamalertHostInput() {
-    markDirty("hamalert_host");
-  }
-
-  function onHamalertPortInput() {
-    markDirty("hamalert_port");
   }
 
   function onHamalertUsernameInput() {
@@ -1456,8 +1436,6 @@
             }
           }
           if (s.key === "hamalert_enabled") hamalert_enabled = s.value === "true";
-          if (s.key === "hamalert_host") hamalert_host = s.value || "hamalert.org";
-          if (s.key === "hamalert_port") hamalert_port = s.value || "7300";
           if (s.key === "hamalert_username") hamalert_username = s.value || "";
           if (s.key === "hamalert_password") hasHamalertPassword = !!s.value && s.value !== "";
           if (s.key === "wide_breakpoint") {
@@ -1956,14 +1934,6 @@
         <span class="dot" class:green={spotStatus.hamalert.connected} class:red={spotStatus.hamalert.enabled && !spotStatus.hamalert.connected} class:off={!spotStatus.hamalert.enabled}></span>
         {#if !spotStatus.hamalert.enabled}Disabled{:else if spotStatus.hamalert.connected}Connected{:else}Connecting...{/if}
       </span>
-    </div>
-    <div class="setting-row">
-      <label for="hamalert_host">Host</label>
-      <input id="hamalert_host" type="text" bind:value={hamalert_host} on:input={onHamalertHostInput} on:keydown={onFieldKeydown} on:blur={() => onFieldBlur("hamalert_host")} autocomplete="off" disabled={!hamalert_enabled} />
-    </div>
-    <div class="setting-row">
-      <label for="hamalert_port">Port</label>
-      <input id="hamalert_port" type="text" bind:value={hamalert_port} on:input={onHamalertPortInput} on:keydown={onFieldKeydown} on:blur={() => onFieldBlur("hamalert_port")} autocomplete="off" inputmode="numeric" disabled={!hamalert_enabled} />
     </div>
     <div class="setting-row">
       <label for="hamalert_username">Telnet Username</label>

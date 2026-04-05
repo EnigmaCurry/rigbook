@@ -880,8 +880,6 @@ async def _read_feed_settings() -> dict[str, str]:
         "rbn_host",
         "rbn_feeds",
         "hamalert_enabled",
-        "hamalert_host",
-        "hamalert_port",
         "hamalert_username",
         "hamalert_password",
         "my_callsign",
@@ -1025,8 +1023,8 @@ async def _apply_settings(settings: dict[str, str]) -> None:
         password = settings.get("hamalert_password", "")
         if username and password:
             await hamalert_feed.start(
-                host=settings.get("hamalert_host") or "hamalert.org",
-                port=int(settings.get("hamalert_port", "") or "7300"),
+                host="hamalert.org",
+                port=7300,
                 username=username,
                 password=password,
             )
