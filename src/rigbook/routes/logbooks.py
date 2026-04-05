@@ -51,7 +51,10 @@ async def get_mode():
 
 
 def _is_locked(db_path) -> bool:
-    """Check if a logbook database is locked by another process."""
+    """Check if a logbook database is locked by another process.
+
+    Also cleans up stale lock files left behind by dead processes.
+    """
     lock_path = db_path.with_suffix(".lock")
     if not lock_path.exists():
         return False
@@ -59,6 +62,9 @@ def _is_locked(db_path) -> bool:
         with open(lock_path, "r+") as f:
             _lock_exclusive(f)
             _unlock(f)
+        # Stale lock — remove it
+        lock_path.unlink(missing_ok=True)
+        lock_path.with_suffix(".addr").unlink(missing_ok=True)
         return False
     except OSError:
         return True

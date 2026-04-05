@@ -706,8 +706,24 @@ async def resolve_setting(
     return default
 
 
+def cleanup_stale_locks() -> None:
+    """Remove .lock and .addr files left behind by dead processes."""
+    for lock_path in DB_DIR.glob("*.lock"):
+        try:
+            with open(lock_path, "r+") as f:
+                _lock_exclusive(f)
+                _unlock(f)
+            # Lock acquired successfully — no live process holds it; remove stale files
+            lock_path.unlink(missing_ok=True)
+            lock_path.with_suffix(".addr").unlink(missing_ok=True)
+            logger.info("Removed stale lock file: %s", lock_path.name)
+        except OSError:
+            pass  # Genuinely locked by another process
+
+
 async def init_db() -> None:
     DB_DIR.mkdir(parents=True, exist_ok=True)
+    cleanup_stale_locks()
     await db_manager.open_global()
     # Check global default_pick_mode if no CLI override or --pick flag
     if (
