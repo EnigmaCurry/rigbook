@@ -1006,8 +1006,8 @@ async def _apply_settings(settings: dict[str, str]) -> None:
         callsign = settings.get("my_callsign", "")
         if callsign:
             await rbn_feed.start(
-                host=settings.get("rbn_host", "telnet.reversebeacon.net"),
-                feeds=settings.get("rbn_feeds", "cw"),
+                host=settings.get("rbn_host") or "telnet.reversebeacon.net",
+                feeds=settings.get("rbn_feeds") or "cw",
                 callsign=callsign,
             )
         else:
@@ -1025,7 +1025,7 @@ async def _apply_settings(settings: dict[str, str]) -> None:
         password = settings.get("hamalert_password", "")
         if username and password:
             await hamalert_feed.start(
-                host=settings.get("hamalert_host", "hamalert.org"),
+                host=settings.get("hamalert_host") or "hamalert.org",
                 port=int(settings.get("hamalert_port", "") or "7300"),
                 username=username,
                 password=password,
