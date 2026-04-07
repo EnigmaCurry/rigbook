@@ -540,14 +540,15 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 1rem;
-    max-width: 90vw;
-    max-height: 80vh;
-    overflow: auto;
+    width: 90vw;
+    height: 80vh;
+    display: flex;
+    flex-direction: column;
     position: relative;
-    min-width: 400px;
   }
   .modal-content h3 {
     margin: 0 0 0.5rem;
+    flex-shrink: 0;
   }
   .modal-close {
     position: absolute;
@@ -560,7 +561,9 @@
     cursor: pointer;
   }
   .modal-table-wrap {
-    overflow-x: auto;
+    overflow: auto;
+    flex: 1;
+    min-height: 0;
   }
   .qso-table {
     border-collapse: collapse;
