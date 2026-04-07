@@ -5,6 +5,7 @@
   import { parkAward, parkAwardTitle } from "./parkAward.js";
   import ParkDetail from "./ParkDetail.svelte";
   import SkccSkimmer from "./SkccSkimmer.svelte";
+  import { Pause, Play } from "lucide-svelte";
   import { timeAgo } from "./qrzLookup.js";
 
   const dispatch = createEventDispatcher();
@@ -379,7 +380,7 @@
           <option value={p}>{p}</option>
         {/each}
       </select>
-      <button class="btn-pause" on:click={() => { paused = !paused; }}>{paused ? "Resume" : "Pause"}</button>
+      <button class="btn-pause" on:click={() => { paused = !paused; }}>{#if paused}<Play size={14} /> Resume{:else}<Pause size={14} /> Pause{/if}</button>
     </div>
   </div>
 
@@ -503,7 +504,10 @@
     cursor: pointer;
     width: 5.5rem;
     height: 1.6rem;
-    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
   }
 
   .controls {
