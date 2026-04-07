@@ -126,7 +126,7 @@ async def get_achievements(
 async def get_reference():
     subs = pycountry.subdivisions.get(country_code="US")
     us_states = [
-        {"code": s.code, "name": s.name}
+        {"code": s.code, "short": s.code.split("-", 1)[-1], "name": s.name}
         for s in sorted(subs, key=lambda s: s.name)
         if s.type == "State"
     ]

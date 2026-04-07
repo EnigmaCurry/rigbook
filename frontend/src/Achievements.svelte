@@ -22,10 +22,12 @@
   let availableBands = [];
   let matrix = { state_band: {}, state_mode: {}, dxcc_band: {}, dxcc_mode: {} };
 
-  $: stateCount = workedStates.length;
+  $: workedStatesSet = new Set(workedStates.map(s => s.toUpperCase()));
+  $: matchedStates = usStates.filter(s => workedStatesSet.has(s.short) || workedStatesSet.has(s.name.toUpperCase()));
+  $: stateCount = matchedStates.length;
   $: totalStates = usStates.length;
   $: statePct = totalStates > 0 ? Math.round(stateCount / totalStates * 100) : 0;
-  $: missingStates = usStates.filter(s => !workedStates.includes(s.name));
+  $: missingStates = usStates.filter(s => !workedStatesSet.has(s.short) && !workedStatesSet.has(s.name.toUpperCase()));
 
   $: totalDxcc = Object.keys(dxccEntities).length;
   $: dxccPct = totalDxcc > 0 ? Math.round(workedDxcc.length / totalDxcc * 100) : 0;
