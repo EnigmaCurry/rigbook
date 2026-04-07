@@ -605,7 +605,7 @@ class RBNFeed:
             logger.info("RBN/%s: connected", name)
 
             while self._should_run:
-                line_bytes = await asyncio.wait_for(reader.readline(), timeout=120)
+                line_bytes = await asyncio.wait_for(reader.readline(), timeout=3600)
                 if not line_bytes:
                     logger.info("RBN/%s: connection closed by server", name)
                     break
@@ -794,7 +794,7 @@ class HamAlertFeed(BaseFeed):
 
             buffer = b""
             while self._should_run:
-                data = await asyncio.wait_for(reader.read(32768), timeout=120)
+                data = await asyncio.wait_for(reader.read(32768), timeout=3600)
                 if not data:
                     logger.info("HamAlert: connection closed by server")
                     break
