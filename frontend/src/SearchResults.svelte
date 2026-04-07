@@ -1,6 +1,8 @@
 <script>
   import { onMount, createEventDispatcher } from "svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
+  import Icon from "@iconify/svelte";
+  import iconTree from "@iconify-icons/twemoji/evergreen-tree";
 
   const dispatch = createEventDispatcher();
 
@@ -303,7 +305,7 @@
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <tr class="clickable" on:click={() => editContact(c)}>
               <td class="nowrap">{formatTimestamp(c.timestamp)}</td>
-              <td class="call">{c.call}{#if c.pota_park} 🌲{/if}</td>
+              <td class="call">{c.call}{#if c.pota_park} <Icon icon={iconTree} width={14} inline={true} />{/if}</td>
               <td class="truncate">{c.name || ""}</td>
               <td class="nowrap">{formatFreq(c.freq)} {#if freqToBand(c.freq)}<span class="band-tag" style="background: {bandColor(freqToBand(c.freq))}; color: {bandTextColor(freqToBand(c.freq))}">{freqToBand(c.freq)}</span>{/if}</td>
               <td>{c.mode || ""}</td>

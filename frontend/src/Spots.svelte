@@ -10,6 +10,8 @@
   import { storageGet, storageSet } from "./storage.js";
   import { textToDashArray } from "./morse.js";
   import ParkDetail from "./ParkDetail.svelte";
+  import Icon from "@iconify/svelte";
+  import iconTree from "@iconify-icons/twemoji/evergreen-tree";
   import L from "leaflet";
   import "leaflet/dist/leaflet.css";
 
@@ -1547,9 +1549,9 @@
               {#if col.key === "time"}<td class="mono">{formatTime(spot)}</td>
               {:else if col.key === "callsign"}
                 {#if isWorkedToday(spot)}
-                  <td class="mono call worked-call" title="Already worked today">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</td>
+                  <td class="mono call worked-call" title="Already worked today">{spot.callsign}{#if isPotaActivator(spot)} <Icon icon={iconTree} width={14} inline={true} />{/if}</td>
                 {:else}
-                  <td class="mono call"><!-- svelte-ignore a11y-click-events-have-key-events --><!-- svelte-ignore a11y-no-static-element-interactions --><span class="clickable" on:click|stopPropagation={() => addQsoWithPota(spot)} title="Log QSO with {spot.callsign}">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</span></td>
+                  <td class="mono call"><!-- svelte-ignore a11y-click-events-have-key-events --><!-- svelte-ignore a11y-no-static-element-interactions --><span class="clickable" on:click|stopPropagation={() => addQsoWithPota(spot)} title="Log QSO with {spot.callsign}">{spot.callsign}{#if isPotaActivator(spot)} <Icon icon={iconTree} width={14} inline={true} />{/if}</span></td>
                 {/if}
               {:else if col.key === "skcc"}<td class="mono skcc">{spot.skcc ?? ""}</td>
               {:else if col.key === "frequency"}<td class="mono freq"><!-- svelte-ignore a11y-click-events-have-key-events --><!-- svelte-ignore a11y-no-static-element-interactions --><span class="clickable" on:click|stopPropagation={() => dispatch("tune", spot)} title="Tune radio">{formatFreq(spot.frequency)}</span></td>

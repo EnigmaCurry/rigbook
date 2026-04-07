@@ -2,6 +2,8 @@
   import { onMount, onDestroy, createEventDispatcher } from "svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
   import { QrzLookup, locationStr, timeAgo } from "./qrzLookup.js";
+  import Icon from "@iconify/svelte";
+  import iconTree from "@iconify-icons/twemoji/evergreen-tree";
 
   const dispatch = createEventDispatcher();
 
@@ -150,11 +152,11 @@
           <div class="card" class:new-spot={newCalls.has(spot.callsign)} class:worked={isWorked(spot)}>
             <div class="card-header">
               {#if isWorked(spot)}
-                <span class="callsign worked-call" title="Already worked today">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</span>
+                <span class="callsign worked-call" title="Already worked today">{spot.callsign}{#if isPotaActivator(spot)} <Icon icon={iconTree} width={14} inline={true} />{/if}</span>
               {:else}
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <span class="callsign clickable" on:click={() => addQsoWithPota(spot)} title="Add QSO">{spot.callsign}{#if isPotaActivator(spot)} 🌲{/if}</span>
+                <span class="callsign clickable" on:click={() => addQsoWithPota(spot)} title="Add QSO">{spot.callsign}{#if isPotaActivator(spot)} <Icon icon={iconTree} width={14} inline={true} />{/if}</span>
               {/if}
               <span class="skcc-nr">#{spot.skcc}</span>
               <span class="badge band" style="background: {bandColor(spot.band)}; color: {bandTextColor(spot.band)}">{spot.band}</span>

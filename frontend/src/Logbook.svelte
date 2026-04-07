@@ -7,6 +7,8 @@
   import { parkAward, parkAwardTitle } from "./parkAward.js";
   import { countryFlag, prefixFromRef } from "./countryFlag.js";
   import { storageGet, storageSet } from "./storage.js";
+  import Icon from "@iconify/svelte";
+  import iconTree from "@iconify-icons/twemoji/evergreen-tree";
 
   export let editId = null;
   export let prefill = null;
@@ -1353,7 +1355,7 @@
             <tr class="clickable" class:editing={editingId === c.id} title={relativeTime(c.timestamp)} on:click={() => editContact(c)}>
               {#each columns as col (col.key)}
                 {#if col.key === "timestamp"}<td>{formatTimestamp(c.timestamp)}</td>
-                {:else if col.key === "call"}<td class="call">{c.call}{#if c.pota_park} 🌲{/if}</td>
+                {:else if col.key === "call"}<td class="call">{c.call}{#if c.pota_park} <Icon icon={iconTree} width={14} inline={true} />{/if}</td>
                 {:else if col.key === "name"}<td class="truncate truncate-wide">{c.name || ""}</td>
                 {:else if col.key === "freq"}<td>{formatFreq(c.freq)} {#if freqToBand(c.freq)}<span class="band-tag" style="background: {bandColor(freqToBand(c.freq))}; color: {bandTextColor(freqToBand(c.freq))}">{freqToBand(c.freq)}</span>{/if}</td>
                 {:else if col.key === "mode"}<td>{c.mode || ""}</td>
