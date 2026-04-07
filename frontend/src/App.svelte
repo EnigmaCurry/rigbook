@@ -18,6 +18,7 @@
   import SearchResults from "./SearchResults.svelte";
   import Query from "./Query.svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
+  import { BookOpen, Compass, Map, TreePine, Bell, Sun, Plus, Radio } from "lucide-svelte";
   import { setLogbook, storageGet, storageSet, migrateStorage } from "./storage.js";
   import { applyThemeVars, applyCustomThemeVars, resolveDefaultTheme } from "./themes.js";
 
@@ -1470,7 +1471,7 @@
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <span class="vfo-bezel" use:nonPassiveWheel>
-          <span class="vfo-icon" on:click={startVfoEdit}>📻</span>
+          <span class="vfo-icon" on:click={startVfoEdit}><Radio size={16} /></span>
           {#each vfoDigits as d, i}
             {#if d.char === "."}
               <!-- dot is merged into the next digit -->
@@ -1489,7 +1490,7 @@
           <span class="vfo-mode" on:click={cycleMode} title="Click or press M to cycle mode">{vfoMode}</span>
         {/if}
       {:else if flrigEnabled}
-        <span class="vfo disconnected" title="Radio not connected">❌ No Radio</span>
+        <span class="vfo disconnected" title="Radio not connected"><Radio size={16} /> No Radio</span>
       {/if}
     </div>
     {#if page !== "search"}<Search bind:this={searchComponent} on:action={handleSearchAction} />{/if}
@@ -1498,26 +1499,26 @@
     <span class="utc-clock" on:click={copyUtcTimestamp} title="Click to copy">{clockCopied ? "Copied!" : utcNow}</span>
     <div class="hamburger-wrap">
       {#if wide}
-        <button class="add-btn dual-btn" class:active-nav={dualRightPage === "hunting"} on:click={() => navigate("hunting")} title="Logbook & Hunting">{#if dualRightPage === "hunting" && !logbookRight}📖{/if}🧭{#if dualRightPage === "hunting" && logbookRight}📖{/if}</button>
-        {#if spotsEnabled}<button class="add-btn dual-btn" class:active-nav={dualRightPage === "spots"} on:click={() => navigate("spots")} title="Logbook & Spots">{#if dualRightPage === "spots" && !logbookRight}📖{/if}🗺️{#if dualRightPage === "spots" && logbookRight}📖{/if}</button>{/if}
-        {#if potaEnabled}<button class="add-btn dual-btn parks-btn" class:active-nav={dualRightPage === "parks"} on:click={() => navigate("parks")} title="Logbook & Parks">{#if dualRightPage === "parks" && !logbookRight}📖{/if}🌲{#if dualRightPage === "parks" && logbookRight}📖{/if}</button>{/if}
-        <button class="add-btn dual-btn notification-btn" class:active-nav={dualRightPage === "notifications"} on:click={handleNotificationClick} title="Logbook & Notifications">{#if dualRightPage === "notifications" && !logbookRight}📖{/if}{#if unreadCount > 0}<span class="notif-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>{:else}✉️{/if}{#if dualRightPage === "notifications" && logbookRight}📖{/if}</button>
-        {#if solarEnabled}<button class="add-btn dual-btn" class:active-nav={dualRightPage === "conditions"} on:click={() => navigate("conditions")} title="Logbook & Conditions">{#if dualRightPage === "conditions" && !logbookRight}📖{/if}🌤️{#if dualRightPage === "conditions" && logbookRight}📖{/if}</button>{/if}
+        <button class="add-btn dual-btn" class:active-nav={dualRightPage === "hunting"} on:click={() => navigate("hunting")} title="Logbook & Hunting">{#if dualRightPage === "hunting" && !logbookRight}<BookOpen size={14} />{/if}<Compass size={18} />{#if dualRightPage === "hunting" && logbookRight}<BookOpen size={14} />{/if}</button>
+        {#if spotsEnabled}<button class="add-btn dual-btn" class:active-nav={dualRightPage === "spots"} on:click={() => navigate("spots")} title="Logbook & Spots">{#if dualRightPage === "spots" && !logbookRight}<BookOpen size={14} />{/if}<Map size={18} />{#if dualRightPage === "spots" && logbookRight}<BookOpen size={14} />{/if}</button>{/if}
+        {#if potaEnabled}<button class="add-btn dual-btn parks-btn" class:active-nav={dualRightPage === "parks"} on:click={() => navigate("parks")} title="Logbook & Parks">{#if dualRightPage === "parks" && !logbookRight}<BookOpen size={14} />{/if}<TreePine size={18} />{#if dualRightPage === "parks" && logbookRight}<BookOpen size={14} />{/if}</button>{/if}
+        <button class="add-btn dual-btn notification-btn" class:active-nav={dualRightPage === "notifications"} on:click={handleNotificationClick} title="Logbook & Notifications">{#if dualRightPage === "notifications" && !logbookRight}<BookOpen size={14} />{/if}{#if unreadCount > 0}<span class="notif-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>{:else}<Bell size={18} />{/if}{#if dualRightPage === "notifications" && logbookRight}<BookOpen size={14} />{/if}</button>
+        {#if solarEnabled}<button class="add-btn dual-btn" class:active-nav={dualRightPage === "conditions"} on:click={() => navigate("conditions")} title="Logbook & Conditions">{#if dualRightPage === "conditions" && !logbookRight}<BookOpen size={14} />{/if}<Sun size={18} />{#if dualRightPage === "conditions" && logbookRight}<BookOpen size={14} />{/if}</button>{/if}
       {:else}
-        <button class="add-btn" on:click={() => navigate("log")} title="Logbook">📖</button>
-        <button class="add-btn" on:click={() => navigate("hunting")} title="Hunting">🧭</button>
-        {#if spotsEnabled}<button class="add-btn" on:click={() => navigate("spots")} title="Spots">🗺️</button>{/if}
-        {#if potaEnabled}<button class="add-btn parks-btn" on:click={() => navigate("parks")} title="My Parks">🌲</button>{/if}
+        <button class="add-btn" on:click={() => navigate("log")} title="Logbook"><BookOpen size={18} /></button>
+        <button class="add-btn" on:click={() => navigate("hunting")} title="Hunting"><Compass size={18} /></button>
+        {#if spotsEnabled}<button class="add-btn" on:click={() => navigate("spots")} title="Spots"><Map size={18} /></button>{/if}
+        {#if potaEnabled}<button class="add-btn parks-btn" on:click={() => navigate("parks")} title="My Parks"><TreePine size={18} /></button>{/if}
         <button class="add-btn notification-btn" class:has-unread={unreadCount > 0} on:click={handleNotificationClick} title="Notifications">
           {#if unreadCount > 0}
             <span class="notif-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>
           {:else}
-            ✉️
+            <Bell size={18} />
           {/if}
         </button>
-        {#if solarEnabled}<button class="add-btn" on:click={() => navigate("conditions")} title="Conditions">🌤️</button>{/if}
+        {#if solarEnabled}<button class="add-btn" on:click={() => navigate("conditions")} title="Conditions"><Sun size={18} /></button>{/if}
       {/if}
-      <button class="add-btn" on:click={() => { dualShowForm = true; prefill = null; editId = null; if (page === "dual") { /* already on dual */ } else navigate("add"); }} title="Add QSO">+</button>
+      <button class="add-btn" on:click={() => { dualShowForm = true; prefill = null; editId = null; if (page === "dual") { /* already on dual */ } else navigate("add"); }} title="Add QSO"><Plus size={18} /></button>
       <button class="hamburger" on:click={() => menuOpen = !menuOpen} aria-label="Menu">
         <span class="bar"></span>
         <span class="bar"></span>
