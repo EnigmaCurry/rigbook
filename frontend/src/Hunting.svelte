@@ -483,11 +483,12 @@
   }
 
   .btn-clear-bands, .btn-pause {
-    background: var(--bg2, #333);
-    color: var(--fg, #ccc);
-    border: 1px solid var(--border, #555);
-    border-radius: 4px;
-    padding: 0.2rem 0.5rem;
+    background: var(--bg-input);
+    color: var(--text);
+    border: 1px solid var(--border-input);
+    border-radius: 3px;
+    padding: 0.3rem 0.5rem;
+    font-family: inherit;
     font-size: 0.8rem;
     cursor: pointer;
   }
