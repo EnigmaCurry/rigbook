@@ -358,12 +358,16 @@
 
 <style>
   .achievements {
-    padding: 0.5rem 1rem 2rem;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 3rem);
     max-width: 1200px;
     margin: 0 auto;
+    padding: 0.5rem 1rem 0;
+    overflow: hidden;
   }
-  h2 { margin: 0 0 0.5rem; }
-  h3 { margin: 0.8rem 0 0.4rem; font-size: 0.95rem; }
+  h2 { margin: 0 0 0.5rem; flex-shrink: 0; }
+  h3 { margin: 0.8rem 0 0.4rem; font-size: 0.95rem; flex-shrink: 0; }
 
   .controls {
     display: flex;
@@ -371,6 +375,7 @@
     gap: 0.5rem;
     align-items: center;
     margin-bottom: 0.5rem;
+    flex-shrink: 0;
   }
   .tabs {
     display: flex;
@@ -397,7 +402,8 @@
     flex-wrap: wrap;
     gap: 0.5rem;
     align-items: center;
-    margin-bottom: 0.8rem;
+    margin-bottom: 0.5rem;
+    flex-shrink: 0;
   }
   .band-badge {
     padding: 0.15rem 0.5rem;
@@ -441,11 +447,20 @@
 
   .status { color: var(--text-muted); }
 
+  .section {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
   .progress-row {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     margin-bottom: 0.5rem;
+    flex-shrink: 0;
   }
   .progress-label {
     font-size: 0.9rem;
@@ -466,8 +481,9 @@
   }
 
   .matrix-wrap {
-    overflow-x: auto;
-    margin-bottom: 0.5rem;
+    overflow: auto;
+    flex: 1;
+    min-height: 0;
   }
   .matrix {
     border-collapse: collapse;
@@ -484,12 +500,20 @@
     font-weight: bold;
     position: sticky;
     top: 0;
+    z-index: 2;
+  }
+  .matrix th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background: var(--bg-card);
   }
   .matrix td:first-child {
     text-align: left;
     font-weight: 500;
     position: sticky;
     left: 0;
+    z-index: 1;
     background: var(--bg-card);
   }
   tr.unworked {
