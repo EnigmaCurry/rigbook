@@ -148,6 +148,68 @@ async def get_achievements(
     }
 
 
+@router.get("/achievements/qsos")
+async def get_achievement_qsos(
+    state: Optional[str] = Query(None),
+    dxcc: Optional[int] = Query(None),
+    grid: Optional[str] = Query(None),
+    band: Optional[str] = Query(None),
+    mode: Optional[str] = Query(None),
+    pota: Optional[bool] = Query(None),
+    skcc: Optional[bool] = Query(None),
+    session: AsyncSession = Depends(get_session),
+):
+    filters: list = []
+    if state:
+        filters.append(Contact.state == state)
+    if dxcc is not None:
+        filters.append(Contact.dxcc == dxcc)
+    if grid:
+        filters.append(Contact.grid.ilike(f"{grid}%"))
+    if mode:
+        filters.append(Contact.mode == mode)
+    if band:
+        freq_range = BAND_FREQ_MAP.get(band.lower())
+        if freq_range:
+            lo, hi = freq_range
+            filters.append(
+                and_(
+                    cast(Contact.freq, Float) >= lo,
+                    cast(Contact.freq, Float) <= hi,
+                )
+            )
+    if pota:
+        filters.append(Contact.pota_park.isnot(None))
+        filters.append(Contact.pota_park != "")
+    if skcc:
+        filters.append(Contact.skcc_exch.isnot(None))
+        filters.append(Contact.skcc_exch != 0)
+
+    rows = (
+        await session.execute(
+            select(Contact).where(*filters).order_by(Contact.timestamp.desc())
+        )
+    ).scalars().all()
+
+    return [
+        {
+            "id": r.id,
+            "call": r.call,
+            "freq": r.freq,
+            "mode": r.mode,
+            "state": r.state,
+            "country": r.country,
+            "grid": r.grid,
+            "pota_park": r.pota_park,
+            "name": r.name,
+            "rst_sent": r.rst_sent,
+            "rst_recv": r.rst_recv,
+            "timestamp": r.timestamp.strftime("%Y-%m-%d %H:%M"),
+        }
+        for r in rows
+    ]
+
+
 @router.get("/achievements/reference")
 async def get_reference():
     subs = pycountry.subdivisions.get(country_code="US")

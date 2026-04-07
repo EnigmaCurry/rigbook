@@ -1,6 +1,8 @@
 <script>
-  import { onMount } from "svelte";
+  import { onMount, createEventDispatcher } from "svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
+
+  const dispatch = createEventDispatcher();
 
   const FILTER_KEY = "achievements_filters";
 
@@ -43,6 +45,41 @@
       filterBands.add(b);
     }
     filterBands = filterBands; // trigger reactivity
+  }
+
+  // QSO detail modal
+  let modalQsos = [];
+  let modalTitle = "";
+  let modalOpen = false;
+  let modalLoading = false;
+
+  async function openCellModal(label, params) {
+    modalTitle = label;
+    modalOpen = true;
+    modalLoading = true;
+    modalQsos = [];
+    const sp = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== null && v !== undefined && v !== "") sp.set(k, v);
+    }
+    if (filterMode) sp.set("mode", filterMode);
+    if (filterPota) sp.set("pota", "true");
+    if (filterSkcc) sp.set("skcc", "true");
+    try {
+      const res = await fetch(`/api/achievements/qsos?${sp}`);
+      if (res.ok) modalQsos = await res.json();
+    } catch {}
+    modalLoading = false;
+  }
+
+  function closeModal() {
+    modalOpen = false;
+    modalQsos = [];
+  }
+
+  function goToQso(id) {
+    closeModal();
+    window.location.hash = `/log/${id}`;
   }
 
   async function loadFilters() {
@@ -191,13 +228,16 @@
           </thead>
           <tbody>
             {#each usStates as st}
-              {@const row = matrix.state_band[st.short] || matrix.state_band[st.name] || {}}
+              {@const stKey = matrix.state_band[st.short] ? st.short : st.name}
+              {@const row = matrix.state_band[stKey] || {}}
               {@const hasAny = Object.keys(row).length > 0}
               <tr class:unworked={!hasAny}>
                 <td>{st.name} ({st.short})</td>
                 {#each matrixBands as b}
                   {@const count = row[b] || 0}
-                  <td class="matrix-cell" class:worked={count > 0}>{count || ""}</td>
+                  <!-- svelte-ignore a11y-click-events-have-key-events -->
+                  <!-- svelte-ignore a11y-no-static-element-interactions -->
+                  <td class="matrix-cell" class:worked={count > 0} class:clickable={count > 0} on:click={() => { if (count > 0) openCellModal(`${st.name} - ${b}`, { state: stKey, band: b }); }}>{count || ""}</td>
                 {/each}
               </tr>
             {/each}
@@ -230,7 +270,9 @@
                 <td>{dxccEntities[String(code)] || code}</td>
                 {#each matrixBands as b}
                   {@const count = row[b] || 0}
-                  <td class="matrix-cell" class:worked={count > 0}>{count || ""}</td>
+                  <!-- svelte-ignore a11y-click-events-have-key-events -->
+                  <!-- svelte-ignore a11y-no-static-element-interactions -->
+                  <td class="matrix-cell" class:worked={count > 0} class:clickable={count > 0} on:click={() => { if (count > 0) openCellModal(`${dxccEntities[String(code)] || code} - ${b}`, { dxcc: code, band: b }); }}>{count || ""}</td>
                 {/each}
               </tr>
             {/each}
@@ -256,6 +298,63 @@
     </div>
   {/if}
 </div>
+
+{#if modalOpen}
+  <!-- svelte-ignore a11y-click-events-have-key-events -->
+  <!-- svelte-ignore a11y-no-static-element-interactions -->
+  <div class="modal-backdrop" on:click={closeModal}>
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <div class="modal-content" on:click|stopPropagation>
+      <button class="modal-close" on:click={closeModal}>X</button>
+      <h3>{modalTitle}</h3>
+      {#if modalLoading}
+        <p class="status">Loading...</p>
+      {:else if modalQsos.length === 0}
+        <p class="status">No QSOs found.</p>
+      {:else}
+        <div class="modal-table-wrap">
+          <table class="qso-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Call</th>
+                <th>Freq</th>
+                <th>Mode</th>
+                <th>RST S</th>
+                <th>RST R</th>
+                <th>Name</th>
+                <th>State</th>
+                <th>Country</th>
+                <th>Grid</th>
+                <th>POTA</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each modalQsos as q}
+                <tr>
+                  <td class="nowrap">{q.timestamp}</td>
+                  <!-- svelte-ignore a11y-click-events-have-key-events -->
+                  <!-- svelte-ignore a11y-no-static-element-interactions -->
+                  <td class="call clickable" on:click={() => goToQso(q.id)}>{q.call}</td>
+                  <td>{q.freq || ""}</td>
+                  <td>{q.mode || ""}</td>
+                  <td>{q.rst_sent || ""}</td>
+                  <td>{q.rst_recv || ""}</td>
+                  <td>{q.name || ""}</td>
+                  <td>{q.state || ""}</td>
+                  <td>{q.country || ""}</td>
+                  <td>{q.grid || ""}</td>
+                  <td>{q.pota_park || ""}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      {/if}
+    </div>
+  </div>
+{/if}
 
 <style>
   .achievements {
@@ -420,7 +519,71 @@
     font-family: monospace;
   }
 
-  @media (max-width: 600px) {
-    .lists { grid-template-columns: 1fr; }
+  .clickable {
+    cursor: pointer;
   }
+  .matrix-cell.clickable:hover {
+    filter: brightness(1.3);
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    max-width: 90vw;
+    max-height: 80vh;
+    overflow: auto;
+    position: relative;
+    min-width: 400px;
+  }
+  .modal-content h3 {
+    margin: 0 0 0.5rem;
+  }
+  .modal-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  .modal-table-wrap {
+    overflow-x: auto;
+  }
+  .qso-table {
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    width: 100%;
+  }
+  .qso-table th, .qso-table td {
+    border: 1px solid var(--border-input);
+    padding: 0.2rem 0.4rem;
+    white-space: nowrap;
+  }
+  .qso-table th {
+    background: var(--bg-input);
+    font-weight: bold;
+    position: sticky;
+    top: 0;
+  }
+  .qso-table .call {
+    font-weight: bold;
+    color: var(--accent);
+  }
+  .qso-table .call:hover {
+    text-decoration: underline;
+  }
+  .nowrap { white-space: nowrap; }
 </style>
