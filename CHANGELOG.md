@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.2.13 — 2026-04-07
+
+- Replace system emoji with Twemoji SVG icons for consistent cross-platform rendering
+- Add pause/play button for HamAlert and RBN spot feeds
+- Replace grid picker globe emoji with Twemoji SVG on QSO form and settings
+- Replace SKCC checkmark emoji with Twemoji SVG
+
 ## v0.2.12 — 2026-04-07
 
 - Fix HamAlert and RBN feed connections timing out every ~2 minutes during idle periods
