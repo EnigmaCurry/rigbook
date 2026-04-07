@@ -179,41 +179,30 @@
         <div class="progress-bar"><div class="progress-fill" style="width: {statePct}%"></div></div>
       </div>
 
-      {#if matrixBands.length > 0}
-        <h3>Band Matrix</h3>
-        <div class="matrix-wrap">
-          <table class="matrix">
-            <thead>
-              <tr>
-                <th>State</th>
+      <div class="matrix-wrap">
+        <table class="matrix">
+          <thead>
+            <tr>
+              <th>State</th>
+              {#each matrixBands as b}
+                <th style="background: {bandColor(b)}; color: {bandTextColor(b)}">{b}</th>
+              {/each}
+            </tr>
+          </thead>
+          <tbody>
+            {#each usStates as st}
+              {@const row = matrix.state_band[st.short] || matrix.state_band[st.name] || {}}
+              {@const hasAny = Object.keys(row).length > 0}
+              <tr class:unworked={!hasAny}>
+                <td>{st.name} ({st.short})</td>
                 {#each matrixBands as b}
-                  <th style="background: {bandColor(b)}; color: {bandTextColor(b)}">{b}</th>
+                  {@const count = row[b] || 0}
+                  <td class="matrix-cell" class:worked={count > 0}>{count || ""}</td>
                 {/each}
               </tr>
-            </thead>
-            <tbody>
-              {#each workedStates as st}
-                <tr>
-                  <td>{st}</td>
-                  {#each matrixBands as b}
-                    <td class="matrix-cell" class:worked={matrix.state_band[st]?.includes(b)}>{matrix.state_band[st]?.includes(b) ? "+" : ""}</td>
-                  {/each}
-                </tr>
-              {/each}
-            </tbody>
-          </table>
-        </div>
-      {/if}
-
-      <div class="lists">
-        <div class="list-col">
-          <h3>Worked ({workedStates.length})</h3>
-          <ul>{#each workedStates as st}<li>{st}</li>{/each}</ul>
-        </div>
-        <div class="list-col">
-          <h3>Missing ({missingStates.length})</h3>
-          <ul>{#each missingStates as st}<li class="missing">{st.name} ({st.short})</li>{/each}</ul>
-        </div>
+            {/each}
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -224,43 +213,29 @@
         <div class="progress-bar"><div class="progress-fill" style="width: {dxccPct}%"></div></div>
       </div>
 
-      {#if matrixBands.length > 0}
-        <h3>Band Matrix</h3>
-        <div class="matrix-wrap">
-          <table class="matrix">
-            <thead>
+      <div class="matrix-wrap">
+        <table class="matrix">
+          <thead>
+            <tr>
+              <th>Entity</th>
+              {#each matrixBands as b}
+                <th style="background: {bandColor(b)}; color: {bandTextColor(b)}">{b}</th>
+              {/each}
+            </tr>
+          </thead>
+          <tbody>
+            {#each workedDxcc as code}
+              {@const row = matrix.dxcc_band[String(code)] || {}}
               <tr>
-                <th>Entity</th>
+                <td>{dxccEntities[String(code)] || code}</td>
                 {#each matrixBands as b}
-                  <th style="background: {bandColor(b)}; color: {bandTextColor(b)}">{b}</th>
+                  {@const count = row[b] || 0}
+                  <td class="matrix-cell" class:worked={count > 0}>{count || ""}</td>
                 {/each}
               </tr>
-            </thead>
-            <tbody>
-              {#each workedDxcc as code}
-                <tr>
-                  <td>{dxccEntities[String(code)] || code}</td>
-                  {#each matrixBands as b}
-                    <td class="matrix-cell" class:worked={matrix.dxcc_band[String(code)]?.includes(b)}>{matrix.dxcc_band[String(code)]?.includes(b) ? "+" : ""}</td>
-                  {/each}
-                </tr>
-              {/each}
-            </tbody>
-          </table>
-        </div>
-      {/if}
-
-      <div class="lists">
-        <div class="list-col">
-          <h3>Worked ({workedDxcc.length})</h3>
-          <ul>{#each workedDxcc as code}<li>{dxccEntities[String(code)] || code}</li>{/each}</ul>
-        </div>
-        <div class="list-col">
-          <h3>Missing ({missingDxcc.length})</h3>
-          <ul>{#each missingDxcc.slice(0, 100) as ent}<li class="missing">{ent.name}</li>{/each}
-            {#if missingDxcc.length > 100}<li class="missing">...and {missingDxcc.length - 100} more</li>{/if}
-          </ul>
-        </div>
+            {/each}
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -391,25 +366,6 @@
     transition: width 0.3s;
   }
 
-  .lists {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-top: 0.5rem;
-  }
-  .list-col ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    font-size: 0.85rem;
-  }
-  .list-col li {
-    padding: 0.15rem 0;
-  }
-  .list-col li.missing {
-    color: var(--text-muted);
-  }
-
   .matrix-wrap {
     overflow-x: auto;
     margin-bottom: 0.5rem;
@@ -436,6 +392,9 @@
     position: sticky;
     left: 0;
     background: var(--bg-card);
+  }
+  tr.unworked {
+    opacity: 0.4;
   }
   .matrix-cell {
     background: var(--bg-deep, var(--bg-card));

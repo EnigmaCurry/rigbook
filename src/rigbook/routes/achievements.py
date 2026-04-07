@@ -109,10 +109,11 @@ async def get_achievements(
     states: set[str] = set()
     dxcc_codes: set[int] = set()
     grids: set[str] = set()
-    state_band: dict[str, set[str]] = defaultdict(set)
-    state_mode: dict[str, set[str]] = defaultdict(set)
-    dxcc_band: dict[int, set[str]] = defaultdict(set)
-    dxcc_mode: dict[int, set[str]] = defaultdict(set)
+    # Counts: entity -> band/mode -> count
+    state_band: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    state_mode: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    dxcc_band: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    dxcc_mode: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
 
     for st, dx, gr, freq, md in rows:
         b = _freq_to_band(freq)
@@ -120,15 +121,15 @@ async def get_achievements(
             s = st.strip()
             states.add(s)
             if b:
-                state_band[s].add(b)
+                state_band[s][b] += 1
             if md:
-                state_mode[s].add(md)
+                state_mode[s][md] += 1
         if dx is not None:
             dxcc_codes.add(dx)
             if b:
-                dxcc_band[dx].add(b)
+                dxcc_band[dx][b] += 1
             if md:
-                dxcc_mode[dx].add(md)
+                dxcc_mode[dx][md] += 1
         if gr and len(gr) >= 4:
             grids.add(gr[:4].upper())
 
@@ -139,10 +140,10 @@ async def get_achievements(
         "modes": sorted(all_modes),
         "bands_used": sorted(all_bands, key=_band_sort_key),
         "matrix": {
-            "state_band": {k: sorted(v, key=_band_sort_key) for k, v in state_band.items()},
-            "state_mode": {k: sorted(v) for k, v in state_mode.items()},
-            "dxcc_band": {str(k): sorted(v, key=_band_sort_key) for k, v in dxcc_band.items()},
-            "dxcc_mode": {str(k): sorted(v) for k, v in dxcc_mode.items()},
+            "state_band": dict(state_band),
+            "state_mode": dict(state_mode),
+            "dxcc_band": {str(k): dict(v) for k, v in dxcc_band.items()},
+            "dxcc_mode": {str(k): dict(v) for k, v in dxcc_mode.items()},
         },
     }
 
