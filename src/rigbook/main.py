@@ -55,6 +55,7 @@ from rigbook.routes.query import router as query_router
 from rigbook.routes.global_settings import router as global_settings_router
 from rigbook.routes.solar import router as solar_router
 from rigbook.routes.update import router as update_router
+from rigbook.routes.achievements import router as achievements_router
 from rigbook._build_info import BUILD_GITHUB_ACTIONS, BUILD_ORIGIN_REPO, GIT_SHA
 
 logger = logging.getLogger("rigbook")
@@ -377,6 +378,7 @@ app.include_router(notifications_router)
 app.include_router(query_router)
 app.include_router(solar_router)
 app.include_router(update_router)
+app.include_router(achievements_router)
 app.include_router(sse_router)
 
 static_dir = _resource_path("static")

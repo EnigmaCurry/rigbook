@@ -17,6 +17,7 @@
   import Welcome from "./Welcome.svelte";
   import SearchResults from "./SearchResults.svelte";
   import Query from "./Query.svelte";
+  import Achievements from "./Achievements.svelte";
   import { bandColor, bandTextColor } from "./bandColors.js";
   import Icon from "@iconify/svelte";
   import iconBook from "@iconify-icons/twemoji/open-book";
@@ -122,6 +123,7 @@
       const sp = qm >= 0 ? new URLSearchParams(hash.slice(qm + 1)) : null;
       return { page: "query", editId: null, dualRight: null, querySql: sp?.get("sql") || "" };
     }
+    if (hash === "/achievements") return { page: "achievements", editId: null, dualRight: null };
     if (hash === "/export") return { page: "export", editId: null, dualRight: null };
     if (hash === "/search" || hash.startsWith("/search?")) {
       const qm = hash.indexOf("?");
@@ -1076,7 +1078,7 @@
     if (p === "dual") {
       window.location.hash = `/dual/${dualRightPage}`;
     } else {
-      const paths = { hunting: "/hunting", log: "/logbook", add: "/add", grid: "/grid", parks: "/parks", spots: "/spots", query: "/query", export: "/export", search: "/search", notifications: "/notifications", conditions: "/conditions", settings: settingsTab ? `/settings/${settingsTab}` : "/settings", links: "/links", about: "/about", picker: "/picker" };
+      const paths = { hunting: "/hunting", log: "/logbook", add: "/add", grid: "/grid", parks: "/parks", spots: "/spots", query: "/query", export: "/export", search: "/search", notifications: "/notifications", conditions: "/conditions", achievements: "/achievements", settings: settingsTab ? `/settings/${settingsTab}` : "/settings", links: "/links", about: "/about", picker: "/picker" };
       window.location.hash = paths[p] || "/";
     }
     setTimeout(() => { navigating = false; }, 0);
@@ -1541,6 +1543,7 @@
           <button class="menu-item" class:active={page === "log" || page === "dual"} on:click={() => navigate("log")}>Logbook</button>
           <button class="menu-item" class:active={page === "add"} on:click={() => navigate("add")}>Add QSO</button>
           <button class="menu-item" class:active={page === "hunting" || (page === "dual" && dualRightPage === "hunting")} on:click={() => navigate("hunting")}>Hunting</button>
+          <button class="menu-item" class:active={page === "achievements"} on:click={() => navigate("achievements")}>Achievements</button>
           <button class="menu-item" class:active={page === "grid"} on:click={() => navigate("grid")}>Grid Map</button>
           {#if spotsEnabled}<button class="menu-item" class:active={page === "spots" || (page === "dual" && dualRightPage === "spots")} on:click={() => navigate("spots")}>Spots</button>{/if}
           {#if potaEnabled}<button class="menu-item" class:active={page === "parks" || (page === "dual" && dualRightPage === "parks")} on:click={() => navigate("parks")}>Parks</button>{/if}
@@ -1604,6 +1607,8 @@
       <SearchResults initialQuery={searchQuery} on:editcontact={e => { editId = e.detail; navigate("add"); window.location.hash = `/log/${e.detail}`; }} />
     {:else if page === "query"}
       <Query initialSql={querySql} />
+    {:else if page === "achievements"}
+      <Achievements />
     {:else if page === "export"}
       <ExportImport />
     {:else if page === "notifications"}
