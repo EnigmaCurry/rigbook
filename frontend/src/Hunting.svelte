@@ -502,6 +502,7 @@
     font-size: 0.8rem;
     cursor: pointer;
     width: 5.5rem;
+    height: 1.6rem;
     text-align: center;
   }
 
