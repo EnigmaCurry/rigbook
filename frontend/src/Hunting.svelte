@@ -379,7 +379,7 @@
           <option value={p}>{p}</option>
         {/each}
       </select>
-      <button class="btn-pause" on:click={() => { paused = !paused; }}>{paused ? "► Resume" : "❚❚ Pause"}</button>
+      <button class="btn-pause" on:click={() => { paused = !paused; }}>{paused ? "Resume" : "Pause"}</button>
     </div>
   </div>
 
