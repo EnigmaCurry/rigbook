@@ -179,7 +179,7 @@
         <div class="progress-bar"><div class="progress-fill" style="width: {statePct}%"></div></div>
       </div>
 
-      {#if matrixBands.length > 0 && filterBands.size === 0}
+      {#if matrixBands.length > 0}
         <h3>Band Matrix</h3>
         <div class="matrix-wrap">
           <table class="matrix">
@@ -224,7 +224,7 @@
         <div class="progress-bar"><div class="progress-fill" style="width: {dxccPct}%"></div></div>
       </div>
 
-      {#if matrixBands.length > 0 && filterBands.size === 0}
+      {#if matrixBands.length > 0}
         <h3>Band Matrix</h3>
         <div class="matrix-wrap">
           <table class="matrix">
