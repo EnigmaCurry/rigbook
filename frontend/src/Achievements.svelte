@@ -192,14 +192,15 @@
           <tbody>
             {#each usStates as st}
               {@const row = matrix.state_band[st.short] || matrix.state_band[st.name] || {}}
-              {@const hasAny = Object.keys(row).length > 0}
-              <tr class:unworked={!hasAny}>
-                <td>{st.name} ({st.short})</td>
-                {#each matrixBands as b}
-                  {@const count = row[b] || 0}
-                  <td class="matrix-cell" class:worked={count > 0}>{count || ""}</td>
-                {/each}
-              </tr>
+              {#if Object.keys(row).length > 0}
+                <tr>
+                  <td>{st.name} ({st.short})</td>
+                  {#each matrixBands as b}
+                    {@const count = row[b] || 0}
+                    <td class="matrix-cell" class:worked={count > 0}>{count || ""}</td>
+                  {/each}
+                </tr>
+              {/if}
             {/each}
           </tbody>
         </table>
