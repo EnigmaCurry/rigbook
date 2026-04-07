@@ -5,7 +5,9 @@
   import { parkAward, parkAwardTitle } from "./parkAward.js";
   import ParkDetail from "./ParkDetail.svelte";
   import SkccSkimmer from "./SkccSkimmer.svelte";
-  import { Pause, Play } from "lucide-svelte";
+  import Icon from "@iconify/svelte";
+  import iconPause from "@iconify-icons/twemoji/pause-button";
+  import iconPlay from "@iconify-icons/twemoji/play-button";
   import { timeAgo } from "./qrzLookup.js";
 
   const dispatch = createEventDispatcher();
@@ -380,7 +382,7 @@
           <option value={p}>{p}</option>
         {/each}
       </select>
-      <button class="btn-pause" on:click={() => { paused = !paused; }}>{#if paused}<Play size={14} /> Resume{:else}<Pause size={14} /> Pause{/if}</button>
+      <button class="btn-pause" on:click={() => { paused = !paused; }}>{#if paused}<Icon icon={iconPlay} width={14} /> Resume{:else}<Icon icon={iconPause} width={14} /> Pause{/if}</button>
     </div>
   </div>
 
