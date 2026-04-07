@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from rigbook.db import Contact, get_session
 from rigbook.dxcc import DXCC_ENTITIES
 
-router = APIRouter(prefix="/api/achievements", tags=["achievements"])
+router = APIRouter(prefix="/api", tags=["achievements"])
 
 BAND_FREQ_MAP = {
     "160m": (1800, 2000),
@@ -42,7 +42,7 @@ def _freq_to_band(freq_str: str | None) -> str:
     return ""
 
 
-@router.get("/")
+@router.get("/achievements")
 async def get_achievements(
     band: Optional[str] = Query(None),
     mode: Optional[str] = Query(None),
@@ -122,7 +122,7 @@ async def get_achievements(
     }
 
 
-@router.get("/reference")
+@router.get("/achievements/reference")
 async def get_reference():
     subs = pycountry.subdivisions.get(country_code="US")
     us_states = [
