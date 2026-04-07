@@ -79,7 +79,7 @@
 
   function goToQso(id) {
     closeModal();
-    window.location.hash = `/log/${id}`;
+    dispatch("editcontact", id);
   }
 
   async function loadFilters() {

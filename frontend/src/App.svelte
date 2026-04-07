@@ -1608,7 +1608,7 @@
     {:else if page === "query"}
       <Query initialSql={querySql} />
     {:else if page === "achievements"}
-      <Achievements />
+      <Achievements on:editcontact={e => { editId = e.detail; navigate("add"); window.location.hash = `/log/${e.detail}`; }} />
     {:else if page === "export"}
       <ExportImport />
     {:else if page === "notifications"}
