@@ -28,6 +28,8 @@ BAND_FREQ_MAP = {
     "2m": (144000, 148000),
 }
 
+_BAND_ORDER = list(BAND_FREQ_MAP)
+
 
 def _freq_to_band(freq_str: str | None) -> str:
     if not freq_str:
@@ -42,10 +44,19 @@ def _freq_to_band(freq_str: str | None) -> str:
     return ""
 
 
+def _band_sort_key(b: str) -> int:
+    try:
+        return _BAND_ORDER.index(b)
+    except ValueError:
+        return 99
+
+
 @router.get("/achievements")
 async def get_achievements(
     band: Optional[str] = Query(None),
     mode: Optional[str] = Query(None),
+    pota: Optional[bool] = Query(None),
+    skcc: Optional[bool] = Query(None),
     session: AsyncSession = Depends(get_session),
 ):
     filters: list = []
@@ -61,6 +72,12 @@ async def get_achievements(
                     cast(Contact.freq, Float) <= hi,
                 )
             )
+    if pota:
+        filters.append(Contact.pota_park.isnot(None))
+        filters.append(Contact.pota_park != "")
+    if skcc:
+        filters.append(Contact.skcc_exch.isnot(None))
+        filters.append(Contact.skcc_exch != 0)
 
     # Fetch all contacts with relevant fields in one query
     rows = (
@@ -75,11 +92,23 @@ async def get_achievements(
         )
     ).all()
 
+    # Also fetch all modes/bands from entire logbook (unfiltered) for filter options
+    all_rows = (
+        await session.execute(select(Contact.freq, Contact.mode))
+    ).all()
+
+    all_modes: set[str] = set()
+    all_bands: set[str] = set()
+    for freq, md in all_rows:
+        if md:
+            all_modes.add(md)
+        b = _freq_to_band(freq)
+        if b:
+            all_bands.add(b)
+
     states: set[str] = set()
     dxcc_codes: set[int] = set()
     grids: set[str] = set()
-    all_modes: set[str] = set()
-    all_bands: set[str] = set()
     state_band: dict[str, set[str]] = defaultdict(set)
     state_mode: dict[str, set[str]] = defaultdict(set)
     dxcc_band: dict[int, set[str]] = defaultdict(set)
@@ -87,10 +116,6 @@ async def get_achievements(
 
     for st, dx, gr, freq, md in rows:
         b = _freq_to_band(freq)
-        if md:
-            all_modes.add(md)
-        if b:
-            all_bands.add(b)
         if st and st.strip():
             s = st.strip()
             states.add(s)
@@ -112,11 +137,11 @@ async def get_achievements(
         "dxcc": sorted(dxcc_codes),
         "grids": sorted(grids),
         "modes": sorted(all_modes),
-        "bands_used": sorted(all_bands, key=lambda b: list(BAND_FREQ_MAP).index(b) if b in BAND_FREQ_MAP else 99),
+        "bands_used": sorted(all_bands, key=_band_sort_key),
         "matrix": {
-            "state_band": {k: sorted(v, key=lambda b: list(BAND_FREQ_MAP).index(b) if b in BAND_FREQ_MAP else 99) for k, v in state_band.items()},
+            "state_band": {k: sorted(v, key=_band_sort_key) for k, v in state_band.items()},
             "state_mode": {k: sorted(v) for k, v in state_mode.items()},
-            "dxcc_band": {str(k): sorted(v, key=lambda b: list(BAND_FREQ_MAP).index(b) if b in BAND_FREQ_MAP else 99) for k, v in dxcc_band.items()},
+            "dxcc_band": {str(k): sorted(v, key=_band_sort_key) for k, v in dxcc_band.items()},
             "dxcc_mode": {str(k): sorted(v) for k, v in dxcc_mode.items()},
         },
     }

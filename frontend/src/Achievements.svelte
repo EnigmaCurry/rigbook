@@ -6,7 +6,9 @@
 
   let activeTab = "states";
   let filterMode = "";
-  let filterBand = "";
+  let filterBands = new Set();
+  let filterPota = false;
+  let filterSkcc = false;
   let filtersLoaded = false;
   let loading = true;
 
@@ -34,6 +36,15 @@
   $: workedDxccSet = new Set(workedDxcc.map(String));
   $: missingDxcc = Object.entries(dxccEntities).filter(([k]) => !workedDxccSet.has(k)).map(([k, v]) => ({ code: k, name: v }));
 
+  function toggleBand(b) {
+    if (filterBands.has(b)) {
+      filterBands.delete(b);
+    } else {
+      filterBands.add(b);
+    }
+    filterBands = filterBands; // trigger reactivity
+  }
+
   async function loadFilters() {
     try {
       const res = await fetch(`/api/settings/${FILTER_KEY}`);
@@ -42,7 +53,9 @@
         if (data.value) {
           const saved = JSON.parse(data.value);
           filterMode = saved.mode || "";
-          filterBand = saved.band || "";
+          filterBands = saved.bands ? new Set(saved.bands.split(",").filter(Boolean)) : new Set();
+          filterPota = saved.pota || false;
+          filterSkcc = saved.skcc || false;
           activeTab = saved.tab || "states";
         }
       }
@@ -56,7 +69,13 @@
       await fetch(`/api/settings/${FILTER_KEY}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ value: JSON.stringify({ mode: filterMode, band: filterBand, tab: activeTab }) }),
+        body: JSON.stringify({ value: JSON.stringify({
+          mode: filterMode,
+          bands: [...filterBands].join(","),
+          pota: filterPota,
+          skcc: filterSkcc,
+          tab: activeTab,
+        }) }),
       });
     } catch {}
   }
@@ -64,7 +83,13 @@
   async function fetchAchievements() {
     const params = new URLSearchParams();
     if (filterMode) params.set("mode", filterMode);
-    if (filterBand) params.set("band", filterBand);
+    // For band filter, use first selected band (API supports single band)
+    // If multiple bands selected, we'll need to make multiple requests or filter client-side
+    if (filterBands.size === 1) {
+      params.set("band", [...filterBands][0]);
+    }
+    if (filterPota) params.set("pota", "true");
+    if (filterSkcc) params.set("skcc", "true");
     const qs = params.toString();
     try {
       const res = await fetch(`/api/achievements${qs ? "?" + qs : ""}`);
@@ -93,7 +118,7 @@
   }
 
   $: if (filtersLoaded) {
-    const _f = { m: filterMode, b: filterBand, t: activeTab };
+    const _f = { m: filterMode, b: [...filterBands].join(","), p: filterPota, s: filterSkcc, t: activeTab };
     saveFilters();
     fetchAchievements();
   }
@@ -106,7 +131,6 @@
   // Band order for matrix columns
   const BAND_ORDER = ["160m","80m","60m","40m","30m","20m","17m","15m","12m","10m","6m","2m"];
   $: matrixBands = BAND_ORDER.filter(b => availableBands.includes(b));
-  $: matrixModes = availableModes;
 </script>
 
 <div class="achievements">
@@ -118,20 +142,32 @@
       <button class="tab" class:active={activeTab === "countries"} on:click={() => activeTab = "countries"}>Countries</button>
       <button class="tab" class:active={activeTab === "grids"} on:click={() => activeTab = "grids"}>Grids</button>
     </div>
-    <div class="filters">
-      <select bind:value={filterBand}>
-        <option value="">All Bands</option>
-        {#each availableBands as b}
-          <option value={b}>{b}</option>
-        {/each}
-      </select>
-      <select bind:value={filterMode}>
-        <option value="">All Modes</option>
-        {#each availableModes as m}
-          <option value={m}>{m}</option>
-        {/each}
-      </select>
-    </div>
+  </div>
+
+  <div class="filters">
+    {#each availableBands as b}
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      <!-- svelte-ignore a11y-no-static-element-interactions -->
+      <span
+        class="band-badge"
+        class:active={filterBands.has(b)}
+        style="background: {bandColor(b)}; color: {bandTextColor(b)}; opacity: {filterBands.size > 0 && !filterBands.has(b) ? 0.3 : 1}"
+        on:click={() => toggleBand(b)}
+      >
+        {b}
+      </span>
+    {/each}
+    {#if filterBands.size > 0}
+      <button class="btn-clear" on:click={() => { filterBands = new Set(); }}>Clear bands</button>
+    {/if}
+    <select bind:value={filterMode}>
+      <option value="">All Modes</option>
+      {#each availableModes as m}
+        <option value={m}>{m}</option>
+      {/each}
+    </select>
+    <label class="filter-check"><input type="checkbox" bind:checked={filterPota} /> POTA</label>
+    <label class="filter-check"><input type="checkbox" bind:checked={filterSkcc} /> SKCC</label>
   </div>
 
   {#if loading}
@@ -143,7 +179,7 @@
         <div class="progress-bar"><div class="progress-fill" style="width: {statePct}%"></div></div>
       </div>
 
-      {#if matrixBands.length > 0 && !filterBand}
+      {#if matrixBands.length > 0 && filterBands.size === 0}
         <h3>Band Matrix</h3>
         <div class="matrix-wrap">
           <table class="matrix">
@@ -176,7 +212,7 @@
         </div>
         <div class="list-col">
           <h3>Missing ({missingStates.length})</h3>
-          <ul>{#each missingStates as st}<li class="missing">{st.name}</li>{/each}</ul>
+          <ul>{#each missingStates as st}<li class="missing">{st.name} ({st.short})</li>{/each}</ul>
         </div>
       </div>
     </div>
@@ -188,7 +224,7 @@
         <div class="progress-bar"><div class="progress-fill" style="width: {dxccPct}%"></div></div>
       </div>
 
-      {#if matrixBands.length > 0 && !filterBand}
+      {#if matrixBands.length > 0 && filterBands.size === 0}
         <h3>Band Matrix</h3>
         <div class="matrix-wrap">
           <table class="matrix">
@@ -260,7 +296,7 @@
     flex-wrap: wrap;
     gap: 0.5rem;
     align-items: center;
-    margin-bottom: 0.8rem;
+    margin-bottom: 0.5rem;
   }
   .tabs {
     display: flex;
@@ -281,10 +317,35 @@
     color: #fff;
     border-color: var(--accent);
   }
+
   .filters {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
-    margin-left: auto;
+    align-items: center;
+    margin-bottom: 0.8rem;
+  }
+  .band-badge {
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    user-select: none;
+    transition: opacity 0.15s;
+    border: 2px solid transparent;
+  }
+  .band-badge.active {
+    border-color: var(--accent, #fff);
+  }
+  .btn-clear {
+    background: var(--bg-input);
+    color: var(--text);
+    border: 1px solid var(--border-input);
+    border-radius: 3px;
+    padding: 0.3rem 0.5rem;
+    font-family: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
   }
   select {
     background: var(--bg-input);
@@ -294,6 +355,14 @@
     font-family: inherit;
     font-size: 0.8rem;
     border-radius: 3px;
+  }
+  .filter-check {
+    font-size: 0.8rem;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
   }
 
   .status { color: var(--text-muted); }
@@ -393,8 +462,6 @@
   }
 
   @media (max-width: 600px) {
-    .controls { flex-direction: column; align-items: stretch; }
-    .filters { margin-left: 0; }
     .lists { grid-template-columns: 1fr; }
   }
 </style>
