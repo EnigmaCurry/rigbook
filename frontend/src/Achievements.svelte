@@ -360,11 +360,14 @@
   .achievements {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 3rem);
+    flex: 1;
+    min-height: 0;
     max-width: 1200px;
     margin: 0 auto;
     padding: 0.5rem 1rem 0;
     overflow: hidden;
+    width: 100%;
+    box-sizing: border-box;
   }
   h2 { margin: 0 0 0.5rem; flex-shrink: 0; }
   h3 { margin: 0.8rem 0 0.4rem; font-size: 0.95rem; flex-shrink: 0; }
