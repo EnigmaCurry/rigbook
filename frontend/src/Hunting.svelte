@@ -482,7 +482,7 @@
     border-color: var(--accent, #fff);
   }
 
-  .btn-clear-bands, .btn-pause {
+  .btn-clear-bands {
     background: var(--bg-input);
     color: var(--text);
     border: 1px solid var(--border-input);
@@ -491,6 +491,18 @@
     font-family: inherit;
     font-size: 0.8rem;
     cursor: pointer;
+  }
+  .btn-pause {
+    background: var(--bg-input);
+    color: var(--text);
+    border: 1px solid var(--border-input);
+    border-radius: 3px;
+    padding: 0.3rem 0.5rem;
+    font-family: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+    width: 5.5rem;
+    text-align: center;
   }
 
   .controls {
