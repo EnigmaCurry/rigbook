@@ -19,6 +19,7 @@
   let filterBands = new Set();
   let filterProgram = "";
   let skccSkimmerEnabled = false;
+  let paused = false;
   let filtersLoaded = false;
   let seenSpotKeys = new Set();
   let newSpotKeys = new Set();
@@ -195,7 +196,7 @@
   $: if (filtersLoaded) {
     const _filters = { m: filterMode, b: [...filterBands].join(","), p: filterProgram };
     saveFilters();
-    fetchSpots();
+    if (!paused) fetchSpots();
   }
 
   async function fetchSpots() {
@@ -333,7 +334,7 @@
     }
     fetchCallCounts();
     fetchTodayCw();
-    pollInterval = setInterval(() => { if (potaEnabled) fetchSpots(); }, 30000);
+    pollInterval = setInterval(() => { if (potaEnabled && !paused) fetchSpots(); }, 30000);
   });
 
   onDestroy(() => {
@@ -378,11 +379,12 @@
           <option value={p}>{p}</option>
         {/each}
       </select>
+      <button class="btn-pause" on:click={() => { paused = !paused; }}>{paused ? "▶ Resume" : "⏸ Pause"}</button>
     </div>
   </div>
 
   {#if skccSkimmerEnabled && spotsEnabled}
-    <SkccSkimmer filterMode={filterMode} filterBands={filterBands} workedTodayKeys={workedTodayCwKeys} {potaEnabled} on:tune on:addqso />
+    <SkccSkimmer filterMode={filterMode} filterBands={filterBands} workedTodayKeys={workedTodayCwKeys} {potaEnabled} {paused} on:tune on:addqso />
   {/if}
 
   {#if potaEnabled}
@@ -480,7 +482,7 @@
     border-color: var(--accent, #fff);
   }
 
-  .btn-clear-bands {
+  .btn-clear-bands, .btn-pause {
     background: var(--bg2, #333);
     color: var(--fg, #ccc);
     border: 1px solid var(--border, #555);

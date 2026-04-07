@@ -9,6 +9,7 @@
   export let filterBands = new Set();
   export let workedTodayKeys = new Set();
   export let potaEnabled = true;
+  export let paused = false;
 
   let spots = [];
   let loading = true;
@@ -132,7 +133,7 @@
   onMount(() => {
     fetchSkccSpots();
     fetchPotaSpots();
-    pollInterval = setInterval(() => { fetchSkccSpots(); fetchPotaSpots(); }, 10000);
+    pollInterval = setInterval(() => { if (!paused) { fetchSkccSpots(); fetchPotaSpots(); } }, 10000);
   });
 
   onDestroy(() => {
