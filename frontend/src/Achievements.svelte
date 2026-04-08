@@ -168,7 +168,15 @@
 
   // Band order for matrix columns
   const BAND_ORDER = ["160m","80m","60m","40m","30m","20m","17m","15m","12m","10m","6m","2m"];
-  $: matrixBands = filterMissing ? BAND_ORDER : BAND_ORDER.filter(b => availableBands.includes(b));
+  $: activeBands = (() => {
+    const bands = new Set();
+    const src = activeTab === "states" ? matrix.state_band : matrix.dxcc_band;
+    for (const row of Object.values(src || {})) {
+      for (const b of Object.keys(row)) bands.add(b);
+    }
+    return bands;
+  })();
+  $: matrixBands = filterMissing ? BAND_ORDER : BAND_ORDER.filter(b => activeBands.has(b));
 
   $: displayStates = filterMissing ? usStates : usStates.filter(s => {
     const stKey = matrix.state_band[s.short] ? s.short : s.name;
