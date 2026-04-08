@@ -44,6 +44,17 @@
     dispatch("countchange");
   }
 
+  async function markAllDone() {
+    await fetch("/api/notifications/done-all", { method: "PUT" });
+    await fetchInbox();
+    dispatch("countchange");
+  }
+
+  async function deleteAllDone() {
+    await fetch("/api/notifications/done-all", { method: "DELETE" });
+    await fetchDone();
+  }
+
   async function deleteNotification(id) {
     await fetch(`/api/notifications/${id}`, { method: "DELETE" });
     await fetchDone();
@@ -91,6 +102,10 @@
     <button class="tab" class:active={view === "done"} on:click={() => switchView("done")}>Done</button>
     {#if view === "inbox" && notifications.some(n => !n.read)}
       <button class="mark-all-btn" on:click={markAllRead}>Mark All Read</button>
+    {:else if view === "inbox" && notifications.length > 0 && notifications.every(n => n.read)}
+      <button class="mark-all-btn" on:click={markAllDone}>Mark All Done</button>
+    {:else if view === "done" && doneNotifications.length > 0}
+      <button class="mark-all-btn delete-all-btn" on:click={deleteAllDone}>Delete All Done</button>
     {/if}
   </div>
 
@@ -222,6 +237,10 @@
 
   .mark-all-btn:hover {
     background: var(--btn-secondary-hover, #4e505a);
+  }
+
+  .delete-all-btn:hover {
+    background: #a03030;
   }
 
   .empty {

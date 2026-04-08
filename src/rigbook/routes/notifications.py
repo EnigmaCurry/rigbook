@@ -86,6 +86,27 @@ async def read_all(session: AsyncSession = Depends(get_session)):
     await _broadcast_unread()
 
 
+@router.put("/done-all", status_code=204)
+async def done_all(session: AsyncSession = Depends(get_session)):
+    await session.execute(
+        update(Notification)
+        .where(Notification.done == 0)
+        .values(read=1, done=1)
+    )
+    await session.commit()
+    await _broadcast_unread()
+
+
+@router.delete("/done-all", status_code=204)
+async def delete_all_done(session: AsyncSession = Depends(get_session)):
+    result = await session.execute(
+        select(Notification).where(Notification.done == 1)
+    )
+    for notif in result.scalars().all():
+        await session.delete(notif)
+    await session.commit()
+
+
 @router.get("/", response_model=list[NotificationResponse])
 async def list_inbox(session: AsyncSession = Depends(get_session)):
     result = await session.execute(
