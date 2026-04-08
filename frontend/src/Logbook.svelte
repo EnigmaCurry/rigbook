@@ -9,6 +9,8 @@
   import { storageGet, storageSet } from "./storage.js";
   import Icon from "@iconify/svelte";
   import iconTree from "@iconify-icons/twemoji/evergreen-tree";
+  import iconGlobe from "@iconify-icons/twemoji/globe-showing-americas";
+  import iconCheck from "@iconify-icons/twemoji/check-mark-button";
 
   export let editId = null;
   export let prefill = null;
@@ -162,7 +164,7 @@
   $: countryItems = countries.map(c => ({ name: c.name, aliases: c.aliases || [], display: `${c.code} — ${c.name}` }));
   $: subdivisionNames = subdivisions.map(s => {
     const shortCode = s.code.includes("-") ? s.code.split("-")[1] : s.code;
-    return { name: s.name, aliases: [shortCode, s.code], display: `${shortCode} — ${s.name}` };
+    return { name: shortCode, aliases: [s.name, s.code], display: `${shortCode} — ${s.name}` };
   });
 
   function normalizeCountry() {
@@ -180,14 +182,15 @@
   function normalizeState() {
     if (!state || !subdivisions.length) return;
     const upper = state.toUpperCase().trim();
-    // Already a full name match
-    if (subdivisions.some(s => s.name === state)) return;
-    // Match by code suffix (e.g. "UT" matches "US-UT")
+    // Already a 2-letter code match
     const byCode = subdivisions.find(s => s.code.split("-").pop() === upper);
-    if (byCode) { state = byCode.name; return; }
-    // Match by code (e.g. "US-UT")
+    if (byCode) { state = byCode.code.split("-").pop(); return; }
+    // Match by full code (e.g. "US-UT" → "UT")
     const byFull = subdivisions.find(s => s.code.toUpperCase() === upper);
-    if (byFull) { state = byFull.name; return; }
+    if (byFull) { state = byFull.code.split("-").pop(); return; }
+    // Match by name (e.g. "Utah" → "UT")
+    const byName = subdivisions.find(s => s.name.toUpperCase() === upper);
+    if (byName) { state = byName.code.split("-").pop(); return; }
   }
   let submitting = false;
   let errorMsg = "";
@@ -1206,7 +1209,7 @@
       <label for="grid">Grid</label>
       <div class="grid-input-row">
         <input id="grid" type="text" bind:value={grid} on:input={stripGrid} maxlength="6" />
-        <button type="button" class="grid-picker-btn" on:click={() => showGridPicker = !showGridPicker} title="Pick from map">🌍</button>
+        <button type="button" class="grid-picker-btn" on:click={() => showGridPicker = !showGridPicker} title="Pick from map"><Icon icon={iconGlobe} width={16} inline={true} /></button>
       </div>
       {#if showGridPicker}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -1250,7 +1253,7 @@
       <label for="skcc">SKCC # / {skcc_exch ? "Validated!" : "Validated?"}</label>
       <div class="skcc-input-row">
         <input id="skcc" type="text" bind:value={skcc} on:input={stripSkcc} style="text-transform: uppercase" readonly={skcc_exch} />
-        <button type="button" class="skcc-exch-btn" class:active={skcc_exch} disabled={!skccValid} on:click={() => skcc_exch = !skcc_exch} title="Valid SKCC exchange (RST, QTH, Name, SKCC#)">✓</button>
+        <button type="button" class="skcc-exch-btn" class:active={skcc_exch} disabled={!skccValid} on:click={() => skcc_exch = !skcc_exch} title="Valid SKCC exchange (RST, QTH, Name, SKCC#)"><Icon icon={iconCheck} width={16} inline={true} /></button>
       </div>
     </div>
     <div class="field wide" class:changed={orig && comments !== orig.comments}>

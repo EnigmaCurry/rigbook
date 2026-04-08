@@ -2,22 +2,9 @@ import pycountry
 from fastapi import APIRouter
 
 from rigbook.dxcc import ISO_TO_DXCC, dxcc_country
+from rigbook.normalize import COUNTRY_ALIASES, COUNTRY_NAME_OVERRIDES
 
 router = APIRouter(prefix="/api/geo", tags=["geo"])
-
-COUNTRY_NAME_OVERRIDES: dict[str, str] = {
-    "VN": "Vietnam",
-    "TW": "Taiwan",
-}
-
-COUNTRY_ALIASES: dict[str, list[str]] = {
-    "US": ["US", "USA"],
-    "GB": ["UK"],
-    "KR": ["South Korea"],
-    "KP": ["North Korea"],
-    "RU": ["Russia"],
-    "TW": ["Taiwan"],
-}
 
 
 @router.get("/countries")

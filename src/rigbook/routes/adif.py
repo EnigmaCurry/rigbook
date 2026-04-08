@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from rigbook.db import Contact, Setting, get_session
 from rigbook.dxcc import dxcc_country
+from rigbook.normalize import normalize_contact_fields
 from rigbook.routes.contacts import ContactResponse
 
 from pydantic import BaseModel
@@ -416,6 +417,17 @@ def adif_record_to_contact_dict(record: dict) -> dict:
             ).replace(tzinfo=timezone.utc)
         except ValueError:
             pass
+
+    # Normalize country/state/dxcc before returning
+    norm = normalize_contact_fields(
+        data.get("country"), data.get("state"), data.get("dxcc")
+    )
+    if norm["country"]:
+        data["country"] = norm["country"]
+    if norm["state"]:
+        data["state"] = norm["state"]
+    if norm["dxcc"] is not None:
+        data["dxcc"] = norm["dxcc"]
 
     return {k: v for k, v in data.items() if v is not None and v != ""}
 
