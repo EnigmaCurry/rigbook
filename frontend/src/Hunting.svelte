@@ -22,7 +22,7 @@
   let filterBands = new Set();
   let filterProgram = "";
   let skccSkimmerEnabled = false;
-  let paused = false;
+  let paused = localStorage.getItem("huntingPaused") === "true";
   let filtersLoaded = false;
   let seenSpotKeys = new Set();
   let newSpotKeys = new Set();
@@ -382,7 +382,7 @@
           <option value={p}>{p}</option>
         {/each}
       </select>
-      <button class="btn-pause" on:click={() => { paused = !paused; }}>{#if paused}<Icon icon={iconPlay} width={14} /> Resume{:else}<Icon icon={iconPause} width={14} /> Pause{/if}</button>
+      <button class="btn-pause" on:click={() => { paused = !paused; localStorage.setItem("huntingPaused", paused); }}>{#if paused}<Icon icon={iconPlay} width={14} /> Resume{:else}<Icon icon={iconPause} width={14} /> Pause{/if}</button>
     </div>
   </div>
 
