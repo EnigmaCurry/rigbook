@@ -271,25 +271,6 @@ async def create_contact(
     return contact
 
 
-@router.post("/normalize-all")
-async def normalize_all_contacts(session: AsyncSession = Depends(get_session)):
-    """Bulk-normalize country/state/dxcc for all existing contacts."""
-    result = await session.execute(select(Contact))
-    contacts = result.scalars().all()
-    updated = 0
-    for c in contacts:
-        norm = normalize_contact_fields(c.country, c.state, c.dxcc)
-        changed = False
-        for field in ("country", "state", "dxcc"):
-            if norm[field] != getattr(c, field):
-                setattr(c, field, norm[field])
-                changed = True
-        if changed:
-            c.updated_at = datetime.now(timezone.utc)
-            updated += 1
-    await session.commit()
-    return {"total": len(contacts), "updated": updated}
-
 
 @router.get("/{contact_id}", response_model=ContactResponse)
 async def get_contact(contact_id: int, session: AsyncSession = Depends(get_session)):
