@@ -188,7 +188,7 @@ jobs:
         run: |
           tag="${{ github.ref_name }}"
           # Extract section between "## vX.Y.Z" and the next "## v" heading
-          changelog=$(awk "/^## ${tag}\$/{found=1; next} /^## v/{if(found) exit} found{print}" CHANGELOG.md)
+          changelog=$(awk "/^## ${tag}( |$)/{found=1; next} /^## v/{if(found) exit} found{print}" CHANGELOG.md)
           # Write to file to preserve formatting
           echo "$changelog" > /tmp/changelog.md
 
