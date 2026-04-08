@@ -176,7 +176,9 @@
     }
     return bands;
   })();
-  $: matrixBands = filterMissing ? BAND_ORDER : BAND_ORDER.filter(b => activeBands.has(b));
+  $: matrixBands = filterBands.size > 0
+    ? BAND_ORDER.filter(b => filterBands.has(b))
+    : filterMissing ? BAND_ORDER : BAND_ORDER.filter(b => activeBands.has(b));
 
   $: displayStates = filterMissing ? usStates : usStates.filter(s => {
     const stKey = matrix.state_band[s.short] ? s.short : s.name;
