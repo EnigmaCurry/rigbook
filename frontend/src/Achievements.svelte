@@ -120,10 +120,8 @@
   async function fetchAchievements() {
     const params = new URLSearchParams();
     if (filterMode) params.set("mode", filterMode);
-    // For band filter, use first selected band (API supports single band)
-    // If multiple bands selected, we'll need to make multiple requests or filter client-side
-    if (filterBands.size === 1) {
-      params.set("band", [...filterBands][0]);
+    if (filterBands.size > 0) {
+      params.set("band", [...filterBands].join(","));
     }
     if (filterPota) params.set("pota", "true");
     if (filterSkcc) params.set("skcc", "true");

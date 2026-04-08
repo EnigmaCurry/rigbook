@@ -5,7 +5,7 @@ from typing import Optional
 
 import pycountry
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import Float, and_, cast, select
+from sqlalchemy import Float, and_, cast, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from rigbook.db import Contact, get_session
@@ -51,6 +51,26 @@ def _band_sort_key(b: str) -> int:
         return 99
 
 
+def _band_filter(band: str | None) -> list:
+    """Build SQLAlchemy filter conditions for comma-separated band string."""
+    if not band:
+        return []
+    conditions = []
+    for b in band.split(","):
+        freq_range = BAND_FREQ_MAP.get(b.strip().lower())
+        if freq_range:
+            lo, hi = freq_range
+            conditions.append(
+                and_(
+                    cast(Contact.freq, Float) >= lo,
+                    cast(Contact.freq, Float) <= hi,
+                )
+            )
+    if conditions:
+        return [or_(*conditions)]
+    return []
+
+
 @router.get("/achievements")
 async def get_achievements(
     band: Optional[str] = Query(None),
@@ -62,16 +82,7 @@ async def get_achievements(
     filters: list = []
     if mode:
         filters.append(Contact.mode == mode)
-    if band:
-        freq_range = BAND_FREQ_MAP.get(band.lower())
-        if freq_range:
-            lo, hi = freq_range
-            filters.append(
-                and_(
-                    cast(Contact.freq, Float) >= lo,
-                    cast(Contact.freq, Float) <= hi,
-                )
-            )
+    filters.extend(_band_filter(band))
     if pota:
         filters.append(Contact.pota_park.isnot(None))
         filters.append(Contact.pota_park != "")
@@ -168,16 +179,7 @@ async def get_achievement_qsos(
         filters.append(Contact.grid.ilike(f"{grid}%"))
     if mode:
         filters.append(Contact.mode == mode)
-    if band:
-        freq_range = BAND_FREQ_MAP.get(band.lower())
-        if freq_range:
-            lo, hi = freq_range
-            filters.append(
-                and_(
-                    cast(Contact.freq, Float) >= lo,
-                    cast(Contact.freq, Float) <= hi,
-                )
-            )
+    filters.extend(_band_filter(band))
     if pota:
         filters.append(Contact.pota_park.isnot(None))
         filters.append(Contact.pota_park != "")
