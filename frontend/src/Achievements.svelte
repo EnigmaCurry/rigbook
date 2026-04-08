@@ -311,7 +311,9 @@
 
       <div class="grid-list">
         {#each workedGrids as g}
-          <span class="grid-tag">{g}</span>
+          <!-- svelte-ignore a11y-click-events-have-key-events -->
+          <!-- svelte-ignore a11y-no-static-element-interactions -->
+          <span class="grid-tag clickable" on:click={() => openCellModal(`Grid ${g}`, { grid: g })}>{g}</span>
         {/each}
         {#if workedGrids.length === 0}
           <p class="status">No grids logged yet.</p>
