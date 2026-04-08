@@ -11,6 +11,7 @@
   let filterBands = new Set();
   let filterPota = false;
   let filterSkcc = false;
+  let filterMissing = false;
   let filtersLoaded = false;
   let loading = true;
 
@@ -93,6 +94,7 @@
           filterBands = saved.bands ? new Set(saved.bands.split(",").filter(Boolean)) : new Set();
           filterPota = saved.pota || false;
           filterSkcc = saved.skcc || false;
+          filterMissing = saved.missing || false;
           activeTab = saved.tab || "states";
         }
       }
@@ -111,6 +113,7 @@
           bands: [...filterBands].join(","),
           pota: filterPota,
           skcc: filterSkcc,
+          missing: filterMissing,
           tab: activeTab,
         }) }),
       });
@@ -153,7 +156,7 @@
   }
 
   $: if (filtersLoaded) {
-    const _f = { m: filterMode, b: [...filterBands].join(","), p: filterPota, s: filterSkcc, t: activeTab };
+    const _f = { m: filterMode, b: [...filterBands].join(","), p: filterPota, s: filterSkcc, mi: filterMissing, t: activeTab };
     saveFilters();
     fetchAchievements();
   }
@@ -165,7 +168,16 @@
 
   // Band order for matrix columns
   const BAND_ORDER = ["160m","80m","60m","40m","30m","20m","17m","15m","12m","10m","6m","2m"];
-  $: matrixBands = BAND_ORDER.filter(b => availableBands.includes(b));
+  $: matrixBands = filterMissing ? BAND_ORDER : BAND_ORDER.filter(b => availableBands.includes(b));
+
+  $: displayStates = filterMissing ? usStates : usStates.filter(s => {
+    const stKey = matrix.state_band[s.short] ? s.short : s.name;
+    return Object.keys(matrix.state_band[stKey] || {}).length > 0;
+  });
+
+  $: displayDxcc = filterMissing
+    ? Object.entries(dxccEntities).map(([k, v]) => ({ code: k, name: v }))
+    : workedDxcc.map(code => ({ code: String(code), name: dxccEntities[String(code)] || code }));
 </script>
 
 <div class="achievements">
@@ -173,7 +185,7 @@
 
   <div class="controls">
     <div class="tabs">
-      <button class="tab" class:active={activeTab === "states"} on:click={() => activeTab = "states"}>States</button>
+      <button class="tab" class:active={activeTab === "states"} on:click={() => activeTab = "states"}>US States</button>
       <button class="tab" class:active={activeTab === "countries"} on:click={() => activeTab = "countries"}>Countries</button>
       <button class="tab" class:active={activeTab === "grids"} on:click={() => activeTab = "grids"}>Grids</button>
     </div>
@@ -203,6 +215,7 @@
     </select>
     <label class="filter-check"><input type="checkbox" bind:checked={filterPota} /> POTA</label>
     <label class="filter-check"><input type="checkbox" bind:checked={filterSkcc} /> SKCC</label>
+    <label class="filter-check"><input type="checkbox" bind:checked={filterMissing} /> Missing</label>
   </div>
 
   {#if loading}
@@ -225,7 +238,7 @@
             </tr>
           </thead>
           <tbody>
-            {#each usStates as st}
+            {#each displayStates as st}
               {@const stKey = matrix.state_band[st.short] ? st.short : st.name}
               {@const row = matrix.state_band[stKey] || {}}
               {@const hasAny = Object.keys(row).length > 0}
@@ -262,15 +275,16 @@
             </tr>
           </thead>
           <tbody>
-            {#each workedDxcc as code}
-              {@const row = matrix.dxcc_band[String(code)] || {}}
-              <tr>
-                <td>{dxccEntities[String(code)] || code}</td>
+            {#each displayDxcc as entity}
+              {@const row = matrix.dxcc_band[entity.code] || {}}
+              {@const hasAny = Object.keys(row).length > 0}
+              <tr class:unworked={!hasAny}>
+                <td>{entity.name}</td>
                 {#each matrixBands as b}
                   {@const count = row[b] || 0}
                   <!-- svelte-ignore a11y-click-events-have-key-events -->
                   <!-- svelte-ignore a11y-no-static-element-interactions -->
-                  <td class="matrix-cell" class:worked={count > 0} class:clickable={count > 0} on:click={() => { if (count > 0) openCellModal(`${dxccEntities[String(code)] || code} - ${b}`, { dxcc: code, band: b }); }}>{count || ""}</td>
+                  <td class="matrix-cell" class:worked={count > 0} class:clickable={count > 0} on:click={() => { if (count > 0) openCellModal(`${entity.name} - ${b}`, { dxcc: entity.code, band: b }); }}>{count || ""}</td>
                 {/each}
               </tr>
             {/each}
