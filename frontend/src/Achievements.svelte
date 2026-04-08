@@ -386,7 +386,7 @@
     flex-direction: column;
     flex: 1;
     min-height: 0;
-    max-width: 1200px;
+    max-width: 100%;
     margin: 0 auto;
     padding: 0.5rem 1rem 0;
     overflow: hidden;
