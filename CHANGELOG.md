@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.2.14 — 2026-04-08
+
+- Persist hunting pause/resume state in localStorage across page navigation
+- Show "Paused" indicator in POTA Spots and SKCC Skimmer headings
+- Add achievements page for WAS, DXCC, and grids
+- Add Mark All Done and Delete All Done buttons to notifications
+- Improve query page and remove normalize-all endpoint
+- Normalize country, state, and DXCC fields automatically on entry
+
 ## v0.2.13 — 2026-04-07
 
 - Replace system emoji with Twemoji SVG icons for consistent cross-platform rendering
