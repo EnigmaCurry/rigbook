@@ -28,6 +28,7 @@
     { label: "POTA activations", sql: "SELECT pota_park, count(*) AS count FROM contacts WHERE pota_park IS NOT NULL AND pota_park != '' GROUP BY pota_park ORDER BY count DESC" },
     { label: "States worked", sql: "SELECT state, count(*) AS count FROM contacts WHERE state IS NOT NULL AND state != '' GROUP BY state ORDER BY count DESC" },
     { label: "Countries worked", sql: "SELECT country, count(*) AS count FROM contacts WHERE country IS NOT NULL AND country != '' GROUP BY country ORDER BY count DESC" },
+    { label: "Unique state+country", sql: "SELECT DISTINCT country, state, dxcc FROM contacts ORDER BY country, state" },
     { label: "All POTA parks", sql: "SELECT reference, name, location_desc, grid, latitude, longitude FROM meta.pota_parks ORDER BY reference" },
     { label: "QRZ cache stats", sql: "SELECT count(*) AS total, sum(CASE WHEN json_extract(value, '$.grid') IS NOT NULL AND json_extract(value, '$.grid') != '' THEN 1 ELSE 0 END) AS with_grid, sum(CASE WHEN json_extract(value, '$.grid') IS NULL OR json_extract(value, '$.grid') = '' THEN 1 ELSE 0 END) AS without_grid, sum(CASE WHEN json_extract(value, '$.error') IS NOT NULL THEN 1 ELSE 0 END) AS errors FROM meta.cache WHERE namespace = 'qrz'" },
     { label: "QRZ cache lookup", sql: "SELECT key AS call, value FROM meta.cache WHERE namespace = 'qrz' AND key = 'YOURCALL' LIMIT 1" },
@@ -111,6 +112,17 @@
         error = e.message;
       }
     }
+  }
+
+  function clearQuery() {
+    sql = "";
+    columns = [];
+    rows = [];
+    error = "";
+    rowCount = 0;
+    truncated = false;
+    cannedSelect = "";
+    updateUrl();
   }
 
   function updateUrl() {
@@ -214,6 +226,7 @@
         <button class="run-btn" on:click={runQuery} disabled={loading}>
           {loading ? "Running…" : "Run Query"}
         </button>
+        <button class="csv-btn" on:click={clearQuery}>Clear</button>
         <button class="csv-btn" on:click={toggleSchema}>{showSchema ? "Hide Schema" : "View Schema"}</button>
         {#if columns.length > 0}
           <button class="csv-btn" on:click={downloadJson}>Download JSON</button>
