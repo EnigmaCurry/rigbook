@@ -146,7 +146,7 @@
 
 {#if visible && spots.length > 0}
   <div class="skcc-skimmer">
-    <h2>SKCC Skimmer ({spots.length})</h2>
+    <h2>SKCC Skimmer ({spots.length}){#if paused} - Paused{/if}</h2>
       <div class="grid">
         {#each spots as spot (spot.callsign)}
           <div class="card" class:new-spot={newCalls.has(spot.callsign)} class:worked={isWorked(spot)}>

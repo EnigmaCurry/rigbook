@@ -391,7 +391,7 @@
   {/if}
 
   {#if potaEnabled}
-  <h2>POTA Spots ({filteredSpots.length})</h2>
+  <h2>POTA Spots ({filteredSpots.length}){#if paused} - Paused{/if}</h2>
 
   {#if loading}
     <p class="status">Loading spots...</p>
