@@ -164,7 +164,7 @@
   $: countryItems = countries.map(c => ({ name: c.name, aliases: c.aliases || [], display: `${c.code} — ${c.name}` }));
   $: subdivisionNames = subdivisions.map(s => {
     const shortCode = s.code.includes("-") ? s.code.split("-")[1] : s.code;
-    return { name: s.name, aliases: [shortCode, s.code], display: `${shortCode} — ${s.name}` };
+    return { name: shortCode, aliases: [s.name, s.code], display: `${shortCode} — ${s.name}` };
   });
 
   function normalizeCountry() {
@@ -182,14 +182,15 @@
   function normalizeState() {
     if (!state || !subdivisions.length) return;
     const upper = state.toUpperCase().trim();
-    // Already a full name match
-    if (subdivisions.some(s => s.name === state)) return;
-    // Match by code suffix (e.g. "UT" matches "US-UT")
+    // Already a 2-letter code match
     const byCode = subdivisions.find(s => s.code.split("-").pop() === upper);
-    if (byCode) { state = byCode.name; return; }
-    // Match by code (e.g. "US-UT")
+    if (byCode) { state = byCode.code.split("-").pop(); return; }
+    // Match by full code (e.g. "US-UT" → "UT")
     const byFull = subdivisions.find(s => s.code.toUpperCase() === upper);
-    if (byFull) { state = byFull.name; return; }
+    if (byFull) { state = byFull.code.split("-").pop(); return; }
+    // Match by name (e.g. "Utah" → "UT")
+    const byName = subdivisions.find(s => s.name.toUpperCase() === upper);
+    if (byName) { state = byName.code.split("-").pop(); return; }
   }
   let submitting = false;
   let errorMsg = "";

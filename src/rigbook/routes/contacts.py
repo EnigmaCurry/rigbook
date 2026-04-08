@@ -7,6 +7,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from rigbook.db import Contact, get_session
+from rigbook.normalize import normalize_contact_fields
 
 logger = logging.getLogger("rigbook")
 
@@ -72,6 +73,14 @@ class ContactCreate(BaseModel):
             v = v.astimezone(timezone.utc).replace(tzinfo=None)
         return v
 
+    @model_validator(mode="after")
+    def normalize_geo_fields(self):
+        result = normalize_contact_fields(self.country, self.state, self.dxcc)
+        self.country = result["country"]
+        self.state = result["state"]
+        self.dxcc = result["dxcc"]
+        return self
+
 
 class ContactUpdate(BaseModel):
     call: str | None = None
@@ -101,6 +110,18 @@ class ContactUpdate(BaseModel):
         if v.tzinfo is not None:
             v = v.astimezone(timezone.utc).replace(tzinfo=None)
         return v
+
+    @model_validator(mode="after")
+    def normalize_geo_fields(self):
+        if {"country", "state", "dxcc"} & self.model_fields_set:
+            result = normalize_contact_fields(self.country, self.state, self.dxcc)
+            if "country" in self.model_fields_set:
+                self.country = result["country"]
+            if "state" in self.model_fields_set:
+                self.state = result["state"]
+            if "dxcc" in self.model_fields_set or result["dxcc"] is not None:
+                self.dxcc = result["dxcc"]
+        return self
 
 
 class ContactResponse(BaseModel):
@@ -248,6 +269,26 @@ async def create_contact(
     await session.commit()
     await session.refresh(contact)
     return contact
+
+
+@router.post("/normalize-all")
+async def normalize_all_contacts(session: AsyncSession = Depends(get_session)):
+    """Bulk-normalize country/state/dxcc for all existing contacts."""
+    result = await session.execute(select(Contact))
+    contacts = result.scalars().all()
+    updated = 0
+    for c in contacts:
+        norm = normalize_contact_fields(c.country, c.state, c.dxcc)
+        changed = False
+        for field in ("country", "state", "dxcc"):
+            if norm[field] != getattr(c, field):
+                setattr(c, field, norm[field])
+                changed = True
+        if changed:
+            c.updated_at = datetime.now(timezone.utc)
+            updated += 1
+    await session.commit()
+    return {"total": len(contacts), "updated": updated}
 
 
 @router.get("/{contact_id}", response_model=ContactResponse)
