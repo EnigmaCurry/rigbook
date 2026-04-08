@@ -543,13 +543,17 @@
     z-index: 1;
     background: var(--bg-card);
   }
-  .matrix tbody tr:nth-child(even) td:first-child,
-  .matrix tbody tr:nth-child(even) .matrix-cell:not(.worked) {
+  .matrix tbody tr:nth-child(even) td {
     background: color-mix(in srgb, var(--bg-card) 85%, var(--text) 15%);
   }
-  .matrix tbody tr:hover td:first-child,
-  .matrix tbody tr:hover .matrix-cell:not(.worked) {
+  .matrix tbody tr:nth-child(even) .matrix-cell.worked {
+    background: var(--accent);
+  }
+  .matrix tbody tr:hover td {
     background: color-mix(in srgb, var(--bg-card) 70%, var(--text) 30%);
+  }
+  .matrix tbody tr:hover .matrix-cell.worked {
+    background: var(--accent);
   }
   tr.unworked {
     opacity: 0.4;
