@@ -1907,7 +1907,7 @@
 
   .qrz-detail-actions {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     gap: 0.75rem;
     margin-bottom: 0.75rem;
     padding-bottom: 0.75rem;
