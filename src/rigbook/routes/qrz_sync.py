@@ -1,3 +1,4 @@
+import html
 import logging
 import re
 from datetime import datetime, timezone
@@ -296,7 +297,7 @@ async def fetch_qrz_logbook(session: AsyncSession = Depends(get_session)):
             parsed = _parse_qrz_response(raw_text)
             result_code = parsed.get("RESULT", "(missing)")
             count_str = parsed.get("COUNT", "0")
-            adif_data = parsed.get("ADIF", "")
+            adif_data = html.unescape(parsed.get("ADIF", ""))
 
             logger.info(
                 "QRZ FETCH page %d: RESULT=%s, COUNT=%s, ADIF length=%d chars",
