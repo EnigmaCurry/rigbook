@@ -324,6 +324,14 @@ async def update_contact(
     contact.updated_at = datetime.now(timezone.utc)
     await session.commit()
     await session.refresh(contact)
+
+    # Auto-upload to QRZ if enabled
+    auto_upload = await resolve_setting("qrz_auto_upload", session)
+    if auto_upload == "true":
+        api_key = await resolve_setting("qrz_api_key", session)
+        if api_key:
+            asyncio.create_task(_auto_upload_to_qrz(contact.id, api_key))
+
     return contact
 
 
