@@ -283,7 +283,7 @@ async def _upload_contacts(
                 "ACTION": "INSERT",
                 "ADIF": adif_line,
             }
-            if replace:
+            if replace or contact.qrz_logid is not None:
                 data["OPTION"] = "REPLACE"
 
             try:
