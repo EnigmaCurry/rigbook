@@ -17,7 +17,7 @@ logger = logging.getLogger("rigbook")
 router = APIRouter(prefix="/api/global-settings", tags=["global-settings"])
 
 ALLOWED_KEYS = GLOBAL_DEFAULTABLE_KEYS | GLOBAL_ONLY_KEYS
-HIDDEN_KEYS = {"qrz_password", "hamalert_password"}
+HIDDEN_KEYS = {"qrz_password", "hamalert_password", "qrz_api_key"}
 
 
 class SettingValue(BaseModel):

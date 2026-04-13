@@ -36,7 +36,7 @@ class SettingResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-HIDDEN_KEYS = {"qrz_password", "hamalert_password"}
+HIDDEN_KEYS = {"qrz_password", "hamalert_password", "qrz_api_key"}
 
 
 def _redact(setting: Setting, source: str = "logbook") -> SettingResponse:

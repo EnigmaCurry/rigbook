@@ -35,6 +35,7 @@ from rigbook.spots import start_feeds, stop_feeds
 from rigbook.routes.adif import router as adif_router
 from rigbook.routes.pota import router as pota_router
 from rigbook.routes.qrz import router as qrz_router
+from rigbook.routes.qrz_sync import router as qrz_sync_router
 from rigbook.routes.search import router as search_router
 from rigbook.routes.tiles import router as tiles_router
 from rigbook.routes.skcc import router as skcc_router
@@ -370,6 +371,7 @@ app.include_router(geo_router)
 app.include_router(adif_router)
 app.include_router(pota_router)
 app.include_router(qrz_router)
+app.include_router(qrz_sync_router)
 app.include_router(search_router)
 app.include_router(skcc_router)
 app.include_router(tiles_router)

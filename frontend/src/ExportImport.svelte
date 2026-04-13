@@ -9,6 +9,11 @@
   let message = "";
   let messageType = "";
 
+  // QRZ sync state
+  let qrzSyncStatus = null;
+  let qrzSyncing = false;
+  let qrzSyncResult = null;
+
   // Comment template
   const TEMPLATE_FIELDS = [
     { field: "skcc", label: "SKCC" },
@@ -505,12 +510,39 @@
     }
     importing = false;
   }
+
+  async function fetchQrzSyncStatus() {
+    try {
+      const res = await fetch("/api/qrz-sync/status");
+      if (res.ok) qrzSyncStatus = await res.json();
+    } catch { qrzSyncStatus = null; }
+  }
+
+  async function uploadToQrz(all = false) {
+    qrzSyncing = true;
+    qrzSyncResult = null;
+    try {
+      const endpoint = all ? "/api/qrz-sync/upload-all" : "/api/qrz-sync/upload";
+      const res = await fetch(endpoint, { method: "POST" });
+      if (res.ok) {
+        qrzSyncResult = await res.json();
+      } else {
+        const data = await res.json().catch(() => null);
+        qrzSyncResult = { error: data?.detail || `Error: ${res.status}` };
+      }
+      await fetchQrzSyncStatus();
+    } catch (e) {
+      qrzSyncResult = { error: `Network error: ${e.message}` };
+    }
+    qrzSyncing = false;
+  }
 </script>
 
 <div class="export-import">
   <div class="tab-bar">
     <button class="tab" class:active={activeTab === "import"} on:click={() => { activeTab = "import"; message = ""; }}>Import</button>
     <button class="tab" class:active={activeTab === "export"} on:click={() => { activeTab = "export"; message = ""; }}>Export</button>
+    <button class="tab" class:active={activeTab === "qrz"} on:click={() => { activeTab = "qrz"; message = ""; fetchQrzSyncStatus(); }}>QRZ Upload</button>
   </div>
 
   <div class="main-layout">
@@ -563,6 +595,45 @@
               SKCC Validated
             </label>
           </div>
+        </div>
+      {:else if activeTab === "qrz"}
+        <div class="qrz-sync-panel">
+          <h3>QRZ Logbook Upload</h3>
+          {#if qrzSyncStatus && !qrzSyncStatus.configured}
+            <p class="qrz-not-configured">QRZ Logbook API key not configured. Set it in Settings under QRZ.</p>
+          {:else if qrzSyncStatus}
+            <div class="qrz-stats">
+              <div class="stat-row"><span class="stat-label">Total contacts:</span> <span class="stat-value">{qrzSyncStatus.total}</span></div>
+              <div class="stat-row"><span class="stat-label">Synced to QRZ:</span> <span class="stat-value">{qrzSyncStatus.synced}</span></div>
+              <div class="stat-row"><span class="stat-label">Pending upload:</span> <span class="stat-value highlight">{qrzSyncStatus.pending}</span></div>
+            </div>
+            <div class="qrz-actions">
+              <button class="action-btn" on:click={() => uploadToQrz(false)} disabled={qrzSyncing || qrzSyncStatus.pending === 0}>
+                {qrzSyncing ? "Uploading..." : `Upload ${qrzSyncStatus.pending} Pending`}
+              </button>
+              <button class="action-btn secondary-btn" on:click={() => { if (confirm("Re-upload all contacts to QRZ? This will overwrite any changes made directly on QRZ.")) uploadToQrz(true); }} disabled={qrzSyncing || qrzSyncStatus.total === 0}>
+                Re-upload All
+              </button>
+            </div>
+            {#if qrzSyncResult}
+              <div class="qrz-result" class:qrz-result-error={qrzSyncResult.error || qrzSyncResult.errors > 0}>
+                {#if qrzSyncResult.error}
+                  <p>{qrzSyncResult.error}</p>
+                {:else}
+                  <p>Uploaded {qrzSyncResult.uploaded} of {qrzSyncResult.total} contacts{#if qrzSyncResult.errors > 0}, {qrzSyncResult.errors} error{qrzSyncResult.errors !== 1 ? "s" : ""}{/if}</p>
+                  {#if qrzSyncResult.error_details && qrzSyncResult.error_details.length > 0}
+                    <ul class="qrz-errors">
+                      {#each qrzSyncResult.error_details as err}
+                        <li><strong>{err.call}</strong>: {err.reason}</li>
+                      {/each}
+                    </ul>
+                  {/if}
+                {/if}
+              </div>
+            {/if}
+          {:else}
+            <p>Loading...</p>
+          {/if}
         </div>
       {:else}
         <p>Select an ADIF file to preview before importing.</p>
@@ -839,6 +910,12 @@
       <button class="action-btn" on:click={exportAdif} disabled={!exportPreview || exportPreview.included === 0}>
         Download ADIF
       </button>
+    {:else if activeTab === "qrz"}
+      <span class="action-summary">
+        {#if qrzSyncStatus && qrzSyncStatus.configured}
+          {qrzSyncStatus.pending} contact{qrzSyncStatus.pending !== 1 ? "s" : ""} pending upload to QRZ
+        {/if}
+      </span>
     {:else}
       <span class="action-summary">
         {#if importPreview}
@@ -1693,5 +1770,71 @@
     color: var(--text-muted);
     font-style: italic;
     margin-top: 0.25rem;
+  }
+
+  /* QRZ Sync panel */
+  .qrz-sync-panel h3 {
+    margin: 0 0 1rem 0;
+  }
+
+  .qrz-not-configured {
+    color: var(--text-muted);
+  }
+
+  .qrz-stats {
+    margin-bottom: 1rem;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+  }
+
+  .stat-label {
+    color: var(--text-muted);
+  }
+
+  .stat-value.highlight {
+    color: var(--accent);
+    font-weight: bold;
+  }
+
+  .qrz-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .secondary-btn {
+    background: var(--bg-secondary, #333);
+    color: var(--text-secondary, #aaa);
+  }
+
+  .qrz-result {
+    padding: 0.75rem;
+    border-radius: 4px;
+    background: var(--bg-secondary, #1a3a1a);
+    border: 1px solid var(--accent, #4a4);
+  }
+
+  .qrz-result-error {
+    background: var(--bg-error, #3a1a1a);
+    border-color: var(--error, #a44);
+  }
+
+  .qrz-result p {
+    margin: 0;
+  }
+
+  .qrz-errors {
+    margin: 0.5rem 0 0 0;
+    padding-left: 1.5rem;
+    font-size: 0.85rem;
+  }
+
+  .qrz-errors li {
+    margin-bottom: 0.25rem;
   }
 </style>

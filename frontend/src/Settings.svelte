@@ -27,6 +27,8 @@
   let qrz_username = "";
   let qrz_password = "";
   let hasQrzPassword = false;
+  let qrz_api_key = "";
+  let hasQrzApiKey = false;
   let pota_enabled = false;
   let solar_enabled = false;
   let update_check_enabled = true;
@@ -119,6 +121,8 @@
   let global_qrz_username = "";
   let global_qrz_password = "";
   let global_hasQrzPassword = false;
+  let global_hasQrzApiKey = false;
+  let global_qrz_api_key = "";
   let global_hamalert_username = "";
   let global_hamalert_password = "";
   let global_hasHamalertPassword = false;
@@ -1374,6 +1378,23 @@
     await checkQrz();
   }
 
+  async function saveQrzApiKey() {
+    if (!qrz_api_key.trim()) return;
+    await saveSetting("qrz_api_key", qrz_api_key.trim());
+    hasQrzApiKey = true;
+    qrz_api_key = "";
+  }
+
+  async function clearQrzApiKey() {
+    await fetch("/api/settings/qrz_api_key", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ value: "" }),
+    });
+    hasQrzApiKey = false;
+    qrz_api_key = "";
+  }
+
   async function loginHamalert() {
     if (!hamalert_password.trim()) return;
     await saveSetting("hamalert_password", hamalert_password.trim());
@@ -1412,6 +1433,7 @@
           // Boolean/password fields: inherit global value normally
           if (s.key === "qrz_username") { if (isGlobal) { globalPlaceholders.qrz_username = s.value; qrz_username = ""; } else qrz_username = s.value || ""; }
           if (s.key === "qrz_password") hasQrzPassword = !!s.value && s.value !== "";
+          if (s.key === "qrz_api_key") hasQrzApiKey = !!s.value && s.value !== "";
           if (s.key === "pota_enabled") pota_enabled = s.value !== "false";
           if (s.key === "solar_enabled") solar_enabled = s.value === "true";
           if (s.key === "sql_query_enabled") sql_query_enabled = s.value === "true";
@@ -1513,6 +1535,7 @@
           if (s.key === "default_rst") global_default_rst = s.value || "599";
           if (s.key === "qrz_username") global_qrz_username = s.value || "";
           if (s.key === "qrz_password") global_hasQrzPassword = !!s.value && s.value !== "";
+          if (s.key === "qrz_api_key") global_hasQrzApiKey = !!s.value && s.value !== "";
           if (s.key === "hamalert_username") global_hamalert_username = s.value || "";
           if (s.key === "hamalert_password") global_hasHamalertPassword = !!s.value && s.value !== "";
           if (s.key === "flrig_enabled") global_flrig_enabled = s.value === "true";
@@ -1795,6 +1818,15 @@
         {/if}
       </div>
     {/if}
+    <div class="setting-row">
+      <label for="rb-qrz-api-key">{hasQrzApiKey ? "Change QRZ Logbook API Key" : "QRZ Logbook API Key"}</label>
+      <input id="rb-qrz-api-key" type="text" class="secret-field" bind:value={qrz_api_key} autocomplete="new-password" data-1p-ignore data-lpignore="true" data-form-type="other" placeholder={hasQrzApiKey ? "Leave blank to keep current" : "unset"} style="min-width: 12ch" />
+    </div>
+    <div class="setting-row">
+      {#if qrz_api_key.trim()}<button type="button" class="check-now-btn" on:click={saveQrzApiKey}>Save API Key</button>{/if}
+      {#if hasQrzApiKey}<button type="button" class="check-now-btn" on:click={clearQrzApiKey}>Clear API Key</button>{/if}
+      <span class="hint">{#if hasQrzApiKey}QRZ Logbook API key is set. Upload QSOs from the Export/Import page.{:else}Get your API key from <a href="https://logbook.qrz.com/logbook" target="_blank" rel="noopener">QRZ Logbook</a> (requires XML subscription){/if}</span>
+    </div>
   </section>
 
   <section class="settings-section">
@@ -2378,6 +2410,16 @@
       {:else}
         <input id="rb-def-qrz-key" type="text" class="secret-field" bind:value={global_qrz_password} placeholder="QRZ password" autocomplete="new-password" data-1p-ignore data-lpignore="true" data-form-type="other" style="max-width: 14rem" />
         <button class="check-now-btn" on:click={async () => { if (global_qrz_password.trim()) { await saveGlobalSetting("qrz_password", global_qrz_password.trim()); global_hasQrzPassword = true; global_qrz_password = ""; } }}>Save</button>
+      {/if}
+    </div>
+    <div class="setting-row">
+      <label>Default QRZ Logbook API Key</label>
+      {#if global_hasQrzApiKey}
+        <span class="hint">Saved</span>
+        <button class="check-now-btn" on:click={async () => { await saveGlobalSetting("qrz_api_key", ""); global_hasQrzApiKey = false; global_qrz_api_key = ""; }}>Clear</button>
+      {:else}
+        <input type="text" class="secret-field" bind:value={global_qrz_api_key} placeholder="QRZ Logbook API key" autocomplete="new-password" data-1p-ignore data-lpignore="true" data-form-type="other" style="max-width: 14rem" />
+        <button class="check-now-btn" on:click={async () => { if (global_qrz_api_key.trim()) { await saveGlobalSetting("qrz_api_key", global_qrz_api_key.trim()); global_hasQrzApiKey = true; global_qrz_api_key = ""; } }}>Save</button>
       {/if}
     </div>
     <div class="setting-row">
