@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import datetime, timezone
 
@@ -6,7 +7,7 @@ from pydantic import BaseModel, field_serializer, field_validator, model_validat
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from rigbook.db import Contact, get_session
+from rigbook.db import Contact, db_manager, get_session, resolve_setting
 from rigbook.normalize import normalize_contact_fields
 
 logger = logging.getLogger("rigbook")
@@ -268,8 +269,37 @@ async def create_contact(
     session.add(contact)
     await session.commit()
     await session.refresh(contact)
+
+    # Auto-upload to QRZ if enabled
+    auto_upload = await resolve_setting("qrz_auto_upload", session)
+    if auto_upload == "true":
+        api_key = await resolve_setting("qrz_api_key", session)
+        if api_key:
+            asyncio.create_task(_auto_upload_to_qrz(contact.id, api_key))
+
     return contact
 
+
+async def _auto_upload_to_qrz(contact_id: int, api_key: str):
+    """Fire-and-forget upload of a single contact to QRZ."""
+    from rigbook.routes.qrz_sync import _get_callsign, _upload_contacts
+
+    try:
+        async with db_manager._session_factory() as session:
+            contact = await session.get(Contact, contact_id)
+            if not contact:
+                return
+            callsign = await _get_callsign(session)
+            result = await _upload_contacts(
+                [contact], api_key, callsign, session, replace=False
+            )
+            logger.info(
+                "QRZ auto-upload %s: %s",
+                contact.call,
+                "ok" if result.get("uploaded") else result,
+            )
+    except Exception as e:
+        logger.warning("QRZ auto-upload failed for contact %d: %s", contact_id, e)
 
 
 @router.get("/{contact_id}", response_model=ContactResponse)

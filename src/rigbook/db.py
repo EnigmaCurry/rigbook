@@ -38,6 +38,7 @@ GLOBAL_DEFAULTABLE_KEYS = {
     "flrig_enabled",
     "flrig_simulate",
     "qrz_api_key",
+    "qrz_auto_upload",
 }
 
 # Settings that live exclusively in __global.db (not per-logbook)

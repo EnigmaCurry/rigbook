@@ -29,6 +29,7 @@
   let hasQrzPassword = false;
   let qrz_api_key = "";
   let hasQrzApiKey = false;
+  let qrz_auto_upload = false;
   let pota_enabled = false;
   let solar_enabled = false;
   let update_check_enabled = true;
@@ -1434,6 +1435,7 @@
           if (s.key === "qrz_username") { if (isGlobal) { globalPlaceholders.qrz_username = s.value; qrz_username = ""; } else qrz_username = s.value || ""; }
           if (s.key === "qrz_password") hasQrzPassword = !!s.value && s.value !== "";
           if (s.key === "qrz_api_key") hasQrzApiKey = !!s.value && s.value !== "";
+          if (s.key === "qrz_auto_upload") qrz_auto_upload = s.value === "true";
           if (s.key === "pota_enabled") pota_enabled = s.value !== "false";
           if (s.key === "solar_enabled") solar_enabled = s.value === "true";
           if (s.key === "sql_query_enabled") sql_query_enabled = s.value === "true";
@@ -1827,6 +1829,14 @@
       {#if hasQrzApiKey}<button type="button" class="check-now-btn" on:click={clearQrzApiKey}>Clear API Key</button>{/if}
       <span class="hint">{#if hasQrzApiKey}QRZ Logbook API key is set. Upload QSOs from the Export/Import page.{:else}Get your API key from <a href="https://logbook.qrz.com/logbook" target="_blank" rel="noopener" style="color: var(--accent)">QRZ Logbook</a> (requires XML subscription){/if}</span>
     </div>
+    {#if hasQrzApiKey}
+      <div class="setting-row toggle-row">
+        <label>
+          <input type="checkbox" bind:checked={qrz_auto_upload} on:change={() => saveSetting("qrz_auto_upload", qrz_auto_upload ? "true" : "false")} />
+          Log all QSOs to QRZ automatically
+        </label>
+      </div>
+    {/if}
   </section>
 
   <section class="settings-section">
