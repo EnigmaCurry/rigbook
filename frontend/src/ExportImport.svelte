@@ -14,6 +14,27 @@
   let qrzSyncing = false;
   let qrzSyncResult = null;
   let qrzPreview = null;
+  let qrzSelected = new Set();
+
+  $: qrzAllSelected = qrzPreview && qrzPreview.contacts && qrzPreview.contacts.length > 0 && qrzSelected.size === qrzPreview.contacts.length;
+
+  function toggleQrzSelect(id) {
+    if (qrzSelected.has(id)) {
+      qrzSelected.delete(id);
+    } else {
+      qrzSelected.add(id);
+    }
+    qrzSelected = new Set(qrzSelected);
+  }
+
+  function toggleQrzSelectAll() {
+    if (!qrzPreview || !qrzPreview.contacts) return;
+    if (qrzAllSelected) {
+      qrzSelected = new Set();
+    } else {
+      qrzSelected = new Set(qrzPreview.contacts.map(c => c.id));
+    }
+  }
 
   // Comment template
   const TEMPLATE_FIELDS = [
@@ -519,8 +540,21 @@
         fetch("/api/qrz-sync/preview"),
       ]);
       if (statusRes.ok) qrzSyncStatus = await statusRes.json();
-      if (previewRes.ok) qrzPreview = await previewRes.json();
+      if (previewRes.ok) {
+        qrzPreview = await previewRes.json();
+        qrzSelected = new Set(qrzPreview.contacts.map(c => c.id));
+      }
     } catch { qrzSyncStatus = null; qrzPreview = null; }
+  }
+
+  async function excludeFromQrz(contactId) {
+    try {
+      const res = await fetch(`/api/qrz-sync/exclude/${contactId}`, { method: "POST" });
+      if (res.ok) {
+        await fetchQrzSyncStatus();
+        expandedRow = null;
+      }
+    } catch {}
   }
 
   async function uploadToQrz(all = false) {
@@ -528,7 +562,12 @@
     qrzSyncResult = null;
     try {
       const endpoint = all ? "/api/qrz-sync/upload-all" : "/api/qrz-sync/upload";
-      const res = await fetch(endpoint, { method: "POST" });
+      const options = { method: "POST" };
+      if (!all) {
+        options.headers = { "Content-Type": "application/json" };
+        options.body = JSON.stringify({ contact_ids: [...qrzSelected] });
+      }
+      const res = await fetch(endpoint, options);
       if (res.ok) {
         qrzSyncResult = await res.json();
       } else {
@@ -611,12 +650,15 @@
               <div class="stat-row"><span class="stat-label">Total contacts:</span> <span class="stat-value">{qrzSyncStatus.total}</span></div>
               <div class="stat-row"><span class="stat-label">Synced to QRZ:</span> <span class="stat-value">{qrzSyncStatus.synced}</span></div>
               <div class="stat-row"><span class="stat-label">Pending upload:</span> <span class="stat-value highlight">{qrzSyncStatus.pending}</span></div>
+              {#if qrzSyncStatus.excluded > 0}
+                <div class="stat-row"><span class="stat-label">Excluded:</span> <span class="stat-value">{qrzSyncStatus.excluded}</span></div>
+              {/if}
             </div>
             <div class="qrz-actions">
-              <button class="action-btn" on:click={() => uploadToQrz(false)} disabled={qrzSyncing || qrzSyncStatus.pending === 0}>
-                {qrzSyncing ? "Uploading..." : `Upload ${qrzSyncStatus.pending} Pending`}
+              <button class="action-btn" on:click={() => uploadToQrz(false)} disabled={qrzSyncing || qrzSelected.size === 0}>
+                {qrzSyncing ? "Uploading..." : `Upload ${qrzSelected.size} Selected`}
               </button>
-              <button class="action-btn secondary-btn" on:click={() => { if (confirm("Re-upload all contacts to QRZ? This will overwrite any changes made directly on QRZ.")) uploadToQrz(true); }} disabled={qrzSyncing || qrzSyncStatus.total === 0}>
+              <button class="action-btn secondary-btn" on:click={() => { if (confirm("Re-upload all non-excluded contacts to QRZ? This will overwrite any changes made directly on QRZ.")) uploadToQrz(true); }} disabled={qrzSyncing || qrzSyncStatus.total === 0}>
                 Re-upload All
               </button>
             </div>
@@ -787,6 +829,7 @@
           <table class="preview-table">
             <thead>
               <tr>
+                {#if activeTab === "qrz"}<th class="col-check"><input type="checkbox" checked={qrzAllSelected} on:click|stopPropagation={toggleQrzSelectAll} title="Select all / Deselect all" /></th>{/if}
                 <th class="col-compact">UTC<span class="resize-handle" on:mousedown={e => startResize(e, 0)}></span></th>
                 <th class="col-compact">Call<span class="resize-handle" on:mousedown={e => startResize(e, 1)}></span></th>
                 <th class="col-comment">Comments<span class="resize-handle" on:mousedown={e => startResize(e, 2)}></span></th>
@@ -808,6 +851,7 @@
             <tbody>
               {#each displayContacts as c, i}
                 <tr class="clickable" class:expanded={expandedRow === i} class:has-warning={c.warnings && c.warnings.length > 0} class:has-merged={c.merged} on:click={() => toggleRow(i)}>
+                  {#if activeTab === "qrz"}<td class="check-cell" on:click|stopPropagation><input type="checkbox" checked={qrzSelected.has(c.id)} on:change={() => toggleQrzSelect(c.id)} /></td>{/if}
                   <td>{formatTimestamp(c.timestamp)}</td>
                   <td class="call">{c.call}</td>
                   <td class="truncate">{#if activeTab === "import" && c.original_comment && c.original_comment !== (c.comments || "")}<span class="comment-modified" title="Original: {c.original_comment}">* </span>{/if}{activeTab === "export" ? renderComment(c, commentTemplate, commentSeparator) : (c.comments || "")}</td>
@@ -827,7 +871,13 @@
                 </tr>
                 {#if expandedRow === i}
                   <tr class="detail-row">
-                    <td colspan="16">
+                    <td colspan={activeTab === "qrz" ? 17 : 16}>
+                      {#if activeTab === "qrz"}
+                        <div class="qrz-detail-actions">
+                          <button class="exclude-btn" on:click|stopPropagation={() => excludeFromQrz(c.id)}>Exclude from QRZ</button>
+                          <span class="hint">Permanently skip this contact for QRZ uploads</span>
+                        </div>
+                      {/if}
                       {#if c.warnings && c.warnings.length > 0}
                         <div class="warning-list">
                           {#each c.warnings as w}
@@ -920,7 +970,8 @@
     {:else if activeTab === "qrz"}
       <span class="action-summary">
         {#if qrzSyncStatus && qrzSyncStatus.configured}
-          {qrzSyncStatus.pending} contact{qrzSyncStatus.pending !== 1 ? "s" : ""} pending upload to QRZ
+          {qrzSelected.size} of {qrzSyncStatus.pending} selected for upload
+          {#if qrzSyncStatus.excluded > 0}({qrzSyncStatus.excluded} excluded){/if}
         {/if}
       </span>
     {:else}
@@ -1843,5 +1894,38 @@
 
   .qrz-errors li {
     margin-bottom: 0.25rem;
+  }
+
+  .col-check {
+    width: 2rem;
+    text-align: center;
+  }
+
+  .check-cell {
+    text-align: center;
+  }
+
+  .qrz-detail-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border, #555);
+  }
+
+  .exclude-btn {
+    background: var(--bg-error, #3a1a1a);
+    color: var(--error, #e66);
+    border: 1px solid var(--error, #a44);
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+
+  .exclude-btn:hover {
+    background: var(--error, #a44);
+    color: white;
   }
 </style>

@@ -1,8 +1,10 @@
 import logging
 from datetime import datetime, timezone
 from importlib.metadata import version as pkg_version
+
 import httpx
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,6 +18,18 @@ logger = logging.getLogger("rigbook")
 router = APIRouter(prefix="/api/qrz-sync", tags=["qrz-sync"])
 
 QRZ_LOGBOOK_URL = "https://logbook.qrz.com/api"
+
+# Common filter: not excluded from QRZ
+_not_excluded = or_(Contact.qrz_excluded.is_(None), Contact.qrz_excluded == 0)
+
+# Common filter: needs sync (new or updated since last sync) and not excluded
+_needs_sync = (
+    _not_excluded,
+    or_(
+        Contact.qrz_logid.is_(None),
+        Contact.updated_at > Contact.qrz_synced_at,
+    ),
+)
 
 
 async def _get_api_key(session: AsyncSession) -> str | None:
@@ -59,15 +73,6 @@ def _add_required_fields(
     return record
 
 
-def _needs_sync(contact: Contact) -> bool:
-    """Check if a contact needs syncing to QRZ."""
-    if contact.qrz_logid is None:
-        return True
-    if contact.updated_at and contact.qrz_synced_at:
-        return contact.updated_at > contact.qrz_synced_at
-    return False
-
-
 @router.get("/status")
 async def sync_status(session: AsyncSession = Depends(get_session)):
     """Return count of unsynced contacts and QRZ logbook stats."""
@@ -75,19 +80,20 @@ async def sync_status(session: AsyncSession = Depends(get_session)):
     if not api_key:
         return {"configured": False, "error": "QRZ API key not set"}
 
-    # Count contacts needing sync
-    unsynced_stmt = select(func.count(Contact.id)).where(
-        or_(
-            Contact.qrz_logid.is_(None),
-            Contact.updated_at > Contact.qrz_synced_at,
-        )
-    )
-    unsynced_count = (await session.execute(unsynced_stmt)).scalar() or 0
+    unsynced_count = (
+        await session.execute(select(func.count(Contact.id)).where(*_needs_sync))
+    ).scalar() or 0
 
-    total_stmt = select(func.count(Contact.id))
-    total_count = (await session.execute(total_stmt)).scalar() or 0
+    total_count = (await session.execute(select(func.count(Contact.id)))).scalar() or 0
+
+    excluded_count = (
+        await session.execute(
+            select(func.count(Contact.id)).where(Contact.qrz_excluded == 1)
+        )
+    ).scalar() or 0
 
     synced_stmt = select(func.count(Contact.id)).where(
+        _not_excluded,
         Contact.qrz_logid.isnot(None),
         or_(
             Contact.qrz_synced_at.is_(None),
@@ -118,29 +124,21 @@ async def sync_status(session: AsyncSession = Depends(get_session)):
         "total": total_count,
         "synced": synced_count,
         "pending": unsynced_count,
+        "excluded": excluded_count,
         "qrz_status": qrz_status,
     }
 
 
 @router.get("/preview")
 async def sync_preview(session: AsyncSession = Depends(get_session)):
-    """Return contacts pending upload to QRZ, in the same format as export preview."""
+    """Return contacts pending upload to QRZ."""
     api_key = await _get_api_key(session)
     if not api_key:
         return {"configured": False, "contacts": [], "pending": 0, "total": 0}
 
     total_count = (await session.execute(select(func.count(Contact.id)))).scalar() or 0
 
-    stmt = (
-        select(Contact)
-        .where(
-            or_(
-                Contact.qrz_logid.is_(None),
-                Contact.updated_at > Contact.qrz_synced_at,
-            )
-        )
-        .order_by(Contact.timestamp.desc())
-    )
+    stmt = select(Contact).where(*_needs_sync).order_by(Contact.timestamp.desc())
     result = await session.execute(stmt)
     contacts = result.scalars().all()
 
@@ -157,31 +155,31 @@ async def sync_preview(session: AsyncSession = Depends(get_session)):
     }
 
 
+class UploadRequest(BaseModel):
+    contact_ids: list[int]
+
+
 @router.post("/upload")
-async def upload_unsynced(session: AsyncSession = Depends(get_session)):
-    """Upload contacts that haven't been synced to QRZ yet."""
+async def upload_selected(
+    body: UploadRequest, session: AsyncSession = Depends(get_session)
+):
+    """Upload selected contacts to QRZ."""
     api_key = await _get_api_key(session)
     if not api_key:
         return {"error": "QRZ API key not set"}
 
     callsign = await _get_callsign(session)
 
-    # Find contacts needing sync
     stmt = (
         select(Contact)
-        .where(
-            or_(
-                Contact.qrz_logid.is_(None),
-                Contact.updated_at > Contact.qrz_synced_at,
-            )
-        )
+        .where(Contact.id.in_(body.contact_ids), _not_excluded)
         .order_by(Contact.timestamp.asc())
     )
     result = await session.execute(stmt)
     contacts = result.scalars().all()
 
     if not contacts:
-        return {"uploaded": 0, "errors": 0, "message": "All contacts already synced"}
+        return {"uploaded": 0, "errors": 0, "message": "No contacts to upload"}
 
     return await _upload_contacts(contacts, api_key, callsign, session, replace=False)
 
@@ -195,7 +193,7 @@ async def upload_all(session: AsyncSession = Depends(get_session)):
 
     callsign = await _get_callsign(session)
 
-    stmt = select(Contact).order_by(Contact.timestamp.asc())
+    stmt = select(Contact).where(_not_excluded).order_by(Contact.timestamp.asc())
     result = await session.execute(stmt)
     contacts = result.scalars().all()
 
@@ -203,6 +201,36 @@ async def upload_all(session: AsyncSession = Depends(get_session)):
         return {"uploaded": 0, "errors": 0, "message": "No contacts to upload"}
 
     return await _upload_contacts(contacts, api_key, callsign, session, replace=True)
+
+
+@router.post("/exclude/{contact_id}")
+async def exclude_contact(
+    contact_id: int, session: AsyncSession = Depends(get_session)
+):
+    """Mark a contact as excluded from QRZ uploads."""
+    contact = (
+        await session.execute(select(Contact).where(Contact.id == contact_id))
+    ).scalar_one_or_none()
+    if not contact:
+        return {"error": "Contact not found"}
+    contact.qrz_excluded = 1
+    await session.commit()
+    return {"ok": True, "id": contact_id}
+
+
+@router.post("/include/{contact_id}")
+async def include_contact(
+    contact_id: int, session: AsyncSession = Depends(get_session)
+):
+    """Remove exclusion flag from a contact."""
+    contact = (
+        await session.execute(select(Contact).where(Contact.id == contact_id))
+    ).scalar_one_or_none()
+    if not contact:
+        return {"error": "Contact not found"}
+    contact.qrz_excluded = 0
+    await session.commit()
+    return {"ok": True, "id": contact_id}
 
 
 async def _upload_contacts(

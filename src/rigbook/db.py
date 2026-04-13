@@ -133,6 +133,7 @@ class Contact(Base):
     updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     qrz_logid: Mapped[int | None] = mapped_column(Integer, nullable=True)
     qrz_synced_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    qrz_excluded: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
 
 
 class Setting(Base):
