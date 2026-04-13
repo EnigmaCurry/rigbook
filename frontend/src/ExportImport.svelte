@@ -542,7 +542,7 @@
       if (statusRes.ok) qrzSyncStatus = await statusRes.json();
       if (previewRes.ok) {
         qrzPreview = await previewRes.json();
-        qrzSelected = new Set(qrzPreview.contacts.map(c => c.id));
+        qrzSelected = new Set();
       }
     } catch { qrzSyncStatus = null; qrzPreview = null; }
   }
