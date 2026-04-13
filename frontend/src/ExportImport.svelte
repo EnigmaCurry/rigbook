@@ -567,6 +567,7 @@
       if (res.ok) {
         await fetchQrzSyncStatus();
         expandedRow = null;
+        if (qrzExcludedCount === 0) qrzFilter = "pending";
       }
     } catch {}
   }
