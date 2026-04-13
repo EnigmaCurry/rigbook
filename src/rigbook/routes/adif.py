@@ -1100,6 +1100,10 @@ async def preview_import_adif(
             "updated_at": datetime.now(timezone.utc).isoformat()
             if data.get("_merged") or data.get("_skcc_auto_applied")
             else None,
+            "qrz_logid": data.get("qrz_logid"),
+            "qrz_synced_at": data.get("qrz_synced_at").isoformat()
+            if data.get("qrz_synced_at")
+            else None,
             "adif_line": record_to_adif_line(raw_record),
             "adif_lines": adif_lines,
             "warnings": warnings,
@@ -1173,6 +1177,8 @@ IMPORT_FIELDS = {
     "notes",
     "timestamp_off",
     "updated_at",
+    "qrz_logid",
+    "qrz_synced_at",
 }
 
 
@@ -1232,6 +1238,16 @@ async def import_confirmed(
                 data["updated_at"] = ua
             except (ValueError, TypeError):
                 del data["updated_at"]
+        if data.get("qrz_synced_at"):
+            try:
+                qs = data["qrz_synced_at"]
+                if isinstance(qs, str):
+                    qs = datetime.fromisoformat(qs.replace("Z", "+00:00"))
+                if qs.tzinfo is not None:
+                    qs = qs.replace(tzinfo=None)
+                data["qrz_synced_at"] = qs
+            except (ValueError, TypeError):
+                del data["qrz_synced_at"]
         # Dedup by UUID against DB and batch
         is_dup = False
         record_uuid = c.get("uuid")
