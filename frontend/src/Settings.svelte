@@ -1825,7 +1825,7 @@
     <div class="setting-row">
       {#if qrz_api_key.trim()}<button type="button" class="check-now-btn" on:click={saveQrzApiKey}>Save API Key</button>{/if}
       {#if hasQrzApiKey}<button type="button" class="check-now-btn" on:click={clearQrzApiKey}>Clear API Key</button>{/if}
-      <span class="hint">{#if hasQrzApiKey}QRZ Logbook API key is set. Upload QSOs from the Export/Import page.{:else}Get your API key from <a href="https://logbook.qrz.com/logbook" target="_blank" rel="noopener">QRZ Logbook</a> (requires XML subscription){/if}</span>
+      <span class="hint">{#if hasQrzApiKey}QRZ Logbook API key is set. Upload QSOs from the Export/Import page.{:else}Get your API key from <a href="https://logbook.qrz.com/logbook" target="_blank" rel="noopener" style="color: var(--accent)">QRZ Logbook</a> (requires XML subscription){/if}</span>
     </div>
   </section>
 
