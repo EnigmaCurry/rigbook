@@ -322,6 +322,12 @@ async def fetch_qrz_logbook(session: AsyncSession = Depends(get_session)):
                 logger.info("QRZ FETCH page %d: empty ADIF, done", page_num)
                 break
 
+            logger.info(
+                "QRZ FETCH page %d ADIF preview: %s",
+                page_num,
+                repr(adif_data[:500]),
+            )
+
             # Count <eor> markers to verify record count
             eor_count = len(re.findall(r"<eor>", adif_data, re.IGNORECASE))
             logger.info(
