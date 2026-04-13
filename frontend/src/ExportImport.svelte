@@ -642,7 +642,7 @@
   <div class="tab-bar">
     <button class="tab" class:active={activeTab === "import"} on:click={() => { activeTab = "import"; message = ""; }}>Import</button>
     <button class="tab" class:active={activeTab === "export"} on:click={() => { activeTab = "export"; message = ""; }}>Export</button>
-    <button class="tab" class:active={activeTab === "qrz"} on:click={() => { activeTab = "qrz"; message = ""; fetchQrzSyncStatus(); }}>QRZ Upload</button>
+    {#if hasQrzApiKey}<button class="tab" class:active={activeTab === "qrz"} on:click={() => { activeTab = "qrz"; message = ""; fetchQrzSyncStatus(); }}>QRZ Upload</button>{/if}
   </div>
 
   <div class="main-layout">
