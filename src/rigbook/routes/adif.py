@@ -387,6 +387,13 @@ def adif_record_to_contact_dict(record: dict) -> dict:
     app_uuid = record.get("APP_RIGBOOK_UUID")
     if app_uuid:
         data["uuid"] = app_uuid
+    qrz_logid = record.get("APP_QRZLOG_LOGID")
+    if qrz_logid:
+        try:
+            data["qrz_logid"] = int(qrz_logid)
+            data["qrz_synced_at"] = datetime.now(timezone.utc)
+        except (ValueError, TypeError):
+            pass
     app_updated = record.get("APP_RIGBOOK_UPDATED_AT")
     if app_updated:
         try:
