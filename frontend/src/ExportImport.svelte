@@ -745,6 +745,7 @@
           {loadingImport ? "Loading..." : "Choose ADIF File"}
         </label>
         {#if hasQrzApiKey}
+          <span class="or-divider">- or -</span>
           <button class="file-label qrz-import-btn" on:click={importFromQrz} disabled={importing || loadingImport || qrzImporting}>
             {qrzImporting ? "Downloading from QRZ..." : "Import from QRZ"}
           </button>
@@ -2016,5 +2017,13 @@
   .include-btn:hover {
     background: var(--accent, #4a4);
     color: white;
+  }
+
+  .or-divider {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin: 0.5rem 0;
+    display: block;
+    text-align: center;
   }
 </style>
