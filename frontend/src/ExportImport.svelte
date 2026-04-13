@@ -9,6 +9,7 @@
   let message = "";
   let messageType = "";
   let qrzImporting = false;
+  let hasQrzApiKey = false;
 
   // QRZ sync state
   let qrzSyncStatus = null;
@@ -151,9 +152,16 @@
     if (byAlias) { countryFilter = byAlias.name; return; }
   }
 
-  onMount(() => {
+  onMount(async () => {
     fetchCountries();
     loadCommentTemplate();
+    try {
+      const res = await fetch("/api/qrz-sync/status");
+      if (res.ok) {
+        const data = await res.json();
+        hasQrzApiKey = !!data.configured;
+      }
+    } catch {}
   });
 
   // Export filter state
@@ -736,9 +744,11 @@
           <input type="file" accept=".adi,.adif,.ADI,.ADIF" on:change={stageImportFile} disabled={importing || loadingImport || qrzImporting} />
           {loadingImport ? "Loading..." : "Choose ADIF File"}
         </label>
-        <button class="file-label qrz-import-btn" on:click={importFromQrz} disabled={importing || loadingImport || qrzImporting}>
-          {qrzImporting ? "Downloading from QRZ..." : "Import from QRZ"}
-        </button>
+        {#if hasQrzApiKey}
+          <button class="file-label qrz-import-btn" on:click={importFromQrz} disabled={importing || loadingImport || qrzImporting}>
+            {qrzImporting ? "Downloading from QRZ..." : "Import from QRZ"}
+          </button>
+        {/if}
         {#if importFileName}
           <p class="file-name">{importFileName}</p>
         {/if}
