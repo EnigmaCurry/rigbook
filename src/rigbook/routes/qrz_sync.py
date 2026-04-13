@@ -52,9 +52,27 @@ def _user_agent(callsign: str | None) -> str:
 
 
 def _parse_qrz_response(text: str) -> dict[str, str]:
-    """Parse QRZ's ampersand-separated name=value response."""
+    """Parse QRZ's ampersand-separated name=value response.
+
+    The ADIF field contains raw ADIF data that may include '&' characters,
+    so we extract it separately before splitting the rest.
+    """
     result = {}
-    for pair in text.strip().split("&"):
+    body = text.strip()
+
+    # ADIF field is always last and can contain '&', so extract it first
+    adif_marker = "&ADIF="
+    idx = body.find(adif_marker)
+    if idx == -1:
+        # Also check if response starts with ADIF=
+        if body.startswith("ADIF="):
+            result["ADIF"] = body[5:]
+            return result
+    else:
+        result["ADIF"] = body[idx + len(adif_marker) :]
+        body = body[:idx]
+
+    for pair in body.split("&"):
         if "=" in pair:
             key, _, value = pair.partition("=")
             result[key] = value
