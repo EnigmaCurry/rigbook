@@ -9,7 +9,11 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from rigbook.db import Contact, get_session, resolve_setting
-from rigbook.routes.adif import contact_to_adif_record, record_to_adif_line
+from rigbook.routes.adif import (
+    _fetch_comment_settings,
+    contact_to_adif_record,
+    record_to_adif_line,
+)
 from rigbook.routes.contacts import ContactResponse
 from rigbook.spots import freq_to_band
 
@@ -246,11 +250,17 @@ async def _upload_contacts(
     error_details = []
     now = datetime.now(timezone.utc)
 
+    comment_template, comment_separator = await _fetch_comment_settings(session)
+
     async with httpx.AsyncClient(
         timeout=15, headers={"User-Agent": _user_agent(callsign)}
     ) as client:
         for contact in contacts:
-            record = contact_to_adif_record(contact)
+            record = contact_to_adif_record(
+                contact,
+                comment_template=comment_template or None,
+                comment_separator=comment_separator,
+            )
             record = _add_required_fields(record, callsign, contact.freq)
             adif_line = record_to_adif_line(record)
 
