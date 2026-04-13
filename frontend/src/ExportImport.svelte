@@ -13,6 +13,7 @@
   let qrzSyncStatus = null;
   let qrzSyncing = false;
   let qrzSyncResult = null;
+  let qrzPreview = null;
 
   // Comment template
   const TEMPLATE_FIELDS = [
@@ -155,7 +156,7 @@
   let importFilter = "all";
 
   // Unified preview based on active tab
-  $: currentPreview = activeTab === "export" ? exportPreview : importPreview;
+  $: currentPreview = activeTab === "export" ? exportPreview : activeTab === "qrz" ? qrzPreview : importPreview;
   $: warningCount = importPreview ? (importPreview.contacts || []).filter(c => c.warnings && c.warnings.length > 0).length : 0;
   $: fixedCount = importPreview ? (importPreview.contacts || []).filter(c => c._fixed).length : 0;
   $: mergedCount = importPreview ? (importPreview.contacts || []).filter(c => c.merged).length : 0;
@@ -513,9 +514,13 @@
 
   async function fetchQrzSyncStatus() {
     try {
-      const res = await fetch("/api/qrz-sync/status");
-      if (res.ok) qrzSyncStatus = await res.json();
-    } catch { qrzSyncStatus = null; }
+      const [statusRes, previewRes] = await Promise.all([
+        fetch("/api/qrz-sync/status"),
+        fetch("/api/qrz-sync/preview"),
+      ]);
+      if (statusRes.ok) qrzSyncStatus = await statusRes.json();
+      if (previewRes.ok) qrzPreview = await previewRes.json();
+    } catch { qrzSyncStatus = null; qrzPreview = null; }
   }
 
   async function uploadToQrz(all = false) {
@@ -894,6 +899,8 @@
         <div class="empty-preview">No file selected</div>
       {:else if activeTab === "export" && exportPreview && exportPreview.contacts.length === 0}
         <div class="empty-preview">No contacts match filters</div>
+      {:else if activeTab === "qrz" && qrzPreview && qrzPreview.contacts.length === 0}
+        <div class="empty-preview">All contacts synced to QRZ</div>
       {/if}
 
     </div>

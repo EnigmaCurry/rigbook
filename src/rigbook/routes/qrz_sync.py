@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from rigbook.db import Contact, get_session, resolve_setting
 from rigbook.routes.adif import contact_to_adif_record, record_to_adif_line
+from rigbook.routes.contacts import ContactResponse
 from rigbook.spots import freq_to_band
 
 logger = logging.getLogger("rigbook")
@@ -118,6 +119,41 @@ async def sync_status(session: AsyncSession = Depends(get_session)):
         "synced": synced_count,
         "pending": unsynced_count,
         "qrz_status": qrz_status,
+    }
+
+
+@router.get("/preview")
+async def sync_preview(session: AsyncSession = Depends(get_session)):
+    """Return contacts pending upload to QRZ, in the same format as export preview."""
+    api_key = await _get_api_key(session)
+    if not api_key:
+        return {"configured": False, "contacts": [], "pending": 0, "total": 0}
+
+    total_count = (await session.execute(select(func.count(Contact.id)))).scalar() or 0
+
+    stmt = (
+        select(Contact)
+        .where(
+            or_(
+                Contact.qrz_logid.is_(None),
+                Contact.updated_at > Contact.qrz_synced_at,
+            )
+        )
+        .order_by(Contact.timestamp.desc())
+    )
+    result = await session.execute(stmt)
+    contacts = result.scalars().all()
+
+    previews = []
+    for c in contacts:
+        data = ContactResponse.model_validate(c).model_dump()
+        previews.append(data)
+
+    return {
+        "configured": True,
+        "contacts": previews,
+        "pending": len(previews),
+        "total": total_count,
     }
 
 
