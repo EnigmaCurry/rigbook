@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import datetime, timezone
 from importlib.metadata import version as pkg_version
 
@@ -128,6 +129,7 @@ async def sync_status(session: AsyncSession = Depends(get_session)):
     callsign = await _get_callsign(session)
     qrz_status = None
     try:
+        logger.info("QRZ STATUS request")
         async with httpx.AsyncClient(
             timeout=10, headers={"User-Agent": _user_agent(callsign)}
         ) as client:
@@ -136,10 +138,19 @@ async def sync_status(session: AsyncSession = Depends(get_session)):
                 data={"KEY": api_key, "ACTION": "STATUS"},
             )
             parsed = _parse_qrz_response(res.text)
+            logger.info("QRZ STATUS response: RESULT=%s", parsed.get("RESULT"))
             if parsed.get("RESULT") == "OK":
                 qrz_status = parsed.get("DATA")
     except Exception as e:
-        logger.warning("QRZ status check failed: %s", e)
+        logger.warning("QRZ STATUS failed: %s", e)
+
+    logger.info(
+        "QRZ sync status: total=%d, synced=%d, pending=%d, excluded=%d",
+        total_count,
+        synced_count,
+        unsynced_count,
+        excluded_count,
+    )
 
     return {
         "configured": True,
@@ -205,6 +216,7 @@ async def upload_selected(
         return {"error": "QRZ API key not set"}
 
     callsign = await _get_callsign(session)
+    logger.info("QRZ upload requested for %d contact IDs", len(body.contact_ids))
 
     stmt = (
         select(Contact)
@@ -215,6 +227,7 @@ async def upload_selected(
     contacts = result.scalars().all()
 
     if not contacts:
+        logger.info("QRZ upload: no eligible contacts found")
         return {"uploaded": 0, "errors": 0, "message": "No contacts to upload"}
 
     return await _upload_contacts(contacts, api_key, callsign, session, replace=False)
@@ -236,6 +249,7 @@ async def upload_all(session: AsyncSession = Depends(get_session)):
     if not contacts:
         return {"uploaded": 0, "errors": 0, "message": "No contacts to upload"}
 
+    logger.info("QRZ upload-all: %d contacts", len(contacts))
     return await _upload_contacts(contacts, api_key, callsign, session, replace=True)
 
 
@@ -250,49 +264,110 @@ async def fetch_qrz_logbook(session: AsyncSession = Depends(get_session)):
     all_adif = []
     after_logid = 0
     page_size = 250
+    total_records = 0
+    page_num = 0
+
+    logger.info("QRZ FETCH: starting logbook download")
 
     async with httpx.AsyncClient(
         timeout=30, headers={"User-Agent": _user_agent(callsign)}
     ) as client:
         while True:
+            page_num += 1
+            option = f"TYPE:ADIF,MAX:{page_size},AFTERLOGID:{after_logid}"
+            logger.info("QRZ FETCH page %d: OPTION=%s", page_num, option)
+
             res = await client.post(
                 QRZ_LOGBOOK_URL,
                 data={
                     "KEY": api_key,
                     "ACTION": "FETCH",
-                    "OPTION": f"TYPE:ADIF,MAX:{page_size},AFTERLOGID:{after_logid}",
+                    "OPTION": option,
                 },
             )
-            parsed = _parse_qrz_response(res.text)
 
-            if parsed.get("RESULT") != "OK":
+            raw_text = res.text
+            logger.debug(
+                "QRZ FETCH raw response (%d chars): %s",
+                len(raw_text),
+                raw_text[:500],
+            )
+
+            parsed = _parse_qrz_response(raw_text)
+            result_code = parsed.get("RESULT", "(missing)")
+            count_str = parsed.get("COUNT", "0")
+            adif_data = parsed.get("ADIF", "")
+
+            logger.info(
+                "QRZ FETCH page %d: RESULT=%s, COUNT=%s, ADIF length=%d chars",
+                page_num,
+                result_code,
+                count_str,
+                len(adif_data),
+            )
+
+            if result_code != "OK":
                 reason = parsed.get("REASON", "Unknown error")
+                logger.warning(
+                    "QRZ FETCH page %d failed: %s (all parsed keys: %s)",
+                    page_num,
+                    reason,
+                    list(parsed.keys()),
+                )
                 if all_adif:
                     break
                 return {"error": f"QRZ fetch failed: {reason}"}
 
-            adif_data = parsed.get("ADIF", "")
             if not adif_data:
+                logger.info("QRZ FETCH page %d: empty ADIF, done", page_num)
                 break
 
-            all_adif.append(adif_data)
+            # Count <eor> markers to verify record count
+            eor_count = len(re.findall(r"<eor>", adif_data, re.IGNORECASE))
+            logger.info(
+                "QRZ FETCH page %d: %d <eor> markers found in ADIF",
+                page_num,
+                eor_count,
+            )
+            if eor_count > 0:
+                # Log first record as sample
+                first_eor = re.search(r"<eor>", adif_data, re.IGNORECASE)
+                if first_eor:
+                    logger.debug(
+                        "QRZ FETCH sample record: %s",
+                        adif_data[: first_eor.end()],
+                    )
 
-            count = int(parsed.get("COUNT", "0"))
+            all_adif.append(adif_data)
+            total_records += eor_count
+
+            count = int(count_str)
             if count < page_size:
+                logger.info(
+                    "QRZ FETCH: last page (count %d < page_size %d)",
+                    count,
+                    page_size,
+                )
                 break
 
             # Find highest app_qrzlog_logid for pagination
-            import re
-
             logids = re.findall(
                 r"<app_qrzlog_logid:\d+>(\d+)", adif_data, re.IGNORECASE
             )
             if logids:
                 after_logid = max(int(lid) for lid in logids) + 1
+                logger.info("QRZ FETCH: next AFTERLOGID=%d", after_logid)
             else:
+                logger.info("QRZ FETCH: no app_qrzlog_logid found, stopping")
                 break
 
     adif_text = "\n".join(all_adif)
+    logger.info(
+        "QRZ FETCH complete: %d pages, %d records, %d chars total ADIF",
+        page_num,
+        total_records,
+        len(adif_text),
+    )
     return {"adif": adif_text, "ok": True}
 
 
@@ -308,6 +383,7 @@ async def exclude_contact(
         return {"error": "Contact not found"}
     contact.qrz_excluded = 1
     await session.commit()
+    logger.info("QRZ excluded contact %d (%s)", contact_id, contact.call)
     return {"ok": True, "id": contact_id}
 
 
@@ -323,6 +399,7 @@ async def include_contact(
         return {"error": "Contact not found"}
     contact.qrz_excluded = 0
     await session.commit()
+    logger.info("QRZ included contact %d (%s)", contact_id, contact.call)
     return {"ok": True, "id": contact_id}
 
 
@@ -341,6 +418,10 @@ async def _upload_contacts(
 
     comment_template, comment_separator = await _fetch_comment_settings(session)
 
+    logger.info(
+        "QRZ INSERT: uploading %d contacts (replace=%s)", len(contacts), replace
+    )
+
     async with httpx.AsyncClient(
         timeout=15, headers={"User-Agent": _user_agent(callsign)}
     ) as client:
@@ -353,40 +434,68 @@ async def _upload_contacts(
             record = _add_required_fields(record, callsign, contact.freq)
             adif_line = record_to_adif_line(record)
 
+            use_replace = replace or contact.qrz_logid is not None
             data = {
                 "KEY": api_key,
                 "ACTION": "INSERT",
                 "ADIF": adif_line,
             }
-            if replace or contact.qrz_logid is not None:
+            if use_replace:
                 data["OPTION"] = "REPLACE"
+
+            logger.debug(
+                "QRZ INSERT %s: ADIF=%s, REPLACE=%s",
+                contact.call,
+                adif_line[:200],
+                use_replace,
+            )
 
             try:
                 res = await client.post(QRZ_LOGBOOK_URL, data=data)
                 parsed = _parse_qrz_response(res.text)
+                result_code = parsed.get("RESULT", "(missing)")
 
-                if parsed.get("RESULT") == "OK" or parsed.get("RESULT") == "REPLACE":
+                logger.info(
+                    "QRZ INSERT %s: RESULT=%s, LOGID=%s",
+                    contact.call,
+                    result_code,
+                    parsed.get("LOGID", "(none)"),
+                )
+
+                if result_code in ("OK", "REPLACE"):
                     logid = parsed.get("LOGID")
                     if logid:
                         contact.qrz_logid = int(logid)
                     contact.qrz_synced_at = now
                     uploaded += 1
-                elif parsed.get("RESULT") == "FAIL":
+                elif result_code == "FAIL":
                     reason = parsed.get("REASON", "Unknown error")
                     errors += 1
                     error_details.append({"call": contact.call, "reason": reason})
-                    logger.warning("QRZ upload failed for %s: %s", contact.call, reason)
+                    logger.warning("QRZ INSERT %s failed: %s", contact.call, reason)
                 else:
                     errors += 1
                     error_details.append(
                         {"call": contact.call, "reason": res.text[:200]}
                     )
+                    logger.warning(
+                        "QRZ INSERT %s unexpected response: %s",
+                        contact.call,
+                        res.text[:200],
+                    )
             except Exception as e:
                 errors += 1
                 error_details.append({"call": contact.call, "reason": str(e)})
-                logger.warning("QRZ upload error for %s: %s", contact.call, e)
+                logger.warning("QRZ INSERT %s error: %s", contact.call, e)
 
     await session.commit()
+
+    logger.info(
+        "QRZ INSERT complete: %d uploaded, %d errors, %d total",
+        uploaded,
+        errors,
+        len(contacts),
+    )
 
     return {
         "uploaded": uploaded,
