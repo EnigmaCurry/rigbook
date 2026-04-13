@@ -151,9 +151,23 @@ async def sync_preview(session: AsyncSession = Depends(get_session)):
         data = ContactResponse.model_validate(c).model_dump()
         previews.append(data)
 
+    excluded_stmt = (
+        select(Contact)
+        .where(Contact.qrz_excluded == 1)
+        .order_by(Contact.timestamp.desc())
+    )
+    excluded_result = await session.execute(excluded_stmt)
+    excluded_contacts = excluded_result.scalars().all()
+
+    excluded_previews = []
+    for c in excluded_contacts:
+        data = ContactResponse.model_validate(c).model_dump()
+        excluded_previews.append(data)
+
     return {
         "configured": True,
         "contacts": previews,
+        "excluded": excluded_previews,
         "pending": len(previews),
         "total": total_count,
     }

@@ -15,8 +15,10 @@
   let qrzSyncResult = null;
   let qrzPreview = null;
   let qrzSelected = new Set();
+  let qrzFilter = "pending";
 
   $: qrzAllSelected = qrzPreview && qrzPreview.contacts && qrzPreview.contacts.length > 0 && qrzSelected.size === qrzPreview.contacts.length;
+  $: qrzExcludedCount = qrzPreview && qrzPreview.excluded ? qrzPreview.excluded.length : 0;
 
   function toggleQrzSelect(id) {
     if (qrzSelected.has(id)) {
@@ -291,13 +293,15 @@
     if (remaining === 0) importFilter = "fixed";
   }
   $: displayContacts = currentPreview && currentPreview.contacts
-    ? (activeTab === "import" && importFilter === "warnings"
-      ? currentPreview.contacts.filter(c => c.warnings && c.warnings.length > 0)
-      : activeTab === "import" && importFilter === "fixed"
-        ? currentPreview.contacts.filter(c => c._fixed)
-        : activeTab === "import" && importFilter === "merged"
-          ? currentPreview.contacts.filter(c => c.merged)
-          : currentPreview.contacts)
+    ? (activeTab === "qrz" && qrzFilter === "excluded"
+      ? (currentPreview.excluded || [])
+      : activeTab === "import" && importFilter === "warnings"
+        ? currentPreview.contacts.filter(c => c.warnings && c.warnings.length > 0)
+        : activeTab === "import" && importFilter === "fixed"
+          ? currentPreview.contacts.filter(c => c._fixed)
+          : activeTab === "import" && importFilter === "merged"
+            ? currentPreview.contacts.filter(c => c.merged)
+            : currentPreview.contacts)
     : [];
 
   const BANDS = [
@@ -550,6 +554,16 @@
   async function excludeFromQrz(contactId) {
     try {
       const res = await fetch(`/api/qrz-sync/exclude/${contactId}`, { method: "POST" });
+      if (res.ok) {
+        await fetchQrzSyncStatus();
+        expandedRow = null;
+      }
+    } catch {}
+  }
+
+  async function includeInQrz(contactId) {
+    try {
+      const res = await fetch(`/api/qrz-sync/include/${contactId}`, { method: "POST" });
       if (res.ok) {
         await fetchQrzSyncStatus();
         expandedRow = null;
@@ -824,12 +838,18 @@
           {/if}
         </div>
       {/if}
+      {#if activeTab === "qrz" && qrzPreview && qrzExcludedCount > 0}
+        <div class="filter-tabs">
+          <button class="filter-tab" class:active={qrzFilter === "pending"} on:click={() => qrzFilter = "pending"}>Pending ({qrzPreview.contacts.length})</button>
+          <button class="filter-tab" class:active={qrzFilter === "excluded"} on:click={() => qrzFilter = "excluded"}>Excluded ({qrzExcludedCount})</button>
+        </div>
+      {/if}
       {#if displayContacts.length > 0}
         <div class="preview-table-wrap">
           <table class="preview-table">
             <thead>
               <tr>
-                {#if activeTab === "qrz"}<th class="col-check"><input type="checkbox" checked={qrzAllSelected} on:click|stopPropagation={toggleQrzSelectAll} title="Select all / Deselect all" /></th>{/if}
+                {#if activeTab === "qrz" && qrzFilter === "pending"}<th class="col-check"><input type="checkbox" checked={qrzAllSelected} on:click|stopPropagation={toggleQrzSelectAll} title="Select all / Deselect all" /></th>{/if}
                 <th class="col-compact">UTC<span class="resize-handle" on:mousedown={e => startResize(e, 0)}></span></th>
                 <th class="col-compact">Call<span class="resize-handle" on:mousedown={e => startResize(e, 1)}></span></th>
                 <th class="col-comment">Comments<span class="resize-handle" on:mousedown={e => startResize(e, 2)}></span></th>
@@ -851,7 +871,7 @@
             <tbody>
               {#each displayContacts as c, i}
                 <tr class="clickable" class:expanded={expandedRow === i} class:has-warning={c.warnings && c.warnings.length > 0} class:has-merged={c.merged} on:click={() => toggleRow(i)}>
-                  {#if activeTab === "qrz"}<td class="check-cell" on:click|stopPropagation><input type="checkbox" checked={qrzSelected.has(c.id)} on:change={() => toggleQrzSelect(c.id)} /></td>{/if}
+                  {#if activeTab === "qrz" && qrzFilter === "pending"}<td class="check-cell" on:click|stopPropagation><input type="checkbox" checked={qrzSelected.has(c.id)} on:change={() => toggleQrzSelect(c.id)} /></td>{/if}
                   <td>{formatTimestamp(c.timestamp)}</td>
                   <td class="call">{c.call}</td>
                   <td class="truncate">{#if activeTab === "import" && c.original_comment && c.original_comment !== (c.comments || "")}<span class="comment-modified" title="Original: {c.original_comment}">* </span>{/if}{activeTab === "export" ? renderComment(c, commentTemplate, commentSeparator) : (c.comments || "")}</td>
@@ -872,10 +892,15 @@
                 {#if expandedRow === i}
                   <tr class="detail-row">
                     <td colspan={activeTab === "qrz" ? 17 : 16}>
-                      {#if activeTab === "qrz"}
+                      {#if activeTab === "qrz" && qrzFilter === "pending"}
                         <div class="qrz-detail-actions">
                           <button class="exclude-btn" on:click|stopPropagation={() => excludeFromQrz(c.id)}>Exclude from QRZ</button>
                           <span class="hint">Permanently skip this contact for QRZ uploads</span>
+                        </div>
+                      {:else if activeTab === "qrz" && qrzFilter === "excluded"}
+                        <div class="qrz-detail-actions">
+                          <button class="include-btn" on:click|stopPropagation={() => includeInQrz(c.id)}>Eligible for QRZ</button>
+                          <span class="hint">Make this contact eligible for QRZ uploads again</span>
                         </div>
                       {/if}
                       {#if c.warnings && c.warnings.length > 0}
@@ -949,8 +974,10 @@
         <div class="empty-preview">No file selected</div>
       {:else if activeTab === "export" && exportPreview && exportPreview.contacts.length === 0}
         <div class="empty-preview">No contacts match filters</div>
-      {:else if activeTab === "qrz" && qrzPreview && qrzPreview.contacts.length === 0}
+      {:else if activeTab === "qrz" && qrzPreview && qrzFilter === "pending" && qrzPreview.contacts.length === 0}
         <div class="empty-preview">All contacts synced to QRZ</div>
+      {:else if activeTab === "qrz" && qrzPreview && qrzFilter === "excluded" && qrzExcludedCount === 0}
+        <div class="empty-preview">No excluded contacts</div>
       {/if}
 
     </div>
@@ -1926,6 +1953,21 @@
 
   .exclude-btn:hover {
     background: var(--error, #a44);
+    color: white;
+  }
+
+  .include-btn {
+    background: var(--bg-secondary, #1a3a1a);
+    color: var(--accent, #4a4);
+    border: 1px solid var(--accent, #4a4);
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+
+  .include-btn:hover {
+    background: var(--accent, #4a4);
     color: white;
   }
 </style>
