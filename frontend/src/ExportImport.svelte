@@ -8,6 +8,7 @@
   let importing = false;
   let message = "";
   let messageType = "";
+  let qrzImporting = false;
 
   // QRZ sync state
   let qrzSyncStatus = null;
@@ -467,6 +468,38 @@
     await fetchImportPreview();
   }
 
+  async function importFromQrz() {
+    qrzImporting = true;
+    message = "";
+    try {
+      const res = await fetch("/api/qrz-sync/fetch");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        message = data?.error || `Error: ${res.status}`;
+        messageType = "error";
+        qrzImporting = false;
+        return;
+      }
+      const data = await res.json();
+      if (data.error) {
+        message = data.error;
+        messageType = "error";
+        qrzImporting = false;
+        return;
+      }
+      // Create a synthetic File from the ADIF text and feed into the import pipeline
+      const blob = new Blob([data.adif], { type: "text/plain" });
+      importFile = new File([blob], "QRZ-logbook.adi", { type: "text/plain" });
+      importFileName = "QRZ-logbook.adi";
+      skccMarkValidated = false;
+      await fetchImportPreview();
+    } catch (e) {
+      message = `Network error: ${e.message}`;
+      messageType = "error";
+    }
+    qrzImporting = false;
+  }
+
   let suggesting = false;
 
   async function suggestTemplate() {
@@ -700,9 +733,12 @@
       {:else}
         <p>Select an ADIF file to preview before importing.</p>
         <label class="file-label">
-          <input type="file" accept=".adi,.adif,.ADI,.ADIF" on:change={stageImportFile} disabled={importing || loadingImport} />
+          <input type="file" accept=".adi,.adif,.ADI,.ADIF" on:change={stageImportFile} disabled={importing || loadingImport || qrzImporting} />
           {loadingImport ? "Loading..." : "Choose ADIF File"}
         </label>
+        <button class="file-label qrz-import-btn" on:click={importFromQrz} disabled={importing || loadingImport || qrzImporting}>
+          {qrzImporting ? "Downloading from QRZ..." : "Import from QRZ"}
+        </button>
         {#if importFileName}
           <p class="file-name">{importFileName}</p>
         {/if}

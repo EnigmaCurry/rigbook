@@ -221,6 +221,63 @@ async def upload_all(session: AsyncSession = Depends(get_session)):
     return await _upload_contacts(contacts, api_key, callsign, session, replace=True)
 
 
+@router.get("/fetch")
+async def fetch_qrz_logbook(session: AsyncSession = Depends(get_session)):
+    """Fetch entire QRZ logbook as ADIF text, paginating with MAX/AFTERLOGID."""
+    api_key = await _get_api_key(session)
+    if not api_key:
+        return {"error": "QRZ API key not set"}
+
+    callsign = await _get_callsign(session)
+    all_adif = []
+    after_logid = 0
+    page_size = 250
+
+    async with httpx.AsyncClient(
+        timeout=30, headers={"User-Agent": _user_agent(callsign)}
+    ) as client:
+        while True:
+            res = await client.post(
+                QRZ_LOGBOOK_URL,
+                data={
+                    "KEY": api_key,
+                    "ACTION": "FETCH",
+                    "OPTION": f"TYPE:ADIF,MAX:{page_size},AFTERLOGID:{after_logid}",
+                },
+            )
+            parsed = _parse_qrz_response(res.text)
+
+            if parsed.get("RESULT") != "OK":
+                reason = parsed.get("REASON", "Unknown error")
+                if all_adif:
+                    break
+                return {"error": f"QRZ fetch failed: {reason}"}
+
+            adif_data = parsed.get("ADIF", "")
+            if not adif_data:
+                break
+
+            all_adif.append(adif_data)
+
+            count = int(parsed.get("COUNT", "0"))
+            if count < page_size:
+                break
+
+            # Find highest app_qrzlog_logid for pagination
+            import re
+
+            logids = re.findall(
+                r"<app_qrzlog_logid:\d+>(\d+)", adif_data, re.IGNORECASE
+            )
+            if logids:
+                after_logid = max(int(lid) for lid in logids) + 1
+            else:
+                break
+
+    adif_text = "\n".join(all_adif)
+    return {"adif": adif_text, "ok": True}
+
+
 @router.post("/exclude/{contact_id}")
 async def exclude_contact(
     contact_id: int, session: AsyncSession = Depends(get_session)
