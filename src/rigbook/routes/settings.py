@@ -270,8 +270,9 @@ def _compute_next_due(last_str: str, hours: int) -> datetime:
     return datetime.now(timezone.utc)
 
 
-async def _auto_backup_loop():
-    await asyncio.sleep(5)  # brief delay on startup
+async def _auto_backup_loop(initial_delay: float = 5):
+    if initial_delay > 0:
+        await asyncio.sleep(initial_delay)  # brief delay on startup
     while True:
         try:
             enabled = (
@@ -316,11 +317,11 @@ async def _auto_backup_loop():
         await asyncio.sleep(60)
 
 
-async def start_auto_backup():
+async def start_auto_backup(initial_delay: float = 5):
     global _auto_backup_task
     if _auto_backup_task is not None:
         return
-    _auto_backup_task = asyncio.create_task(_auto_backup_loop())
+    _auto_backup_task = asyncio.create_task(_auto_backup_loop(initial_delay))
 
     # Log initial status
     enabled = (await _get_setting("auto_backup_enabled", "true")).lower() == "true"

@@ -13,6 +13,7 @@ from rigbook.db import (
     _unlock,
     db_manager,
 )
+from rigbook.routes.settings import start_auto_backup, stop_auto_backup
 from rigbook.spots import start_feeds, stop_feeds
 from rigbook.sse import broadcast, notify_shutdown
 
@@ -111,6 +112,7 @@ async def confirm_create():
     except DatabaseTooNewError as e:
         raise HTTPException(status_code=409, detail=str(e))
     await start_feeds()
+    await start_auto_backup(initial_delay=0)
     broadcast("logbook-changed", {"name": name, "action": "opened"})
     return {"name": name, "is_open": True}
 
@@ -156,6 +158,8 @@ async def open_logbook(body: LogbookName):
     db_path = DB_DIR / f"{body.name}.db"
     if not db_path.exists():
         raise HTTPException(status_code=404, detail="Logbook not found")
+    await stop_feeds()
+    await stop_auto_backup()
     try:
         await db_manager.open(db_path)
     except DatabaseLockError as e:
@@ -163,6 +167,7 @@ async def open_logbook(body: LogbookName):
     except DatabaseTooNewError as e:
         raise HTTPException(status_code=409, detail=str(e))
     await start_feeds()
+    await start_auto_backup(initial_delay=0)
     broadcast("logbook-changed", {"name": body.name, "action": "opened"})
     return {"name": body.name, "is_open": True}
 
@@ -175,6 +180,7 @@ async def close_logbook():
         )
     name = db_manager.db_name
     await stop_feeds()
+    await stop_auto_backup()
     await db_manager.close()
     broadcast("logbook-changed", {"name": name, "action": "closed"})
     return {"is_open": False}
@@ -189,6 +195,7 @@ async def delete_logbook(body: LogbookName):
         )
     db_path = DB_DIR / f"{body.name}.db"
     await stop_feeds()
+    await stop_auto_backup()
     await db_manager.close()
     if db_path.exists():
         db_path.unlink()
@@ -213,5 +220,6 @@ async def create_logbook(body: LogbookName):
     except DatabaseTooNewError as e:
         raise HTTPException(status_code=409, detail=str(e))
     await start_feeds()
+    await start_auto_backup(initial_delay=0)
     broadcast("logbook-changed", {"name": body.name, "action": "created"})
     return {"name": body.name, "is_open": True}
