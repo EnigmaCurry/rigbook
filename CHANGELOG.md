@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.2.16 — 2026-04-15
+
+- Fixed auto-backup feature not starting when using picker mode.
+
 ## v0.2.15 — 2026-04-13
 
 - Add QRZ Logbook API integration for uploading QSOs directly to QRZ (#166)
