@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.2.19 — 2026-04-17
+
+- Add macOS Intel binary and universal `.pkg` installer supporting both Apple Silicon and Intel Macs
+- Move Termux instructions to separate TERMUX.md
+
 ## v0.2.18 — 2026-04-16
 
 - Fix macOS .pkg installer ownership: added postinstall script so the app runs correctly as the current user after install/update
