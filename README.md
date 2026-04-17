@@ -75,29 +75,25 @@ chmod +x rigbook-linux-amd64
 
 ### macOS
 
-Download `rigbook-macos-arm64.pkg` from the
+Download `rigbook-macos-universal.pkg` from the
 [Releases](https://github.com/EnigmaCurry/rigbook/releases) page.
+This package supports both Apple Silicon and Intel Macs.
 
 Before opening the installer, remove the quarantine attribute (the app
 is not signed with an Apple developer certificate):
 
 ```bash
-xattr -cr ~/Downloads/rigbook-macos-arm64.pkg
+xattr -cr ~/Downloads/rigbook-macos-universal.pkg
 ```
 
 Then open the `.pkg` file and follow the installer prompts to install
 Rigbook into `/Applications`. It launches as an app in your web
 browser (no terminal window).
 
-To add the `rigbook` CLI to your PATH:
-
-```bash
-sudo ln -sf /Applications/Rigbook.app/Contents/MacOS/rigbook /usr/local/bin/rigbook
-```
-
-> The release also includes a standalone `rigbook-macos-arm64` binary.
-> This is used by the built-in updater and can also be run directly
-> from the command line if you prefer.
+> The release also includes standalone `rigbook-macos-arm64` and
+> `rigbook-macos-intel` binaries. These are used by the built-in
+> updater and can also be run directly from the command line if you
+> prefer.
 
 ### Windows
 
