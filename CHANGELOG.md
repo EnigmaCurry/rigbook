@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.20 — 2026-04-18
+
+- Add Default Host setting to Network settings, allowing bind address to be configured from the UI
+- Show warning when host is not `127.0.0.1` (rigbook has no authentication)
+- Backend reads the setting on startup, with `RIGBOOK_HOST` env var taking precedence
+
 ## v0.2.19 — 2026-04-17
 
 - Add macOS Intel binary and universal `.pkg` installer supporting both Apple Silicon and Intel Macs
