@@ -45,6 +45,7 @@ GLOBAL_DEFAULTABLE_KEYS = {
 GLOBAL_ONLY_KEYS = {
     "update_check_enabled",
     "default_pick_mode",
+    "default_host",
     "default_port",
     "update_skip_version",
     "shutdown_in_menu",
