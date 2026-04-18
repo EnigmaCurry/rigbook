@@ -2503,6 +2503,9 @@
       <label for="global_default_host">Default Host</label>
       <input id="global_default_host" type="text" bind:value={global_default_host} on:blur={() => saveGlobalSetting("default_host", global_default_host.trim())} autocomplete="off" style="max-width: 10rem" />
       <span class="hint">Bind address. Use <code>0.0.0.0</code> to listen on all interfaces. Override with <code>RIGBOOK_HOST</code> env var.</span>
+      {#if global_default_host.trim() && global_default_host.trim() !== "127.0.0.1"}
+        <span class="hint" style="color: var(--warning-color, #e6a700); font-weight: bold;">⚠ Warning: rigbook has no authentication. Serving on a public network is not recommended.</span>
+      {/if}
     </div>
     <div class="setting-row">
       <label for="global_default_port">Default Port</label>
