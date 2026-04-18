@@ -2499,7 +2499,7 @@
 
   <section class="settings-section">
     <h3>Network</h3>
-    <span class="hint">These settings require restarting rigbook.</span>
+    <span class="hint">Changing these settings requires restarting rigbook.</span>
     <div class="setting-row">
       <label for="global_default_host">Default Host</label>
       <input id="global_default_host" type="text" bind:value={global_default_host} on:blur={() => saveGlobalSetting("default_host", global_default_host.trim())} autocomplete="off" style="max-width: 10rem" />
