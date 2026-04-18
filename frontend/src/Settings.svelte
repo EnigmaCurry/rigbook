@@ -2502,10 +2502,12 @@
     <span class="hint">Changing these settings requires restarting rigbook.</span>
     <div class="setting-row">
       <label for="global_default_host">Default Host</label>
-      <input id="global_default_host" type="text" bind:value={global_default_host} on:blur={() => saveGlobalSetting("default_host", global_default_host.trim())} autocomplete="off" style="max-width: 10rem" />
-      {#if global_default_host.trim() !== "127.0.0.1"}
-        <button type="button" class="btn btn-sm" on:click={() => { global_default_host = "127.0.0.1"; saveGlobalSetting("default_host", "127.0.0.1"); }}>Reset</button>
-      {/if}
+      <span style="display: inline-flex; align-items: center; gap: 0.5rem;">
+        <input id="global_default_host" type="text" bind:value={global_default_host} on:blur={() => saveGlobalSetting("default_host", global_default_host.trim())} autocomplete="off" style="max-width: 10rem" />
+        {#if global_default_host.trim() !== "127.0.0.1"}
+          <button type="button" class="btn btn-sm" on:click={() => { global_default_host = "127.0.0.1"; saveGlobalSetting("default_host", "127.0.0.1"); }}>Reset</button>
+        {/if}
+      </span>
       <span class="hint">Bind address. Use <code>0.0.0.0</code> to listen on all interfaces. Override with <code>RIGBOOK_HOST</code> env var.</span>
       {#if global_default_host.trim() && global_default_host.trim() !== "127.0.0.1"}
         <span class="hint" style="color: var(--warning-color, #e6a700); font-weight: bold;">⚠ Warning: rigbook has no authentication. Serving on a public network is not recommended.</span>
