@@ -132,6 +132,7 @@
   let global_flrig_host = "127.0.0.1";
   let global_flrig_port = "12345";
   let global_default_pick_mode = true;
+  let global_default_host = "127.0.0.1";
   let global_default_port = "8073";
   let global_default_logbook_name = "rigbook";
   let global_open_browser_on_startup = true;
@@ -1545,6 +1546,7 @@
           if (s.key === "flrig_host") global_flrig_host = s.value || "127.0.0.1";
           if (s.key === "flrig_port") global_flrig_port = s.value || "12345";
           if (s.key === "default_pick_mode") global_default_pick_mode = s.value !== "false";
+          if (s.key === "default_host") global_default_host = s.value || "127.0.0.1";
           if (s.key === "default_port") global_default_port = s.value || "8073";
           if (s.key === "default_logbook_name") global_default_logbook_name = s.value || "rigbook";
           if (s.key === "open_browser_on_startup") global_open_browser_on_startup = s.value !== "false";
@@ -2497,6 +2499,20 @@
 
   <section class="settings-section">
     <h3>Network</h3>
+    <span class="hint">Changing these settings requires restarting rigbook.</span>
+    <div class="setting-row">
+      <label for="global_default_host">Default Host</label>
+      <span style="display: inline-flex; align-items: center; gap: 0.5rem;">
+        <input id="global_default_host" type="text" bind:value={global_default_host} on:blur={() => saveGlobalSetting("default_host", global_default_host.trim())} autocomplete="off" style="max-width: 10rem" />
+        {#if global_default_host.trim() !== "127.0.0.1"}
+          <button type="button" class="btn btn-sm" on:click={() => { global_default_host = "127.0.0.1"; saveGlobalSetting("default_host", "127.0.0.1"); }}>Reset</button>
+        {/if}
+      </span>
+      <span class="hint">Bind address. Use <code>0.0.0.0</code> to listen on all interfaces. Override with <code>RIGBOOK_HOST</code> env var.</span>
+      {#if global_default_host.trim() && global_default_host.trim() !== "127.0.0.1"}
+        <span class="hint" style="color: var(--warning-color, #e6a700); font-weight: bold;">⚠ Warning: rigbook has no authentication. Serving on a public network is not recommended.</span>
+      {/if}
+    </div>
     <div class="setting-row">
       <label for="global_default_port">Default Port</label>
       <input id="global_default_port" type="text" bind:value={global_default_port} on:blur={() => saveGlobalSetting("default_port", global_default_port.trim())} autocomplete="off" style="max-width: 6rem" />

@@ -646,7 +646,25 @@ def run() -> None:
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
-    host = os.environ.get("RIGBOOK_HOST", "127.0.0.1")
+    host = os.environ.get("RIGBOOK_HOST", "")
+    if not host:
+        try:
+            import sqlite3 as _sqlite3
+
+            from rigbook.db import META_DB_PATH
+
+            if META_DB_PATH.exists():
+                _conn = _sqlite3.connect(str(META_DB_PATH))
+                _row = _conn.execute(
+                    "SELECT value FROM settings WHERE key = 'default_host'"
+                ).fetchone()
+                _conn.close()
+                if _row and _row[0]:
+                    host = _row[0]
+        except Exception:
+            pass
+        if not host:
+            host = "127.0.0.1"
     port = args.port or int(os.environ.get("RIGBOOK_PORT", "8073"))
 
     # Check if rigbook is already running on this port (works in all modes including picker)
