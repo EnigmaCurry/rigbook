@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.2.22 — 2026-04-21
+
+- Fix 30m band plan to show CW only (remove incorrect SSB segment)
+
 ## v0.2.21 — 2026-04-21
 
 - Fix hunting page band filter to include bands from SKCC skimmer spots, not just POTA spots
