@@ -60,7 +60,6 @@
     ]},
     { name: "30m", lo: 10100, hi: 10150, segments: [
       { label: "CW", lo: 10100, hi: 10150 },
-      { label: "SSB", lo: 10100, hi: 10150 },
     ]},
     { name: "20m", lo: 14000, hi: 14350, segments: [
       { label: "CW", lo: 14000, hi: 14350 },
