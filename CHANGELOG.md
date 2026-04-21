@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.2.21 — 2026-04-21
+
+- Fix hunting page band filter to include bands from SKCC skimmer spots, not just POTA spots
+
 ## v0.2.20 — 2026-04-18
 
 - Add Default Host setting to Network settings, allowing bind address to be configured from the UI
