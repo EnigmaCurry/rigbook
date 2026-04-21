@@ -30,6 +30,7 @@
   let myCallCounts = {};
   let workedTodayKeys = new Set();
   let workedTodayCwKeys = new Set();
+  let skimmerBands = [];
 
   // Park modal state
   let modalParkRef = null;
@@ -145,7 +146,7 @@
   }
 
   $: modes = [...new Set([...spots.map(s => s.mode), filterMode].filter(Boolean))].sort();
-  $: bands = [...new Set([...spots.map(s => freqToBand(s.frequency)), ...filterBands].filter(Boolean))].sort((a, b) => {
+  $: bands = [...new Set([...spots.map(s => freqToBand(s.frequency)), ...skimmerBands, ...filterBands].filter(Boolean))].sort((a, b) => {
     const order = Object.keys(BANDS);
     return order.indexOf(a) - order.indexOf(b);
   });
@@ -228,6 +229,16 @@
       error = `Network error: ${e.message}`;
     }
     loading = false;
+  }
+
+  async function fetchSkimmerBands() {
+    try {
+      const res = await fetch("/api/spots/bands");
+      if (res.ok) {
+        const data = await res.json();
+        skimmerBands = Object.keys(data);
+      }
+    } catch {}
   }
 
   function tuneToSpot(spot) {
@@ -335,9 +346,13 @@
       fetchMyParks();
       fetchTodayPota();
     }
+    if (skccSkimmerEnabled && spotsEnabled) fetchSkimmerBands();
     fetchCallCounts();
     fetchTodayCw();
-    pollInterval = setInterval(() => { if (potaEnabled && !paused) fetchSpots(); }, 30000);
+    pollInterval = setInterval(() => {
+      if (potaEnabled && !paused) fetchSpots();
+      if (skccSkimmerEnabled && spotsEnabled) fetchSkimmerBands();
+    }, 30000);
   });
 
   onDestroy(() => {
