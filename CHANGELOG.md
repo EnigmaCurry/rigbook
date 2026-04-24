@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.2.24 — 2026-04-24
+
+- Fix macOS self-updater downloading wrong binary on Intel Macs
+
 ## v0.2.23 — 2026-04-24
 
 - Fix Add QSO (+) button icon visibility on dark themes by using theme accent color
