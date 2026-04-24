@@ -2109,7 +2109,7 @@
   .add-btn {
     background: color-mix(in srgb, var(--accent) 15%, var(--bg-card));
     box-shadow: var(--glow-shadow-sm);
-    color: #fff;
+    color: var(--accent);
     border: none;
     font-size: 1.2rem;
     font-weight: bold;
@@ -2122,6 +2122,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+  .add-btn :global(svg path) {
+    fill: currentColor;
   }
 
   .add-btn.dual-btn {
