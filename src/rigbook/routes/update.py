@@ -90,7 +90,8 @@ def _asset_name() -> str:
         arch = "arm64" if machine in ("aarch64", "arm64") else "amd64"
         return f"rigbook-linux-{arch}"
     elif system == "darwin":
-        return "rigbook-macos-arm64"
+        arch = "arm64" if machine in ("arm64", "aarch64") else "intel"
+        return f"rigbook-macos-{arch}"
     elif system == "windows":
         arch = "amd64"
         return f"rigbook-windows-{arch}.exe"
