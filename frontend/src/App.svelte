@@ -1529,7 +1529,7 @@
         </button>
         {#if solarEnabled}<button class="add-btn" on:click={() => navigate("conditions")} title="Conditions"><Icon icon={iconSun} width={18} /></button>{/if}
       {/if}
-      <button class="add-btn" on:click={() => { dualShowForm = true; prefill = null; editId = null; if (page === "dual") { /* already on dual */ } else navigate("add"); }} title="Add QSO"><Icon icon={iconPlus} width={18} /></button>
+      <button class="add-btn add-qso-btn" on:click={() => { dualShowForm = true; prefill = null; editId = null; if (page === "dual") { /* already on dual */ } else navigate("add"); }} title="Add QSO"><Icon icon={iconPlus} width={18} /></button>
       <button class="hamburger" on:click={() => menuOpen = !menuOpen} aria-label="Menu">
         <span class="bar"></span>
         <span class="bar"></span>
@@ -2135,6 +2135,10 @@
 
   .add-btn:hover {
     background: color-mix(in srgb, var(--accent) 30%, var(--bg-card));
+  }
+
+  .add-qso-btn :global(svg path) {
+    fill: var(--accent);
   }
 
   .notification-btn {
