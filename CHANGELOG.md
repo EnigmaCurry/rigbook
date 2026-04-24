@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.2.25 — 2026-04-24
+
+- Re-release to test macOS Intel updater
+
 ## v0.2.24 — 2026-04-24
 
 - Fix macOS self-updater downloading wrong binary on Intel Macs
