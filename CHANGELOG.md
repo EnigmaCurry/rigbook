@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.2.23 — 2026-04-24
+
+- Fix Add QSO (+) button icon visibility on dark themes by using theme accent color
+
 ## v0.2.22 — 2026-04-21
 
 - Fix 30m band plan to show CW only (remove incorrect SSB segment)
