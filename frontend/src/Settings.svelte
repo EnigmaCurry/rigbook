@@ -228,7 +228,7 @@
     }
     let count = "all";
     try {
-      const res = await fetch("/api/contacts/");
+      const res = await fetch("/api/records/");
       if (res.ok) { const data = await res.json(); count = data.length; }
     } catch {}
     if (!confirm(`Are you sure you want to delete ${count} entries from "${logbookName}"? This cannot be undone.`)) {
@@ -237,7 +237,7 @@
     clearError = "";
     clearing = true;
     try {
-      const res = await fetch("/api/contacts/all", { method: "DELETE" });
+      const res = await fetch("/api/records/all", { method: "DELETE" });
       if (res.ok) {
         const data = await res.json();
         clearError = `Deleted ${data.deleted} entries.`;
@@ -923,7 +923,7 @@
 
   async function fetchEntryCount() {
     try {
-      const res = await fetch("/api/contacts/");
+      const res = await fetch("/api/records/");
       if (res.ok) { const data = await res.json(); entryCount = data.length; }
     } catch {}
   }

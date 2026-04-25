@@ -20,22 +20,12 @@
   let taResizing = false;
 
   const cannedQueries = [
-    { label: "All contacts (latest 100)", sql: "SELECT * FROM contacts ORDER BY timestamp DESC LIMIT 100" },
-    { label: "Contact count by mode", sql: "SELECT mode, count(*) AS count FROM contacts GROUP BY mode ORDER BY count DESC" },
-    { label: "Contact count by freq", sql: "SELECT freq, count(*) AS count FROM contacts GROUP BY freq ORDER BY count DESC" },
-    { label: "Contacts per day", sql: "SELECT date(timestamp) AS day, count(*) AS count FROM contacts GROUP BY day ORDER BY day DESC" },
-    { label: "Unique callsigns worked", sql: "SELECT DISTINCT call FROM contacts ORDER BY call" },
-    { label: "POTA activations", sql: "SELECT pota_park, count(*) AS count FROM contacts WHERE pota_park IS NOT NULL AND pota_park != '' GROUP BY pota_park ORDER BY count DESC" },
-    { label: "States worked", sql: "SELECT state, count(*) AS count FROM contacts WHERE state IS NOT NULL AND state != '' GROUP BY state ORDER BY count DESC" },
-    { label: "Countries worked", sql: "SELECT country, count(*) AS count FROM contacts WHERE country IS NOT NULL AND country != '' GROUP BY country ORDER BY count DESC" },
-    { label: "Unique state+country", sql: "SELECT DISTINCT country, state, dxcc FROM contacts ORDER BY country, state" },
-    { label: "All POTA parks", sql: "SELECT reference, name, location_desc, grid, latitude, longitude FROM meta.pota_parks ORDER BY reference" },
-    { label: "QRZ cache stats", sql: "SELECT count(*) AS total, sum(CASE WHEN json_extract(value, '$.grid') IS NOT NULL AND json_extract(value, '$.grid') != '' THEN 1 ELSE 0 END) AS with_grid, sum(CASE WHEN json_extract(value, '$.grid') IS NULL OR json_extract(value, '$.grid') = '' THEN 1 ELSE 0 END) AS without_grid, sum(CASE WHEN json_extract(value, '$.error') IS NOT NULL THEN 1 ELSE 0 END) AS errors FROM meta.cache WHERE namespace = 'qrz'" },
-    { label: "QRZ cache lookup", sql: "SELECT key AS call, value FROM meta.cache WHERE namespace = 'qrz' AND key = 'YOURCALL' LIMIT 1" },
-    { label: "SKCC member lookup", sql: "SELECT key AS call, value FROM meta.cache WHERE namespace = 'skcc' AND key = 'YOURCALL' LIMIT 1" },
+    { label: "All records (latest 100)", sql: "SELECT * FROM records ORDER BY timestamp DESC LIMIT 100" },
+    { label: "Records per day", sql: "SELECT date(timestamp) AS day, count(*) AS count FROM records GROUP BY day ORDER BY day DESC" },
+    { label: "Records by tag", sql: "SELECT tags, count(*) AS count FROM records WHERE tags IS NOT NULL AND tags != '' GROUP BY tags ORDER BY count DESC" },
     { label: "All notifications", sql: "SELECT * FROM notifications ORDER BY timestamp DESC" },
-    { label: "Blocked Access: settings table", sql: "-- Blocked: the settings table is not in the allowed table list\nSELECT value FROM settings WHERE key = 'qrz_password'" },
-    { label: "Blocked Access: insert QSO", sql: "-- Blocked: only SELECT statements are allowed (read-only connection)\nINSERT INTO contacts (call, freq, mode, timestamp) VALUES ('W1AW', '14.060', 'CW', '2026-01-01 00:00:00')" },
+    { label: "Blocked Access: settings table", sql: "-- Blocked: the settings table is not in the allowed table list\nSELECT value FROM settings WHERE key = 'secret'" },
+    { label: "Blocked Access: insert record", sql: "-- Blocked: only SELECT statements are allowed (read-only connection)\nINSERT INTO records (title, timestamp) VALUES ('Test', '2026-01-01 00:00:00')" },
   ];
 
   function applyCanned(e) {

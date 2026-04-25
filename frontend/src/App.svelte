@@ -975,7 +975,7 @@
           {/if}
         </button>
       {/if}
-      <button class="add-btn add-qso-btn" on:click={() => { dualShowForm = true; prefill = null; editId = null; if (page === "dual") { /* already on dual */ } else navigate("add"); }} title="New Record"><Icon icon={iconPlus} width={18} /></button>
+      <button class="add-btn add-record-btn" on:click={() => { dualShowForm = true; prefill = null; editId = null; if (page === "dual") { /* already on dual */ } else navigate("add"); }} title="New Record"><Icon icon={iconPlus} width={18} /></button>
       <button class="hamburger" on:click={() => menuOpen = !menuOpen} aria-label="Menu">
         <span class="bar"></span>
         <span class="bar"></span>
@@ -1113,11 +1113,11 @@
     --text-dimmer: #6e7080;
     --accent: #00ff88;
     --accent-hover: #00cc6a;
-    --accent-callsign: #ffcc00;
-    --accent-vfo: #00ccff;
-    --vfo-bg: #111218;
-    --vfo-border: #555;
-    --vfo-text: #00ccff;
+    --accent-highlight: #ffcc00;
+    --accent-secondary: #00ccff;
+    --secondary-bg: #111218;
+    --secondary-border: #555;
+    --secondary-text: #00ccff;
     --accent-delete: #cc3333;
     --accent-delete-hover: #aa2222;
     --accent-error: #ff6b6b;
@@ -1396,7 +1396,7 @@
     background: color-mix(in srgb, var(--accent) 30%, var(--bg-card));
   }
 
-  .add-qso-btn :global(svg path) {
+  .add-record-btn :global(svg path) {
     fill: var(--accent);
   }
 
