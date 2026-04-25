@@ -1,5 +1,5 @@
-"""PyInstaller entry point for rigbook."""
+"""PyInstaller entry point for guidebook."""
 
-from rigbook.main import run
+from guidebook.main import run
 
 run()

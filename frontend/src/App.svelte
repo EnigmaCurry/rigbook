@@ -766,12 +766,12 @@
 
   function applySystemTheme() {
     const sysPref = resolveDefaultTheme();
-    storageSet("rigbook-theme", sysPref);
+    storageSet("guidebook-theme", sysPref);
     applyThemeVars(sysPref);
   }
 
   function applyThemeFromCache() {
-    const cached = storageGet("rigbook-theme");
+    const cached = storageGet("guidebook-theme");
     const theme = cached || resolveDefaultTheme();
     applyThemeVars(theme);
   }
@@ -792,13 +792,13 @@
         const c = JSON.parse(s.custom_theme_colors);
         if (c.bg && c.text && c.accent && c.vfo) {
           applyCustomThemeVars(c.bg, c.text, c.accent, c.vfo, contrast, brightness, hue, saturation, gradient, grain, glow, scanlines);
-          storageSet("rigbook-theme", "custom");
+          storageSet("guidebook-theme", "custom");
           return;
         }
       } catch {}
     }
     if (s.theme) {
-      storageSet("rigbook-theme", s.theme);
+      storageSet("guidebook-theme", s.theme);
       applyThemeVars(s.theme, contrast, brightness, hue, saturation, gradient, grain, glow, scanlines);
     }
   }
@@ -816,7 +816,7 @@
       return;
     } catch {}
     const sysPref = resolveDefaultTheme();
-    storageSet("rigbook-theme", sysPref);
+    storageSet("guidebook-theme", sysPref);
     applyThemeVars(sysPref);
   }
 

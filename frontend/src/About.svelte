@@ -13,34 +13,26 @@
 </script>
 
 <div class="about">
-  <h2>Rigbook {version ? `v${version}` : ""} <a href="#/settings/updates" class="updates-link">Check for updates</a></h2>
-  <p>A ham radio logbook web application.</p>
+  <h2>Guidebook {version ? `v${version}` : ""} <a href="#/settings/updates" class="updates-link">Check for updates</a></h2>
+  <p>A web application template.</p>
   <p>
-    <a href="https://github.com/EnigmaCurry/rigbook" target="_blank" rel="noopener">
-      github.com/EnigmaCurry/rigbook
+    <a href="https://github.com/EnigmaCurry/guidebook" target="_blank" rel="noopener">
+      github.com/EnigmaCurry/guidebook
     </a>
   </p>
 
   <h3>Keyboard Shortcuts</h3>
   <table class="shortcuts">
     <tbody>
-      <tr><td class="key">/</td><td>Focus search</td></tr>
-      <tr><td class="key">N</td><td>New QSO</td></tr>
-      <tr><td class="key">H</td><td>Hunting (home)</td></tr>
-      <tr><td class="key">L</td><td>Logbook</td></tr>
-      <tr><td class="key">S</td><td>Spots</td></tr>
-      <tr><td class="key">P</td><td>My Parks</td></tr>
-      <tr><td class="key">T</td><td>Tune radio</td></tr>
-      <tr><td class="key">M</td><td>Cycle radio mode</td></tr>
+      <tr><td class="key">1</td><td>Records</td></tr>
+      <tr><td class="key">2</td><td>Query</td></tr>
+      <tr><td class="key">3</td><td>Notifications</td></tr>
+      <tr><td class="key">4</td><td>Settings</td></tr>
+      <tr><td class="key">5</td><td>About</td></tr>
+      <tr><td class="key">N</td><td>New Record</td></tr>
+      <tr><td class="key">W</td><td>Toggle dual pane</td></tr>
       <tr><td class="key">?</td><td>This page</td></tr>
-      <tr><td class="key">PgUp</td><td>Scroll logbook up</td></tr>
-      <tr><td class="key">PgDn</td><td>Scroll logbook down</td></tr>
-      <tr><td class="key">Home</td><td>Scroll logbook to top</td></tr>
-      <tr><td class="key">End</td><td>Scroll logbook to bottom</td></tr>
-      <tr><td class="key">Shift + Scroll</td><td>Scroll logbook horizontally</td></tr>
-      <tr><td class="key">Up/Down</td><td>Navigate rows (Spots, My Parks)</td></tr>
-      <tr><td class="key">Enter</td><td>Log QSO (Spots) / View park (My Parks)</td></tr>
-      <tr><td class="key">Esc</td><td>Close search / menu / deselect row</td></tr>
+      <tr><td class="key">Esc</td><td>Close menu / cancel</td></tr>
     </tbody>
   </table>
 
@@ -71,11 +63,12 @@
   }
 
   a {
-    color: var(--accent-vfo);
+    color: var(--accent);
   }
 
   a:hover {
     color: var(--accent);
+    opacity: 0.8;
   }
 
   .shortcuts {

@@ -1,5 +1,5 @@
 {
-  "name": "rigbook-frontend",
+  "name": "guidebook-frontend",
   "private": true,
   "version": "0.0.1",
   "type": "module",
@@ -12,7 +12,6 @@
     "@iconify-icons/twemoji": "^1.2.8",
     "@iconify/svelte": "^4.2.0",
     "@sveltejs/vite-plugin-svelte": "^3.1.0",
-    "leaflet": "^1.9.4",
     "svelte": "^4.2.0",
     "vanilla-colorful": "^0.7.2"
   },

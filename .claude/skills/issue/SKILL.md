@@ -1,12 +1,12 @@
 ---
 name: issue
-description: "Create a GitHub issue on the rigbook repo from a description or current conversation context"
+description: "Create a GitHub issue on the guidebook repo from a description or current conversation context"
 allowed-tools: Bash(gh *)
 ---
 
 # Create GitHub Issue
 
-Create an issue on `EnigmaCurry/rigbook` based on what the user describes or what we're currently working on.
+Create an issue on `EnigmaCurry/guidebook` based on what the user describes or what we're currently working on.
 
 ## Arguments
 
@@ -18,6 +18,6 @@ Create an issue on `EnigmaCurry/rigbook` based on what the user describes or wha
 2. If the user provided a description, use that. Otherwise, derive the issue from the current conversation context.
 3. Create the issue:
    ```bash
-   gh issue create --repo EnigmaCurry/rigbook --title "THE TITLE" --body "THE BODY"
+   gh issue create --repo EnigmaCurry/guidebook --title "THE TITLE" --body "THE BODY"
    ```
 4. Show the issue URL when done.

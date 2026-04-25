@@ -15,7 +15,7 @@ from collections.abc import Callable
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 
-logger = logging.getLogger("rigbook.sse")
+logger = logging.getLogger("guidebook.sse")
 
 router = APIRouter(prefix="/api/events", tags=["events"])
 
@@ -81,9 +81,7 @@ async def _auto_shutdown_loop() -> None:
         reference = _last_client_disconnected_at if _ever_had_client else started_at
         elapsed = time.time() - reference
         if elapsed >= _auto_shutdown_delay:
-            logger.info(
-                "No SSE clients for %.0fs — shutting down now", elapsed
-            )
+            logger.info("No SSE clients for %.0fs — shutting down now", elapsed)
             notify_shutdown()
             os.kill(os.getpid(), signal.SIGTERM)
             return
@@ -96,7 +94,7 @@ async def start_auto_shutdown() -> None:
         return
     # Read delay from global DB
     try:
-        from rigbook.db import GlobalSetting, global_async_session
+        from guidebook.db import GlobalSetting, global_async_session
 
         async with global_async_session() as gdb:
             from sqlalchemy import select
@@ -182,7 +180,9 @@ async def event_stream(request: Request):
     queue: asyncio.Queue[str] = asyncio.Queue(maxsize=64)
     _subscribers.append(queue)
     _ever_had_client = True
-    logger.info("SSE client    connected from %s (total: %d)", client_addr, len(_subscribers))
+    logger.info(
+        "SSE client    connected from %s (total: %d)", client_addr, len(_subscribers)
+    )
     _broadcast_client_count()
     for cb in _on_connect_callbacks:
         cb()
@@ -199,7 +199,11 @@ async def event_stream(request: Request):
                 _subscribers.remove(queue)
             if len(_subscribers) == 0:
                 _last_client_disconnected_at = time.time()
-            logger.info("SSE client disconnected from %s (total: %d)", client_addr, len(_subscribers))
+            logger.info(
+                "SSE client disconnected from %s (total: %d)",
+                client_addr,
+                len(_subscribers),
+            )
             _broadcast_client_count()
             for cb in _on_disconnect_callbacks:
                 cb()

@@ -1,9 +1,9 @@
 /** Per-logbook localStorage wrapper. */
 
-let _logbook = "rigbook";
+let _logbook = "guidebook";
 
 export function setLogbook(name) {
-  _logbook = name || "rigbook";
+  _logbook = name || "guidebook";
 }
 
 export function getLogbook() {
@@ -22,21 +22,19 @@ export function storageSet(k, v) {
   localStorage.setItem(prefixedKey(k), v);
 }
 
-/** One-time migration: copy un-prefixed keys to "rigbook:" prefix. */
+/** One-time migration: copy un-prefixed keys to "guidebook:" prefix. */
 const KNOWN_KEYS = [
-  "spotsMapEnabled", "spotsMapHeight", "parksMapEnabled", "parksMapHeight",
-  "logSortCol", "logSortAsc", "logColumnOrder", "logColumnWidths",
   "dualSplit", "desktop_notifications_enabled", "popup_notifications_enabled",
-  "rigbook-theme",
+  "guidebook-theme",
 ];
 
 export function migrateStorage() {
-  if (localStorage.getItem("rigbook-storage-migrated")) return;
+  if (localStorage.getItem("guidebook-storage-migrated")) return;
   for (const k of KNOWN_KEYS) {
     const val = localStorage.getItem(k);
-    if (val !== null && localStorage.getItem(`rigbook:${k}`) === null) {
-      localStorage.setItem(`rigbook:${k}`, val);
+    if (val !== null && localStorage.getItem(`guidebook:${k}`) === null) {
+      localStorage.setItem(`guidebook:${k}`, val);
     }
   }
-  localStorage.setItem("rigbook-storage-migrated", "1");
+  localStorage.setItem("guidebook-storage-migrated", "1");
 }

@@ -9,37 +9,18 @@ from pathlib import Path
 from typing import AsyncGenerator
 
 from fastapi import HTTPException
-from sqlalchemy import Float, String, DateTime, Integer, inspect, select, text
+from sqlalchemy import String, DateTime, Integer, Float, inspect, select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-logger = logging.getLogger("rigbook")
+logger = logging.getLogger("guidebook")
 
-DB_DIR = Path.home() / ".local" / "rigbook"
+DB_DIR = Path.home() / ".local" / "guidebook"
 META_DB_PATH = DB_DIR / "__global.db"
 _LAST_OPENED_FILE = DB_DIR / "last_opened.json"
 
 # Settings that can be set globally in __global.db and overridden per-logbook
-GLOBAL_DEFAULTABLE_KEYS = {
-    "my_callsign",
-    "my_grid",
-    "default_rst",
-    "qrz_username",
-    "qrz_password",
-    "hamalert_enabled",
-    "hamalert_username",
-    "hamalert_password",
-    "rbn_enabled",
-    "rbn_host",
-    "rbn_feeds",
-    "rbn_idle_timeout_minutes",
-    "flrig_host",
-    "flrig_port",
-    "flrig_enabled",
-    "flrig_simulate",
-    "qrz_api_key",
-    "qrz_auto_upload",
-}
+GLOBAL_DEFAULTABLE_KEYS: set[str] = set()
 
 # Settings that live exclusively in __global.db (not per-logbook)
 GLOBAL_ONLY_KEYS = {
@@ -105,37 +86,20 @@ class Base(DeclarativeBase):
     pass
 
 
-class Contact(Base):
-    __tablename__ = "contacts"
+class Record(Base):
+    __tablename__ = "records"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     uuid: Mapped[str | None] = mapped_column(
         String, unique=True, nullable=True, default=lambda: str(_uuid.uuid4())
     )
-    call: Mapped[str] = mapped_column(String, nullable=False)
-    freq: Mapped[str | None] = mapped_column(String, nullable=True)
-    mode: Mapped[str | None] = mapped_column(String, nullable=True)
-    rst_sent: Mapped[str | None] = mapped_column(String, nullable=True)
-    rst_recv: Mapped[str | None] = mapped_column(String, nullable=True)
-    pota_park: Mapped[str | None] = mapped_column(String, nullable=True)
-    name: Mapped[str | None] = mapped_column(String, nullable=True)
-    qth: Mapped[str | None] = mapped_column(String, nullable=True)
-    state: Mapped[str | None] = mapped_column(String, nullable=True)
-    country: Mapped[str | None] = mapped_column(String, nullable=True)
-    dxcc: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    grid: Mapped[str | None] = mapped_column(String, nullable=True)
-    skcc: Mapped[str | None] = mapped_column(String, nullable=True)
-    skcc_exch: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
-    comments: Mapped[str | None] = mapped_column(String, nullable=True)
-    notes: Mapped[str | None] = mapped_column(String, nullable=True)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    content: Mapped[str | None] = mapped_column(String, nullable=True)
+    tags: Mapped[str | None] = mapped_column(String, nullable=True)
     timestamp: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
     )
-    timestamp_off: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    qrz_logid: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    qrz_synced_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    qrz_excluded: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
 
 
 class Setting(Base):
@@ -183,46 +147,6 @@ class GlobalCache(GlobalBase):
     key: Mapped[str] = mapped_column(String, nullable=False)
     value: Mapped[str | None] = mapped_column(String, nullable=True)
     expires_at: Mapped[float] = mapped_column(nullable=False)
-
-
-class GlobalPotaProgram(GlobalBase):
-    __tablename__ = "pota_programs"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    program_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    prefix: Mapped[str] = mapped_column(String, nullable=False)
-    name: Mapped[str] = mapped_column(String, nullable=False)
-    fetched_at: Mapped[float] = mapped_column(Float, nullable=False)
-
-
-class GlobalPotaLocation(GlobalBase):
-    __tablename__ = "pota_locations"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    location_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    program_prefix: Mapped[str] = mapped_column(String, nullable=False)
-    descriptor: Mapped[str] = mapped_column(String, nullable=False)
-    name: Mapped[str] = mapped_column(String, nullable=False)
-    latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
-    longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
-    fetched_at: Mapped[float] = mapped_column(Float, nullable=False)
-    parks_fetched_at: Mapped[float | None] = mapped_column(Float, nullable=True)
-
-
-class GlobalPotaPark(GlobalBase):
-    __tablename__ = "pota_parks"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    reference: Mapped[str] = mapped_column(String, nullable=False)
-    name: Mapped[str] = mapped_column(String, nullable=False)
-    location_desc: Mapped[str] = mapped_column(String, nullable=False)
-    latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
-    longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
-    grid: Mapped[str | None] = mapped_column(String, nullable=True)
-    attempts: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    activations: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    qsos: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    fetched_at: Mapped[float] = mapped_column(Float, nullable=False)
 
 
 class GlobalLastOpened(GlobalBase):
@@ -275,11 +199,11 @@ def _set_schema_version(conn, table, version_num):
 
 
 def _set_last_migrated_by(conn, table):
-    """Store which rigbook version last migrated this DB."""
+    """Store which guidebook version last migrated this DB."""
     from importlib.metadata import version as pkg_version
 
     try:
-        v = pkg_version("rigbook")
+        v = pkg_version("guidebook")
     except Exception:
         v = "unknown"
     existing = conn.execute(
@@ -329,41 +253,27 @@ def _run_migrations(conn, migrations, table="settings") -> bool:
     if current > expected:
         last_by = _get_last_migrated_by(conn, table)
         raise DatabaseTooNewError(
-            f"Database was migrated by Rigbook v{last_by} (schema v{current}). "
+            f"Database was migrated by Guidebook v{last_by} (schema v{current}). "
             f"This version only supports schema up to v{expected}. "
-            f"Please upgrade Rigbook."
+            f"Please upgrade Guidebook."
         )
     if current < expected:
         for migrate_fn in migrations[current:]:
             migrate_fn(conn)
         _set_schema_version(conn, table, expected)
         _set_last_migrated_by(conn, table)
-        logger.info(
-            "Migrated %s schema: v%d → v%d", table, current, expected
-        )
+        logger.info("Migrated %s schema: v%d → v%d", table, current, expected)
         return True
     return False
 
 
 # --- Logbook migrations ---
 
-
-def _migrate_logbook_v1_drop_global_tables(conn):
-    """Drop cache/POTA tables that moved to __global.db."""
-    for table in ("cache", "pota_programs", "pota_locations", "pota_parks"):
-        conn.execute(text(f"DROP TABLE IF EXISTS {table}"))
-
-
-LOGBOOK_MIGRATIONS = [
-    _migrate_logbook_v1_drop_global_tables,
-]
-
+LOGBOOK_MIGRATIONS: list = []
 
 # --- Global DB migrations ---
 
-GLOBAL_MIGRATIONS: list = [
-    # (none yet — global DB is new, created with correct schema)
-]
+GLOBAL_MIGRATIONS: list = []
 
 
 class DatabaseManager:
@@ -383,8 +293,8 @@ class DatabaseManager:
 
     def configure(self, db_name: str | None = None, picker: bool = False) -> None:
         cli_name = db_name
-        env_name = os.environ.get("RIGBOOK_DB")
-        env_picker = os.environ.get("RIGBOOK_PICKER", "").lower() in (
+        env_name = os.environ.get("GUIDEBOOK_DB")
+        env_picker = os.environ.get("GUIDEBOOK_PICKER", "").lower() in (
             "1",
             "true",
             "yes",
@@ -416,7 +326,7 @@ class DatabaseManager:
     def default_db_path(self) -> Path:
         if self._db_override:
             return DB_DIR / f"{self._db_override}.db"
-        return DB_DIR / "rigbook.db"
+        return DB_DIR / "guidebook.db"
 
     def check_lock(self, db_path: Path) -> None:
         """Raise DatabaseLockError if the database is locked by another process."""
@@ -522,7 +432,7 @@ class DatabaseManager:
         self._acquire_lock(db_path)
         self.db_path = db_path
         # Back up before migration if needed
-        if db_path.exists():
+        if db_path.exists() and LOGBOOK_MIGRATIONS:
             import sqlite3
 
             _conn = sqlite3.connect(str(db_path))
@@ -535,9 +445,7 @@ class DatabaseManager:
                 current_v = 0
             _conn.close()
             if current_v < len(LOGBOOK_MIGRATIONS):
-                _backup_before_migration(
-                    db_path, current_v, len(LOGBOOK_MIGRATIONS)
-                )
+                _backup_before_migration(db_path, current_v, len(LOGBOOK_MIGRATIONS))
         self.engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}")
         self._session_factory = async_sessionmaker(self.engine, expire_on_commit=False)
         migrated = [False]
@@ -551,12 +459,12 @@ class DatabaseManager:
             )
             await conn.execute(
                 text(
-                    "UPDATE contacts SET updated_at = timestamp WHERE updated_at IS NULL"
+                    "UPDATE records SET updated_at = timestamp WHERE updated_at IS NULL"
                 )
             )
             await conn.execute(
                 text(
-                    "UPDATE contacts SET uuid = lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)),2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6))) WHERE uuid IS NULL"
+                    "UPDATE records SET uuid = lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)),2) || '-' || substr('89ab', abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6))) WHERE uuid IS NULL"
                 )
             )
         if migrated[0]:
@@ -564,9 +472,7 @@ class DatabaseManager:
                 await conn.execute(text("VACUUM"))
                 logger.info("Vacuumed logbook database after migration")
         async with self.engine.connect() as conn:
-            sv = await conn.run_sync(
-                lambda c: _get_schema_version(c, "settings")
-            )
+            sv = await conn.run_sync(lambda c: _get_schema_version(c, "settings"))
         await self.record_last_opened(db_path.stem)
         logger.info("Opened logbook: %s (schema v%d)", db_path, sv)
 
@@ -615,9 +521,7 @@ class DatabaseManager:
         # Migrate last_opened.json if it exists
         await self._migrate_last_opened()
         async with self.global_engine.connect() as conn:
-            gsv = await conn.run_sync(
-                lambda c: _get_schema_version(c, "settings")
-            )
+            gsv = await conn.run_sync(lambda c: _get_schema_version(c, "settings"))
         logger.info("Opened global database: %s (schema v%d)", META_DB_PATH, gsv)
 
     async def close_global(self) -> None:
@@ -691,9 +595,7 @@ def global_async_session():
     return db_manager._global_session_factory()
 
 
-async def resolve_setting(
-    key: str, session: AsyncSession, default: str = ""
-) -> str:
+async def resolve_setting(key: str, session: AsyncSession, default: str = "") -> str:
     """Read a setting from the logbook DB, falling back to global DB if blank/missing."""
     result = await session.execute(select(Setting).where(Setting.key == key))
     row = result.scalar_one_or_none()

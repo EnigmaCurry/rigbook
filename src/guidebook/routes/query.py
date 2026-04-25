@@ -12,9 +12,9 @@ from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from rigbook.db import META_DB_PATH, Setting, db_manager, get_session
+from guidebook.db import META_DB_PATH, Setting, db_manager, get_session
 
-logger = logging.getLogger("rigbook")
+logger = logging.getLogger("guidebook")
 
 router = APIRouter(prefix="/api/query", tags=["query"])
 
@@ -22,14 +22,9 @@ router = APIRouter(prefix="/api/query", tags=["query"])
 async def _download_filename(session: AsyncSession, ext: str) -> str:
     from datetime import datetime, timezone
 
-    row = (
-        await session.execute(select(Setting).where(Setting.key == "my_callsign"))
-    ).scalar_one_or_none()
-    callsign = (row.value or "").strip().upper().replace("/", "-") if row else ""
-    db_name = db_manager.db_name or "rigbook"
+    db_name = db_manager.db_name or "guidebook"
     ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%SZ")
-    parts = [p for p in [callsign, db_name, "query", ts] if p]
-    return "_".join(parts) + f".{ext}"
+    return f"{db_name}_query_{ts}.{ext}"
 
 
 async def _check_enabled(session: AsyncSession) -> None:
@@ -40,13 +35,8 @@ async def _check_enabled(session: AsyncSession) -> None:
         raise HTTPException(status_code=403, detail="SQL query is disabled")
 
 
-ALLOWED_TABLES = {"contacts", "notifications"}
-META_ALLOWED_TABLES = {
-    "cache",
-    "pota_programs",
-    "pota_locations",
-    "pota_parks",
-}
+ALLOWED_TABLES = {"records", "notifications"}
+META_ALLOWED_TABLES = {"cache"}
 MAX_ROWS = 10000
 QUERY_TIMEOUT_OPS = 1_000_000  # SQLite VM operations before abort
 
@@ -150,7 +140,7 @@ async def run_query(
     sql: str = Query(..., description="SQL SELECT statement"),
     session: AsyncSession = Depends(get_session),
 ):
-    """Execute a read-only SQL query against the contacts table."""
+    """Execute a read-only SQL query against the records table."""
     await _check_enabled(session)
     if not db_manager.db_path:
         raise HTTPException(status_code=503, detail="No logbook is currently open")

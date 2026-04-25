@@ -1,29 +1,26 @@
 [project]
-name = "rigbook"
-version = "0.2.25"
-description = "Ham radio logbook web application"
+name = "guidebook"
+version = "0.1.0"
+description = "A webapp template with FastAPI, SQLAlchemy, and Svelte"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi",
     "uvicorn[standard]",
     "sqlalchemy[asyncio]",
     "aiosqlite",
-    "pycountry>=26.2.16",
-    "pyadif-file>=1.4",
-    "python-multipart>=0.0.22",
     "httpx",
     "packaging",
 ]
 
 [project.scripts]
-rigbook = "rigbook.main:run"
+guidebook = "guidebook.main:run"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/rigbook"]
+packages = ["src/guidebook"]
 
 [dependency-groups]
 dev = [

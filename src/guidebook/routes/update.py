@@ -15,45 +15,38 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from importlib.metadata import version
 
-from rigbook._build_info import BUILD_GITHUB_ACTIONS, BUILD_ORIGIN_REPO, GIT_SHA
+from guidebook._build_info import BUILD_GITHUB_ACTIONS, BUILD_ORIGIN_REPO, GIT_SHA
 
 router = APIRouter(prefix="/api/update", tags=["update"])
 
-logger = logging.getLogger("rigbook.update")
+logger = logging.getLogger("guidebook.update")
 
-GITHUB_REPO = BUILD_ORIGIN_REPO or "EnigmaCurry/rigbook"
+GITHUB_REPO = BUILD_ORIGIN_REPO or "EnigmaCurry/guidebook"
 
 
 def _spawn_and_exit(exe_path: str) -> None:
-    """Launch the new binary as a detached process and exit.
-
-    os.execv won't work for PyInstaller binaries because it replaces the
-    process while the old temp dir (/tmp/_MEI...) is being torn down,
-    causing the new process to fail finding shared libraries.  Instead,
-    spawn a fully independent child and then shut down cleanly.
-    """
+    """Launch the new binary as a detached process and exit."""
 
     def _do():
         time.sleep(1)  # let the HTTP response flush
         env = os.environ.copy()
-        # Clear all PyInstaller env vars so the new process unpacks fresh
         for key in list(env):
             if key.startswith("_MEI") or key.startswith("_PYI"):
                 env.pop(key)
-        # Remove old temp dir from LD_LIBRARY_PATH / DYLD_LIBRARY_PATH
         old_meipass = getattr(sys, "_MEIPASS", "")
         for ldvar in ("LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH"):
             if ldvar in env and old_meipass:
-                paths = [p for p in env[ldvar].split(os.pathsep) if not p.startswith(old_meipass)]
+                paths = [
+                    p
+                    for p in env[ldvar].split(os.pathsep)
+                    if not p.startswith(old_meipass)
+                ]
                 if paths:
                     env[ldvar] = os.pathsep.join(paths)
                 else:
                     env.pop(ldvar)
         args = sys.argv[1:]
         if sys.platform == "darwin":
-            # On macOS, use `open` to relaunch.  If running inside a .app
-            # bundle, open the .app itself so macOS treats it as an app
-            # launch (no Terminal window).
             launch_target = exe_path
             exe_dir = os.path.dirname(exe_path)
             if exe_dir.endswith("/Contents/MacOS"):
@@ -88,13 +81,13 @@ def _asset_name() -> str:
 
     if system == "linux":
         arch = "arm64" if machine in ("aarch64", "arm64") else "amd64"
-        return f"rigbook-linux-{arch}"
+        return f"guidebook-linux-{arch}"
     elif system == "darwin":
         arch = "arm64" if machine in ("arm64", "aarch64") else "intel"
-        return f"rigbook-macos-{arch}"
+        return f"guidebook-macos-{arch}"
     elif system == "windows":
         arch = "amd64"
-        return f"rigbook-windows-{arch}.exe"
+        return f"guidebook-windows-{arch}.exe"
     else:
         raise RuntimeError(f"Unsupported platform: {system} {machine}")
 
@@ -112,16 +105,18 @@ def _current_executable() -> str:
     """Return the path to the currently running binary."""
     if _is_official_build():
         return sys.executable
-    raise RuntimeError("Self-update is only supported for official GitHub Actions builds")
+    raise RuntimeError(
+        "Self-update is only supported for official GitHub Actions builds"
+    )
 
 
 def _cleanup_old_binaries() -> None:
-    """Delete any .rigbook-superseded-v* files left from previous updates."""
+    """Delete any .guidebook-superseded-v* files left from previous updates."""
     if not getattr(sys, "frozen", False):
         return
     exe_dir = os.path.dirname(sys.executable)
     for name in os.listdir(exe_dir):
-        if name.startswith(".rigbook-superseded-v"):
+        if name.startswith(".guidebook-superseded-v"):
             path = os.path.join(exe_dir, name)
             for attempt in range(10):
                 try:
@@ -144,10 +139,6 @@ async def get_platform_info():
         asset = _asset_name()
     except RuntimeError:
         asset = None
-    # Check if we can write to the executable's directory.
-    # We need to rename the running binary out of the way, which requires
-    # write permission on the directory.  If the directory has the sticky
-    # bit set (like /tmp), we also need to own the file.
     writable = False
     if frozen:
         exe_dir = os.path.dirname(sys.executable)
@@ -182,7 +173,7 @@ async def apply_update():
             400, "Self-update only supported for official GitHub Actions builds"
         )
 
-    current = version("rigbook")
+    current = version("guidebook")
     asset_name = _asset_name()
     exe_path = _current_executable()
 
@@ -190,7 +181,6 @@ async def apply_update():
     if not os.access(exe_dir, os.W_OK):
         raise HTTPException(403, f"No write permission to {exe_dir}")
 
-    # Fetch latest release info
     try:
         async with httpx.AsyncClient(follow_redirects=True) as client:
             resp = await client.get(
@@ -208,7 +198,6 @@ async def apply_update():
     if latest == current:
         return JSONResponse({"status": "up_to_date", "version": current})
 
-    # Find the asset download URL
     download_url = None
     for asset in release.get("assets", []):
         if asset["name"] == asset_name:
@@ -221,11 +210,10 @@ async def apply_update():
             f"No binary found for this platform ({asset_name}) in release v{latest}",
         )
 
-    # Download to a temp file next to the current executable
     logger.info("Downloading %s from v%s ...", asset_name, latest)
 
     try:
-        fd, tmp_path = tempfile.mkstemp(dir=exe_dir, prefix="rigbook-update-")
+        fd, tmp_path = tempfile.mkstemp(dir=exe_dir, prefix="guidebook-update-")
         async with httpx.AsyncClient(follow_redirects=True) as client:
             async with client.stream("GET", download_url, timeout=120) as stream:
                 stream.raise_for_status()
@@ -240,14 +228,10 @@ async def apply_update():
             pass
         raise HTTPException(502, f"Failed to download update: {e}")
 
-    # Make executable on unix
     if platform.system() != "Windows":
         os.chmod(tmp_path, os.stat(tmp_path).st_mode | stat.S_IXUSR | stat.S_IXGRP)
 
-    # Swap binaries — rename running binary out of the way first.
-    # On both Linux and Windows, overwriting a running binary fails
-    # (ETXTBSY on Linux, lock on Windows).
-    old_name = f".rigbook-superseded-v{current}"
+    old_name = f".guidebook-superseded-v{current}"
     old_path = os.path.join(exe_dir, old_name)
     try:
         if os.path.exists(old_path):
@@ -271,5 +255,3 @@ async def apply_update():
         "old_version": current,
         "new_version": latest,
     }
-
-

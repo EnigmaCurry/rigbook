@@ -3,6 +3,6 @@ __pycache__/
 .venv/
 *.egg-info/
 dist/
-src/rigbook/static/
+src/guidebook/static/
 node_modules/
 .build-*.stamp

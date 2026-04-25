@@ -5,7 +5,7 @@ import signal
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from rigbook.db import (
+from guidebook.db import (
     DB_DIR,
     DatabaseLockError,
     DatabaseTooNewError,
@@ -13,9 +13,8 @@ from rigbook.db import (
     _unlock,
     db_manager,
 )
-from rigbook.routes.settings import start_auto_backup, stop_auto_backup
-from rigbook.spots import start_feeds, stop_feeds
-from rigbook.sse import broadcast, notify_shutdown
+from guidebook.routes.settings import start_auto_backup, stop_auto_backup
+from guidebook.sse import broadcast, notify_shutdown
 
 router = APIRouter(prefix="/api/logbooks", tags=["logbooks"])
 
@@ -42,7 +41,7 @@ def _validate_name(name: str) -> None:
 
 @router.get("/mode")
 async def get_mode():
-    from rigbook.main import NO_SHUTDOWN
+    from guidebook.main import NO_SHUTDOWN
 
     return {
         "picker": db_manager.picker_mode,
@@ -111,7 +110,6 @@ async def confirm_create():
         raise HTTPException(status_code=409, detail=str(e))
     except DatabaseTooNewError as e:
         raise HTTPException(status_code=409, detail=str(e))
-    await start_feeds()
     await start_auto_backup(initial_delay=0)
     broadcast("logbook-changed", {"name": name, "action": "opened"})
     return {"name": name, "is_open": True}
@@ -142,7 +140,7 @@ async def decline_create():
 
 @router.post("/shutdown")
 async def shutdown_server():
-    from rigbook.main import NO_SHUTDOWN
+    from guidebook.main import NO_SHUTDOWN
 
     if NO_SHUTDOWN:
         raise HTTPException(status_code=403, detail="Shutdown is disabled")
@@ -158,7 +156,6 @@ async def open_logbook(body: LogbookName):
     db_path = DB_DIR / f"{body.name}.db"
     if not db_path.exists():
         raise HTTPException(status_code=404, detail="Logbook not found")
-    await stop_feeds()
     await stop_auto_backup()
     try:
         await db_manager.open(db_path)
@@ -166,7 +163,6 @@ async def open_logbook(body: LogbookName):
         raise HTTPException(status_code=409, detail=str(e))
     except DatabaseTooNewError as e:
         raise HTTPException(status_code=409, detail=str(e))
-    await start_feeds()
     await start_auto_backup(initial_delay=0)
     broadcast("logbook-changed", {"name": body.name, "action": "opened"})
     return {"name": body.name, "is_open": True}
@@ -179,7 +175,6 @@ async def close_logbook():
             status_code=400, detail="Close is only available in picker mode"
         )
     name = db_manager.db_name
-    await stop_feeds()
     await stop_auto_backup()
     await db_manager.close()
     broadcast("logbook-changed", {"name": name, "action": "closed"})
@@ -194,7 +189,6 @@ async def delete_logbook(body: LogbookName):
             status_code=400, detail="Can only delete the currently open logbook"
         )
     db_path = DB_DIR / f"{body.name}.db"
-    await stop_feeds()
     await stop_auto_backup()
     await db_manager.close()
     if db_path.exists():
@@ -219,7 +213,6 @@ async def create_logbook(body: LogbookName):
         raise HTTPException(status_code=409, detail=str(e))
     except DatabaseTooNewError as e:
         raise HTTPException(status_code=409, detail=str(e))
-    await start_feeds()
     await start_auto_backup(initial_delay=0)
     broadcast("logbook-changed", {"name": body.name, "action": "created"})
     return {"name": body.name, "is_open": True}

@@ -66,7 +66,7 @@ jobs:
 
       - name: Inject build info
         run: |
-          printf 'BUILD_ORIGIN_REPO = "%s"\nBUILD_GITHUB_ACTIONS = True\nBUILD_GIT_SHA = "%s"\nGIT_SHA = BUILD_GIT_SHA\n' "${{ github.repository }}" "${GITHUB_SHA::8}" > src/rigbook/_build_info.py
+          printf 'BUILD_ORIGIN_REPO = "%s"\nBUILD_GITHUB_ACTIONS = True\nBUILD_GIT_SHA = "%s"\nGIT_SHA = BUILD_GIT_SHA\n' "${{ github.repository }}" "${GITHUB_SHA::8}" > src/guidebook/_build_info.py
 
       - name: Install dependencies
         run: |
@@ -75,23 +75,23 @@ jobs:
 
       - name: Convert icon for Windows
         if: runner.os == 'Windows'
-        run: pip install Pillow && python -c "from PIL import Image; img = Image.open('rigbook.png'); img.save('rigbook.ico', sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])"
+        run: pip install Pillow && python -c "from PIL import Image; img = Image.open('guidebook.png'); img.save('guidebook.ico', sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])"
 
       - name: Build binary
-        run: pyinstaller rigbook.spec
+        run: pyinstaller guidebook.spec
 
       - name: Rename binary (unix)
         if: runner.os != 'Windows'
-        run: mv dist/rigbook dist/rigbook-${{ matrix.target }}
+        run: mv dist/guidebook dist/guidebook-${{ matrix.target }}
 
       - name: Rename binary (windows)
         if: runner.os == 'Windows'
-        run: mv dist/rigbook.exe dist/rigbook-${{ matrix.target }}.exe
+        run: mv dist/guidebook.exe dist/guidebook-${{ matrix.target }}.exe
 
       - uses: actions/upload-artifact@v6
         with:
-          name: rigbook-${{ matrix.target }}
-          path: dist/rigbook-*
+          name: guidebook-${{ matrix.target }}
+          path: dist/guidebook-*
 
   macos-pkg:
     needs: build
@@ -105,53 +105,53 @@ jobs:
 
       - uses: actions/download-artifact@v7
         with:
-          name: rigbook-macos-arm64
+          name: guidebook-macos-arm64
           path: binaries
 
       - uses: actions/download-artifact@v7
         with:
-          name: rigbook-macos-intel
+          name: guidebook-macos-intel
           path: binaries
 
       - name: Create universal macOS .pkg installer
         run: |
           version=$(grep -m1 '^version' pyproject.toml | sed 's/.*"\(.*\)".*/\1/')
 
-          chmod +x binaries/rigbook-macos-arm64 binaries/rigbook-macos-intel
+          chmod +x binaries/guidebook-macos-arm64 binaries/guidebook-macos-intel
 
           # Build .app bundle with both binaries
-          mkdir -p Rigbook.app/Contents/MacOS Rigbook.app/Contents/Resources
-          cp binaries/rigbook-macos-arm64 Rigbook.app/Contents/MacOS/rigbook-arm64
-          cp binaries/rigbook-macos-intel Rigbook.app/Contents/MacOS/rigbook-intel
+          mkdir -p Guidebook.app/Contents/MacOS Guidebook.app/Contents/Resources
+          cp binaries/guidebook-macos-arm64 Guidebook.app/Contents/MacOS/guidebook-arm64
+          cp binaries/guidebook-macos-intel Guidebook.app/Contents/MacOS/guidebook-intel
 
           # Create .icns icon
-          mkdir -p rigbook_icon.iconset
-          sips -z 1024 1024 rigbook.png --out rigbook_icon.iconset/icon_512x512@2x.png
-          sips -z 512 512 rigbook.png --out rigbook_icon.iconset/icon_512x512.png
-          sips -z 512 512 rigbook.png --out rigbook_icon.iconset/icon_256x256@2x.png
-          sips -z 256 256 rigbook.png --out rigbook_icon.iconset/icon_256x256.png
-          sips -z 256 256 rigbook.png --out rigbook_icon.iconset/icon_128x128@2x.png
-          sips -z 128 128 rigbook.png --out rigbook_icon.iconset/icon_128x128.png
-          sips -z 64 64 rigbook.png --out rigbook_icon.iconset/icon_32x32@2x.png
-          sips -z 32 32 rigbook.png --out rigbook_icon.iconset/icon_32x32.png
-          sips -z 32 32 rigbook.png --out rigbook_icon.iconset/icon_16x16@2x.png
-          sips -z 16 16 rigbook.png --out rigbook_icon.iconset/icon_16x16.png
-          iconutil -c icns rigbook_icon.iconset -o Rigbook.app/Contents/Resources/rigbook.icns
+          mkdir -p guidebook_icon.iconset
+          sips -z 1024 1024 guidebook.png --out guidebook_icon.iconset/icon_512x512@2x.png
+          sips -z 512 512 guidebook.png --out guidebook_icon.iconset/icon_512x512.png
+          sips -z 512 512 guidebook.png --out guidebook_icon.iconset/icon_256x256@2x.png
+          sips -z 256 256 guidebook.png --out guidebook_icon.iconset/icon_256x256.png
+          sips -z 256 256 guidebook.png --out guidebook_icon.iconset/icon_128x128@2x.png
+          sips -z 128 128 guidebook.png --out guidebook_icon.iconset/icon_128x128.png
+          sips -z 64 64 guidebook.png --out guidebook_icon.iconset/icon_32x32@2x.png
+          sips -z 32 32 guidebook.png --out guidebook_icon.iconset/icon_32x32.png
+          sips -z 32 32 guidebook.png --out guidebook_icon.iconset/icon_16x16@2x.png
+          sips -z 16 16 guidebook.png --out guidebook_icon.iconset/icon_16x16.png
+          iconutil -c icns guidebook_icon.iconset -o Guidebook.app/Contents/Resources/guidebook.icns
 
           # Create launcher script (auto-detects architecture)
           printf '%s\n' '#!/bin/bash' \
             'DIR="$(dirname "$0")"' \
             'ARCH=$(uname -m)' \
             'if [ "$ARCH" = "arm64" ]; then' \
-            '    RIGBOOK="$DIR/rigbook-arm64"' \
+            '    GUIDEBOOK="$DIR/guidebook-arm64"' \
             'else' \
-            '    RIGBOOK="$DIR/rigbook-intel"' \
+            '    GUIDEBOOK="$DIR/guidebook-intel"' \
             'fi' \
-            'HOST="${RIGBOOK_HOST:-127.0.0.1}"' \
-            'PORT="${RIGBOOK_PORT:-8073}"' \
-            'URL="${RIGBOOK_BROWSER_URL:-}"' \
+            'HOST="${GUIDEBOOK_HOST:-127.0.0.1}"' \
+            'PORT="${GUIDEBOOK_PORT:-8073}"' \
+            'URL="${GUIDEBOOK_BROWSER_URL:-}"' \
             'OPEN_BROWSER=true' \
-            'GLOBAL_DB="$HOME/.local/rigbook/__global.db"' \
+            'GLOBAL_DB="$HOME/.local/guidebook/__global.db"' \
             'if [ -z "$URL" ] && [ -f "$GLOBAL_DB" ] && command -v sqlite3 >/dev/null 2>&1; then' \
             '    DB_URL=$(sqlite3 "$GLOBAL_DB" "SELECT value FROM settings WHERE key='"'"'browser_url_override'"'"'" 2>/dev/null)' \
             '    DB_OPEN=$(sqlite3 "$GLOBAL_DB" "SELECT value FROM settings WHERE key='"'"'open_browser_on_startup'"'"'" 2>/dev/null)' \
@@ -163,7 +163,7 @@ jobs:
             '    [ "$OPEN_BROWSER" = "true" ] && open "${URL}"' \
             '    exit 0' \
             'fi' \
-            '("$RIGBOOK" --no-browser "$@" &)' \
+            '("$GUIDEBOOK" --no-browser "$@" &)' \
             'for i in $(seq 1 30); do' \
             '    sleep 0.5' \
             '    if curl -s -o /dev/null --connect-timeout 1 "http://${HOST}:${PORT}/api/version" 2>/dev/null; then' \
@@ -171,11 +171,11 @@ jobs:
             '        break' \
             '    fi' \
             'done' \
-            'wait' > Rigbook.app/Contents/MacOS/launch
-          chmod +x Rigbook.app/Contents/MacOS/launch
+            'wait' > Guidebook.app/Contents/MacOS/launch
+          chmod +x Guidebook.app/Contents/MacOS/launch
 
           # Create Info.plist
-          cat > Rigbook.app/Contents/Info.plist << PLIST
+          cat > Guidebook.app/Contents/Info.plist << PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -183,17 +183,17 @@ jobs:
               <key>CFBundleExecutable</key>
               <string>launch</string>
               <key>CFBundleIdentifier</key>
-              <string>com.enigmacurry.rigbook</string>
+              <string>com.enigmacurry.guidebook</string>
               <key>CFBundleName</key>
-              <string>Rigbook</string>
+              <string>Guidebook</string>
               <key>CFBundleDisplayName</key>
-              <string>Rigbook</string>
+              <string>Guidebook</string>
               <key>CFBundleVersion</key>
               <string>${version}</string>
               <key>CFBundleShortVersionString</key>
               <string>${version}</string>
               <key>CFBundleIconFile</key>
-              <string>rigbook</string>
+              <string>guidebook</string>
               <key>CFBundlePackageType</key>
               <string>APPL</string>
               <key>LSUIElement</key>
@@ -208,7 +208,7 @@ jobs:
           mkdir -p scripts
           cat > scripts/postinstall << 'POSTINSTALL'
           #!/bin/bash
-          APP_PATH="/Applications/Rigbook.app"
+          APP_PATH="/Applications/Guidebook.app"
           CURRENT_USER=$(stat -f "%Su" /dev/console)
           chown -R "$CURRENT_USER":staff "$APP_PATH"
           POSTINSTALL
@@ -216,19 +216,19 @@ jobs:
 
           # Build .pkg installer
           mkdir -p dist pkg-root/Applications
-          cp -R Rigbook.app pkg-root/Applications/
+          cp -R Guidebook.app pkg-root/Applications/
           pkgbuild \
             --root pkg-root \
-            --identifier com.enigmacurry.rigbook \
+            --identifier com.enigmacurry.guidebook \
             --version "${version}" \
             --install-location / \
             --scripts scripts \
-            dist/rigbook-macos-universal.pkg
+            dist/guidebook-macos-universal.pkg
 
       - uses: actions/upload-artifact@v6
         with:
-          name: rigbook-macos-universal-pkg
-          path: dist/rigbook-macos-universal.pkg
+          name: guidebook-macos-universal-pkg
+          path: dist/guidebook-macos-universal.pkg
 
   release:
     needs: [build, macos-pkg]
@@ -266,7 +266,7 @@ jobs:
 
   docker:
     needs: release
-    if: github.repository == 'EnigmaCurry/rigbook'
+    if: github.repository == 'EnigmaCurry/guidebook'
     runs-on: ubuntu-latest
     permissions:
       contents: read

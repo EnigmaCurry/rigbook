@@ -5,19 +5,19 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from rigbook.db import (
+from guidebook.db import (
     GLOBAL_DEFAULTABLE_KEYS,
     GLOBAL_ONLY_KEYS,
     GlobalSetting,
     get_global_session,
 )
 
-logger = logging.getLogger("rigbook")
+logger = logging.getLogger("guidebook")
 
 router = APIRouter(prefix="/api/global-settings", tags=["global-settings"])
 
 ALLOWED_KEYS = GLOBAL_DEFAULTABLE_KEYS | GLOBAL_ONLY_KEYS
-HIDDEN_KEYS = {"qrz_password", "hamalert_password", "qrz_api_key"}
+HIDDEN_KEYS: set[str] = set()
 
 
 class SettingValue(BaseModel):
@@ -78,8 +78,8 @@ async def upsert_global_setting(
     logger.info("Global setting changed: %s = %s", key, log_value)
 
     if key == "disable_shutdown":
-        import rigbook.main as _main
-        from rigbook.sse import stop_auto_shutdown
+        import guidebook.main as _main
+        from guidebook.sse import stop_auto_shutdown
 
         if data.value == "true":
             _main.NO_SHUTDOWN = True
@@ -88,8 +88,8 @@ async def upsert_global_setting(
             _main.NO_SHUTDOWN = False
 
     if key == "auto_shutdown_on_disconnect":
-        from rigbook.main import NO_SHUTDOWN
-        from rigbook.sse import start_auto_shutdown, stop_auto_shutdown
+        from guidebook.main import NO_SHUTDOWN
+        from guidebook.sse import start_auto_shutdown, stop_auto_shutdown
 
         if not NO_SHUTDOWN and data.value == "true":
             await start_auto_shutdown()

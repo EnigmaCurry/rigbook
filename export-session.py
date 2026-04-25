@@ -29,7 +29,11 @@ def render_diff(old_string, new_string):
         elif stripped.startswith("-"):
             cls = "diff-del"
         lines.append(f'<div class="{cls}">{escape(stripped)}</div>')
-    return "\n".join(lines) if lines else f'<pre class="diff-add">{escape(new_string)}</pre>'
+    return (
+        "\n".join(lines)
+        if lines
+        else f'<pre class="diff-add">{escape(new_string)}</pre>'
+    )
 
 
 def render_tool_use(block):
@@ -60,7 +64,9 @@ def render_tool_use(block):
     elif name == "Grep":
         pattern = inp.get("pattern", "")
         path = inp.get("path", "")
-        parts.append(f'<div class="tool-desc">grep {escape(pattern)} {escape(path)}</div>')
+        parts.append(
+            f'<div class="tool-desc">grep {escape(pattern)} {escape(path)}</div>'
+        )
     elif name == "Glob":
         pattern = inp.get("pattern", "")
         parts.append(f'<div class="tool-desc">glob {escape(pattern)}</div>')
@@ -71,7 +77,9 @@ def render_tool_use(block):
         if prompt:
             parts.append(f'<pre class="code-block">{escape(prompt[:500])}</pre>')
     else:
-        parts.append(f'<pre class="code-block">{escape(json.dumps(inp, indent=2)[:1000])}</pre>')
+        parts.append(
+            f'<pre class="code-block">{escape(json.dumps(inp, indent=2)[:1000])}</pre>'
+        )
 
     return "\n".join(parts)
 
@@ -107,7 +115,9 @@ def main():
     else:
         session_file = Path(sys.argv[1])
 
-    output_file = Path(sys.argv[2]) if len(sys.argv) > 2 else session_file.with_suffix(".html")
+    output_file = (
+        Path(sys.argv[2]) if len(sys.argv) > 2 else session_file.with_suffix(".html")
+    )
 
     # Parse messages
     messages = []
@@ -175,7 +185,7 @@ def main():
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rigbook Session Export</title>
+<title>Guidebook Session Export</title>
 <style>
   * {{ box-sizing: border-box; }}
   body {{
@@ -280,7 +290,7 @@ def main():
 </style>
 </head>
 <body>
-<h1 style="text-align:center; color:#a6e3a1; max-width:960px; margin:0 auto 2rem;">Rigbook Session</h1>
+<h1 style="text-align:center; color:#a6e3a1; max-width:960px; margin:0 auto 2rem;">Guidebook Session</h1>
 {"".join(html_parts)}
 </body>
 </html>"""

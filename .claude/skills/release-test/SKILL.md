@@ -1,18 +1,18 @@
 ---
 name: release-test
-description: "Push a tagged release to rigbook-build-test repo and let the workflow build it"
+description: "Push a tagged release to guidebook-build-test repo and let the workflow build it"
 allowed-tools: Bash(git *, gh *, uv *, just *), Read, Edit
 ---
 
 # Release Test
 
-Push a tagged release to the [rigbook-build-test](https://github.com/EnigmaCurry/rigbook-build-test) repo. The release workflow triggers on tag push (no branch required).
+Push a tagged release to the [guidebook-build-test](https://github.com/EnigmaCurry/guidebook-build-test) repo. The release workflow triggers on tag push (no branch required).
 
 This creates a temporary branch with the version bump, tags it, pushes the commit and tag to the test repo, then cleans up locally.
 
 ## Version Numbering
 
-Run `just next-dev-version` to get the next version automatically. This reads the base version from `pyproject.toml` and queries existing releases on `EnigmaCurry/rigbook-build-test` to find the next sequential `.devN` suffix.
+Run `just next-dev-version` to get the next version automatically. This reads the base version from `pyproject.toml` and queries existing releases on `EnigmaCurry/guidebook-build-test` to find the next sequential `.devN` suffix.
 
 The result is e.g. `0.2.7.dev0`. The tag uses a `v` prefix: `v0.2.7.dev0`.
 
@@ -26,7 +26,7 @@ The result is e.g. `0.2.7.dev0`. The tag uses a `v` prefix: `v0.2.7.dev0`.
 
 2. **Ensure the build-test remote exists:**
    ```bash
-   git remote get-url build-test 2>/dev/null || git remote add build-test git@deploy-github.com-EnigmaCurry-rigbook-build-test:EnigmaCurry/rigbook-build-test.git
+   git remote get-url build-test 2>/dev/null || git remote add build-test git@deploy-github.com-EnigmaCurry-guidebook-build-test:EnigmaCurry/guidebook-build-test.git
    ```
 
 3. **Save the current branch name:**
@@ -81,7 +81,7 @@ The result is e.g. `0.2.7.dev0`. The tag uses a `v` prefix: `v0.2.7.dev0`.
 11. **Watch the GitHub Actions build in the background:**
     The workflow will create the GitHub release automatically.
     ```bash
-    gh run watch $(gh run list --repo EnigmaCurry/rigbook-build-test --limit 1 --json databaseId -q '.[0].databaseId') --repo EnigmaCurry/rigbook-build-test
+    gh run watch $(gh run list --repo EnigmaCurry/guidebook-build-test --limit 1 --json databaseId -q '.[0].databaseId') --repo EnigmaCurry/guidebook-build-test
     ```
     Run this with `run_in_background: true` so the user isn't blocked. When notified of completion, report the build result.
 

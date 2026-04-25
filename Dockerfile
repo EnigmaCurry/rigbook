@@ -16,6 +16,6 @@ RUN uv sync --no-dev --frozen
 FROM python:3.12-slim
 WORKDIR /app
 COPY --from=backend /app /app
-COPY --from=frontend /app/src/rigbook/static src/rigbook/static
+COPY --from=frontend /app/src/guidebook/static src/guidebook/static
 EXPOSE 8073
-CMD [".venv/bin/rigbook"]
+CMD [".venv/bin/guidebook"]

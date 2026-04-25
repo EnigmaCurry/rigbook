@@ -1,4 +1,4 @@
-/** Theme definitions for Rigbook.
+/** Theme definitions for Guidebook.
  *  Each theme maps CSS custom-property names to values.
  *  `base` is "dark" or "light" — used for map-tile selection and fallback logic.
  */
@@ -713,7 +713,7 @@ function _setGradient(style, gradient) {
 let _grainRaf = null;
 
 function _setGrain(grain, scanlines) {
-  let overlay = document.getElementById("rigbook-grain-overlay");
+  let overlay = document.getElementById("guidebook-grain-overlay");
   // Stop any running animation
   if (_grainRaf) { cancelAnimationFrame(_grainRaf); _grainRaf = null; }
   if (grain === 0) {
@@ -726,12 +726,12 @@ function _setGrain(grain, scanlines) {
     svg.setAttribute("width", "0");
     svg.setAttribute("height", "0");
     svg.style.position = "absolute";
-    svg.innerHTML = `<filter id="rigbook-noise"><feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="4" stitchTiles="stitch" seed="0"/><feColorMatrix type="saturate" values="0"/></filter>`;
+    svg.innerHTML = `<filter id="guidebook-noise"><feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="4" stitchTiles="stitch" seed="0"/><feColorMatrix type="saturate" values="0"/></filter>`;
     document.body.appendChild(svg);
     // Create overlay div
     overlay = document.createElement("div");
-    overlay.id = "rigbook-grain-overlay";
-    overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:99999;filter:url(#rigbook-noise);mix-blend-mode:overlay;";
+    overlay.id = "guidebook-grain-overlay";
+    overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:99999;filter:url(#guidebook-noise);mix-blend-mode:overlay;";
     document.body.appendChild(overlay);
   }
   overlay.style.display = "block";
@@ -746,7 +746,7 @@ function _setGrain(grain, scanlines) {
   }
   // Animate grain when scanlines > 0
   if (scanlines > 0) {
-    const turb = document.querySelector("#rigbook-noise feTurbulence");
+    const turb = document.querySelector("#guidebook-noise feTurbulence");
     if (turb) {
       const fps = 4 + Math.round(scanlines / 45 * 12); // 4–16 fps based on scanlines
       const interval = 1000 / fps;
@@ -781,14 +781,14 @@ function _setGlow(style, glow) {
 }
 
 function _setScanlines(scanlines) {
-  let overlay = document.getElementById("rigbook-scanlines-overlay");
+  let overlay = document.getElementById("guidebook-scanlines-overlay");
   if (scanlines === 0) {
     if (overlay) overlay.style.display = "none";
     return;
   }
   if (!overlay) {
     overlay = document.createElement("div");
-    overlay.id = "rigbook-scanlines-overlay";
+    overlay.id = "guidebook-scanlines-overlay";
     overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:99998;";
     document.body.appendChild(overlay);
   }

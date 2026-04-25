@@ -5,7 +5,7 @@ from pathlib import Path
 
 # Inject git SHA into _build_info.py for the build, always using current HEAD.
 # The original file is restored after PyInstaller reads it so dev runs stay clean.
-build_info_path = Path("src/rigbook/_build_info.py")
+build_info_path = Path("src/guidebook/_build_info.py")
 build_info_original = build_info_path.read_text()
 try:
     sha = subprocess.check_output(
@@ -20,7 +20,7 @@ except Exception:
     pass
 
 block_cipher = None
-static_dir = Path("src/rigbook/static")
+static_dir = Path("src/guidebook/static")
 
 a = Analysis(
     ["build_entry.py"],
@@ -49,7 +49,6 @@ a = Analysis(
     + (["uvloop"] if platform.system() == "Windows" else []),
     noarchive=False,
     cipher=block_cipher,
-    collect_data=["pycountry", "pyadif_file"],
 )
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
@@ -60,7 +59,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name="rigbook",
+    name="guidebook",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -73,5 +72,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon="rigbook.ico" if Path("rigbook.ico").exists() else None,
+    icon="guidebook.ico" if Path("guidebook.ico").exists() else None,
 )

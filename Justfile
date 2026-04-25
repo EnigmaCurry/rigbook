@@ -1,5 +1,5 @@
-# Rigbook - Ham Radio Logbook
-build_test_repo := "EnigmaCurry/rigbook-build-test"
+# Guidebook - Web Application Template
+build_test_repo := "EnigmaCurry/guidebook-build-test"
 
 # Show available recipes
 @default:
@@ -22,7 +22,7 @@ deps: _check-uv _check-node
 
 # Run the server (builds frontend first)
 run *ARGS: _check-uv build-frontend
-    uv run rigbook {{ ARGS }}
+    uv run guidebook {{ ARGS }}
 
 # Build the frontend (skips if sources unchanged)
 build-frontend: _check-node
@@ -36,11 +36,11 @@ build-frontend: _check-node
 
 # Build a standalone binary with PyInstaller (skips if sources unchanged)
 build-binary: _check-uv build-frontend
-    @hash=$(find src/rigbook -type f -name '*.py' 2>/dev/null | sort | xargs cat | cat - rigbook.spec .build-frontend.stamp 2>/dev/null | sha256sum | cut -d' ' -f1); \
+    @hash=$(find src/guidebook -type f -name '*.py' 2>/dev/null | sort | xargs cat | cat - guidebook.spec .build-frontend.stamp 2>/dev/null | sha256sum | cut -d' ' -f1); \
     if [ -f .build-binary.stamp ] && [ "$(cat .build-binary.stamp)" = "$hash" ]; then \
         echo "binary: up to date"; \
     else \
-        uv sync --group build && uv run pyinstaller rigbook.spec && echo "$hash" > .build-binary.stamp; \
+        uv sync --group build && uv run pyinstaller guidebook.spec && echo "$hash" > .build-binary.stamp; \
     fi
 
 # Build everything (frontend + binary)
@@ -65,20 +65,6 @@ fix: _check-uv
     uv run ruff check --fix .
     uv run ruff format .
 
-# Set your callsign
-config callsign: _check-curl
-    curl -s -X PUT http://localhost:8073/api/settings/my_callsign \
-        -H 'Content-Type: application/json' \
-        -d '{"value": "{{callsign}}"}'
-    @echo
-
-# Set your grid square
-config-grid grid: _check-curl
-    curl -s -X PUT http://localhost:8073/api/settings/my_grid \
-        -H 'Content-Type: application/json' \
-        -d '{"value": "{{grid}}"}'
-    @echo
-
 # Show current settings
 config-show: _check-curl
     @curl -s http://localhost:8073/api/settings | python -m json.tool
@@ -89,7 +75,7 @@ reset-dev:
     git checkout dev
     git reset --hard origin/dev
 
-# Print the next .devN version for test releases (e.g. 0.2.7.dev3)
+# Print the next .devN version for test releases (e.g. 0.1.0.dev3)
 next-dev-version:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -109,4 +95,3 @@ clean:
     rm -rf dist/ build/
     rm -f .build-*.stamp
     @echo "Build artifacts cleaned."
-

@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from rigbook.db import (
+from guidebook.db import (
     GLOBAL_DEFAULTABLE_KEYS,
     GlobalSetting,
     Setting,
@@ -17,9 +17,21 @@ from rigbook.db import (
     get_session,
 )
 
-logger = logging.getLogger("rigbook")
+logger = logging.getLogger("guidebook")
 
-THEME_BROADCAST_KEYS = {"theme", "theme_mode", "theme_contrast", "theme_brightness", "theme_hue", "theme_saturation", "theme_gradient", "theme_grain", "theme_glow", "theme_scanlines", "custom_theme_colors"}
+THEME_BROADCAST_KEYS = {
+    "theme",
+    "theme_mode",
+    "theme_contrast",
+    "theme_brightness",
+    "theme_hue",
+    "theme_saturation",
+    "theme_gradient",
+    "theme_grain",
+    "theme_glow",
+    "theme_scanlines",
+    "custom_theme_colors",
+}
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
@@ -36,7 +48,7 @@ class SettingResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-HIDDEN_KEYS = {"qrz_password", "hamalert_password", "qrz_api_key"}
+HIDDEN_KEYS: set[str] = set()
 
 
 def _redact(setting: Setting, source: str = "logbook") -> SettingResponse:
@@ -58,9 +70,13 @@ async def list_settings(
     logbook_settings = result.scalars().all()
     # Track which defaultable keys have a non-blank logbook value
     logbook_filled = {
-        s.key for s in logbook_settings if s.key not in GLOBAL_DEFAULTABLE_KEYS or s.value
+        s.key
+        for s in logbook_settings
+        if s.key not in GLOBAL_DEFAULTABLE_KEYS or s.value
     }
-    responses = [_redact(s, "logbook") for s in logbook_settings if s.key in logbook_filled]
+    responses = [
+        _redact(s, "logbook") for s in logbook_settings if s.key in logbook_filled
+    ]
 
     # Fill in global defaults for defaultable keys that are missing or blank
     meta_result = await gdb.execute(
@@ -120,7 +136,8 @@ async def upsert_setting(
     logger.info("Setting changed: %s = %s", key, log_value)
 
     if key in THEME_BROADCAST_KEYS:
-        from rigbook.sse import broadcast
+        from guidebook.sse import broadcast
+
         broadcast("theme-changed", {})
 
     return setting
@@ -129,7 +146,8 @@ async def upsert_setting(
 @router.post("/theme-preview")
 async def theme_preview(data: SettingValue, key: str = ""):
     """Broadcast a live theme preview value via SSE without saving to DB."""
-    from rigbook.sse import broadcast
+    from guidebook.sse import broadcast
+
     broadcast("theme-preview", {"key": key, "value": data.value})
 
 

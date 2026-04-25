@@ -16,7 +16,7 @@ from sqlalchemy import delete, select
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from rigbook.db import (
+from guidebook.db import (
     DatabaseLockError,
     DatabaseTooNewError,
     GlobalCache,
@@ -28,38 +28,25 @@ from rigbook.db import (
     init_db,
     global_async_session,
 )
-from rigbook.flrig import router as flrig_router
-from rigbook.routes.logbooks import router as logbooks_router
-from rigbook.routes.spots import router as spots_router
-from rigbook.spots import start_feeds, stop_feeds
-from rigbook.routes.adif import router as adif_router
-from rigbook.routes.pota import router as pota_router
-from rigbook.routes.qrz import router as qrz_router
-from rigbook.routes.qrz_sync import router as qrz_sync_router
-from rigbook.routes.search import router as search_router
-from rigbook.routes.tiles import router as tiles_router
-from rigbook.routes.skcc import router as skcc_router
-from rigbook.routes.contacts import router as contacts_router
-from rigbook.routes.geo import router as geo_router
-from rigbook.routes.notifications import router as notifications_router
-from rigbook.sse import (
+from guidebook.routes.logbooks import router as logbooks_router
+from guidebook.routes.records import router as records_router
+from guidebook.routes.notifications import router as notifications_router
+from guidebook.sse import (
     router as sse_router,
     start_auto_shutdown,
     stop_auto_shutdown as stop_sse_auto_shutdown,
 )
-from rigbook.routes.settings import (
+from guidebook.routes.settings import (
     router as settings_router,
     start_auto_backup,
     stop_auto_backup,
 )
-from rigbook.routes.query import router as query_router
-from rigbook.routes.global_settings import router as global_settings_router
-from rigbook.routes.solar import router as solar_router
-from rigbook.routes.update import router as update_router
-from rigbook.routes.achievements import router as achievements_router
-from rigbook._build_info import BUILD_GITHUB_ACTIONS, BUILD_ORIGIN_REPO, GIT_SHA
+from guidebook.routes.query import router as query_router
+from guidebook.routes.global_settings import router as global_settings_router
+from guidebook.routes.update import router as update_router
+from guidebook._build_info import BUILD_GITHUB_ACTIONS, BUILD_ORIGIN_REPO, GIT_SHA
 
-logger = logging.getLogger("rigbook")
+logger = logging.getLogger("guidebook")
 
 
 def _resource_path(relative: str) -> Path:
@@ -76,7 +63,7 @@ def _handle_shutdown_signal(sig, frame):
     import threading
     import time
 
-    from rigbook.sse import notify_shutdown
+    from guidebook.sse import notify_shutdown
 
     notify_shutdown()
     # Restore default handlers so a second signal force-quits
@@ -100,10 +87,10 @@ async def lifespan(app: FastAPI):
     signal.signal(signal.SIGTERM, _handle_shutdown_signal)
     origin = BUILD_ORIGIN_REPO or "local build"
     sha = f" {GIT_SHA}" if GIT_SHA else ""
-    logger.info("Rigbook v%s (%s%s)", version("rigbook"), origin, sha)
-    if GITHUB_REPO != "EnigmaCurry/rigbook":
+    logger.info("Guidebook v%s (%s%s)", version("guidebook"), origin, sha)
+    if GITHUB_REPO != "EnigmaCurry/guidebook":
         logger.warning("Custom update source: BUILD_ORIGIN_REPO=%s", GITHUB_REPO)
-    from rigbook.routes.update import _cleanup_old_binaries
+    from guidebook.routes.update import _cleanup_old_binaries
 
     _cleanup_old_binaries()
     try:
@@ -133,7 +120,6 @@ async def lifespan(app: FastAPI):
             if row and row.value == "true":
                 NO_SHUTDOWN = True
     if db_manager.is_open:
-        await start_feeds()
         await start_auto_backup()
         if not NO_SHUTDOWN:
             async with global_async_session() as gdb:
@@ -149,12 +135,11 @@ async def lifespan(app: FastAPI):
     yield
     await stop_sse_auto_shutdown()
     await stop_auto_backup()
-    await stop_feeds()
     await db_manager.close()
     await db_manager.close_global()
 
 
-app = FastAPI(title="Rigbook", version=version("rigbook"), lifespan=lifespan)
+app = FastAPI(title="Guidebook", version=version("guidebook"), lifespan=lifespan)
 
 
 @app.middleware("http")
@@ -173,19 +158,23 @@ async def http_middleware(request: Request, call_next):
     return response
 
 
-NO_SHUTDOWN = os.environ.get("RIGBOOK_NO_SHUTDOWN", "").lower() in ("1", "true", "yes")
+NO_SHUTDOWN = os.environ.get("GUIDEBOOK_NO_SHUTDOWN", "").lower() in (
+    "1",
+    "true",
+    "yes",
+)
 
 
 @app.get("/api/version")
 async def get_version():
     return {
-        "version": version("rigbook"),
+        "version": version("guidebook"),
         "no_shutdown": NO_SHUTDOWN,
         "frozen": getattr(sys, "frozen", False),
     }
 
 
-GITHUB_REPO = BUILD_ORIGIN_REPO or "EnigmaCurry/rigbook"
+GITHUB_REPO = BUILD_ORIGIN_REPO or "EnigmaCurry/guidebook"
 UPDATE_CACHE_NS = "update_check"
 UPDATE_CACHE_KEY = "latest"
 UPDATE_CACHE_TTL = 3600  # 1 hour
@@ -197,7 +186,7 @@ async def check_for_update(
     session: AsyncSession = Depends(get_session),
     bust: bool = False,
 ):
-    current = version("rigbook")
+    current = version("guidebook")
 
     # Only check updates for official GitHub Actions builds
     if not BUILD_GITHUB_ACTIONS:
@@ -318,7 +307,7 @@ async def check_for_update(
     }
 
     if fresh_fetch:
-        from rigbook.sse import broadcast
+        from guidebook.sse import broadcast
 
         broadcast("update-check", result)
 
@@ -331,7 +320,6 @@ async def skip_update(
     session: AsyncSession = Depends(get_session),
 ):
     """Skip the currently available update version."""
-    # Get the latest known version from meta cache
     cached = (
         await gdb.execute(
             select(GlobalCache).where(
@@ -347,7 +335,6 @@ async def skip_update(
     if not latest:
         return {"status": "no_update"}
 
-    # Store the skipped version in logbook settings (will move to meta in Phase 4)
     row = (
         await session.execute(
             select(Setting).where(Setting.key == "update_skip_version")
@@ -363,24 +350,12 @@ async def skip_update(
 
 
 app.include_router(logbooks_router)
-app.include_router(contacts_router)
+app.include_router(records_router)
 app.include_router(settings_router)
 app.include_router(global_settings_router)
-app.include_router(flrig_router)
-app.include_router(geo_router)
-app.include_router(adif_router)
-app.include_router(pota_router)
-app.include_router(qrz_router)
-app.include_router(qrz_sync_router)
-app.include_router(search_router)
-app.include_router(skcc_router)
-app.include_router(tiles_router)
-app.include_router(spots_router)
 app.include_router(notifications_router)
 app.include_router(query_router)
-app.include_router(solar_router)
 app.include_router(update_router)
-app.include_router(achievements_router)
 app.include_router(sse_router)
 
 static_dir = _resource_path("static")
@@ -409,8 +384,10 @@ def _detect_browser_name() -> str:
     return name
 
 
-def _check_running_instance(host: str, port: int, no_browser: bool, pid: int | None = None) -> bool:
-    """Check if rigbook is already running at host:port.
+def _check_running_instance(
+    host: str, port: int, no_browser: bool, pid: int | None = None
+) -> bool:
+    """Check if guidebook is already running at host:port.
 
     Returns True if we replaced the running instance (caller should continue startup).
     Calls sys.exit() if we should defer to the running instance.
@@ -444,7 +421,7 @@ def _check_running_instance(host: str, port: int, no_browser: bool, pid: int | N
     except Exception:
         pass
 
-    current = version("rigbook")
+    current = version("guidebook")
     my_origin = BUILD_ORIGIN_REPO or None
     my_sha = GIT_SHA or None
     same_lineage = (my_origin == running_origin) or (
@@ -471,7 +448,7 @@ def _check_running_instance(host: str, port: int, no_browser: bool, pid: int | N
             reason = f"v{current} ({running_sha} → {my_sha})"
         else:
             reason = f"v{running_version} → v{current}"
-        print(f"Stopping Rigbook {reason} (PID {pid})...")
+        print(f"Stopping Guidebook {reason} (PID {pid})...")
         try:
             os.kill(pid, signal.SIGTERM)
             for _ in range(20):
@@ -497,7 +474,7 @@ def _check_running_instance(host: str, port: int, no_browser: bool, pid: int | N
             kill_cmd = f"kill {pid_str}"
         rv = running_version or "unknown"
         print(
-            f"Error: Rigbook v{rv} is already running (PID {pid_str}) "
+            f"Error: Guidebook v{rv} is already running (PID {pid_str}) "
             f"from build origin {running_desc}.\n"
             f"This binary is v{current} from {my_desc}. "
             f"Stop the other instance first:\n"
@@ -513,22 +490,22 @@ def _check_running_instance(host: str, port: int, no_browser: bool, pid: int | N
         rv = running_version or current
         origin = running_origin or "local"
         print(
-            f"Rigbook v{rv} ({origin}) is already running — opening {url} in {browser_name}"
+            f"Guidebook v{rv} ({origin}) is already running — opening {url} in {browser_name}"
         )
         webbrowser.open(url)
     else:
-        print(f"Rigbook is already running on {url}")
+        print(f"Guidebook is already running on {url}")
     sys.exit(0)
 
 
 def run() -> None:
     import argparse
 
-    parser = argparse.ArgumentParser(description="Rigbook - Ham Radio Logbook")
+    parser = argparse.ArgumentParser(description="Guidebook - Web Application Template")
     parser.add_argument(
         "--version",
         action="version",
-        version=f"rigbook {version('rigbook')} ({BUILD_ORIGIN_REPO or 'local build'}{' ' + GIT_SHA if GIT_SHA else ''})",
+        version=f"guidebook {version('guidebook')} ({BUILD_ORIGIN_REPO or 'local build'}{' ' + GIT_SHA if GIT_SHA else ''})",
     )
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="Enable verbose/debug logging"
@@ -537,7 +514,7 @@ def run() -> None:
         "name",
         nargs="?",
         default=None,
-        help="Logbook name to open (e.g. field-day, default: rigbook)",
+        help="Logbook name to open (e.g. my-project, default: guidebook)",
     )
     parser.add_argument(
         "--pick",
@@ -565,7 +542,9 @@ def run() -> None:
 
     global NO_SHUTDOWN
     if args.name and args.name.startswith("__"):
-        print("Error: logbook name must not start with '__' (reserved for system databases)")
+        print(
+            "Error: logbook name must not start with '__' (reserved for system databases)"
+        )
         sys.exit(1)
     db_manager.configure(db_name=args.name, picker=args.pick)
     if args.no_shutdown:
@@ -580,16 +559,16 @@ def run() -> None:
                 db_manager.check_lock(db_path)
             except DatabaseLockError:
                 no_browser = args.no_browser or os.environ.get(
-                    "RIGBOOK_NO_BROWSER", ""
+                    "GUIDEBOOK_NO_BROWSER", ""
                 ).lower() in ("1", "true", "yes")
                 lock_info = db_manager.read_lock_info(db_path)
                 if not lock_info or "host" not in lock_info:
                     lock_info = lock_info or {}
                     lock_info.setdefault(
-                        "host", os.environ.get("RIGBOOK_HOST", "127.0.0.1")
+                        "host", os.environ.get("GUIDEBOOK_HOST", "127.0.0.1")
                     )
                     lock_info.setdefault(
-                        "port", int(os.environ.get("RIGBOOK_PORT", "8073"))
+                        "port", int(os.environ.get("GUIDEBOOK_PORT", "8073"))
                     )
                 _check_running_instance(
                     lock_info["host"],
@@ -616,17 +595,15 @@ def run() -> None:
                 return f"{color}{msg}{self.RESET}"
             return msg
 
-    # Log to file when there's no usable console (Windows windowed build,
-    # or macOS .app launched from Finder with no tty).
     _log_to_file = getattr(sys, "frozen", False) and (
         sys.platform == "win32"
         or (sys.platform == "darwin" and not sys.stderr.isatty())
     )
     if _log_to_file:
-        from rigbook.db import DB_DIR
+        from guidebook.db import DB_DIR
 
         DB_DIR.mkdir(parents=True, exist_ok=True)
-        handler = logging.FileHandler(DB_DIR / "rigbook.log", encoding="utf-8")
+        handler = logging.FileHandler(DB_DIR / "guidebook.log", encoding="utf-8")
         handler.setFormatter(
             logging.Formatter(
                 fmt="%(asctime)s UTC %(levelname)s: %(name)s: %(message)s",
@@ -646,12 +623,12 @@ def run() -> None:
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
-    host = os.environ.get("RIGBOOK_HOST", "")
+    host = os.environ.get("GUIDEBOOK_HOST", "")
     if not host:
         try:
             import sqlite3 as _sqlite3
 
-            from rigbook.db import META_DB_PATH
+            from guidebook.db import META_DB_PATH
 
             if META_DB_PATH.exists():
                 _conn = _sqlite3.connect(str(META_DB_PATH))
@@ -665,11 +642,11 @@ def run() -> None:
             pass
         if not host:
             host = "127.0.0.1"
-    port = args.port or int(os.environ.get("RIGBOOK_PORT", "8073"))
+    port = args.port or int(os.environ.get("GUIDEBOOK_PORT", "8073"))
 
-    # Check if rigbook is already running on this port (works in all modes including picker)
+    # Check if guidebook is already running on this port
     no_browser = args.no_browser or os.environ.get(
-        "RIGBOOK_NO_BROWSER", ""
+        "GUIDEBOOK_NO_BROWSER", ""
     ).lower() in ("1", "true", "yes")
     _check_running_instance(host, port, no_browser)
 
@@ -678,11 +655,11 @@ def run() -> None:
     import threading
 
     no_browser = args.no_browser or os.environ.get(
-        "RIGBOOK_NO_BROWSER", ""
+        "GUIDEBOOK_NO_BROWSER", ""
     ).lower() in ("1", "true", "yes")
     if not no_browser:
         default_url = f"http://{host}:{port}"
-        env_browser_url = os.environ.get("RIGBOOK_BROWSER_URL", "").strip()
+        env_browser_url = os.environ.get("GUIDEBOOK_BROWSER_URL", "").strip()
 
         def open_browser():
             import sqlite3
@@ -692,7 +669,7 @@ def run() -> None:
             url = env_browser_url or default_url
             if not env_browser_url:
                 try:
-                    from rigbook.db import META_DB_PATH
+                    from guidebook.db import META_DB_PATH
 
                     if META_DB_PATH.exists():
                         conn = sqlite3.connect(str(META_DB_PATH))

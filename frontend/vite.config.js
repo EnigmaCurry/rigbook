@@ -12,7 +12,7 @@ export default defineConfig({
     },
   })],
   build: {
-    outDir: "../src/rigbook/static",
+    outDir: "../src/guidebook/static",
     emptyOutDir: true,
     chunkSizeWarningLimit: 800,
   },
