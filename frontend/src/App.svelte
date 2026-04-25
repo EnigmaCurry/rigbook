@@ -1,119 +1,25 @@
 <script>
   import { onMount, onDestroy, tick } from "svelte";
-  import Logbook from "./Logbook.svelte";
-  import ExportImport from "./ExportImport.svelte";
-  import Hunting from "./Hunting.svelte";
-  import BandPlan from "./BandPlan.svelte";
-  import GridMap from "./GridMap.svelte";
-  import Search from "./Search.svelte";
+  import Records from "./Records.svelte";
   import Settings from "./Settings.svelte";
   import About from "./About.svelte";
-  import Conditions from "./Conditions.svelte";
-  import Parks from "./Parks.svelte";
-  import Links from "./Links.svelte";
   import Notifications from "./Notifications.svelte";
-  import Spots from "./Spots.svelte";
   import LogbookPicker from "./LogbookPicker.svelte";
   import Welcome from "./Welcome.svelte";
-  import SearchResults from "./SearchResults.svelte";
   import Query from "./Query.svelte";
-  import Achievements from "./Achievements.svelte";
-  import { bandColor, bandTextColor } from "./bandColors.js";
   import Icon from "@iconify/svelte";
   import iconBook from "@iconify-icons/twemoji/open-book";
-  import iconCompass from "@iconify-icons/twemoji/compass";
-  import iconMap from "@iconify-icons/twemoji/world-map";
-  import iconTree from "@iconify-icons/twemoji/evergreen-tree";
   import iconBell from "@iconify-icons/twemoji/bell";
-  import iconSun from "@iconify-icons/twemoji/sun-behind-small-cloud";
   import iconPlus from "@iconify-icons/twemoji/heavy-plus-sign";
-  import iconRadio from "@iconify-icons/twemoji/radio";
-  import iconCross from "@iconify-icons/twemoji/cross-mark";
   import { setLogbook, storageGet, storageSet, migrateStorage } from "./storage.js";
   import { applyThemeVars, applyCustomThemeVars, resolveDefaultTheme } from "./themes.js";
 
-  const BANDS = [
-    { name: "160m", lo: 1800, hi: 2000, segments: [
-      { label: "CW", lo: 1800, hi: 2000 }, { label: "SSB", lo: 1800, hi: 2000 },
-    ]},
-    { name: "80m", lo: 3500, hi: 4000, segments: [
-      { label: "CW", lo: 3500, hi: 4000 }, { label: "SSB", lo: 3600, hi: 4000 },
-    ]},
-    { name: "60m", lo: 5330, hi: 5410, segments: [
-      { label: "CW", lo: 5330, hi: 5410 }, { label: "Digi", lo: 5330, hi: 5410 }, { label: "USB", lo: 5330, hi: 5410 },
-    ]},
-    { name: "40m", lo: 7000, hi: 7300, segments: [
-      { label: "CW", lo: 7000, hi: 7300 }, { label: "SSB", lo: 7125, hi: 7300 },
-    ]},
-    { name: "30m", lo: 10100, hi: 10150, segments: [
-      { label: "CW", lo: 10100, hi: 10150 }, { label: "SSB", lo: 10100, hi: 10150 },
-    ]},
-    { name: "20m", lo: 14000, hi: 14350, segments: [
-      { label: "CW", lo: 14000, hi: 14350 }, { label: "SSB", lo: 14150, hi: 14350 },
-    ]},
-    { name: "17m", lo: 18068, hi: 18168, segments: [
-      { label: "CW", lo: 18068, hi: 18168 }, { label: "SSB", lo: 18110, hi: 18168 },
-    ]},
-    { name: "15m", lo: 21000, hi: 21450, segments: [
-      { label: "CW", lo: 21000, hi: 21450 }, { label: "SSB", lo: 21200, hi: 21450 },
-    ]},
-    { name: "12m", lo: 24890, hi: 24990, segments: [
-      { label: "CW", lo: 24890, hi: 24990 }, { label: "SSB", lo: 24930, hi: 24990 },
-    ]},
-    { name: "10m", lo: 28000, hi: 29700, segments: [
-      { label: "CW", lo: 28000, hi: 29700 }, { label: "SSB", lo: 28300, hi: 29700 },
-    ]},
-    { name: "6m", lo: 50000, hi: 54000, segments: [
-      { label: "CW", lo: 50000, hi: 54000 }, { label: "SSB", lo: 50100, hi: 54000 },
-    ]},
-    { name: "2m", lo: 144000, hi: 148000, segments: [
-      { label: "CW", lo: 144000, hi: 148000 }, { label: "SSB", lo: 144100, hi: 148000 },
-    ]},
-  ];
-
-  const VFO_MODE_MAP = {
-    "CW": "CW", "CW-R": "CW", "CWR": "CW",
-    "LSB": "SSB", "USB": "SSB", "SSB": "SSB", "AM": "SSB",
-    "FM": "FM",
-    "FT8": "Digi", "FT4": "Digi", "RTTY": "Digi", "RTTY-R": "Digi",
-    "PSK31": "Digi", "PSK": "Digi", "DIGI": "Digi", "DATA": "Digi",
-    "JS8": "Digi", "OLIVIA": "Digi",
-  };
-
-  function freqToBand(f) {
-    const n = parseFloat(f);
-    if (isNaN(n)) return "";
-    const b = BANDS.find(b => n >= b.lo && n <= b.hi);
-    return b ? b.name : "";
-  }
-
-  const SSB_BW = 3; // KHz typical SSB bandwidth
-  const EDGE_MARGIN = 1;
-
-  function freqToBandForMode(f, mode) {
-    const n = parseFloat(f);
-    if (isNaN(n)) return "";
-    const b = BANDS.find(b => n >= b.lo && n <= b.hi);
-    if (!b) return "";
-    const upper = mode?.toUpperCase() || "";
-    const segLabel = VFO_MODE_MAP[upper] || "";
-    if (!segLabel) return b.name;
-    const seg = b.segments.find(s => s.label === segLabel);
-    if (!seg) return b.name;
-    const loMargin = upper === "LSB" ? SSB_BW : EDGE_MARGIN;
-    const hiMargin = upper === "USB" ? SSB_BW : EDGE_MARGIN;
-    return (n >= seg.lo + loMargin && n <= seg.hi - hiMargin) ? b.name : "";
-  }
-
-  const DUAL_RIGHT_PAGES = new Set(["hunting", "spots", "parks", "notifications", "conditions"]);
+  const DUAL_RIGHT_PAGES = new Set(["notifications"]);
 
   function parseHash() {
     const hash = window.location.hash.slice(1) || "/";
     if (hash === "/picker") return { page: "picker", editId: null, dualRight: null };
-    if (hash === "/grid") return { page: "grid", editId: null, dualRight: null };
     if (hash === "/about") return { page: "about", editId: null, dualRight: null };
-    if (hash === "/conditions") return { page: isWide() ? "dual" : "conditions", editId: null, dualRight: "conditions" };
-    if (hash === "/links") return { page: "links", editId: null, dualRight: null };
     if (hash === "/settings" || hash.startsWith("/settings/")) {
       const settingsTab = hash.split("/")[2] || null;
       return { page: "settings", editId: null, dualRight: null, settingsTab };
@@ -123,45 +29,32 @@
       const sp = qm >= 0 ? new URLSearchParams(hash.slice(qm + 1)) : null;
       return { page: "query", editId: null, dualRight: null, querySql: sp?.get("sql") || "" };
     }
-    if (hash === "/achievements") return { page: "achievements", editId: null, dualRight: null };
-    if (hash === "/export") return { page: "export", editId: null, dualRight: null };
-    if (hash === "/search" || hash.startsWith("/search?")) {
-      const qm = hash.indexOf("?");
-      const sp = qm >= 0 ? new URLSearchParams(hash.slice(qm + 1)) : null;
-      return { page: "search", editId: null, dualRight: null, searchQuery: sp?.get("q") || "" };
-    }
-    if (hash === "/logbook") return { page: isWide() ? "dual" : "log", editId: null, dualRight: null };
-    if (hash === "/add") return { page: isWide() ? "dual" : "add", editId: null, dualRight: null };
-    // Right-pane-eligible pages
-    if (hash === "/hunting") return { page: isWide() ? "dual" : "hunting", editId: null, dualRight: "hunting" };
-    if (hash === "/spots" || hash.startsWith("/spots?")) return { page: isWide() ? "dual" : "spots", editId: null, dualRight: "spots" };
-    if (hash === "/parks" || hash.startsWith("/parks/")) return { page: isWide() ? "dual" : "parks", editId: null, dualRight: "parks" };
     if (hash === "/notifications") return { page: isWide() ? "dual" : "notifications", editId: null, dualRight: "notifications" };
+    if (hash === "/logbook" || hash === "/records") return { page: isWide() ? "dual" : "records", editId: null, dualRight: null };
+    if (hash === "/add") return { page: isWide() ? "dual" : "add", editId: null, dualRight: null };
     // Dual with subpage
     const dualMatch = hash.match(/^\/dual(?:\/(\w+))?$/);
     if (dualMatch) {
-      const sub = dualMatch[1] || "hunting";
-      return { page: "dual", editId: null, dualRight: DUAL_RIGHT_PAGES.has(sub) ? sub : "hunting" };
+      const sub = dualMatch[1] || "notifications";
+      return { page: "dual", editId: null, dualRight: DUAL_RIGHT_PAGES.has(sub) ? sub : "notifications" };
     }
-    const logMatch = hash.match(/^\/log\/(\d+)$/);
-    if (logMatch) return { page: isWide() ? "dual" : "add", editId: parseInt(logMatch[1], 10), dualRight: null };
-    return { page: isWide() ? "dual" : "log", editId: null, dualRight: null };
+    const recordMatch = hash.match(/^\/records\/(\d+)$/);
+    if (recordMatch) return { page: isWide() ? "dual" : "add", editId: parseInt(recordMatch[1], 10), dualRight: null };
+    return { page: isWide() ? "dual" : "records", editId: null, dualRight: null };
   }
 
   let wideBreakpoint = 1200;
   let wide = typeof window !== "undefined" && window.innerWidth >= 1200;
   let _parsed = parseHash();
   let { page, editId } = _parsed;
-  let dualRightPage = _parsed.dualRight || "hunting";
-  let previousPage = "log";
-  let defaultPage = "log";
+  let dualRightPage = _parsed.dualRight || "notifications";
+  let previousPage = "records";
+  let defaultPage = "records";
   let settingsTab = _parsed.settingsTab || null;
   let settingsHighlight = null;
-  let searchQuery = _parsed.searchQuery || "";
   let querySql = _parsed.querySql || "";
   let prefill = null;
   let formDirty = false;
-  let activePark = "";
   let dualShowForm = !!editId || (page === "dual" && (window.location.hash.slice(1) === "/add"));
   let logbookRight = false;
   let dualSplit = 50;
@@ -195,11 +88,8 @@
     window.addEventListener("touchmove", onMove);
     window.addEventListener("touchend", onUp);
   }
-  let dualHunting;
-  let dualParks;
-  let gridMapValue = "";
+
   let menuOpen = false;
-  let myCallsign = "";
   let customHeader = "";
   let appVersion = "";
   let updateAvailable = false;
@@ -212,22 +102,9 @@
   let updateSkipped = false;
   let updateSupported = false;
   let appFrozen = true;
-  let vfoFreq = "";
-  let vfoMode = "";
-  let vfoConnected = false;
-  let vfoEditing = false;
-  let vfoFreqInput;
-  let radioModes = [];
-  let vfoEditFreq = "";
-  let vfoEditMode = "";
-  let potaEnabled = false;
-  let spotsEnabled = false;
-  let solarEnabled = false;
   let sqlQueryEnabled = false;
-  let flrigEnabled = false;
   let shutdownMenuEnabled = false;
   let noShutdown = false;
-  let flrigInterval;
   let utcNow = new Date().toISOString().slice(0, 19).replace("T", " ") + "z";
   let clockInterval;
   let clockCopied = false;
@@ -274,8 +151,7 @@
       setLogbook(logbook);
       applyTheme();
       await startAppServices();
-      await checkNeedsSetup();
-      navigate(isWide() ? "dual" : "log");
+      navigate(isWide() ? "dual" : "records");
     } else {
       // Skip was clicked — proceed with normal startup
       await checkLogbookMode();
@@ -284,7 +160,6 @@
         applyTheme();
         fetchWideBreakpoint();
         await startAppServices();
-        await checkNeedsSetup();
       } else if (pickerMode) {
         page = "picker";
       }
@@ -315,51 +190,20 @@
     logbookReady = true;
   }
 
-  let needsSetup = false;
-
-  async function checkNeedsSetup() {
-    try {
-      const [csRes, gridRes] = await Promise.all([
-        fetch("/api/settings/my_callsign"),
-        fetch("/api/settings/my_grid"),
-      ]);
-      const cs = csRes.ok ? (await csRes.json()).value || "" : "";
-      const grid = gridRes.ok ? (await gridRes.json()).value || "" : "";
-      needsSetup = !cs || !grid;
-    } catch {
-      needsSetup = false;
-    }
-    if (needsSetup) {
-      page = "settings";
-      window.location.hash = "/settings";
-    }
-  }
-
   async function startAppServices() {
     fetchVersion();
     fetchUpdateCheck();
-    fetchCallsign();
     fetchCustomHeader();
     await fetchDefaultPage();
     fetchPopupNotifEnabled();
     await fetchLogbookRight();
-    await fetchSolarEnabled();
-    await fetchSpotsEnabled();
-    await fetchPotaEnabled();
     await fetchSqlQueryEnabled();
-    await fetchFlrigEnabled();
     await fetchShutdownMenuEnabled();
-    if (flrigEnabled) {
-      fetchRadioModes();
-      pollFlrig();
-      flrigInterval = setInterval(pollFlrig, 2000);
-    }
     fetchUnreadCount();
     connectSSE();
   }
 
   function setShutdownState() {
-    console.error("DEBUG: setShutdownState() called", new Error().stack);
     serverShutdown = true;
     stopAppServices();
     document.title = "Close this tab";
@@ -370,7 +214,6 @@
   }
 
   function setDisconnectedState() {
-    console.error("DEBUG: setDisconnectedState() called", new Error().stack);
     serverDisconnected = true;
     stopAppServices();
     document.title = "Disconnected";
@@ -381,16 +224,16 @@
     serverDisconnected = false;
     reconnecting = false;
     stopAutoReconnect();
-    document.title = "Rigbook";
+    document.title = "Guidebook";
   }
 
   function clearShutdownState() {
     serverShutdown = false;
     logbookClosed = false;
     shutdownPendingSince = 0;
-    document.title = "Rigbook";
+    document.title = "Guidebook";
     const link = document.querySelector("link[rel~='icon']");
-    if (link) link.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📻</text></svg>";
+    if (link) link.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📓</text></svg>";
   }
 
   async function reloadIfAlive() {
@@ -486,8 +329,6 @@
   }
 
   function stopAppServices() {
-    clearInterval(flrigInterval);
-    flrigInterval = null;
     clearTimeout(sseHeartbeatTimer);
     sseHeartbeatTimer = null;
     if (eventSource) { eventSource.close(); eventSource = null; }
@@ -550,10 +391,9 @@
         applyTheme();
         pendingLogbook = "";
         logbookOpen = true;
-        page = isWide() ? "dual" : "log";
+        page = isWide() ? "dual" : "records";
         window.location.hash = "/";
         startAppServices();
-        await checkNeedsSetup();
       }
     } catch {}
   }
@@ -608,7 +448,7 @@
             && Notification.permission === "granted"
             && storageGet("desktop_notifications_enabled") === "true") {
           if (activeDesktopNotif) activeDesktopNotif.close();
-          activeDesktopNotif = new Notification("Rigbook", {
+          activeDesktopNotif = new Notification("Guidebook", {
             body: `You have ${newCount} unread notification${newCount > 1 ? "s" : ""}`,
           });
         }
@@ -655,7 +495,6 @@
       applyThemeFromState(_themeState);
     });
     eventSource.addEventListener("logbook-changed", () => {
-      console.error("DEBUG: logbook-changed SSE event received", new Error().stack);
       if (switchingLogbook) return; // this client initiated the switch
       // Navigate home before reloading — the new logbook may not support the current page
       window.location.hash = "/";
@@ -723,129 +562,6 @@
     } catch {}
   }
 
-  async function pollFlrig() {
-    if (!logbookOpen) return;
-    try {
-      const res = await fetch("/api/flrig/status");
-      if (res.ok) {
-        const data = await res.json();
-        vfoFreq = data.freq || "";
-        vfoMode = data.mode || "";
-        vfoConnected = data.connected;
-      }
-    } catch {
-      vfoFreq = "";
-      vfoMode = "";
-      vfoConnected = false;
-    }
-  }
-
-  function formatFreq(f) {
-    if (!f) return "";
-    const khz = parseFloat(f) / 1000;
-    if (isNaN(khz)) return f;
-    return parseFloat(khz.toFixed(1)).toString();
-  }
-
-  // Split frequency into individual digit objects for wheel tuning
-  // Each digit gets a place value in Hz for increment/decrement
-  function freqDigits(f) {
-    if (!f) return [];
-    const hz = parseFloat(f);
-    if (isNaN(hz)) return [];
-    const khz = hz / 1000;
-    const str = khz.toFixed(3);
-
-    // Find the decimal point position to calculate place values
-    const dotIdx = str.indexOf(".");
-    const digits = [];
-    for (let i = 0; i < str.length; i++) {
-      if (str[i] === ".") {
-        digits.push({ char: ".", placeHz: 0 });
-        continue;
-      }
-      // Position relative to decimal: chars before dot have positive powers
-      const posFromDot = dotIdx >= 0 ? (i < dotIdx ? dotIdx - i : dotIdx - i + 1) : str.length - i;
-      // Convert place value from display unit to Hz
-      const unitMultiplier = 1e3; // KHz->Hz
-      const placeHz = Math.round(Math.pow(10, posFromDot - 1) * unitMultiplier);
-      digits.push({ char: str[i], placeHz });
-    }
-    return digits;
-  }
-
-  $: vfoDigits = freqDigits(vfoFreq);
-
-  // Svelte action to capture wheel events non-passively (required for preventDefault)
-  function nonPassiveWheel(node) {
-    function handler(e) {
-      e.preventDefault();
-      if (vfoEditing) return;
-      const target = e.target.closest(".vfo-digit");
-      if (!target || !target.dataset.placehz) return;
-      const placeHz = parseInt(target.dataset.placehz);
-      if (!placeHz) return;
-      const hz = parseFloat(vfoFreq) || 0;
-      const delta = e.deltaY < 0 ? placeHz : -placeHz;
-      const newHz = Math.max(0, hz + delta);
-      vfoFreq = String(newHz);
-      fetch("/api/flrig/vfo", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ freq: String(newHz) }),
-      }).catch(() => {});
-    }
-    node.addEventListener("wheel", handler, { passive: false });
-    return { destroy() { node.removeEventListener("wheel", handler); } };
-  }
-
-  function startVfoEdit() {
-    vfoEditFreq = vfoFreq ? String(parseFloat(vfoFreq) / 1000) : "";
-    vfoEditMode = vfoMode;
-    vfoEditing = true;
-    // Focus after Svelte renders the input
-    setTimeout(() => { vfoFreqInput?.focus(); vfoFreqInput?.select(); }, 0);
-  }
-
-  async function saveVfo() {
-    const freqHz = vfoEditFreq ? String(parseFloat(vfoEditFreq) * 1000) : null;
-    try {
-      await fetch("/api/flrig/vfo", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ freq: freqHz }),
-      });
-    } catch {}
-    vfoEditing = false;
-    pollFlrig();
-  }
-
-  function cancelVfoEdit() {
-    vfoEditing = false;
-  }
-
-  async function fetchRadioModes() {
-    try {
-      const res = await fetch("/api/flrig/modes");
-      if (res.ok) radioModes = await res.json();
-    } catch {}
-  }
-
-  async function cycleMode() {
-    if (!radioModes.length) await fetchRadioModes();
-    if (!radioModes.length || !vfoMode) return;
-    const idx = radioModes.indexOf(vfoMode);
-    const next = radioModes[(idx + 1) % radioModes.length];
-    try {
-      await fetch("/api/flrig/vfo", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: next }),
-      });
-      vfoMode = next;
-    } catch {}
-  }
-
   async function fetchVersion() {
     try {
       const res = await fetch("/api/version");
@@ -903,22 +619,12 @@
     } catch {}
   }
 
-  async function fetchCallsign() {
-    try {
-      const res = await fetch("/api/settings/my_callsign");
-      if (res.ok) {
-        const data = await res.json();
-        myCallsign = data.value || "";
-      }
-    } catch {}
-  }
-
   async function fetchDefaultPage() {
     try {
       const res = await fetch("/api/settings/default_page");
       if (res.ok) {
         const data = await res.json();
-        defaultPage = data.value || "log";
+        defaultPage = data.value || "records";
       }
     } catch {}
   }
@@ -933,16 +639,6 @@
     } catch {}
   }
 
-  async function fetchSolarEnabled() {
-    try {
-      const res = await fetch("/api/settings/solar_enabled");
-      if (res.ok) {
-        const data = await res.json();
-        solarEnabled = data.value === "true";
-      }
-    } catch {}
-  }
-
   async function fetchLogbookRight() {
     try {
       const res = await fetch("/api/settings/logbook_right");
@@ -953,45 +649,12 @@
     } catch {}
   }
 
-  async function fetchSpotsEnabled() {
-    try {
-      const [rbnRes, haRes] = await Promise.all([
-        fetch("/api/settings/rbn_enabled"),
-        fetch("/api/settings/hamalert_enabled"),
-      ]);
-      let rbn = false, ha = false;
-      if (rbnRes.ok) { const d = await rbnRes.json(); rbn = d.value === "true"; }
-      if (haRes.ok) { const d = await haRes.json(); ha = d.value === "true"; }
-      spotsEnabled = rbn || ha;
-    } catch {}
-  }
-
-  async function fetchPotaEnabled() {
-    try {
-      const res = await fetch("/api/settings/pota_enabled");
-      if (res.ok) {
-        const data = await res.json();
-        potaEnabled = data.value === "true";
-      }
-    } catch {}
-  }
-
   async function fetchSqlQueryEnabled() {
     try {
       const res = await fetch("/api/settings/sql_query_enabled");
       if (res.ok) {
         const data = await res.json();
         sqlQueryEnabled = data.value === "true";
-      }
-    } catch {}
-  }
-
-  async function fetchFlrigEnabled() {
-    try {
-      const res = await fetch("/api/settings/flrig_enabled");
-      if (res.ok) {
-        const data = await res.json();
-        flrigEnabled = data.value === "true";
       }
     } catch {}
   }
@@ -1041,7 +704,6 @@
         if (parsed.dualRight) dualRightPage = parsed.dualRight;
         editId = null;
         menuOpen = false;
-        fetchCallsign();
         setTimeout(() => { navigating = false; }, 0);
         return;
       }
@@ -1049,19 +711,16 @@
     }
     // Block navigation away from dirty form (but allow switching dual right pane)
     if (formDirty && (page === "add" || page === "dual")) {
-      const stayingOnDual = isWide() && (p === "add" || p === "log" || DUAL_RIGHT_PAGES.has(p));
+      const stayingOnDual = isWide() && (p === "add" || p === "records" || DUAL_RIGHT_PAGES.has(p));
       if (!stayingOnDual) {
-        alert("Save or cancel your current QSO before navigating away.");
+        alert("Save or cancel your current record before navigating away.");
         return;
       }
     }
     // Redirect disabled pages to home
-    if (p === "spots" && !spotsEnabled) p = "log";
-    if (p === "parks" && !potaEnabled) p = "log";
-    if (p === "conditions" && !solarEnabled) p = "log";
-    if (p === "query" && !sqlQueryEnabled) p = "log";
+    if (p === "query" && !sqlQueryEnabled) p = "records";
 
-    if (isWide() && (p === "add" || p === "log" || DUAL_RIGHT_PAGES.has(p))) {
+    if (isWide() && (p === "add" || p === "records" || DUAL_RIGHT_PAGES.has(p))) {
       if (DUAL_RIGHT_PAGES.has(p)) dualRightPage = p;
       p = "dual";
     }
@@ -1078,153 +737,10 @@
     if (p === "dual") {
       window.location.hash = `/dual/${dualRightPage}`;
     } else {
-      const paths = { hunting: "/hunting", log: "/logbook", add: "/add", grid: "/grid", parks: "/parks", spots: "/spots", query: "/query", export: "/export", search: "/search", notifications: "/notifications", conditions: "/conditions", achievements: "/achievements", settings: settingsTab ? `/settings/${settingsTab}` : "/settings", links: "/links", about: "/about", picker: "/picker" };
+      const paths = { records: "/records", add: "/add", query: "/query", notifications: "/notifications", settings: settingsTab ? `/settings/${settingsTab}` : "/settings", about: "/about", picker: "/picker" };
       window.location.hash = paths[p] || "/";
     }
     setTimeout(() => { navigating = false; }, 0);
-    fetchCallsign();
-  }
-
-  function spotFreqHz(spot) {
-    // POTA spots: frequency in MHz (e.g. 14.074)
-    // SKCC/RBN spots: frequency in KHz (e.g. 14074)
-    const f = parseFloat(spot.frequency);
-    return String(f >= 1000 ? f * 1000 : f * 1000000);
-  }
-
-  async function tuneOnly(spot) {
-    if (formDirty) {
-      alert("Cannot tune radio while editing a QSO. Save or cancel first.");
-      return;
-    }
-    if (!flrigEnabled) return;
-    try {
-      await fetch("/api/flrig/vfo", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ freq: spotFreqHz(spot), mode: spot.mode }),
-      });
-      pollFlrig();
-    } catch {}
-  }
-
-  async function tuneAndPrefill(spot) {
-    if (formDirty) {
-      alert("Save or cancel your current QSO before selecting a new spot.");
-      return;
-    }
-
-    await tuneOnly(spot);
-
-    // If in edit mode but clean, clear edit to accept new spot
-    if (editId) {
-      editId = null;
-      await tick();
-    }
-
-    // SKCC/RBN spot (has callsign field, no activator)
-    if (spot.callsign && !spot.activator) {
-      prefill = {
-        call: String(spot.callsign || ""),
-        freq: String(spot.frequency || ""),
-        mode: String(spot.mode || ""),
-        skcc: String(spot.skcc || ""),
-        country: String(spot.country || ""),
-        state: String(spot.qrz_state || ""),
-        grid: spot.qrz_grid_approx ? "" : String(spot.qrz_grid || ""),
-      };
-      dualShowForm = true;
-      if (page !== "dual") navigate("add");
-      return;
-    }
-
-    // POTA spot
-    const loc = spot.locationDesc || "";
-    let spotCountry = "";
-    let spotState = "";
-    if (loc.startsWith("US-")) {
-      spotCountry = "United States";
-    }
-    if (spot.reference) {
-      try {
-        const res = await fetch(`/api/pota/park/${encodeURIComponent(spot.reference)}`);
-        if (res.ok) {
-          const park = await res.json();
-          if (park.program_name) spotCountry = park.program_name;
-          if (park.locations && park.locations.length === 1) {
-            spotState = park.locations[0].name || "";
-          } else if (park.locations && loc) {
-            const match = park.locations.find(l => l.descriptor === loc);
-            if (match) spotState = match.name || "";
-          }
-        }
-      } catch {}
-    }
-    prefill = {
-      call: spot.activator || "",
-      freq: spot.frequency || "",
-      mode: spot.mode || "",
-      pota_park: spot.reference || "",
-      grid: spot.grid4 || "",
-      country: spotCountry,
-      state: spotState,
-    };
-    dualShowForm = true;
-    if (page !== "dual") navigate("add");
-  }
-
-  function handleSearchAction(e) {
-    const { type, data } = e.detail;
-    if (type === "logbook") {
-      if (formDirty) { alert("Save or cancel your current QSO before selecting a new spot."); return; }
-      const target = isWide() ? "dual" : "add";
-      if ((target === "add" || target === "hunting" || target === "log") && isWide()) { /* already dual */ }
-      if (page !== target) previousPage = page;
-      page = target;
-      menuOpen = false;
-      dualShowForm = true;
-      editId = data.id;
-      window.location.hash = `/log/${data.id}`;
-      fetchCallsign();
-    } else if (type === "park") {
-      navigate("parks");
-      window.location.hash = `/parks/park/${encodeURIComponent(data.reference)}`;
-    } else if (type === "pota") {
-      tuneAndPrefill(data);
-    } else if (type === "skcc") {
-      if (formDirty) { alert("Save or cancel your current QSO before selecting a new spot."); return; }
-      prefill = {
-        call: data.call || "",
-        freq: "",
-        mode: "",
-        pota_park: "",
-        grid: "",
-        country: "",
-        state: "",
-        skcc: data.skcc || "",
-      };
-      dualShowForm = true;
-      navigate(isWide() ? "dual" : "add");
-    } else if (type === "search") {
-      searchQuery = data.query || "";
-      page = "search";
-      menuOpen = false;
-      window.location.hash = `/search?q=${encodeURIComponent(searchQuery)}`;
-      return;
-    } else if (type === "qrz") {
-      if (formDirty) { alert("Save or cancel your current QSO before selecting a new spot."); return; }
-      prefill = {
-        call: data.call || "",
-        freq: "",
-        mode: "",
-        pota_park: "",
-        grid: data.grid || "",
-        country: data.country || "",
-        state: data.state || "",
-      };
-      dualShowForm = true;
-      navigate(isWide() ? "dual" : "add");
-    }
   }
 
   async function onHashChange() {
@@ -1232,39 +748,18 @@
     const parsed = parseHash();
     let p = parsed.page;
     // Redirect disabled pages
-    if (p === "spots" && !spotsEnabled) p = isWide() ? "dual" : "log";
-    if (p === "parks" && !potaEnabled) p = isWide() ? "dual" : "log";
-    if (p === "conditions" && !solarEnabled) p = isWide() ? "dual" : "log";
-    if (p === "query" && !sqlQueryEnabled) p = isWide() ? "dual" : "log";
+    if (p === "query" && !sqlQueryEnabled) p = isWide() ? "dual" : "records";
     // Don't clear editId when staying on dual (e.g. switching right pane)
     if (!(page === "dual" && p === "dual" && editId && !parsed.editId)) {
       editId = parsed.editId;
     }
     settingsTab = parsed.settingsTab || null;
-    searchQuery = parsed.searchQuery || "";
     querySql = parsed.querySql || "";
     page = p;
     if (parsed.dualRight) {
-      if ((parsed.dualRight === "spots" && !spotsEnabled) || (parsed.dualRight === "parks" && !potaEnabled) || (parsed.dualRight === "conditions" && !solarEnabled)) {
-        // Don't set disabled right page
-      } else {
-        dualRightPage = parsed.dualRight;
-      }
+      dualRightPage = parsed.dualRight;
     }
     if (logbookOpen) {
-      fetchCallsign();
-      const wasEnabled = flrigEnabled;
-      await fetchFlrigEnabled();
-      if (flrigEnabled && !wasEnabled) {
-        fetchRadioModes();
-        pollFlrig();
-        flrigInterval = setInterval(pollFlrig, 2000);
-      } else if (!flrigEnabled && wasEnabled) {
-        clearInterval(flrigInterval);
-        vfoFreq = "";
-        vfoMode = "";
-        vfoConnected = false;
-      }
       fetchWideBreakpoint();
     }
   }
@@ -1325,38 +820,37 @@
     applyThemeVars(sysPref);
   }
 
-  let searchComponent;
-
   function onGlobalKeydown(e) {
     // Ignore if typing in an input/textarea/select
     const tag = e.target.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
-    if (e.key === "n" || e.key === "N") {
+    if (e.key === "1") {
+      e.preventDefault();
+      navigate("records");
+    } else if (e.key === "2") {
+      e.preventDefault();
+      navigate("query");
+    } else if (e.key === "3") {
+      e.preventDefault();
+      navigate("notifications");
+    } else if (e.key === "4") {
+      e.preventDefault();
+      navigate("settings");
+    } else if (e.key === "5") {
+      e.preventDefault();
+      navigate("about");
+    } else if (e.key === "n" || e.key === "N") {
       e.preventDefault();
       dualShowForm = true; prefill = null; editId = null;
       navigate("add");
-    } else if (e.key === "/") {
+    } else if (e.key === "w" || e.key === "W") {
       e.preventDefault();
-      searchComponent?.focus();
-    } else if (e.key === "h" || e.key === "H") {
-      e.preventDefault();
-      navigate("hunting");
-    } else if (e.key === "l" || e.key === "L") {
-      e.preventDefault();
-      navigate("log");
-    } else if (e.key === "s" || e.key === "S") {
-      e.preventDefault();
-      navigate("spots");
-    } else if (e.key === "p" || e.key === "P") {
-      e.preventDefault();
-      navigate("parks");
-    } else if ((e.key === "m" || e.key === "M") && flrigEnabled) {
-      e.preventDefault();
-      cycleMode();
-    } else if ((e.key === "t" || e.key === "T") && flrigEnabled) {
-      e.preventDefault();
-      startVfoEdit();
+      if (page === "dual") {
+        navigate("records");
+      } else {
+        navigate("dual");
+      }
     } else if (e.key === "?") {
       e.preventDefault();
       navigate("about");
@@ -1383,10 +877,9 @@
     }
     if (logbookOpen) {
       await startAppServices();
-      await checkNeedsSetup();
       // Navigate to default page on initial load (no specific hash)
       const initHash = window.location.hash.slice(1) || "/";
-      if (initHash === "/" && defaultPage !== "log") {
+      if (initHash === "/" && defaultPage !== "records") {
         navigate(defaultPage);
       }
     } else if (pickerMode) {
@@ -1398,19 +891,18 @@
     wide = isWide();
     if (page === "dual" && !wide) {
       if (formDirty || dualShowForm || editId) {
-        // Keep dual page alive so Logbook component isn't destroyed;
+        // Keep dual page alive so Records component isn't destroyed;
         // the right pane is hidden via CSS when not wide
       } else {
         navigate(dualRightPage);
       }
-    } else if (wide && (page === "log" || DUAL_RIGHT_PAGES.has(page))) {
+    } else if (wide && (page === "records" || DUAL_RIGHT_PAGES.has(page))) {
       if (DUAL_RIGHT_PAGES.has(page)) dualRightPage = page;
       navigate("dual");
     }
   }
 
   onDestroy(() => {
-    clearInterval(flrigInterval);
     clearInterval(clockInterval);
     if (eventSource) eventSource.close();
     window.removeEventListener("hashchange", onHashChange);
@@ -1419,7 +911,7 @@
   });
 </script>
 
-<main class:picker-mode={pickerMode && !logbookOpen} class:dual-mode={page === "dual"} class:parks-mode={page === "parks"} class:spots-mode={page === "spots"} class:grid-mode={page === "grid"} class:export-mode={page === "export"} class:search-mode={page === "search"} class:query-mode={page === "query"} class:achievements-mode={page === "achievements"} class:settings-mode={page === "settings"}>
+<main class:picker-mode={pickerMode && !logbookOpen} class:dual-mode={page === "dual"} class:query-mode={page === "query"} class:settings-mode={page === "settings"}>
   {#if serverShutdown}
     <div class="welcome-container">
       <div class="welcome-card">
@@ -1432,7 +924,7 @@
   {:else if pendingLogbook}
     <header>
       <div class="header-left">
-        <h1 class="app-title"><span class="title-full">Rigbook</span><span class="title-short">RB</span>{#if appVersion}<span class="app-version" title={!appFrozen ? "Local build" : updateChecked && updateExact ? "Up to date" : updateChecked && updateDev ? "Development version" : !updateChecked ? "Enable update checker in the settings" : ""} on:click={() => { navigate("about"); }} style="cursor: pointer">v{appVersion}{#if updateSupported && updateChecked && updateExact}<span class="up-to-date-check">✔</span>{/if}{#if (updateChecked && updateDev) || !appFrozen}<span class="dev-version">🚧</span>{/if}{#if updateAvailable} <button class="update-link-btn" title={"v" + updateLatest + " available"} on:click|stopPropagation={() => { settingsTab = "updates"; navigate("settings"); }}>Update Available</button><button class="update-skip-btn" title="Skip this version" on:click|stopPropagation={skipUpdate}>✕</button>{/if}</span>{/if}</h1>
+        <h1 class="app-title"><span class="title-full">Guidebook</span><span class="title-short">GB</span>{#if appVersion}<span class="app-version" title={!appFrozen ? "Local build" : updateChecked && updateExact ? "Up to date" : updateChecked && updateDev ? "Development version" : !updateChecked ? "Enable update checker in the settings" : ""} on:click={() => { navigate("about"); }} style="cursor: pointer">v{appVersion}{#if updateSupported && updateChecked && updateExact}<span class="up-to-date-check">✔</span>{/if}{#if (updateChecked && updateDev) || !appFrozen}<span class="dev-version">🚧</span>{/if}{#if updateAvailable} <button class="update-link-btn" title={"v" + updateLatest + " available"} on:click|stopPropagation={() => { settingsTab = "updates"; navigate("settings"); }}>Update Available</button><button class="update-skip-btn" title="Skip this version" on:click|stopPropagation={skipUpdate}>✕</button>{/if}</span>{/if}</h1>
       </div>
       <span class="utc-clock">{utcNow}</span>
     </header>
@@ -1456,70 +948,25 @@
       <div class="title-group">
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-        <h1 class="app-title" on:click={goHome} style="cursor: pointer"><span class="title-full">Rigbook</span><span class="title-short">RB</span></h1>
+        <h1 class="app-title" on:click={goHome} style="cursor: pointer"><span class="title-full">Guidebook</span><span class="title-short">GB</span></h1>
         {#if appVersion}<span class="app-version" title={!appFrozen ? "Local build" : updateChecked && updateExact ? "Up to date" : updateChecked && updateDev ? "Development version" : !updateChecked ? "Enable update checker in the settings" : ""} on:click={() => { navigate("about"); }} style="cursor: pointer">v{appVersion}{#if updateSupported && updateChecked && updateExact}<span class="up-to-date-check">✔</span>{/if}{#if (updateChecked && updateDev) || !appFrozen}<span class="dev-version">🚧</span>{/if}{#if updateAvailable} <button class="update-link-btn" title={"v" + updateLatest + " available"} on:click|stopPropagation={() => { settingsTab = "updates"; navigate("settings"); }}>Update Available</button><button class="update-skip-btn" title="Skip this version" on:click|stopPropagation={skipUpdate}>✕</button>{/if}</span>{/if}
       </div>
-      {#if customHeader || myCallsign}
+      {#if customHeader}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class={customHeader ? "custom-header" : "callsign"} on:click={() => { settingsTab = customHeader ? "appearance" : "station"; settingsHighlight = customHeader ? "content" : "station"; navigate("settings"); }} style="cursor: pointer">{customHeader || myCallsign}{#if currentLogbook}<span class="logbook-name" class:logbook-switchable={pickerMode} title={pickerMode ? "Switch logbook" : "Current database: " + currentLogbook} on:click|stopPropagation={() => { if (pickerMode) openLogbookSwitcher(); }}>{currentLogbook}</span>{/if}</span>
-      {/if}
-      {#if vfoEditing}
-        <span class="vfo-edit">
-          <div class="vfo-freq-wrap">
-            <input bind:this={vfoFreqInput} type="text" bind:value={vfoEditFreq} class="vfo-input freq" placeholder="Freq"
-              on:keydown={e => { if (e.key === "Enter") saveVfo(); if (e.key === "Escape") cancelVfoEdit(); }}
-            />
-            <BandPlan currentFreq={vfoEditFreq} currentMode={vfoMode} on:tune={async e => {
-              vfoEditFreq = String(e.detail);
-              await saveVfo();
-            }} />
-          </div>
-          <button class="vfo-btn save" on:click={saveVfo}>Set</button>
-          <button class="vfo-btn cancel" on:click={cancelVfoEdit}>X</button>
-        </span>
-      {:else if vfoConnected}
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <span class="vfo-bezel" use:nonPassiveWheel>
-          <span class="vfo-icon" on:click={startVfoEdit}><Icon icon={iconRadio} width={16} /></span>
-          {#each vfoDigits as d, i}
-            {#if d.char === "."}
-              <!-- dot is merged into the next digit -->
-            {:else}
-              {@const prevDot = i > 0 && vfoDigits[i-1]?.char === "."}
-              <span class="vfo-digit" data-placehz={d.placeHz} on:click={startVfoEdit} title="Scroll to tune">{prevDot ? "." : ""}{d.char}</span>
-            {/if}
-          {/each}
-          {#if freqToBandForMode(parseFloat(vfoFreq) / 1000, vfoMode)}
-            <span class="band-tag" style="background: {bandColor(freqToBandForMode(parseFloat(vfoFreq) / 1000, vfoMode))}; color: {bandTextColor(freqToBandForMode(parseFloat(vfoFreq) / 1000, vfoMode))}" on:click={startVfoEdit}>{freqToBandForMode(parseFloat(vfoFreq) / 1000, vfoMode)}</span>
-          {/if}
-        </span>
-        {#if vfoMode}
-          <!-- svelte-ignore a11y-click-events-have-key-events -->
-          <!-- svelte-ignore a11y-no-static-element-interactions -->
-          <span class="vfo-mode" on:click={cycleMode} title="Click or press M to cycle mode">{vfoMode}</span>
-        {/if}
-      {:else if flrigEnabled}
-        <span class="vfo disconnected" title="Radio not connected"><Icon icon={iconCross} width={14} /> No Radio</span>
+        <span class="custom-header" on:click={() => { settingsTab = "appearance"; settingsHighlight = "content"; navigate("settings"); }} style="cursor: pointer">{customHeader}{#if currentLogbook}<span class="logbook-name" class:logbook-switchable={pickerMode} title={pickerMode ? "Switch logbook" : "Current database: " + currentLogbook} on:click|stopPropagation={() => { if (pickerMode) openLogbookSwitcher(); }}>{currentLogbook}</span>{/if}</span>
+      {:else if currentLogbook}
+        <span class="logbook-name" class:logbook-switchable={pickerMode} title={pickerMode ? "Switch logbook" : "Current database: " + currentLogbook} on:click|stopPropagation={() => { if (pickerMode) openLogbookSwitcher(); }}>{currentLogbook}</span>
       {/if}
     </div>
-    {#if page !== "search"}<Search bind:this={searchComponent} on:action={handleSearchAction} />{/if}
     <!-- svelte-ignore a11y-click-events-have-key-events -->
     <!-- svelte-ignore a11y-no-static-element-interactions -->
     <span class="utc-clock" on:click={copyUtcTimestamp} title="Click to copy">{clockCopied ? "Copied!" : utcNow}</span>
     <div class="hamburger-wrap">
       {#if wide}
-        <button class="add-btn dual-btn" class:active-nav={dualRightPage === "hunting"} on:click={() => navigate("hunting")} title="Logbook & Hunting">{#if dualRightPage === "hunting" && !logbookRight}<Icon icon={iconBook} width={14} />{/if}<Icon icon={iconCompass} width={18} />{#if dualRightPage === "hunting" && logbookRight}<Icon icon={iconBook} width={14} />{/if}</button>
-        {#if spotsEnabled}<button class="add-btn dual-btn" class:active-nav={dualRightPage === "spots"} on:click={() => navigate("spots")} title="Logbook & Spots">{#if dualRightPage === "spots" && !logbookRight}<Icon icon={iconBook} width={14} />{/if}<Icon icon={iconMap} width={18} />{#if dualRightPage === "spots" && logbookRight}<Icon icon={iconBook} width={14} />{/if}</button>{/if}
-        {#if potaEnabled}<button class="add-btn dual-btn parks-btn" class:active-nav={dualRightPage === "parks"} on:click={() => navigate("parks")} title="Logbook & Parks">{#if dualRightPage === "parks" && !logbookRight}<Icon icon={iconBook} width={14} />{/if}<Icon icon={iconTree} width={18} />{#if dualRightPage === "parks" && logbookRight}<Icon icon={iconBook} width={14} />{/if}</button>{/if}
-        <button class="add-btn dual-btn notification-btn" class:active-nav={dualRightPage === "notifications"} on:click={handleNotificationClick} title="Logbook & Notifications">{#if dualRightPage === "notifications" && !logbookRight}<Icon icon={iconBook} width={14} />{/if}{#if unreadCount > 0}<span class="notif-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>{:else}<Icon icon={iconBell} width={18} />{/if}{#if dualRightPage === "notifications" && logbookRight}<Icon icon={iconBook} width={14} />{/if}</button>
-        {#if solarEnabled}<button class="add-btn dual-btn" class:active-nav={dualRightPage === "conditions"} on:click={() => navigate("conditions")} title="Logbook & Conditions">{#if dualRightPage === "conditions" && !logbookRight}<Icon icon={iconBook} width={14} />{/if}<Icon icon={iconSun} width={18} />{#if dualRightPage === "conditions" && logbookRight}<Icon icon={iconBook} width={14} />{/if}</button>{/if}
+        <button class="add-btn dual-btn" class:active-nav={dualRightPage === "notifications"} on:click={handleNotificationClick} title="Records & Notifications">{#if dualRightPage === "notifications" && !logbookRight}<Icon icon={iconBook} width={14} />{/if}{#if unreadCount > 0}<span class="notif-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>{:else}<Icon icon={iconBell} width={18} />{/if}{#if dualRightPage === "notifications" && logbookRight}<Icon icon={iconBook} width={14} />{/if}</button>
       {:else}
-        <button class="add-btn" on:click={() => navigate("log")} title="Logbook"><Icon icon={iconBook} width={18} /></button>
-        <button class="add-btn" on:click={() => navigate("hunting")} title="Hunting"><Icon icon={iconCompass} width={18} /></button>
-        {#if spotsEnabled}<button class="add-btn" on:click={() => navigate("spots")} title="Spots"><Icon icon={iconMap} width={18} /></button>{/if}
-        {#if potaEnabled}<button class="add-btn parks-btn" on:click={() => navigate("parks")} title="My Parks"><Icon icon={iconTree} width={18} /></button>{/if}
+        <button class="add-btn" on:click={() => navigate("records")} title="Records"><Icon icon={iconBook} width={18} /></button>
         <button class="add-btn notification-btn" class:has-unread={unreadCount > 0} on:click={handleNotificationClick} title="Notifications">
           {#if unreadCount > 0}
             <span class="notif-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>
@@ -1527,9 +974,8 @@
             <Icon icon={iconBell} width={18} />
           {/if}
         </button>
-        {#if solarEnabled}<button class="add-btn" on:click={() => navigate("conditions")} title="Conditions"><Icon icon={iconSun} width={18} /></button>{/if}
       {/if}
-      <button class="add-btn add-qso-btn" on:click={() => { dualShowForm = true; prefill = null; editId = null; if (page === "dual") { /* already on dual */ } else navigate("add"); }} title="Add QSO"><Icon icon={iconPlus} width={18} /></button>
+      <button class="add-btn add-qso-btn" on:click={() => { dualShowForm = true; prefill = null; editId = null; if (page === "dual") { /* already on dual */ } else navigate("add"); }} title="New Record"><Icon icon={iconPlus} width={18} /></button>
       <button class="hamburger" on:click={() => menuOpen = !menuOpen} aria-label="Menu">
         <span class="bar"></span>
         <span class="bar"></span>
@@ -1540,20 +986,11 @@
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <div class="menu-backdrop" on:click={() => menuOpen = false}></div>
         <nav class="menu">
-          <button class="menu-item" class:active={page === "log" || page === "dual"} on:click={() => navigate("log")}>Logbook</button>
-          <button class="menu-item" class:active={page === "add"} on:click={() => navigate("add")}>Add QSO</button>
-          <button class="menu-item" class:active={page === "hunting" || (page === "dual" && dualRightPage === "hunting")} on:click={() => navigate("hunting")}>Hunting</button>
-          <button class="menu-item" class:active={page === "achievements"} on:click={() => navigate("achievements")}>Achievements</button>
-          <button class="menu-item" class:active={page === "grid"} on:click={() => navigate("grid")}>Grid Map</button>
-          {#if spotsEnabled}<button class="menu-item" class:active={page === "spots" || (page === "dual" && dualRightPage === "spots")} on:click={() => navigate("spots")}>Spots</button>{/if}
-          {#if potaEnabled}<button class="menu-item" class:active={page === "parks" || (page === "dual" && dualRightPage === "parks")} on:click={() => navigate("parks")}>Parks</button>{/if}
+          <button class="menu-item" class:active={page === "records" || page === "dual"} on:click={() => navigate("records")}>Records</button>
+          <button class="menu-item" class:active={page === "add"} on:click={() => navigate("add")}>New Record</button>
           <button class="menu-item" class:active={page === "notifications" || (page === "dual" && dualRightPage === "notifications")} on:click={() => navigate("notifications")}>Notifications{#if unreadCount > 0} ({unreadCount}){/if}</button>
-          {#if solarEnabled}<button class="menu-item" class:active={page === "conditions" || (page === "dual" && dualRightPage === "conditions")} on:click={() => navigate("conditions")}>Conditions</button>{/if}
-          <button class="menu-item" class:active={page === "search"} on:click={() => { searchQuery = ""; navigate("search"); }}>Search</button>
-          <button class="menu-item" class:active={page === "export"} on:click={() => navigate("export")}>Import / Export</button>
           {#if sqlQueryEnabled}<button class="menu-item" class:active={page === "query"} on:click={() => navigate("query")}>SQL Query</button>{/if}
           <button class="menu-item" class:active={page === "settings"} on:click={() => navigate("settings")}>Settings</button>
-          <button class="menu-item" class:active={page === "links"} on:click={() => navigate("links")}>Links</button>
           <button class="menu-item" class:active={page === "about"} on:click={() => navigate("about")}>About</button>
           {#if pickerMode}
             <div class="menu-separator"></div>
@@ -1571,54 +1008,28 @@
   {#if page === "dual"}
     <div class="dual-layout" class:dual-narrow={!wide} class:dragging={draggingSplit} class:dual-reversed={logbookRight}>
       <div class="dual-pane" style="flex: 0 0 {dualSplit}%">
-        <Logbook showForm={dualShowForm || !!prefill || !!editId} {prefill} {editId} {vfoFreq} {vfoMode} bind:formDirty bind:activePark on:editchange={e => { editId = e.detail; dualShowForm = !!e.detail; }} on:navigate={e => { if (e.detail === "hunting" || e.detail === "log" || e.detail === "back") { prefill = null; editId = null; dualShowForm = false; dualHunting?.refreshAwards(); if (!wide) navigate(dualRightPage); } else navigate(e.detail); }} on:prefillconsumed={() => prefill = null} on:parkschanged={() => dualParks?.refreshParks()} />
+        <Records showForm={dualShowForm || !!prefill || !!editId} {prefill} editId={editId} bind:formDirty on:editchange={e => { editId = e.detail; dualShowForm = !!e.detail; }} on:navigate={e => { if (e.detail === "records" || e.detail === "back") { prefill = null; editId = null; dualShowForm = false; if (!wide) navigate(dualRightPage); } else navigate(e.detail); }} on:prefillconsumed={() => prefill = null} />
       </div>
       <!-- svelte-ignore a11y-no-static-element-interactions -->
       <div class="dual-divider" on:mousedown={onDividerDown} on:touchstart={onDividerDown}></div>
       <div class="dual-pane" style="flex: 1">
-        {#if dualRightPage === "hunting"}
-          <Hunting bind:this={dualHunting} {potaEnabled} {spotsEnabled} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
-        {:else if dualRightPage === "spots"}
-          <Spots {potaEnabled} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
-        {:else if dualRightPage === "parks"}
-          <Parks bind:this={dualParks} {activePark} on:addqso={e => { if (formDirty) { alert("Save or cancel your current QSO before selecting a new spot."); return; } prefill = e.detail; dualShowForm = true; }} />
-        {:else if dualRightPage === "notifications"}
-          <Notifications refreshTrigger={notifRefreshTrigger} on:countchange={() => fetchUnreadCount()} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
-        {:else if dualRightPage === "conditions"}
-          <Conditions />
+        {#if dualRightPage === "notifications"}
+          <Notifications refreshTrigger={notifRefreshTrigger} on:countchange={() => fetchUnreadCount()} />
         {/if}
       </div>
     </div>
-  {:else if page === "parks"}
-    <Parks on:addqso={e => { if (formDirty) { alert("Save or cancel your current QSO before selecting a new spot."); return; } prefill = e.detail; dualShowForm = true; navigate(isWide() ? "dual" : "add"); }} />
-  {:else if page === "spots"}
-    <Spots {potaEnabled} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
-  {:else if page === "grid"}
-    <GridMap bind:value={gridMapValue} on:select={e => { gridMapValue = e.detail; }} />
   {:else}
     <div class="page-content">
-    {#if page === "log"}
-      <Logbook showForm={false} {vfoFreq} {vfoMode} on:editchange={e => { editId = e.detail; navigate("add"); window.location.hash = `/log/${e.detail}`; }} on:navigate={e => navigate(e.detail)} />
+    {#if page === "records"}
+      <Records showForm={false} on:editchange={e => { editId = e.detail; navigate("add"); window.location.hash = `/records/${e.detail}`; }} on:navigate={e => navigate(e.detail)} />
     {:else if page === "add"}
-      <Logbook showForm={true} {editId} {prefill} {vfoFreq} {vfoMode} bind:formDirty bind:activePark on:editchange={e => { editId = e.detail; window.location.hash = e.detail ? `/log/${e.detail}` : "/add"; }} on:navigate={e => navigate(e.detail)} on:prefillconsumed={() => prefill = null} on:parkschanged={() => dualParks?.refreshParks()} />
-    {:else if page === "hunting"}
-      <Hunting {potaEnabled} {spotsEnabled} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
-    {:else if page === "search"}
-      <SearchResults initialQuery={searchQuery} on:editcontact={e => { editId = e.detail; navigate("add"); window.location.hash = `/log/${e.detail}`; }} />
+      <Records showForm={true} editId={editId} {prefill} bind:formDirty on:editchange={e => { editId = e.detail; window.location.hash = e.detail ? `/records/${e.detail}` : "/add"; }} on:navigate={e => navigate(e.detail)} on:prefillconsumed={() => prefill = null} />
     {:else if page === "query"}
       <Query initialSql={querySql} />
-    {:else if page === "achievements"}
-      <Achievements on:editcontact={e => { editId = e.detail; navigate("add"); window.location.hash = `/log/${e.detail}`; }} />
-    {:else if page === "export"}
-      <ExportImport />
     {:else if page === "notifications"}
-      <Notifications refreshTrigger={notifRefreshTrigger} on:countchange={() => fetchUnreadCount()} on:tune={e => tuneOnly(e.detail)} on:addqso={e => tuneAndPrefill(e.detail)} />
+      <Notifications refreshTrigger={notifRefreshTrigger} on:countchange={() => fetchUnreadCount()} />
     {:else if page === "settings"}
-      <Settings logbookName={currentLogbook} pickerMode={pickerMode} {needsSetup} initialTab={settingsTab} bind:highlightSection={settingsHighlight} {clientCount} on:disconnect-others={async () => { const nonce = Math.random().toString(36).slice(2); disconnectNonce = nonce; try { await fetch("/api/events/disconnect-others", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nonce }) }); } catch {} }} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { stopAppServices(); logbookOpen = false; currentLogbook = ""; page = "picker"; applySystemTheme(); } }} on:setupcomplete={async () => { needsSetup = false; fetchCallsign(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchSqlQueryEnabled(); await fetchFlrigEnabled(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } navigate(isWide() ? "dual" : "log"); }} on:saved={async () => { fetchCallsign(); fetchCustomHeader(); fetchDefaultPage(); applyTheme(); fetchPopupNotifEnabled(); await fetchLogbookRight(); await fetchSolarEnabled(); await fetchSpotsEnabled(); await fetchPotaEnabled(); await fetchSqlQueryEnabled(); await fetchFlrigEnabled(); fetchShutdownMenuEnabled(); fetchUpdateCheck(); if (flrigEnabled && !flrigInterval) { fetchRadioModes(); pollFlrig(); flrigInterval = setInterval(pollFlrig, 2000); } else if (!flrigEnabled && flrigInterval) { clearInterval(flrigInterval); flrigInterval = null; vfoFreq = ""; vfoMode = ""; vfoConnected = false; } }} on:shutdown-pending={() => { shutdownPendingSince = Date.now(); }} on:shutdown={() => { setShutdownState(); }} />
-    {:else if page === "links"}
-      <Links />
-    {:else if page === "conditions"}
-      <Conditions />
+      <Settings logbookName={currentLogbook} pickerMode={pickerMode} initialTab={settingsTab} bind:highlightSection={settingsHighlight} {clientCount} on:disconnect-others={async () => { const nonce = Math.random().toString(36).slice(2); disconnectNonce = nonce; try { await fetch("/api/events/disconnect-others", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nonce }) }); } catch {} }} on:deleted={e => { if (e.detail.shutdown) { setShutdownState(); } else { stopAppServices(); logbookOpen = false; currentLogbook = ""; page = "picker"; applySystemTheme(); } }} on:setupcomplete={async () => { await fetchLogbookRight(); await fetchSqlQueryEnabled(); navigate(isWide() ? "dual" : "records"); }} on:saved={async () => { fetchCustomHeader(); fetchDefaultPage(); applyTheme(); fetchPopupNotifEnabled(); await fetchLogbookRight(); await fetchSqlQueryEnabled(); fetchShutdownMenuEnabled(); fetchUpdateCheck(); }} on:shutdown-pending={() => { shutdownPendingSince = Date.now(); }} on:shutdown={() => { setShutdownState(); }} />
     {:else if page === "about"}
       <About />
     {/if}
@@ -1673,20 +1084,7 @@
         {#each popupNotifications as notif (notif.id)}
           <div class="popup-notif">
             <div class="popup-notif-title">{notif.title}</div>
-            <div class="popup-notif-text">
-              {#if notif.meta?.callsign}
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <span class="popup-clickable popup-callsign" on:click={() => { dismissPopup(); tuneAndPrefill(notif.meta); }} title="Log QSO">{notif.meta.callsign}</span>
-                {" on "}
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <span class="popup-clickable popup-freq" on:click={() => { dismissPopup(); tuneOnly(notif.meta); }} title="Tune radio">{(parseFloat(notif.meta.frequency) / 1000).toFixed(3)} MHz</span>
-                {" "}{notif.meta.mode}{#if notif.text.includes(" — ")} — {notif.text.split(" — ").slice(1).join(" — ")}{/if}
-              {:else}
-                {notif.text}
-              {/if}
-            </div>
+            <div class="popup-notif-text">{notif.text}</div>
             <div class="popup-notif-time">{notif.timestamp.replace("T", " ").replace("Z", "z")}</div>
           </div>
         {/each}
@@ -1779,9 +1177,7 @@
     max-width: none;
   }
 
-  :global(main.export-mode),
-  :global(main.query-mode),
-  :global(main.achievements-mode) {
+  :global(main.query-mode) {
     display: flex;
     flex-direction: column;
     height: 100vh;
@@ -1789,10 +1185,7 @@
     box-sizing: border-box;
   }
 
-  :global(main.export-mode) .page-content,
-  :global(main.search-mode) .page-content,
-  :global(main.query-mode) .page-content,
-  :global(main.achievements-mode) .page-content {
+  :global(main.query-mode) .page-content {
     max-width: 100%;
     margin: 0;
     flex: 1;
@@ -1825,13 +1218,6 @@
     margin: 0;
     color: var(--accent);
     font-size: 1.6rem;
-  }
-
-  .callsign {
-    color: var(--accent-callsign);
-    text-shadow: var(--glow-text-shadow);
-    font-size: 1.2rem;
-    font-weight: bold;
   }
 
   .custom-header {
@@ -1962,133 +1348,6 @@
   .update-skip-btn:hover {
     opacity: 1;
   }
-
-  .vfo-bezel {
-    display: inline-flex;
-    align-items: center;
-    gap: 0;
-    background: var(--vfo-bg);
-    border: 2px solid var(--vfo-border);
-    border-radius: 6px;
-    padding: 0.15rem 0.5rem;
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.05), var(--glow-shadow);
-    position: relative;
-    top: -2px;
-  }
-
-  .vfo-digit {
-    color: var(--vfo-text);
-    text-shadow: var(--glow-text-shadow);
-    font-size: 1.1rem;
-    font-family: monospace;
-    font-weight: bold;
-    cursor: ns-resize;
-    padding: 0 1px;
-    border-radius: 2px;
-    transition: background 0.1s;
-  }
-
-  .vfo-digit:hover {
-    background: rgba(255,255,255,0.12);
-  }
-
-  .vfo-bezel .vfo-icon {
-    cursor: pointer;
-    margin-right: 0.3rem;
-  }
-
-  .vfo {
-    color: var(--accent-vfo);
-    font-size: 1rem;
-    cursor: pointer;
-    position: relative;
-    top: -2px;
-  }
-
-  .band-tag {
-    display: inline-block;
-    font-size: 0.65rem;
-    font-weight: bold;
-    padding: 0.1rem 0.35rem;
-    border-radius: 8px;
-    margin-left: 0.3rem;
-    cursor: pointer;
-  }
-
-  .vfo-mode {
-    color: var(--accent);
-    font-size: 0.9rem;
-    font-weight: bold;
-    cursor: pointer;
-  }
-
-  .vfo-mode:hover {
-    text-decoration: underline;
-  }
-
-  .vfo:not(.disconnected):hover {
-    text-decoration: underline;
-  }
-
-  .vfo.disconnected {
-    cursor: default;
-    opacity: 0.6;
-  }
-
-  .vfo-edit {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-  }
-
-  .vfo-freq-wrap {
-    position: relative;
-  }
-
-  .vfo-input {
-    background: var(--bg-input);
-    border: 1px solid var(--border-input);
-    color: var(--accent-vfo);
-    padding: 0.15rem 0.4rem;
-    font-family: inherit;
-    font-size: 0.85rem;
-    border-radius: 3px;
-    outline: none;
-  }
-
-  .vfo-input.freq {
-    width: 100px;
-  }
-
-  .vfo-input.mode {
-    width: 60px;
-  }
-
-  .vfo-input:focus {
-    border-color: var(--accent-vfo);
-  }
-
-  .vfo-btn {
-    padding: 0.15rem 0.5rem;
-    font-size: 0.75rem;
-    border-radius: 3px;
-    border: none;
-    cursor: pointer;
-    font-family: inherit;
-    font-weight: bold;
-  }
-
-  .vfo-btn.save {
-    background: var(--accent-vfo);
-    color: var(--accent-text);
-  }
-
-  .vfo-btn.cancel {
-    background: var(--btn-secondary);
-    color: var(--text);
-  }
-
-
 
   .hamburger-wrap {
     position: relative;
@@ -2334,16 +1593,6 @@
     padding-bottom: 0;
   }
 
-
-  main.parks-mode,
-  main.spots-mode,
-  main.grid-mode {
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
   .dual-layout {
     display: flex;
     gap: 0;
@@ -2398,12 +1647,6 @@
     }
     .header-left {
       gap: 0.5rem;
-    }
-    .vfo-bezel {
-      padding: 0.1rem 0.3rem;
-    }
-    .vfo-digit {
-      font-size: 0.9rem;
     }
   }
 
@@ -2516,23 +1759,6 @@
     font-size: 0.7rem;
     color: var(--text-dim);
     margin-top: 0.1rem;
-  }
-
-  .popup-clickable {
-    cursor: pointer;
-    text-decoration: underline;
-    text-decoration-style: dotted;
-  }
-
-  .popup-clickable:hover { text-decoration-style: solid; }
-
-  .popup-callsign {
-    color: var(--accent-callsign, #ffcc00);
-    font-weight: bold;
-  }
-
-  .popup-freq {
-    color: var(--accent);
   }
 
   .popup-footer {
