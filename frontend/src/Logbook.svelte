@@ -11,7 +11,9 @@
   import iconTree from "@iconify-icons/twemoji/evergreen-tree";
   import iconGlobe from "@iconify-icons/twemoji/globe-showing-americas";
   import iconCheck from "@iconify-icons/twemoji/check-mark-button";
+  import iconPlus from "@iconify-icons/twemoji/heavy-plus-sign";
 
+  export let wide = false;
   export let editId = null;
   export let prefill = null;
   export let vfoFreq = "";
@@ -1331,6 +1333,9 @@
 
 <section class="log">
   <div class="log-title-row">
+    {#if wide && !showForm && !editingId}
+      <button class="log-add-btn" on:click={() => dispatch("addqso")} title="Add QSO"><Icon icon={iconPlus} width={16} /></button>
+    {/if}
     <h2>Log ({displayedContacts.length})</h2>
     {#if prevContactCount > 0 && (showForm || editingId)}
       <div class="log-tabs">
@@ -1674,6 +1679,25 @@
 
   .log-title-row h2 {
     margin: 0;
+  }
+
+  .log-add-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent, #4a9eff);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+  }
+
+  .log-add-btn:hover {
+    filter: brightness(1.15);
   }
 
   .log-tabs {
