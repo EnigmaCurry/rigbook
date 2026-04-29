@@ -14,6 +14,7 @@
   import iconPlus from "@iconify-icons/twemoji/heavy-plus-sign";
 
   export let wide = false;
+  export let logbookRight = false;
   export let editId = null;
   export let prefill = null;
   export let vfoFreq = "";
@@ -1333,15 +1334,15 @@
 
 <section class="log">
   <div class="log-title-row">
-    {#if wide && !showForm && !editingId}
-      <button class="log-add-btn" on:click={() => dispatch("addqso")} title="Add QSO"><Icon icon={iconPlus} width={16} /></button>
-    {/if}
     <h2>Log ({displayedContacts.length})</h2>
     {#if prevContactCount > 0 && (showForm || editingId)}
       <div class="log-tabs">
         <button class="log-tab" class:active={logFilter === "all"} on:click={() => logFilter = "all"}>All</button>
         <button class="log-tab" class:active={logFilter === "call"} on:click={() => logFilter = "call"}>{call.trim().toUpperCase()}</button>
       </div>
+    {/if}
+    {#if wide && !logbookRight && !showForm && !editingId}
+      <button class="log-add-btn" on:click={() => dispatch("addqso")} title="Add QSO"><Icon icon={iconPlus} width={18} /></button>
     {/if}
   </div>
   {#if contacts.length === 0}
@@ -1685,19 +1686,25 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--accent, #4a9eff);
+    background: color-mix(in srgb, var(--accent) 15%, var(--bg-card));
+    box-shadow: var(--glow-shadow-sm);
     color: #fff;
     border: none;
-    border-radius: 50%;
+    border-radius: 4px;
     width: 28px;
     height: 28px;
     cursor: pointer;
     padding: 0;
     flex-shrink: 0;
+    margin-left: auto;
   }
 
   .log-add-btn:hover {
-    filter: brightness(1.15);
+    background: color-mix(in srgb, var(--accent) 30%, var(--bg-card));
+  }
+
+  .log-add-btn :global(svg path) {
+    fill: var(--accent);
   }
 
   .log-tabs {
