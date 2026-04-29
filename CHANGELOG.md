@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.3.0 — 2026-04-29
+
+- **Breaking:** Use platform-specific data directories instead of `~/.local/rigbook/`:
+  - Linux: `~/.local/share/rigbook/`
+  - macOS: `~/Library/Application Support/rigbook/`
+  - Windows: `%APPDATA%\rigbook\`
+- Automatic migration from the legacy directory on first run
+- Add QSO button to logbook header in wide mode
+
 ## v0.2.25 — 2026-04-24
 
 - Re-release to test macOS Intel updater
