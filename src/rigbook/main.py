@@ -623,8 +623,9 @@ def run() -> None:
         or (sys.platform == "darwin" and not sys.stderr.isatty())
     )
     if _log_to_file:
-        from rigbook.db import DB_DIR
+        from rigbook.db import DB_DIR, migrate_legacy_data_dir
 
+        migrate_legacy_data_dir()
         DB_DIR.mkdir(parents=True, exist_ok=True)
         handler = logging.FileHandler(DB_DIR / "rigbook.log", encoding="utf-8")
         handler.setFormatter(

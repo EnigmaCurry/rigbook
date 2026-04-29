@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import shutil
 import sys
 import time
 import uuid as _uuid
@@ -15,9 +16,58 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 logger = logging.getLogger("rigbook")
 
-DB_DIR = Path.home() / ".local" / "rigbook"
+LEGACY_DB_DIR = Path.home() / ".local" / "rigbook"
+
+
+def _get_data_dir() -> Path:
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "rigbook"
+    elif sys.platform == "win32":
+        appdata = os.environ.get("APPDATA")
+        if appdata:
+            return Path(appdata) / "rigbook"
+        return Path.home() / "AppData" / "Roaming" / "rigbook"
+    else:
+        xdg = os.environ.get("XDG_DATA_HOME")
+        if xdg:
+            return Path(xdg) / "rigbook"
+        return Path.home() / ".local" / "share" / "rigbook"
+
+
+DB_DIR = _get_data_dir()
 META_DB_PATH = DB_DIR / "__global.db"
 _LAST_OPENED_FILE = DB_DIR / "last_opened.json"
+
+
+def migrate_legacy_data_dir() -> None:
+    """Migrate data from the legacy ~/.local/rigbook to the new platform dir."""
+    if LEGACY_DB_DIR == DB_DIR:
+        return
+    if not LEGACY_DB_DIR.is_dir():
+        return
+    # Only migrate if the new dir doesn't exist or is empty
+    if DB_DIR.is_dir() and any(DB_DIR.iterdir()):
+        return
+    DB_DIR.mkdir(parents=True, exist_ok=True)
+    migrated = []
+    for item in LEGACY_DB_DIR.iterdir():
+        if item.name == "MOVED.txt":
+            continue
+        dest = DB_DIR / item.name
+        shutil.move(str(item), str(dest))
+        migrated.append(item.name)
+    if migrated:
+        logger.info(
+            "Migrated %d items from %s to %s: %s",
+            len(migrated),
+            LEGACY_DB_DIR,
+            DB_DIR,
+            ", ".join(sorted(migrated)),
+        )
+        breadcrumb = LEGACY_DB_DIR / "MOVED.txt"
+        breadcrumb.write_text(
+            f"Rigbook data has been moved to:\n{DB_DIR}\n"
+        )
 
 # Settings that can be set globally in __global.db and overridden per-logbook
 GLOBAL_DEFAULTABLE_KEYS = {
@@ -726,6 +776,7 @@ def cleanup_stale_locks() -> None:
 
 
 async def init_db() -> None:
+    migrate_legacy_data_dir()
     DB_DIR.mkdir(parents=True, exist_ok=True)
     cleanup_stale_locks()
     await db_manager.open_global()
