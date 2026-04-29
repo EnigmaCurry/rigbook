@@ -35,7 +35,11 @@ rigbook/
 
 ## Data Storage
 
-Database and config stored in `~/.local/rigbook/rigbook.db` (XDG-compatible). Created automatically on first run.
+Database and config stored in a platform-specific data directory. Created automatically on first run.
+
+- **Linux**: `~/.local/share/rigbook/` (XDG-compatible)
+- **macOS**: `~/Library/Application Support/rigbook/`
+- **Windows**: `%APPDATA%\rigbook\`
 
 ## Key Commands
 

@@ -110,10 +110,10 @@ See [TERMUX.md](TERMUX.md) for instructions on running Rigbook on Android via Te
 ### Container
 
 ```bash
-mkdir -p ${HOME}/.local/rigbook && \
+mkdir -p ${HOME}/.local/share/rigbook && \
 podman run --rm -it --name rigbook \
   --network=host \
-  -v ${HOME}/.local/rigbook:/root/.local/rigbook:Z \
+  -v ${HOME}/.local/share/rigbook:/root/.local/share/rigbook:Z \
   ghcr.io/enigmacurry/rigbook:latest
 ```
 
@@ -133,7 +133,7 @@ instead.
 
 | Variable | Description |
 |---|---|
-| `RIGBOOK_DB` | Logbook name (e.g. `field-day` opens `~/.local/rigbook/field-day.db`) |
+| `RIGBOOK_DB` | Logbook name (e.g. `field-day` opens `field-day.db` in the data directory) |
 | `RIGBOOK_PICKER` | `true` to start in logbook picker mode |
 | `RIGBOOK_NO_BROWSER` | `true` to skip opening the browser |
 | `RIGBOOK_NO_SHUTDOWN` | `true` to disable the shutdown endpoint and auto-shutdown |
@@ -161,8 +161,13 @@ just check         # Lint and format check
 just fix           # Auto-fix lint and formatting
 ```
 
-Data is stored in `~/.local/rigbook/` (SQLite). Automatic backups are
-configurable in Settings.
+Data is stored in a platform-specific directory (SQLite):
+
+- **Linux**: `~/.local/share/rigbook/`
+- **macOS**: `~/Library/Application Support/rigbook/`
+- **Windows**: `%APPDATA%\rigbook\`
+
+Automatic backups are configurable in Settings.
 
 ## License
 
