@@ -1274,9 +1274,9 @@
       <label for="cw_key_type">CW Key</label>
       <select id="cw_key_type" bind:value={cw_key_type}>
         <option value="">—</option>
-        <option value="SK">Straight Key</option>
-        <option value="BUG">Bug</option>
-        <option value="SS">Sideswiper</option>
+        <option value="SK">SK</option>
+        <option value="BUG">BUG</option>
+        <option value="SS">SS</option>
       </select>
     </div>
     {/if}
@@ -1505,7 +1505,7 @@
   .field-cw-key {
     flex: 0 0 auto;
     min-width: 0;
-    max-width: 120px;
+    max-width: 80px;
   }
 
   .time-btn-group {
