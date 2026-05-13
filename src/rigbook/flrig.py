@@ -18,6 +18,7 @@ SIMULATED_MODES = ["CW", "USB", "LSB", "RTTY", "FT8"]
 # --- Simulated radio state ---
 _sim_freq: str = "14074000"
 _sim_mode: str = "CW"
+_sim_power: str = "100"
 
 
 async def is_simulate(session: AsyncSession) -> bool:
@@ -34,6 +35,7 @@ async def get_flrig_url(session: AsyncSession = Depends(get_session)) -> str:
 class FlrigStatus(BaseModel):
     freq: str | None = None
     mode: str | None = None
+    power: str | None = None
     connected: bool = False
 
 
@@ -81,6 +83,13 @@ class FlrigClient:
         except Exception:
             return False
 
+    def get_power(self) -> str | None:
+        try:
+            server = xmlrpc.client.ServerProxy(self.url)
+            return server.rig.get_power()
+        except Exception:
+            return None
+
 
 class FlrigSet(BaseModel):
     freq: str | None = None
@@ -93,13 +102,16 @@ async def flrig_status(
     session: AsyncSession = Depends(get_session),
 ):
     if await is_simulate(session):
-        return FlrigStatus(freq=_sim_freq, mode=_sim_mode, connected=True)
+        return FlrigStatus(
+            freq=_sim_freq, mode=_sim_mode, power=_sim_power, connected=True
+        )
     loop = asyncio.get_event_loop()
     client = FlrigClient(url)
     freq = await loop.run_in_executor(None, client.get_frequency)
     mode = await loop.run_in_executor(None, client.get_mode)
+    power = await loop.run_in_executor(None, client.get_power)
     connected = freq is not None
-    return FlrigStatus(freq=freq, mode=mode, connected=connected)
+    return FlrigStatus(freq=freq, mode=mode, power=power, connected=connected)
 
 
 @router.get("/modes")
