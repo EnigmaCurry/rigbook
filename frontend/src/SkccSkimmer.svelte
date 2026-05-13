@@ -84,7 +84,7 @@
     }
   }
 
-  $: visible = !filterMode || filterMode === "CW";
+  $: visible = !filterMode || filterMode.toUpperCase().startsWith("CW");
 
   // Force spots re-render when workedTodayKeys changes
   $: if (workedTodayKeys) { spots = [...spots]; }

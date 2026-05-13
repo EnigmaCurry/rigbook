@@ -243,7 +243,7 @@ async def today_cw_contacts(session: AsyncSession = Depends(get_session)):
     rows = (
         await session.execute(
             select(Contact.call, Contact.freq, Contact.mode)
-            .where(Contact.mode == "CW")
+            .where(Contact.mode.like("CW%"))
             .where(Contact.timestamp >= today_start)
         )
     ).all()

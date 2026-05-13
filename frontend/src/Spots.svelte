@@ -279,7 +279,7 @@
   }
 
   let spotColumnOrder = loadSpotColumnOrder();
-  $: spotColumns = spotColumnOrder.filter(k => k !== "skcc" || filterMode === "CW").map(k => spotColumnDefs[k]);
+  $: spotColumns = spotColumnOrder.filter(k => k !== "skcc" || filterMode.toUpperCase().startsWith("CW")).map(k => spotColumnDefs[k]);
 
   let spotDragCol = null;
   let spotDragOverCol = null;
@@ -1497,14 +1497,14 @@
       <option value="rbn">RBN</option>
       <option value="hamalert">HamAlert</option>
     </select>
-    <select bind:value={filterMode} on:change={() => { if (filterMode !== "CW") filterSkcc = ""; onFilterChange(); }}>
+    <select bind:value={filterMode} on:change={() => { if (!filterMode.toUpperCase().startsWith("CW")) filterSkcc = ""; onFilterChange(); }}>
       <option value="">All Modes</option>
       {#each modeList as m}
         <option value={m}>{m} ({modes[m]})</option>
       {/each}
     </select>
     <input type="text" placeholder="Callsign" bind:value={filterCallsign} on:input={onFilterChange} style="text-transform: uppercase; width: 10ch" />
-    {#if filterMode === "CW"}
+    {#if filterMode.toUpperCase().startsWith("CW")}
       <select bind:value={filterSkcc} on:change={onFilterChange}>
         <option value="">SKCC: Any</option>
         <option value="required">SKCC: Required</option>
