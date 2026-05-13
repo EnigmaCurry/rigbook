@@ -65,9 +65,8 @@ def migrate_legacy_data_dir() -> None:
             ", ".join(sorted(migrated)),
         )
         breadcrumb = LEGACY_DB_DIR / "MOVED.txt"
-        breadcrumb.write_text(
-            f"Rigbook data has been moved to:\n{DB_DIR}\n"
-        )
+        breadcrumb.write_text(f"Rigbook data has been moved to:\n{DB_DIR}\n")
+
 
 # Settings that can be set globally in __global.db and overridden per-logbook
 GLOBAL_DEFAULTABLE_KEYS = {
@@ -176,6 +175,7 @@ class Contact(Base):
     grid: Mapped[str | None] = mapped_column(String, nullable=True)
     skcc: Mapped[str | None] = mapped_column(String, nullable=True)
     skcc_exch: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
+    cw_key_type: Mapped[str | None] = mapped_column(String, nullable=True)
     comments: Mapped[str | None] = mapped_column(String, nullable=True)
     notes: Mapped[str | None] = mapped_column(String, nullable=True)
     timestamp: Mapped[datetime] = mapped_column(
@@ -388,9 +388,7 @@ def _run_migrations(conn, migrations, table="settings") -> bool:
             migrate_fn(conn)
         _set_schema_version(conn, table, expected)
         _set_last_migrated_by(conn, table)
-        logger.info(
-            "Migrated %s schema: v%d → v%d", table, current, expected
-        )
+        logger.info("Migrated %s schema: v%d → v%d", table, current, expected)
         return True
     return False
 
@@ -585,9 +583,7 @@ class DatabaseManager:
                 current_v = 0
             _conn.close()
             if current_v < len(LOGBOOK_MIGRATIONS):
-                _backup_before_migration(
-                    db_path, current_v, len(LOGBOOK_MIGRATIONS)
-                )
+                _backup_before_migration(db_path, current_v, len(LOGBOOK_MIGRATIONS))
         self.engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}")
         self._session_factory = async_sessionmaker(self.engine, expire_on_commit=False)
         migrated = [False]
@@ -614,9 +610,7 @@ class DatabaseManager:
                 await conn.execute(text("VACUUM"))
                 logger.info("Vacuumed logbook database after migration")
         async with self.engine.connect() as conn:
-            sv = await conn.run_sync(
-                lambda c: _get_schema_version(c, "settings")
-            )
+            sv = await conn.run_sync(lambda c: _get_schema_version(c, "settings"))
         await self.record_last_opened(db_path.stem)
         logger.info("Opened logbook: %s (schema v%d)", db_path, sv)
 
@@ -665,9 +659,7 @@ class DatabaseManager:
         # Migrate last_opened.json if it exists
         await self._migrate_last_opened()
         async with self.global_engine.connect() as conn:
-            gsv = await conn.run_sync(
-                lambda c: _get_schema_version(c, "settings")
-            )
+            gsv = await conn.run_sync(lambda c: _get_schema_version(c, "settings"))
         logger.info("Opened global database: %s (schema v%d)", META_DB_PATH, gsv)
 
     async def close_global(self) -> None:
@@ -741,9 +733,7 @@ def global_async_session():
     return db_manager._global_session_factory()
 
 
-async def resolve_setting(
-    key: str, session: AsyncSession, default: str = ""
-) -> str:
+async def resolve_setting(key: str, session: AsyncSession, default: str = "") -> str:
     """Read a setting from the logbook DB, falling back to global DB if blank/missing."""
     result = await session.execute(select(Setting).where(Setting.key == key))
     row = result.scalar_one_or_none()

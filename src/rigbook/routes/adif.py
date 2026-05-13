@@ -144,6 +144,7 @@ def render_comment_with_template(
         "pota_park": c.pota_park,
         "skcc": c.skcc,
         "skcc_exch": "Y" if c.skcc_exch else "",
+        "cw_key_type": c.cw_key_type or "",
         "dxcc": str(c.dxcc) if c.dxcc is not None else "",
     }
     parts = []
@@ -196,6 +197,8 @@ def contact_to_adif_record(
         record["SKCC"] = str(c.skcc)
     if c.skcc_exch:
         record["APP_RIGBOOK_SKCC_EXCH"] = "Y"
+    if c.cw_key_type:
+        record["APP_RIGBOOK_CW_KEY_TYPE"] = c.cw_key_type
     if comment_template:
         comment = render_comment_with_template(comment_template, c, comment_separator)
         if comment:
@@ -382,6 +385,11 @@ def adif_record_to_contact_dict(record: dict) -> dict:
         data["skcc"] = skcc
     if record.get("APP_RIGBOOK_SKCC_EXCH", "").upper() == "Y":
         data["skcc_exch"] = 1
+    cw_key_type = record.get("APP_RIGBOOK_CW_KEY_TYPE") or record.get(
+        "APP_SKCCLOGGER_KEYTYPE"
+    )
+    if cw_key_type:
+        data["cw_key_type"] = cw_key_type
     data["comments"] = record.get("COMMENT")
     data["notes"] = record.get("NOTES")
     app_uuid = record.get("APP_RIGBOOK_UUID")
@@ -754,6 +762,7 @@ MERGE_FIELDS = [
     ("pota_park", "POTA"),
     ("skcc", "SKCC"),
     ("skcc_exch", "SKCC Exch"),
+    ("cw_key_type", "CW Key"),
     ("comments", "Comments"),
     ("notes", "Notes"),
 ]
@@ -946,6 +955,8 @@ ADIF_FIELD_MAP = {
     "POTA_REF": "pota_park",
     "SKCC": "skcc",
     "DXCC": "dxcc",
+    "APP_RIGBOOK_CW_KEY_TYPE": "cw_key_type",
+    "APP_SKCCLOGGER_KEYTYPE": "cw_key_type",
 }
 
 DEFAULT_LABELS = {
@@ -962,6 +973,7 @@ DEFAULT_LABELS = {
     "pota_park": "POTA",
     "skcc": "SKCC",
     "skcc_exch": "SKCC Exch",
+    "cw_key_type": "CW Key",
     "dxcc": "DXCC",
 }
 
@@ -1034,7 +1046,7 @@ def _suggest_comment_template(records: list[dict]) -> dict:
             ]
 
     # Only suggest fields that belong to our curated template set
-    allowed = {"skcc", "skcc_exch", "pota_park", "dxcc"}
+    allowed = {"skcc", "skcc_exch", "cw_key_type", "pota_park", "dxcc"}
     best_fields = [f for f in best_fields if f["field"] in allowed]
     return {"separator": best_sep, "fields": best_fields}
 
@@ -1088,6 +1100,7 @@ async def preview_import_adif(
             "grid": data.get("grid"),
             "skcc": data.get("skcc"),
             "skcc_exch": bool(data.get("skcc_exch")),
+            "cw_key_type": data.get("cw_key_type"),
             "comments": data.get("comments"),
             "original_comment": data.get("_original_comment"),
             "notes": data.get("notes"),
@@ -1173,6 +1186,7 @@ IMPORT_FIELDS = {
     "pota_park",
     "skcc",
     "skcc_exch",
+    "cw_key_type",
     "comments",
     "notes",
     "timestamp_off",

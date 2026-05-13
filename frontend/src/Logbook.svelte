@@ -40,6 +40,7 @@
   let grid = "";
   let skcc = "";
   let skcc_exch = false;
+  let cw_key_type = localStorage.getItem("rigbook_cw_key_type") || "";
   let tableWrapEl;
   function utcNowDate() { return new Date().toISOString().slice(0, 10); }
   function utcNowTime() { return new Date().toISOString().slice(11, 19); }
@@ -210,7 +211,7 @@
   export let activePark = "";
 
   function formSnapshot() {
-    return { call, freq, mode, rst_sent, rst_recv, pota_park, name, qth, state, country, grid, skcc, skcc_exch, comments, notes, datePart, timePart, datePartOff, timePartOff };
+    return { call, freq, mode, rst_sent, rst_recv, pota_park, name, qth, state, country, grid, skcc, skcc_exch, cw_key_type, comments, notes, datePart, timePart, datePartOff, timePartOff };
   }
 
   $: editHasChanges = !editingId || !editOriginal || (
@@ -227,6 +228,7 @@
     grid !== editOriginal.grid ||
     skcc !== editOriginal.skcc ||
     skcc_exch !== editOriginal.skcc_exch ||
+    cw_key_type !== editOriginal.cw_key_type ||
     comments !== editOriginal.comments ||
     notes !== editOriginal.notes ||
     datePart !== editOriginal.datePart ||
@@ -254,6 +256,7 @@
     grid !== addOriginal.grid ||
     skcc !== addOriginal.skcc ||
     skcc_exch !== addOriginal.skcc_exch ||
+    cw_key_type !== addOriginal.cw_key_type ||
     comments !== addOriginal.comments ||
     notes !== addOriginal.notes ||
     (clockState === "STATIC" && datePart !== addOriginal.datePart) ||
@@ -283,6 +286,7 @@
     rst_recv: { key: "rst_recv", label: "RST R" },
     comments: { key: "comments", label: "Comments" },
     updated_at: { key: "updated_at", label: "Edited" },
+    cw_key_type: { key: "cw_key_type", label: "CW Key" },
   };
 
   function loadColumnOrder() {
@@ -546,6 +550,7 @@
     grid = "";
     skcc = "";
     skcc_exch = false;
+    cw_key_type = localStorage.getItem("rigbook_cw_key_type") || "";
     comments = "";
     notes = "";
     datePart = "";
@@ -644,7 +649,7 @@
       }
       // Update addOriginal so auto-filled fields don't make form dirty
       if (!editingId && addOriginal) {
-        addOriginal = { ...addOriginal, name, qth, state, country, grid, skcc, skcc_exch };
+        addOriginal = { ...addOriginal, name, qth, state, country, grid, skcc, skcc_exch, cw_key_type };
       }
     } catch {}
   }
@@ -692,6 +697,7 @@
   function isValidSkccNumber(val) { return SKCC_NUMBER_RE.test(val.trim().toUpperCase()); }
   $: skccValid = isValidSkccNumber(skcc);
   $: stripSkcc = () => { skcc = skcc.replace(/[^A-Za-z0-9]/g, ""); if (!isValidSkccNumber(skcc)) skcc_exch = false; };
+  $: if (cw_key_type) localStorage.setItem("rigbook_cw_key_type", cw_key_type); else localStorage.removeItem("rigbook_cw_key_type");
 
   // POTA park autocomplete
   let potaResults = [];
@@ -834,6 +840,7 @@
     grid = c.grid || "";
     skcc = c.skcc || "";
     skcc_exch = !!c.skcc_exch;
+    cw_key_type = c.cw_key_type || "";
     comments = c.comments || "";
     notes = c.notes || "";
     if (c.timestamp) {
@@ -857,7 +864,7 @@
     errorMsg = "";
     editOriginal = {
       call, freq, mode, rst_sent, rst_recv, pota_park, name, qth,
-      state, country, grid, skcc, skcc_exch, comments, notes, datePart, timePart,
+      state, country, grid, skcc, skcc_exch, cw_key_type, comments, notes, datePart, timePart,
       datePartOff, timePartOff,
     };
     const match = countries.find(co => co.name === country);
@@ -913,6 +920,7 @@
         grid: grid.trim().toUpperCase() || null,
         skcc: skcc.trim().toUpperCase() || null,
         skcc_exch: skcc_exch,
+        cw_key_type: cw_key_type || null,
         comments: comments || null,
         notes: notes || null,
         timestamp: `${datePart}T${timePart || "00:00:00"}Z`,
@@ -962,6 +970,7 @@
     grid = "";
     skcc = "";
     skcc_exch = false;
+    cw_key_type = localStorage.getItem("rigbook_cw_key_type") || "";
     comments = "";
     notes = "";
     datePart = "";
@@ -1003,6 +1012,7 @@
         grid: grid.trim().toUpperCase() || null,
         skcc: skcc.trim().toUpperCase() || null,
         skcc_exch: skcc_exch,
+        cw_key_type: cw_key_type || null,
         comments: comments || null,
         notes: notes || null,
         timestamp: `${datePart}T${timePart || "00:00:00"}Z`,
@@ -1252,6 +1262,7 @@
         {/if}
       </div>
     </div>
+    {#if mode.toUpperCase() === "CW"}
     <div class="field" class:changed={orig && (skcc !== orig.skcc || skcc_exch !== orig.skcc_exch)}>
       <label for="skcc">SKCC # / {skcc_exch ? "Validated!" : "Validated?"}</label>
       <div class="skcc-input-row">
@@ -1259,6 +1270,16 @@
         <button type="button" class="skcc-exch-btn" class:active={skcc_exch} disabled={!skccValid} on:click={() => skcc_exch = !skcc_exch} title="Valid SKCC exchange (RST, QTH, Name, SKCC#)"><Icon icon={iconCheck} width={16} inline={true} /></button>
       </div>
     </div>
+    <div class="field" class:changed={orig && cw_key_type !== orig.cw_key_type}>
+      <label for="cw_key_type">CW Key</label>
+      <select id="cw_key_type" bind:value={cw_key_type}>
+        <option value="">—</option>
+        <option value="SK">Straight Key</option>
+        <option value="BUG">Bug</option>
+        <option value="SS">Sideswiper</option>
+      </select>
+    </div>
+    {/if}
     <div class="field wide" class:changed={orig && comments !== orig.comments}>
       <label for="comments">Comments (public)</label>
       <input id="comments" type="text" bind:value={comments} />
@@ -1374,6 +1395,7 @@
                 {:else if col.key === "rst_recv"}<td>{c.rst_recv || ""}</td>
                 {:else if col.key === "comments"}<td class="truncate">{c.comments || ""}</td>
                 {:else if col.key === "updated_at"}<td>{c.updated_at ? formatTimestamp(c.updated_at) : ""}</td>
+                {:else if col.key === "cw_key_type"}<td>{c.cw_key_type || ""}</td>
                 {/if}
               {/each}
             </tr>
@@ -1585,7 +1607,8 @@
   }
 
   input,
-  textarea {
+  textarea,
+  select {
     background: var(--bg-input);
     border: 1px solid var(--border-input);
     color: var(--text);
@@ -1596,7 +1619,8 @@
   }
 
   input:focus,
-  textarea:focus {
+  textarea:focus,
+  select:focus {
     outline: none;
     border-color: var(--accent);
   }
