@@ -1191,6 +1191,17 @@
       <label>Mode *</label>
       <Autocomplete bind:value={mode} items={availableModes} />
     </div>
+    {#if mode.toUpperCase() === "CW"}
+    <div class="field" class:changed={orig && cw_key_type !== orig.cw_key_type}>
+      <label for="cw_key_type">CW Key{#if cw_key_type === "SK"} — Straight{:else if cw_key_type === "BUG"} — Bug{:else if cw_key_type === "SS"} — Sideswiper{/if}</label>
+      <select id="cw_key_type" bind:value={cw_key_type}>
+        <option value="">—</option>
+        <option value="SK">SK</option>
+        <option value="BUG">BUG</option>
+        <option value="SS">SS</option>
+      </select>
+    </div>
+    {/if}
     <div class="field" class:changed={orig && rst_sent !== orig.rst_sent}>
       <label for="rst_sent">RST Sent</label>
       <input id="rst_sent" type="text" bind:value={rst_sent} />
@@ -1269,15 +1280,6 @@
         <input id="skcc" type="text" bind:value={skcc} on:input={stripSkcc} style="text-transform: uppercase" readonly={skcc_exch} />
         <button type="button" class="skcc-exch-btn" class:active={skcc_exch} disabled={!skccValid} on:click={() => skcc_exch = !skcc_exch} title="Valid SKCC exchange (RST, QTH, Name, SKCC#)"><Icon icon={iconCheck} width={16} inline={true} /></button>
       </div>
-    </div>
-    <div class="field" class:changed={orig && cw_key_type !== orig.cw_key_type}>
-      <label for="cw_key_type">CW Key{#if cw_key_type === "SK"} — Straight{:else if cw_key_type === "BUG"} — Bug{:else if cw_key_type === "SS"} — Sideswiper{/if}</label>
-      <select id="cw_key_type" bind:value={cw_key_type}>
-        <option value="">—</option>
-        <option value="SK">SK</option>
-        <option value="BUG">BUG</option>
-        <option value="SS">SS</option>
-      </select>
     </div>
     {/if}
     <div class="field wide" class:changed={orig && comments !== orig.comments}>
