@@ -145,6 +145,7 @@ def render_comment_with_template(
         "skcc": c.skcc,
         "skcc_exch": "Y" if c.skcc_exch else "",
         "cw_key_type": c.cw_key_type or "",
+        "tx_pwr": c.tx_pwr or "",
         "dxcc": str(c.dxcc) if c.dxcc is not None else "",
     }
     parts = []
@@ -199,6 +200,8 @@ def contact_to_adif_record(
         record["APP_RIGBOOK_SKCC_EXCH"] = "Y"
     if c.cw_key_type:
         record["APP_RIGBOOK_CW_KEY_TYPE"] = c.cw_key_type
+    if c.tx_pwr:
+        record["TX_PWR"] = c.tx_pwr
     if comment_template:
         comment = render_comment_with_template(comment_template, c, comment_separator)
         if comment:
@@ -390,6 +393,9 @@ def adif_record_to_contact_dict(record: dict) -> dict:
     )
     if cw_key_type:
         data["cw_key_type"] = cw_key_type
+    tx_pwr = record.get("TX_PWR")
+    if tx_pwr:
+        data["tx_pwr"] = tx_pwr
     data["comments"] = record.get("COMMENT")
     data["notes"] = record.get("NOTES")
     app_uuid = record.get("APP_RIGBOOK_UUID")
@@ -763,6 +769,7 @@ MERGE_FIELDS = [
     ("skcc", "SKCC"),
     ("skcc_exch", "SKCC Exch"),
     ("cw_key_type", "CW Key"),
+    ("tx_pwr", "TX Pwr"),
     ("comments", "Comments"),
     ("notes", "Notes"),
 ]
@@ -957,6 +964,7 @@ ADIF_FIELD_MAP = {
     "DXCC": "dxcc",
     "APP_RIGBOOK_CW_KEY_TYPE": "cw_key_type",
     "APP_SKCCLOGGER_KEYTYPE": "cw_key_type",
+    "TX_PWR": "tx_pwr",
 }
 
 DEFAULT_LABELS = {
@@ -974,6 +982,7 @@ DEFAULT_LABELS = {
     "skcc": "SKCC",
     "skcc_exch": "SKCC Exch",
     "cw_key_type": "CW Key",
+    "tx_pwr": "TX Pwr",
     "dxcc": "DXCC",
 }
 
@@ -1101,6 +1110,7 @@ async def preview_import_adif(
             "skcc": data.get("skcc"),
             "skcc_exch": bool(data.get("skcc_exch")),
             "cw_key_type": data.get("cw_key_type"),
+            "tx_pwr": data.get("tx_pwr"),
             "comments": data.get("comments"),
             "original_comment": data.get("_original_comment"),
             "notes": data.get("notes"),
@@ -1187,6 +1197,7 @@ IMPORT_FIELDS = {
     "skcc",
     "skcc_exch",
     "cw_key_type",
+    "tx_pwr",
     "comments",
     "notes",
     "timestamp_off",

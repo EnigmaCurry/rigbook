@@ -176,6 +176,7 @@ class Contact(Base):
     skcc: Mapped[str | None] = mapped_column(String, nullable=True)
     skcc_exch: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
     cw_key_type: Mapped[str | None] = mapped_column(String, nullable=True)
+    tx_pwr: Mapped[str | None] = mapped_column(String, nullable=True)
     comments: Mapped[str | None] = mapped_column(String, nullable=True)
     notes: Mapped[str | None] = mapped_column(String, nullable=True)
     timestamp: Mapped[datetime] = mapped_column(

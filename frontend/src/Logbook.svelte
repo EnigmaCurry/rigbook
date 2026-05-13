@@ -19,6 +19,7 @@
   export let prefill = null;
   export let vfoFreq = "";
   export let vfoMode = "";
+  export let vfoPower = "";
   const dispatch = createEventDispatcher();
 
   let contacts = [];
@@ -41,6 +42,7 @@
   let skcc = "";
   let skcc_exch = false;
   let cw_key_type = localStorage.getItem("rigbook_cw_key_type") || "";
+  let tx_pwr = "";
   let tableWrapEl;
   function utcNowDate() { return new Date().toISOString().slice(0, 10); }
   function utcNowTime() { return new Date().toISOString().slice(11, 19); }
@@ -211,7 +213,7 @@
   export let activePark = "";
 
   function formSnapshot() {
-    return { call, freq, mode, rst_sent, rst_recv, pota_park, name, qth, state, country, grid, skcc, skcc_exch, cw_key_type, comments, notes, datePart, timePart, datePartOff, timePartOff };
+    return { call, freq, mode, rst_sent, rst_recv, pota_park, name, qth, state, country, grid, skcc, skcc_exch, cw_key_type, tx_pwr, comments, notes, datePart, timePart, datePartOff, timePartOff };
   }
 
   $: editHasChanges = !editingId || !editOriginal || (
@@ -229,6 +231,7 @@
     skcc !== editOriginal.skcc ||
     skcc_exch !== editOriginal.skcc_exch ||
     cw_key_type !== editOriginal.cw_key_type ||
+    tx_pwr !== editOriginal.tx_pwr ||
     comments !== editOriginal.comments ||
     notes !== editOriginal.notes ||
     datePart !== editOriginal.datePart ||
@@ -257,6 +260,7 @@
     skcc !== addOriginal.skcc ||
     skcc_exch !== addOriginal.skcc_exch ||
     cw_key_type !== addOriginal.cw_key_type ||
+    tx_pwr !== addOriginal.tx_pwr ||
     comments !== addOriginal.comments ||
     notes !== addOriginal.notes ||
     (clockState === "STATIC" && datePart !== addOriginal.datePart) ||
@@ -287,6 +291,7 @@
     comments: { key: "comments", label: "Comments" },
     updated_at: { key: "updated_at", label: "Edited" },
     cw_key_type: { key: "cw_key_type", label: "CW Key" },
+    tx_pwr: { key: "tx_pwr", label: "TX Pwr" },
   };
 
   function loadColumnOrder() {
@@ -551,6 +556,7 @@
     skcc = "";
     skcc_exch = false;
     cw_key_type = localStorage.getItem("rigbook_cw_key_type") || "";
+    tx_pwr = "";
     comments = "";
     notes = "";
     datePart = "";
@@ -591,6 +597,10 @@
   $: if (!editingId && !prefill && !userTouched && vfoMode) {
     mode = vfoMode;
     if (addOriginal) addOriginal = { ...addOriginal, mode };
+  }
+  $: if (!editingId && !prefill && !userTouched && vfoPower) {
+    tx_pwr = vfoPower;
+    if (addOriginal) addOriginal = { ...addOriginal, tx_pwr };
   }
 
   let lastQrzCall = "";
@@ -841,6 +851,7 @@
     skcc = c.skcc || "";
     skcc_exch = !!c.skcc_exch;
     cw_key_type = c.cw_key_type || "";
+    tx_pwr = c.tx_pwr || "";
     comments = c.comments || "";
     notes = c.notes || "";
     if (c.timestamp) {
@@ -864,7 +875,7 @@
     errorMsg = "";
     editOriginal = {
       call, freq, mode, rst_sent, rst_recv, pota_park, name, qth,
-      state, country, grid, skcc, skcc_exch, cw_key_type, comments, notes, datePart, timePart,
+      state, country, grid, skcc, skcc_exch, cw_key_type, tx_pwr, comments, notes, datePart, timePart,
       datePartOff, timePartOff,
     };
     const match = countries.find(co => co.name === country);
@@ -921,6 +932,7 @@
         skcc: skcc.trim().toUpperCase() || null,
         skcc_exch: skcc_exch,
         cw_key_type: cw_key_type || null,
+        tx_pwr: tx_pwr.trim() || null,
         comments: comments || null,
         notes: notes || null,
         timestamp: `${datePart}T${timePart || "00:00:00"}Z`,
@@ -971,6 +983,7 @@
     skcc = "";
     skcc_exch = false;
     cw_key_type = localStorage.getItem("rigbook_cw_key_type") || "";
+    tx_pwr = "";
     comments = "";
     notes = "";
     datePart = "";
@@ -1013,6 +1026,7 @@
         skcc: skcc.trim().toUpperCase() || null,
         skcc_exch: skcc_exch,
         cw_key_type: cw_key_type || null,
+        tx_pwr: tx_pwr.trim() || null,
         comments: comments || null,
         notes: notes || null,
         timestamp: `${datePart}T${timePart || "00:00:00"}Z`,
@@ -1210,6 +1224,10 @@
       <label for="rst_recv">RST Recv</label>
       <input id="rst_recv" type="text" bind:value={rst_recv} />
     </div>
+    <div class="field" class:changed={orig && tx_pwr !== orig.tx_pwr}>
+      <label for="tx_pwr">TX Pwr (W)</label>
+      <input id="tx_pwr" type="text" inputmode="decimal" bind:value={tx_pwr} on:input={() => { tx_pwr = tx_pwr.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1"); }} />
+    </div>
     <div class="field field-name" class:changed={orig && name !== orig.name}>
       <label for="name">Name</label>
       <input id="name" type="text" bind:value={name} />
@@ -1398,6 +1416,7 @@
                 {:else if col.key === "comments"}<td class="truncate">{c.comments || ""}</td>
                 {:else if col.key === "updated_at"}<td>{c.updated_at ? formatTimestamp(c.updated_at) : ""}</td>
                 {:else if col.key === "cw_key_type"}<td>{c.cw_key_type || ""}</td>
+                {:else if col.key === "tx_pwr"}<td>{c.tx_pwr || ""}</td>
                 {/if}
               {/each}
             </tr>
