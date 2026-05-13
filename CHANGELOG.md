@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.1 — 2026-05-13
+
+- Add CW key type field (SK/BUG/SS) for SKCC reporting, shown only in CW mode with sticky localStorage persistence
+- Add TX power field, auto-populated from flrig and displayed in the VFO header
+- ADIF export/import support for both new fields (`APP_RIGBOOK_CW_KEY_TYPE`, `TX_PWR`), with SKCCLogger import compatibility
+
 ## v0.3.0 — 2026-04-29
 
 - **Breaking:** Use platform-specific data directories instead of `~/.local/rigbook/`:
