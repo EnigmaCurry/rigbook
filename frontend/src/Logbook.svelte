@@ -1226,7 +1226,7 @@
     </div>
     <div class="field" class:changed={orig && tx_pwr !== orig.tx_pwr}>
       <label for="tx_pwr">TX Pwr (W)</label>
-      <input id="tx_pwr" type="text" bind:value={tx_pwr} />
+      <input id="tx_pwr" type="number" bind:value={tx_pwr} min="0" step="any" />
     </div>
     <div class="field field-name" class:changed={orig && name !== orig.name}>
       <label for="name">Name</label>

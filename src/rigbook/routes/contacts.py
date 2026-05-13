@@ -67,6 +67,20 @@ class ContactCreate(BaseModel):
             raise ValueError("grid must be alphanumeric with no spaces")
         return v.upper()
 
+    @field_validator("tx_pwr")
+    @classmethod
+    def validate_tx_pwr(cls, v: str | None) -> str | None:
+        if not v:
+            return None
+        v = v.strip()
+        if not v:
+            return None
+        try:
+            float(v)
+        except ValueError:
+            raise ValueError("TX power must be a number")
+        return v
+
     @field_validator("timestamp", "timestamp_off")
     @classmethod
     def normalize_timestamp(cls, v: datetime | None) -> datetime | None:
@@ -106,6 +120,20 @@ class ContactUpdate(BaseModel):
     notes: str | None = None
     timestamp: datetime | None = None
     timestamp_off: datetime | None = None
+
+    @field_validator("tx_pwr")
+    @classmethod
+    def validate_tx_pwr(cls, v: str | None) -> str | None:
+        if not v:
+            return None
+        v = v.strip()
+        if not v:
+            return None
+        try:
+            float(v)
+        except ValueError:
+            raise ValueError("TX power must be a number")
+        return v
 
     @field_validator("timestamp", "timestamp_off")
     @classmethod
