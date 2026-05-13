@@ -1270,7 +1270,7 @@
         <button type="button" class="skcc-exch-btn" class:active={skcc_exch} disabled={!skccValid} on:click={() => skcc_exch = !skcc_exch} title="Valid SKCC exchange (RST, QTH, Name, SKCC#)"><Icon icon={iconCheck} width={16} inline={true} /></button>
       </div>
     </div>
-    <div class="field" class:changed={orig && cw_key_type !== orig.cw_key_type}>
+    <div class="field field-cw-key" class:changed={orig && cw_key_type !== orig.cw_key_type}>
       <label for="cw_key_type">CW Key</label>
       <select id="cw_key_type" bind:value={cw_key_type}>
         <option value="">—</option>
@@ -1500,6 +1500,12 @@
   .field.wide {
     flex: 2;
     min-width: 240px;
+  }
+
+  .field-cw-key {
+    flex: 0 0 auto;
+    min-width: 0;
+    max-width: 120px;
   }
 
   .time-btn-group {
