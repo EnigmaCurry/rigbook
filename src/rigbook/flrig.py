@@ -86,7 +86,7 @@ class FlrigClient:
     def get_power(self) -> str | None:
         try:
             server = xmlrpc.client.ServerProxy(self.url)
-            return server.rig.get_power()
+            return str(server.rig.get_power())
         except Exception:
             return None
 
