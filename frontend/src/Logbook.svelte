@@ -1272,11 +1272,11 @@
     </div>
     <div class="field field-cw-key" class:changed={orig && cw_key_type !== orig.cw_key_type}>
       <label for="cw_key_type">CW Key</label>
-      <select id="cw_key_type" bind:value={cw_key_type}>
+      <select id="cw_key_type" bind:value={cw_key_type} title={cw_key_type === "SK" ? "Straight Key" : cw_key_type === "BUG" ? "Bug" : cw_key_type === "SS" ? "Sideswiper" : "CW Key Type"}>
         <option value="">—</option>
-        <option value="SK">SK</option>
-        <option value="BUG">BUG</option>
-        <option value="SS">SS</option>
+        <option value="SK" title="Straight Key">SK</option>
+        <option value="BUG" title="Bug">BUG</option>
+        <option value="SS" title="Sideswiper">SS</option>
       </select>
     </div>
     {/if}
