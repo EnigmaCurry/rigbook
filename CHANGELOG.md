@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.3.2 — 2026-05-14
+
+- Treat CW-R, CWR, and other CW variants the same as CW for CW key type, SKCC fields, and CW-related queries
+
 ## v0.3.1 — 2026-05-13
 
 - Add CW key type field (SK/BUG/SS) for SKCC reporting, shown only in CW mode with sticky localStorage persistence
