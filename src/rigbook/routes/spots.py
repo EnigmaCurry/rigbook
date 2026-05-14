@@ -95,7 +95,7 @@ async def query_spots(
     cw_calls = [
         c
         for c in all_calls
-        if any(s["callsign"].upper() == c and s["mode"] == "CW" for s in spots)
+        if any(s["callsign"].upper() == c and s["mode"].upper().startswith("CW") for s in spots)
     ]
     if cw_calls:
         await ensure_skcc_cache(gdb)

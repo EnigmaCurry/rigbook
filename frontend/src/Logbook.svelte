@@ -1205,7 +1205,7 @@
       <label>Mode *</label>
       <Autocomplete bind:value={mode} items={availableModes} />
     </div>
-    {#if mode.toUpperCase() === "CW"}
+    {#if mode.toUpperCase().startsWith("CW")}
     <div class="field" class:changed={orig && cw_key_type !== orig.cw_key_type}>
       <label for="cw_key_type">CW Key{#if cw_key_type === "SK"} — Straight{:else if cw_key_type === "BUG"} — Bug{:else if cw_key_type === "SS"} — Sideswiper{/if}</label>
       <select id="cw_key_type" bind:value={cw_key_type}>
@@ -1291,7 +1291,7 @@
         {/if}
       </div>
     </div>
-    {#if mode.toUpperCase() === "CW"}
+    {#if mode.toUpperCase().startsWith("CW")}
     <div class="field" class:changed={orig && (skcc !== orig.skcc || skcc_exch !== orig.skcc_exch)}>
       <label for="skcc">SKCC # / {skcc_exch ? "Validated!" : "Validated?"}</label>
       <div class="skcc-input-row">
