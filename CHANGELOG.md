@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.3.3 — 2026-09-08
+
+- Fix IC-7300 (and other Icom rigs) passband filter resetting to filter 1 when tuning to a skimmer/POTA spot in the same mode already selected on the rig
+
 ## v0.3.2 — 2026-05-14
 
 - Treat CW-R, CWR, and other CW variants the same as CW for CW key type, SKCC fields, and CW-related queries
