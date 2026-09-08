@@ -1095,6 +1095,23 @@
     return String(f >= 1000 ? f * 1000 : f * 1000000);
   }
 
+  // For deciding whether to send `mode` when tuning to a spot. On Icom rigs
+  // (e.g. IC-7300), calling set_mode resets the passband filter to filter 1
+  // even when the "new" mode equals the current mode — so we only send `mode`
+  // if it would actually change the rig. CW/CW-R/CWR and RTTY/RTTY-R are
+  // grouped together (variants share the rig's mode slot); USB and LSB are
+  // kept distinct because they are true mode changes.
+  const MODE_EQUIV = {
+    "CW-R": "CW", "CWR": "CW",
+    "RTTY-R": "RTTY",
+  };
+  function modesEquivalent(a, b) {
+    const na = (a || "").toUpperCase();
+    const nb = (b || "").toUpperCase();
+    if (!na || !nb) return false;
+    return (MODE_EQUIV[na] || na) === (MODE_EQUIV[nb] || nb);
+  }
+
   async function tuneOnly(spot) {
     if (formDirty) {
       alert("Cannot tune radio while editing a QSO. Save or cancel first.");
@@ -1102,10 +1119,14 @@
     }
     if (!flrigEnabled) return;
     try {
+      const body = { freq: spotFreqHz(spot) };
+      if (spot.mode && !modesEquivalent(spot.mode, vfoMode)) {
+        body.mode = spot.mode;
+      }
       await fetch("/api/flrig/vfo", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ freq: spotFreqHz(spot), mode: spot.mode }),
+        body: JSON.stringify(body),
       });
       pollFlrig();
     } catch {}
